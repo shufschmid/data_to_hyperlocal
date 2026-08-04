@@ -1,0 +1,33 @@
+name: Publish backend main image
+
+# Path-filtered: only rebuilds the Directus backend image when something under
+# apps/directus/** changes on main. Image names are derived from the repository, so
+# a project created from this template needs no edit here:
+#   ghcr.io/<owner>/<repo>-backend:main
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/directus/**'
+
+jobs:
+  date_sha_tag:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.image_tag.outputs.tag }}
+    steps:
+      - id: image_tag
+        run: echo "tag=$(date +%s)-${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
+  publish_main_docker:
+    needs: date_sha_tag
+    uses: ./.github/workflows/publish-docker-image.yml
+    with:
+      context: apps/directus
+      tags: |
+        ghcr.io/${{ github.repository }}-backend:main-${{ needs.date_sha_tag.outputs.tag }}
+        ghcr.io/${{ github.repository }}-backend:main
+    secrets: inherit

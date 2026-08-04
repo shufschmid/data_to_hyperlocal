@@ -1,0 +1,128 @@
+# The whole application, self-contained: Postgres + Directus (with the extension
+# bundle built in) + the Next frontend. No GPU, no local model, no other service.
+#
+#   cp .env.example .env      # fill in ANTHROPIC_API_KEY, change the secrets
+#   docker compose up --build
+#
+#   frontend       http://localhost:3000
+#   Directus admin http://localhost:8055
+#
+# State lives in exactly two named volumes below. Nothing else on the host is
+# written to — that is the "no persistent file storage outside Directus" rule.
+name: app
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-directus}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-postgres} -d ${DB_DATABASE:-directus}']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  directus:
+    build:
+      context: ./apps/directus
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # The entrypoint uses these to create the first admin on an empty database.
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@wepublish.ch}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
+
+      KEY: ${KEY:?set KEY in .env — openssl rand -hex 32}
+      SECRET: ${SECRET:?set SECRET in .env — openssl rand -hex 32}
+
+      DB_CLIENT: pg
+      DB_HOST: postgres
+      DB_PORT: '5432'
+      DB_DATABASE: ${DB_DATABASE:-directus}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+      PORT: '8055'
+      PUBLIC_URL: ${DIRECTUS_PUBLIC_URL:-http://localhost:8055}
+      TZ: ${TZ:-Europe/Zurich}
+
+      # The only language model in this stack. Optional at boot: the app starts
+      # without it and fails only when an AI feature is actually used.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5}
+
+      EXTENSIONS_PATH: ./extensions
+      # Auto-reload watches the filesystem; pointless in an immutable image.
+      EXTENSIONS_AUTO_RELOAD: 'false'
+      CACHE_ENABLED: 'false'
+      MAX_PAYLOAD_SIZE: 15mb
+
+      STORAGE_LOCATIONS: local
+      STORAGE_LOCAL_DRIVER: local
+      STORAGE_LOCAL_ROOT: ./uploads
+
+      CORS_ENABLED: 'true'
+      CORS_ORIGIN: ${FRONT_PUBLIC_URL:-http://localhost:3000}
+
+      PASSWORD_RESET_URL_ALLOW_LIST: ${FRONT_PUBLIC_URL:-http://localhost:3000}/auth/set-new-password
+      USER_INVITE_URL_ALLOW_LIST: ${FRONT_PUBLIC_URL:-http://localhost:3000}/auth/accept-invite
+
+      # Set to false to skip `directus-sync push` on boot (e.g. to inspect a
+      # production database without applying the committed schema).
+      RUN_SCHEMA_SYNC: ${RUN_SCHEMA_SYNC:-true}
+    volumes:
+      # Directus Files. The only binary storage this application has.
+      - directus_uploads:/cms/uploads
+    ports:
+      - '${DIRECTUS_PORT:-8055}:8055'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:8055/server/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+        ]
+      interval: 10s
+      timeout: 5s
+      # Generous: first boot runs migrations and the schema push before answering.
+      retries: 30
+      start_period: 40s
+    restart: unless-stopped
+
+  front:
+    build:
+      context: ./apps/front
+    depends_on:
+      directus:
+        condition: service_healthy
+    environment:
+      # Inside the compose network, not localhost. The browser never uses this URL —
+      # it only talks to this app's own /api routes.
+      DIRECTUS_URL: http://directus:8055
+      NODE_ENV: production
+    ports:
+      - '${FRONT_PORT:-3000}:3000'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    restart: unless-stopped
+
+volumes:
+  db_data:
+  directus_uploads:

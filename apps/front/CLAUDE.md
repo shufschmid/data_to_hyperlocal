@@ -1,0 +1,152 @@
+# apps/front — Frontend
+
+Next 16 (App Router), React 19, MUI 9, Apollo Client 4. **UI only.**
+
+Read the root [CLAUDE.md](../../CLAUDE.md) first — the hard constraints there apply
+here. The one that shapes this app most: **business logic belongs in the Directus
+extension bundle, not here.**
+
+## What belongs here, and what does not
+
+**Here:** pages, layout, components, forms, formatting, client-side state, GraphQL
+documents, and thin route handlers that forward a request to Directus.
+
+**Not here:** prompts, Claude calls, calculations, validation that protects data,
+anything that must also hold when a colleague edits the record in the Directus admin
+UI. All of that goes into `apps/directus/extensions/app` — see that app's CLAUDE.md.
+
+The test: if the rule would be bypassed by someone editing the record directly in
+Directus, it is in the wrong place.
+
+## Layout
+
+```
+apps/front/src/
+├── app/
+│   ├── layout.tsx           server component: MUI cache provider + colour-scheme script
+│   ├── providers.tsx        'use client': ApolloProvider + ThemeProvider
+│   ├── page.tsx             renders <AppShell />
+│   └── api/                 route handlers — proxies, nothing else
+│       ├── auth/{login,logout,session}/
+│       ├── graphql/         the browser's only data endpoint
+│       ├── notes/[id]/summary/   calls the extension endpoint
+│       └── health/          docker healthcheck
+├── components/              MUI components; *.test.tsx next to them
+├── graphql/                 gql documents + result types, one file per collection
+└── lib/
+    ├── apollo.ts            client factory (points at /api/graphql)
+    ├── theme.ts             the single MUI theme
+    ├── notes.ts             pure presentation helpers (tested)
+    ├── directus.server.ts   server-only: login/refresh/logout/fetch
+    ├── session.server.ts    server-only: the two httpOnly cookies
+    └── proxy.server.ts      server-only: browser request → Directus request
+```
+
+`*.server.ts` files start with `import 'server-only'` — importing one from a client
+component is a build error, which is what keeps tokens off the browser.
+
+## Security model — do not work around it
+
+- The browser holds **no** Directus token and **no** API key. It gets two httpOnly
+  cookies (`session_access_token`, `session_refresh_token`); no script can read them.
+- Every request to Directus goes through `proxyToDirectus` in `lib/proxy.server.ts`
+  with the **signed-in user's** access token, so Directus permissions decide what
+  happens. Expired access token → refreshed once, request retried, rotated cookies
+  written back.
+- There is deliberately **no service/admin token in this app**. If a feature seems to
+  need one, it needs a Directus extension endpoint instead — that is the whole point
+  of constraint 7 in the root CLAUDE.md.
+- Never introduce a `NEXT_PUBLIC_*` variable for anything sensitive: those are baked
+  into the browser bundle at build time.
+
+## Fetching data
+
+Reads and writes to collections go through Apollo against `/api/graphql`:
+
+```ts
+const { data, loading, error, refetch } = useQuery<NotesQueryResult>(NOTES_QUERY, {
+  fetchPolicy: LIVE_FETCH_POLICY
+})
+```
+
+- Documents live in `src/graphql/*.ts`, never inline in a component. Directus derives
+  the API from the data model: collection `notes` gives `notes`, `notes_by_id`,
+  `create_notes_item(s)`, `update_notes_item(s)`, `delete_notes_item(s)`. Explore it
+  at http://localhost:8055/graphql.
+- Apollo Client 4: `ApolloClient`, `InMemoryCache`, `HttpLink`, `gql` come from
+  `@apollo/client`; the hooks from `@apollo/client/react`. Default options require a
+  module augmentation in v4 — pass `fetchPolicy` per hook instead.
+- `npm run codegen` generates types from the live GraphQL schema into
+  `src/graphql/generated/` (gitignored). Until you run it, the hand-written
+  interfaces in `src/graphql/*.ts` are the types.
+- **Apollo is client-side only.** Queries must not run during server rendering — a
+  relative `/api/graphql` URL has no meaning there. The pattern that guarantees it:
+  data-fetching components live below a gate that starts in a loading state
+  (`AppShell` checks the session in the browser first). Keep it that way.
+- Anything that is not a plain collection read/write is a `fetch` to a route handler
+  that forwards to an extension endpoint — see `handleSummarize` in `NotesPanel.tsx`.
+
+## Adding a page
+
+1. `src/app/<route>/page.tsx` — a server component that renders client components.
+2. Data-fetching components are `'use client'` and use Apollo.
+3. Reuse the theme; no second styling system. MUI only — no Tailwind, no CSS
+   modules, no styled-components alongside it.
+
+## MUI 9 notes
+
+- The theme is `src/lib/theme.ts` — colours, radius, typography and component
+  defaults go there, not into `sx` overrides sprinkled across components.
+- `cssVariables` + `colorSchemes: { light: true, dark: true }` are on; dark mode
+  follows the system. `InitColorSchemeScript` in the layout prevents a white flash.
+- **System props were removed.** `alignItems`, `justifyContent`, `display` and
+  friends are no longer props on `Stack`/`Typography` — put them in `sx`. `direction`
+  and `spacing` are still real `Stack` props.
+- Fonts are the system stack on purpose: `next/font/google` downloads at build time,
+  which breaks `docker build` on a machine without internet. Ship a font file under
+  `public/` with `@font-face` if a brand font is needed.
+- Import icons individually (`@mui/icons-material/AutoAwesome`). Names follow the
+  Material set — `DeleteOutlined`, not `DeleteOutline`.
+
+## Route handlers
+
+Thin. A handler validates its input, calls `proxyToDirectus`, returns the response.
+No prompts, no calculations, no writes assembled by hand.
+
+```ts
+export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params // params is a Promise in Next 15+
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return problem(400, 'Ungueltige Notiz-ID.')
+  return proxyToDirectus(`/notes-summary/${id}`, { method: 'POST' })
+}
+```
+
+Bodies passed to `proxyToDirectus` must be strings, not streams — the request is
+replayed after a token refresh.
+
+## Commands
+
+| Command             | What it does                                         |
+| ------------------- | ---------------------------------------------------- |
+| `npm run dev`       | Dev server on http://localhost:3000                  |
+| `npm run build`     | Production build (`output: 'standalone'` for Docker) |
+| `npm test`          | Jest + Testing Library                               |
+| `npm run typecheck` | `tsc --noEmit`                                       |
+| `npm run codegen`   | GraphQL types from the live schema                   |
+
+## Testing
+
+- Pure helpers in `src/lib/*.ts` get plain unit tests (`notes.test.ts`).
+- Components get Testing Library tests driven by roles and visible text
+  (`NoteCard.test.tsx`) — that is also how the accessible name gets checked.
+- Keep components presentational (props in, callbacks out); the one component that
+  fetches (`NotesPanel`) stays thin so everything else is trivially testable.
+
+## Environment
+
+`.env.local` from `.env.local.example` for local development; in Docker the values
+come from the root `.env` via `docker-compose.yml`.
+
+- `DIRECTUS_URL` — where Directus is reachable **from this server process**
+  (`http://directus:8055` in Docker). The browser never uses it.
+- No token, no Claude key. Both live in the backend.

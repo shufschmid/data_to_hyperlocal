@@ -1,0 +1,40 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Directus 11 backend — data model, schema-as-code, and all server-side logic (in extensions/app).",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "docker compose up -d && npm run directus:start",
+    "test": "npm test --prefix extensions/app",
+    "typecheck": "tsc --noEmit -p migrations && npm run typecheck --prefix extensions/app",
+    "build:migrations": "tsc -p migrations",
+    "build:extensions": "for d in extensions/*; do [ -f \"$d/package.json\" ] || continue; [ -f \"$d/package-lock.json\" ] || { echo \"✖ $d has no package-lock.json — run 'npm install' in it once and commit the lockfile\"; exit 1; }; (cd \"$d\" && npm ci --no-audit --no-fund && npm run build); done",
+    "build": "npm run build:migrations && npm run build:extensions",
+    "database:migrate": "npm run build:migrations && npx directus database migrate:latest",
+    "schema:dump": "directus-sync pull",
+    "schema:load": "if [ -f schema/snapshot/info.json ]; then directus-sync push; else echo 'schema/ enthaelt noch keinen Dump — schema:load uebersprungen. Erst \"npm run schema:dump\" ausfuehren.'; fi",
+    "schema:diff": "directus-sync diff",
+    "directus:init": "ADMIN_EMAIL=admin@wepublish.ch ADMIN_PASSWORD=admin123 PUBLIC_URL=/ DB_HOST=127.0.0.1 DB_PASSWORD=password KEY=59ccea19-23112-4a08-8sw72-dd2312341412 SECRET=1234 npx directus bootstrap && npm run database:migrate && npm run schema:load",
+    "directus:start": "CACHE_ENABLED=false EXTENSIONS_AUTO_RELOAD=true PUBLIC_URL=/ DB_HOST=127.0.0.1 DB_PASSWORD=password KEY=59ccea19-23112-4a08-8sw72-dd2312341412 SECRET=1234 npx directus start",
+    "setup": "cp -n .env.example .env; npm install && npm run build",
+    "db:start": "docker compose up -d",
+    "db:reset": "docker compose down -v",
+    "lint": "prettier . --write --ignore-unknown"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@directus/errors": "^2.1.0",
+    "directus": "11.17.4",
+    "directus-extension-sync": "^3.0.5",
+    "directus-sync": "^3.5.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.30",
+    "knex": "^3.1.0",
+    "prettier": "3.8.1",
+    "typescript": "^5.9.3"
+  }
+}

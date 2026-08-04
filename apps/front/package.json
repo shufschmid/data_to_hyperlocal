@@ -1,0 +1,47 @@
+{
+  "name": "front",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Next.js frontend — UI only. Every read and write goes through Directus; business logic lives in the Directus extension bundle.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "jest --passWithNoTests",
+    "test:watch": "jest --watch",
+    "codegen": "graphql-codegen --config codegen.ts",
+    "lint": "prettier . --write --ignore-unknown"
+  },
+  "dependencies": {
+    "@apollo/client": "^4.2.8",
+    "@emotion/cache": "^11.14.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^9.2.0",
+    "@mui/material": "^9.2.0",
+    "@mui/material-nextjs": "^9.1.1",
+    "graphql": "^16.12.0",
+    "next": "^16.2.12",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "^7.1.0",
+    "@graphql-codegen/client-preset": "^6.0.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.15.30",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "jest": "^30.4.2",
+    "jest-environment-jsdom": "^30.4.1",
+    "prettier": "3.8.1",
+    "typescript": "^5.9.3"
+  }
+}

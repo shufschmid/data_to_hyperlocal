@@ -1,0 +1,19 @@
+# Secrets — the image must never contain a local .env.
+.env
+.env.*
+!.env.example
+
+# Installed and generated at build time inside the image.
+node_modules
+extensions/*/node_modules
+extensions/*/dist
+migrations/*.mjs
+migrations/*.mjs.map
+
+# Local state that must not travel into an image.
+uploads
+docker-compose.override.yml
+
+.git
+.idea
+.vscode

@@ -1,0 +1,13 @@
+node_modules
+.idea
+uploads
+.env
+docker-compose.override.yml
+
+# Compiled migrations — TypeScript sources (*.mts) are the checked-in truth,
+# `npm run database:migrate` compiles them on every run.
+migrations/*.mjs
+migrations/*.mjs.map
+
+# Built extension bundles
+extensions/*/dist

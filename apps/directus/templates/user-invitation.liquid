@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <meta name="color-scheme" content="light" />
+    <title>Willkommen bei {{ projectName }}</title>
+    <!--
+      Custom override of Directus' built-in user-invitation template.
+      Standalone (no Liquid layout) so it doesn't depend on / alter the shared
+      built-in base template. Variables provided by Directus: url (tokenized
+      accept-invite link to the frontend /auth/accept-invite), email, and the
+      project settings projectLogo / projectUrl. German. Branding comes from the Directus project settings.
+    -->
+    <style>
+      body,
+      table,
+      td,
+      a {
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+      }
+      table,
+      td {
+        mso-table-lspace: 0pt;
+        mso-table-rspace: 0pt;
+      }
+      table {
+        border-collapse: collapse !important;
+      }
+      img {
+        border: 0;
+        outline: none;
+        text-decoration: none;
+        -ms-interpolation-mode: bicubic;
+      }
+      body {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        background-color: #f6f6f6;
+      }
+      a {
+        color: #00a155;
+      }
+      @media screen and (max-width: 600px) {
+        .container {
+          width: 100% !important;
+        }
+      }
+    </style>
+  </head>
+  <body
+    style="margin: 0; padding: 0; background-color: #f6f6f6"
+    bgcolor="#f6f6f6"
+  >
+    <table
+      role="presentation"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      border="0"
+      bgcolor="#f6f6f6"
+    >
+      <tr>
+        <td align="center" style="padding: 32px 16px">
+          <table
+            role="presentation"
+            class="container"
+            width="600"
+            cellpadding="0"
+            cellspacing="0"
+            border="0"
+            style="
+              max-width: 600px;
+              width: 100%;
+              background-color: #ffffff;
+              border: 1px solid #e5e7eb;
+              border-radius: 12px;
+            "
+          >
+            <!-- Header -->
+            <tr>
+              <td style="padding: 28px 32px; border-bottom: 1px solid #f1f5f9">
+                {% if projectLogo %}
+                <img
+                  src="{{ projectLogo }}"
+                  alt="{{ projectName }}"
+                  height="32"
+                  style="height: 32px; display: block"
+                />
+                {% else %}
+                <span
+                  style="
+                    font-family: -apple-system, 'Segoe UI', Roboto, Helvetica,
+                      Arial, sans-serif;
+                    font-size: 20px;
+                    font-weight: 700;
+                    color: #111827;
+                  "
+                  >{{ projectName }}</span
+                >
+                {% endif %}
+              </td>
+            </tr>
+            <!-- Content -->
+            <tr>
+              <td
+                style="
+                  padding: 32px;
+                  font-family: -apple-system, 'Segoe UI', Roboto, Helvetica,
+                    Arial, sans-serif;
+                  font-size: 16px;
+                  line-height: 26px;
+                  color: #374151;
+                "
+              >
+                <h1
+                  style="
+                    margin: 0 0 16px 0;
+                    font-size: 24px;
+                    line-height: 30px;
+                    font-weight: 700;
+                    color: #111827;
+                  "
+                >
+                  Willkommen bei {{ projectName }}
+                </h1>
+
+                <p style="margin: 0 0 24px 0">
+                  Du wurdest zu {{ projectName }} eingeladen. Klicke auf den Button,
+                  um dein Konto zu aktivieren und dein persönliches Passwort
+                  festzulegen:
+                </p>
+
+                <!-- CTA button (table-based for Outlook) -->
+                <table
+                  role="presentation"
+                  cellpadding="0"
+                  cellspacing="0"
+                  border="0"
+                  style="margin: 0 0 24px 0"
+                >
+                  <tr>
+                    <td bgcolor="#00a155" style="border-radius: 8px">
+                      <a
+                        href="{{ url }}"
+                        target="_blank"
+                        rel="noopener"
+                        style="
+                          display: inline-block;
+                          padding: 12px 28px;
+                          font-family: -apple-system, 'Segoe UI', Roboto,
+                            Helvetica, Arial, sans-serif;
+                          font-size: 16px;
+                          font-weight: 600;
+                          color: #ffffff;
+                          text-decoration: none;
+                          border-radius: 8px;
+                        "
+                        >Konto aktivieren</a
+                      >
+                    </td>
+                  </tr>
+                </table>
+
+                <p style="margin: 0 0 6px 0; font-size: 14px; color: #6b7280">
+                  Falls der Button nicht funktioniert, kopiere diesen Link in
+                  deinen Browser:
+                </p>
+                <p style="margin: 0; font-size: 14px; word-break: break-all">
+                  <a href="{{ url }}" style="color: #00a155">{{ url }}</a>
+                </p>
+
+                <p style="margin: 32px 0 0 0; color: #374151">
+                  Herzliche Grüsse<br />Dein Team
+                </p>
+              </td>
+            </tr>
+            <!-- Footer -->
+            <tr>
+              <td
+                style="
+                  padding: 20px 32px;
+                  border-top: 1px solid #f1f5f9;
+                  font-family: -apple-system, 'Segoe UI', Roboto, Helvetica,
+                    Arial, sans-serif;
+                  font-size: 12px;
+                  line-height: 18px;
+                  color: #9ca3af;
+                "
+              >
+                Diese E-Mail wurde automatisch von {{ projectName }} gesendet.{% if
+                projectUrl %}
+                <a
+                  href="{{ projectUrl }}"
+                  style="color: #9ca3af; text-decoration: underline"
+                  >{{ projectUrl }}</a
+                >{% endif %}
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

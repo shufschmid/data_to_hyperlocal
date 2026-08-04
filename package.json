@@ -1,0 +1,23 @@
+{
+  "name": "app-template",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Template for standalone AI applications: Directus + Postgres backend (apps/directus) and a Next + MUI frontend (apps/front). Not an npm workspace — each app installs and builds independently. This root package owns the shared pre-commit tooling (husky + lint-staged + prettier) and the docker-compose shortcuts.",
+  "scripts": {
+    "prepare": "husky",
+    "up": "docker compose up --build -d",
+    "down": "docker compose down",
+    "logs": "docker compose logs -f",
+    "test": "npm test --prefix apps/directus && npm test --prefix apps/front",
+    "typecheck": "npm run typecheck --prefix apps/directus && npm run typecheck --prefix apps/front",
+    "lint": "prettier . --write --ignore-unknown"
+  },
+  "lint-staged": {
+    "**/*": "prettier --write --ignore-unknown"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "3.8.1"
+  }
+}

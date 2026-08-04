@@ -1,0 +1,11 @@
+# Vendored / generated — never reformat
+**/node_modules
+apps/directus/schema/*
+!apps/directus/schema/README.md
+apps/directus/extensions/.registry
+apps/directus/extensions/*/dist
+apps/directus/migrations/*.mjs
+apps/directus/uploads
+apps/front/.next
+apps/front/src/graphql/generated
+package-lock.json

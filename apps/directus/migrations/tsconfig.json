@@ -1,0 +1,25 @@
+{
+  // Migrations are written in TypeScript (`.mts`) and compiled in place to
+  // `.mjs` — Directus' migration runner only picks up `.js`/`.mjs`/`.cjs`
+  // files from MIGRATIONS_PATH (default `./migrations`) and ignores `.ts`,
+  // so source and output can live side by side. The generated `.mjs` files
+  // are gitignored; `npm run database:migrate` always compiles first.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": ".",
+    "rootDir": ".",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  // `exclude: []` is required: TypeScript excludes `outDir` by default, and here
+  // outDir is this very folder — without it tsc reports "No inputs were found".
+  "exclude": [],
+  "include": ["*.mts"]
+}

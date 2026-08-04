@@ -1,0 +1,25 @@
+# Local development database only — Directus itself runs on the host via
+# `npm run dev` so extension rebuilds are picked up instantly.
+#
+# The full self-contained stack (Postgres + Directus + frontend, no host Node)
+# is the repo-root docker-compose.yml. Use that one to check what deploys.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: directus
+    ports:
+      - '5432:5432'
+    volumes:
+      - dev_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d directus']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: on-failure
+
+volumes:
+  # `npm run db:reset` (docker compose down -v) deletes this.
+  dev_db:
