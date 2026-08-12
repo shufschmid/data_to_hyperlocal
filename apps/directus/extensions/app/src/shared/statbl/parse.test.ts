@@ -277,3 +277,20 @@ describe('parseZahl — zurueckgehaltene Werte', () => {
     expect(parseZahl('...')).toBeNull()
   })
 })
+
+describe('der Stand einer Tabelle', () => {
+  // „Letzte Änderung: 19.05.2026" auf der Seite ist die Aussage des Amts. Unsere
+  // Lesezeit ist keine: mit ihr stand eine Tabelle vom November 2025 zuoberst in
+  // der Zeitleiste, als waere sie heute erschienen.
+  // Als blosses Tagesdatum in einer timestamptz-Spalte wurde daraus Mitternacht
+  // Ortszeit und damit `2026-05-18 22:00+00` — ein Tag zu frueh in der Liste.
+  it('kommt aus der Seite und nennt seine Zeitzone', () => {
+    expect(parseTabelle(seite('5_1_5_3'))?.stand).toBe(
+      '2026-05-19T00:00:00.000Z'
+    )
+  })
+
+  it('ist null, wenn die Seite keinen nennt', () => {
+    expect(parseTabelle(laden('2025'))?.stand).toBeNull()
+  })
+})

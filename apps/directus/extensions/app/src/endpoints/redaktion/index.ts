@@ -301,10 +301,10 @@ export default defineEndpoint(
             // here rather than guessed later.
             gemeindefeld: 'gemeinde',
             letzter_stand: tabelle.jahr,
-            // Der Zeitpunkt, zu dem wir die Zahlen gelesen haben. Ohne ihn
-            // faellt die Tabelle aus der Zeitleiste, die nach diesem Datum
-            // sortiert — und eine Quelle ohne Datum ist dort keine Zeile.
-            daten_stand: new Date().toISOString(),
+            // Der Stand, den das Amt selbst nennt — nicht unsere Lesezeit.
+            // Mit letzterer stand eine Tabelle vom November 2025 zuoberst in
+            // der Zeitleiste, als waere sie heute erschienen.
+            daten_stand: tabelle.stand,
             zeilen: tabelle.zeilen.length,
             status: 'relevant',
             ...(vorgabe === null ? {} : { standard_vorgabe: vorgabe })

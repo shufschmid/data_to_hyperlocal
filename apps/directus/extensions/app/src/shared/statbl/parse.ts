@@ -38,6 +38,15 @@ export type TabellenForm = 'lang' | 'breit'
 export interface StatblTabelle {
   /** e.g. "Landwirtschaftsbetriebe nach Gemeinde 2025". */
   titel: string
+  /**
+   * Wann das Amt diesen Zweig zuletzt geaendert hat, ISO — aus „Letzte
+   * Änderung" der Seite.
+   *
+   * Nicht wann *wir* gelesen haben. Der Unterschied ist kein Detail: die
+   * Zeitleiste sortiert danach, und mit unserem Lesezeitpunkt stand eine
+   * Tabelle vom November 2025 zuoberst, als waere sie heute erschienen.
+   */
+  stand: string | null
   form: TabellenForm
   /** The period, read from the year selector. */
   jahr: string
@@ -107,6 +116,19 @@ function datenBlock(html: string): string | null {
 
   const start = html.search(/<div[^>]*x:publishsource\s*=\s*"Excel"/i)
   return start === -1 ? null : html.slice(start)
+}
+
+/**
+ * Ein Tagesdatum als ausdruecklicher Zeitpunkt in UTC.
+ *
+ * `daten_stand` ist eine `timestamptz`-Spalte. Ein blosses "2025-11-04" liest
+ * Directus als Mitternacht Ortszeit, und weil der Prozess auf Europe/Zurich
+ * laeuft, landete in der Datenbank `2025-11-03 23:00+00` — die Tabelle war in
+ * der Zeitleiste einen Tag zu frueh datiert. Das Amt nennt einen Tag, also
+ * sagen wir auch einen, statt eine Zeitzone raten zu lassen.
+ */
+export function alsZeitpunkt(datum: string | null): string | null {
+  return datum === null ? null : `${datum}T00:00:00.000Z`
 }
 
 /** "Letzte Änderung: 19.05.2026" → "2026-05-19". */
@@ -413,6 +435,7 @@ export function parseTabelle(html: string): StatblTabelle | null {
 
   return {
     titel: titelZeile === '' ? 'Tabelle' : titelZeile,
+    stand: alsZeitpunkt(parseLetzteAenderung(html)),
     form: 'lang',
     jahr,
     jahre: jahre.length > 0 ? jahre : jahr === '' ? [] : [jahr],
@@ -491,6 +514,7 @@ function leseBreiteForm(
 
   return {
     titel: titel === '' ? messgroesse : titel,
+    stand: alsZeitpunkt(parseLetzteAenderung(html)),
     form: 'breit',
     jahr,
     jahre,

@@ -282,10 +282,23 @@ export default defineOperationApi<Options>({
         try {
           const gelesen = await ladeTabelle(tabelle.externe_id)
 
+          const beschreibend = {
+            titel: gelesen.titel,
+            felder: tabellenFelder(gelesen),
+            daten_stand: gelesen.stand,
+            zeilen: gelesen.zeilen.length,
+            beschreibung: `Tabelle ${tabelle.externe_id} auf statistik.bl.ch, Jahrgaenge ${gelesen.jahre.join(', ')}`
+          }
+
           // The year is the fingerprint here. A correction inside an existing
           // edition does not reopen a run — same reason `letzter_stand` exists
-          // on the portal side.
-          if (gelesen.jahr === tabelle.letzter_stand) continue
+          // on the portal side. Was beschreibt, wird trotzdem nachgefuehrt:
+          // sonst behaelt eine Tabelle fuer immer den Stand, den sie beim
+          // Registrieren hatte.
+          if (gelesen.jahr === tabelle.letzter_stand) {
+            await datensaetzeService.updateOne(tabelle.id, beschreibend)
+            continue
+          }
 
           await datensaetzeService.updateOne(tabelle.id, {
             titel: gelesen.titel,
@@ -624,7 +637,7 @@ export default defineOperationApi<Options>({
             hat_gemeinde: true,
             gemeindefeld: GEMEINDE_SPALTE,
             letzter_stand: gelesen.jahr,
-            daten_stand: new Date().toISOString(),
+            daten_stand: gelesen.stand,
             zeilen: gelesen.zeilen.length
           }
 
@@ -855,7 +868,7 @@ export default defineOperationApi<Options>({
             hat_gemeinde: true,
             gemeindefeld: GEMEINDE_SPALTE,
             letzter_stand: gelesen.jahr,
-            daten_stand: new Date().toISOString(),
+            daten_stand: gelesen.stand,
             zeilen: gelesen.zeilen.length,
             bewertung: `Relevant: aus der Agenda verlinkt (${eintrag.titel}).`
           }
