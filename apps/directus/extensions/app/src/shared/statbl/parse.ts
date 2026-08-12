@@ -186,6 +186,63 @@ export function tabellenBesitzer(html: string, pfad: string): string {
   return auswahl[auswahl.length - 1]?.pfad ?? pfad
 }
 
+/**
+ * Die Zweige eines Kapitels, mit ihren Namen.
+ *
+ * Die Namen stehen in der oberen Navigation — `3_5` heisst dort
+ * „Wohn-/Arbeitsort" — und `parseKinder` warf sie weg, weil es nur Pfade
+ * zurueckgibt. In der Arbeitsflaeche stand dann „Zweig 3_5", was niemandem
+ * etwas sagt.
+ */
+/**
+ * Jeder Portallink samt seiner Beschriftung.
+ *
+ * Ein festes Muster statt eines aus dem Kapitel zusammengesetzten: in einem
+ * Template-Literal wird `\s` zu `s`, und die so gebaute RegExp fand nichts —
+ * ohne zu scheitern, sie lieferte einfach eine leere Liste.
+ */
+const PORTAL_LINK =
+  /href\s*=\s*"\/web_portal\/([\d_]+)"[^>]*>([\s\S]{0,80}?)<\/a>/gi
+
+function linkBeschriftungen(html: string): { pfad: string; titel: string }[] {
+  return [...html.matchAll(PORTAL_LINK)].map((treffer) => ({
+    pfad: treffer[1] ?? '',
+    // Die Eintraege sind mit " | " aneinandergereiht; der Trenner gehoert nicht
+    // zum Namen.
+    titel: text(treffer[2] ?? '')
+      .replace(/\s*\|\s*$/, '')
+      .trim()
+  }))
+}
+
+export function parseZweige(
+  html: string,
+  kapitel: string
+): { pfad: string; titel: string }[] {
+  const gefunden = new Map<string, string>()
+
+  for (const link of linkBeschriftungen(html)) {
+    const teile = link.pfad.split('_')
+    if (teile.length !== 2 || teile[0] !== kapitel) continue
+    if (link.titel === '' || gefunden.has(link.pfad)) continue
+
+    gefunden.set(link.pfad, link.titel)
+  }
+
+  return [...gefunden.entries()].map(([pfad, titel]) => ({ pfad, titel }))
+}
+
+/** Der Name eines Kapitels, ohne seine Nummer: "3 Arbeit und Erwerb" → "Arbeit und Erwerb". */
+export function parseKapitelName(html: string, kapitel: string): string | null {
+  const treffer = linkBeschriftungen(html).find(
+    (link) => link.pfad === kapitel && link.titel !== ''
+  )
+  if (treffer === undefined) return null
+
+  const name = treffer.titel.replace(/^\d+\s*/, '').trim()
+  return name === '' ? null : name
+}
+
 /** Every portal page this one links to below itself. */
 export function parseKinder(html: string, pfad: string): string[] {
   return [

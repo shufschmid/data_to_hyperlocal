@@ -2,8 +2,10 @@ import { defineOperationApi } from '@directus/extensions-sdk'
 import { cacheableSystem, completeJson } from '../../shared/claude'
 import {
   ladeSeite,
+  parseKapitelName,
   parseKinder,
   parseLetzteAenderung,
+  parseZweige,
   StatblFehler
 } from '../../shared/statbl'
 import {
@@ -122,25 +124,48 @@ export default defineOperationApi<Options>({
      */
     async function legeBereicheAn(): Promise<void> {
       const vorhanden = (await bereicheService.readByQuery({
-        fields: ['id', 'pfad'],
+        fields: ['id', 'pfad', 'titel'],
         limit: -1
-      })) as Pick<PortalBereich, 'id' | 'pfad'>[]
+      })) as Pick<PortalBereich, 'id' | 'pfad' | 'titel'>[]
 
       ergebnis.bereiche = vorhanden.length
-      if (vorhanden.length > 0) return
+
+      // Zweige ohne Namen nachtragen. "Zweig 3_5" sagt niemandem etwas; das
+      // Portal nennt ihn "Wohn-/Arbeitsort", und die erste Fassung dieser
+      // Funktion hat die Beschriftung beim Einlesen weggeworfen.
+      const ohneTitel = vorhanden.filter((b) => (b.titel ?? '') === '')
+      if (vorhanden.length > 0 && ohneTitel.length === 0) return
 
       for (const kapitel of KAPITEL) {
         try {
           const { html } = await ladeSeite(kapitel)
           ergebnis.besucht += 1
 
-          const zweige = parseKinder(html, kapitel).filter(
-            (pfad) => pfad.split('_').length === 2
-          )
+          const kapitelName = parseKapitelName(html, kapitel)
 
-          for (const pfad of zweige) {
-            await bereicheService.createOne({ pfad, inventur_offen: true })
-            await seitenService.createOne({ pfad, art: 'offen' })
+          for (const zweig of parseZweige(html, kapitel)) {
+            // "Preise — Grundbesitzwechsel" statt "5_1": das Kapitel gibt dem
+            // Namen den Zusammenhang, den der Zweigname allein nicht hat.
+            const titel =
+              kapitelName === null
+                ? zweig.titel
+                : `${kapitelName} — ${zweig.titel}`
+
+            const bekannt = vorhanden.find((b) => b.pfad === zweig.pfad)
+
+            if (bekannt !== undefined) {
+              if ((bekannt.titel ?? '') === '') {
+                await bereicheService.updateOne(bekannt.id, { titel })
+              }
+              continue
+            }
+
+            await bereicheService.createOne({
+              pfad: zweig.pfad,
+              titel,
+              inventur_offen: true
+            })
+            await seitenService.createOne({ pfad: zweig.pfad, art: 'offen' })
             ergebnis.bereiche += 1
           }
         } catch (error) {

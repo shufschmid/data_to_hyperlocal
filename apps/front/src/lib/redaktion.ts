@@ -297,7 +297,9 @@ export function zeitleiste(quellen: ZeitleistenQuellen, hoechstens = 40): Zeitle
       id: `portal-${b.id}`,
       herkunft: 'portal',
       datum: b.stand,
-      titel: b.titel === '' ? `Zweig ${b.pfad}` : `${b.pfad} — ${b.titel}`,
+      // Der Name zuerst, der Pfad als Beleg dahinter — „5_1 — Preise …" las
+      // sich wie eine Nummer mit Anhang.
+      titel: b.titel === '' ? `Zweig ${b.pfad}` : `${b.titel} (${b.pfad})`,
       hinweis: null,
       datensatzId: null,
       laufId: null,

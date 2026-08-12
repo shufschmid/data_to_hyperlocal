@@ -73,7 +73,7 @@ describe('Zeitleiste', () => {
   it('verlinkt eine Portalzeile auf den Zweig', () => {
     zeige({ bereiche: [zweig] })
 
-    const link = screen.getByRole('link', { name: /18_4/ })
+    const link = screen.getByRole('link', { name: /Steuern und Gebühren \(18_4\)/ })
     expect(link).toHaveAttribute('href', 'https://statistik.bl.ch/web_portal/18_4')
     expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'))
   })

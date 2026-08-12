@@ -10,7 +10,9 @@ import {
   parseTabelle,
   parseZahl,
   spaltenSchluessel,
-  tabellenFelder
+  tabellenFelder,
+  parseZweige,
+  parseKapitelName
 } from './parse'
 
 // Fixtures are the real pages, saved once. Every assertion below is a fact
@@ -292,5 +294,32 @@ describe('der Stand einer Tabelle', () => {
 
   it('ist null, wenn die Seite keinen nennt', () => {
     expect(parseTabelle(laden('2025'))?.stand).toBeNull()
+  })
+})
+
+describe('Zweignamen', () => {
+  // „Zweig 3_5" sagt niemandem etwas. Das Portal nennt ihn in der oberen
+  // Navigation beim Namen — und die erste Fassung warf die Beschriftung weg,
+  // weil sie nur Pfade zurueckgab.
+  it('liest die Namen der Zweige eines Kapitels', () => {
+    expect(parseZweige(seite('5_1-zweig'), '5')).toEqual([
+      { pfad: '5_1', titel: 'Grundbesitzwechsel' },
+      { pfad: '5_2', titel: 'Mietpreise' }
+    ])
+  })
+
+  it('nimmt nur die zweite Ebene des gefragten Kapitels', () => {
+    const zweige = parseZweige(seite('5_1-zweig'), '5')
+    expect(zweige.every((z) => z.pfad.split('_').length === 2)).toBe(true)
+    expect(parseZweige(seite('5_1-zweig'), '7')).toEqual([])
+  })
+
+  it('nennt das Kapitel ohne seine Nummer', () => {
+    expect(parseKapitelName(seite('5_1-zweig'), '5')).toBe('Preise')
+    expect(parseKapitelName(seite('5_1-zweig'), '3')).toBe('Arbeit und Erwerb')
+  })
+
+  it('gibt null, wenn das Kapitel nicht verlinkt ist', () => {
+    expect(parseKapitelName('<html></html>', '5')).toBeNull()
   })
 })

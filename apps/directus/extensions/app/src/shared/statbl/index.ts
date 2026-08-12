@@ -2,9 +2,11 @@ import {
   angleicheSpalten,
   GEMEINDE_SPALTE,
   JAHR_SPALTE,
+  parseKapitelName,
   parseKinder,
   parseLetzteAenderung,
   parseTabelle,
+  parseZweige,
   type StatblTabelle,
   type StatblZeile
 } from './parse'
@@ -26,6 +28,8 @@ import {
 export {
   parseTabelle,
   parseKinder,
+  parseKapitelName,
+  parseZweige,
   parseLetzteAenderung,
   angleicheSpalten,
   GEMEINDE_SPALTE,
