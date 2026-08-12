@@ -1,0 +1,50 @@
+{
+  "collection": "chat_nachrichten",
+  "field": "lauf",
+  "type": "uuid",
+  "meta": {
+    "collection": "chat_nachrichten",
+    "conditions": null,
+    "display": "related-values",
+    "display_options": {
+      "template": "{{ periode }}"
+    },
+    "field": "lauf",
+    "group": null,
+    "hidden": false,
+    "interface": "select-dropdown-m2o",
+    "note": "Gesetzt, wenn das Gespraech den ganzen Lauf betrifft.",
+    "options": {
+      "template": "{{ periode }}"
+    },
+    "readonly": true,
+    "required": false,
+    "searchable": true,
+    "sort": 2,
+    "special": [
+      "m2o"
+    ],
+    "translations": null,
+    "validation": null,
+    "validation_message": null,
+    "width": "half"
+  },
+  "schema": {
+    "name": "lauf",
+    "table": "chat_nachrichten",
+    "data_type": "uuid",
+    "default_value": null,
+    "max_length": null,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "is_nullable": true,
+    "is_unique": false,
+    "is_indexed": false,
+    "is_primary_key": false,
+    "is_generated": false,
+    "generation_expression": null,
+    "has_auto_increment": false,
+    "foreign_key_table": "laeufe",
+    "foreign_key_column": "id"
+  }
+}

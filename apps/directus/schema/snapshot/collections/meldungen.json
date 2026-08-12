@@ -1,0 +1,28 @@
+{
+  "collection": "meldungen",
+  "meta": {
+    "accountability": "all",
+    "archive_app_filter": true,
+    "archive_field": "status",
+    "archive_value": "verworfen",
+    "collapse": "open",
+    "collection": "meldungen",
+    "color": null,
+    "display_template": "{{ gemeinde.name }}: {{ titel }}",
+    "group": null,
+    "hidden": false,
+    "icon": "article",
+    "item_duplication_fields": null,
+    "note": "Die redaktionellen Meldungen. Publizierte Meldungen liest der Dorfkoenig als Quelle.",
+    "preview_url": null,
+    "singleton": false,
+    "sort": null,
+    "sort_field": null,
+    "translations": null,
+    "unarchive_value": "entwurf",
+    "versioning": false
+  },
+  "schema": {
+    "name": "meldungen"
+  }
+}

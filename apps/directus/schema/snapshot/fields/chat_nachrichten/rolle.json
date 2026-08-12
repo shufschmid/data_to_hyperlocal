@@ -1,0 +1,55 @@
+{
+  "collection": "chat_nachrichten",
+  "field": "rolle",
+  "type": "string",
+  "meta": {
+    "collection": "chat_nachrichten",
+    "conditions": null,
+    "display": "labels",
+    "display_options": null,
+    "field": "rolle",
+    "group": null,
+    "hidden": false,
+    "interface": "select-dropdown",
+    "note": null,
+    "options": {
+      "choices": [
+        {
+          "text": "Redaktion",
+          "value": "user"
+        },
+        {
+          "text": "Assistenz",
+          "value": "assistant"
+        }
+      ]
+    },
+    "readonly": true,
+    "required": true,
+    "searchable": true,
+    "sort": 4,
+    "special": null,
+    "translations": null,
+    "validation": null,
+    "validation_message": null,
+    "width": "half"
+  },
+  "schema": {
+    "name": "rolle",
+    "table": "chat_nachrichten",
+    "data_type": "character varying",
+    "default_value": null,
+    "max_length": 16,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "is_nullable": false,
+    "is_unique": false,
+    "is_indexed": false,
+    "is_primary_key": false,
+    "is_generated": false,
+    "generation_expression": null,
+    "has_auto_increment": false,
+    "foreign_key_table": null,
+    "foreign_key_column": null
+  }
+}

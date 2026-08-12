@@ -1,0 +1,47 @@
+[
+  {
+    "name": "Meldungen erzeugen",
+    "icon": "edit_note",
+    "color": null,
+    "description": "Eroeffnet Laeufe, erstellt Briefings und schreibt Meldungen. Sicherheitsnetz — der Endpoint stoesst dieselbe Arbeit sofort an.",
+    "status": "active",
+    "trigger": "schedule",
+    "accountability": null,
+    "options": {
+      "type": "interval",
+      "cron": "*/2 * * * *"
+    },
+    "operation": "a7c54ed8-f762-431b-9716-39a268d20733",
+    "_syncId": "4549b1ea-55df-4a72-a2a0-19b0c4fc7979"
+  },
+  {
+    "name": "Portal inventarisieren",
+    "icon": "travel_explore",
+    "color": null,
+    "description": "Geht das Statistikportal seitenweise durch und leitet daraus ab, welche Zweige taeglich geprueft werden muessen.",
+    "status": "active",
+    "trigger": "schedule",
+    "accountability": null,
+    "options": {
+      "type": "interval",
+      "cron": "0 */2 * * *"
+    },
+    "operation": "53e7cdc8-a297-45b9-a7af-6422b1dd215a",
+    "_syncId": "6213f7ac-210c-4f51-976a-56f6cf042501"
+  },
+  {
+    "name": "Quellen taeglich pruefen",
+    "icon": "schedule",
+    "color": null,
+    "description": "Prueft taeglich alle aktiven Quellen auf neue oder geaenderte Datensaetze und bewertet offene.",
+    "status": "active",
+    "trigger": "schedule",
+    "accountability": "all",
+    "options": {
+      "type": "interval",
+      "cron": "0 6 * * *"
+    },
+    "operation": "93854eaf-8fc4-42cb-b3a4-ca11b614ce1b",
+    "_syncId": "804821a8-2dc2-4fe4-958b-9a934a6b0d37"
+  }
+]

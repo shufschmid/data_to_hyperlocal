@@ -1,0 +1,16 @@
+[
+  {
+    "name": "Administrator",
+    "icon": "verified",
+    "description": "$t:admin_description",
+    "parent": null,
+    "_syncId": "_sync_default_admin_role"
+  },
+  {
+    "name": "Dorfkoenig",
+    "icon": "download",
+    "description": "Nur-Lese-Zugang fuer den Dorfkoenig. Token im Adminbereich erzeugen.",
+    "parent": null,
+    "_syncId": "7adfe603-cabc-4f68-a993-ba51739a3ab9"
+  }
+]

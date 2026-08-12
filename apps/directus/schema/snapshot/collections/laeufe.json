@@ -1,0 +1,28 @@
+{
+  "collection": "laeufe",
+  "meta": {
+    "accountability": "all",
+    "archive_app_filter": true,
+    "archive_field": null,
+    "archive_value": null,
+    "collapse": "open",
+    "collection": "laeufe",
+    "color": null,
+    "display_template": "{{ datensatz.titel }} — {{ periode }}",
+    "group": null,
+    "hidden": false,
+    "icon": "workspaces",
+    "item_duplication_fields": null,
+    "note": "Ein Lauf verwandelt einen Datensatz fuer eine Periode in Meldungen.",
+    "preview_url": null,
+    "singleton": false,
+    "sort": null,
+    "sort_field": null,
+    "translations": null,
+    "unarchive_value": null,
+    "versioning": false
+  },
+  "schema": {
+    "name": "laeufe"
+  }
+}

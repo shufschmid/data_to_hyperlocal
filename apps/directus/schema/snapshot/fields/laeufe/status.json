@@ -1,0 +1,101 @@
+{
+  "collection": "laeufe",
+  "field": "status",
+  "type": "string",
+  "meta": {
+    "collection": "laeufe",
+    "conditions": null,
+    "display": "labels",
+    "display_options": {
+      "choices": [
+        {
+          "background": "#A2B5CD",
+          "foreground": "#FFFFFF",
+          "text": "Geplant",
+          "value": "geplant"
+        },
+        {
+          "background": "#FFA439",
+          "foreground": "#FFFFFF",
+          "text": "Briefing laeuft",
+          "value": "briefing"
+        },
+        {
+          "background": "#FFA439",
+          "foreground": "#FFFFFF",
+          "text": "Meldungen werden geschrieben",
+          "value": "schreibt"
+        },
+        {
+          "background": "#2ECDA7",
+          "foreground": "#FFFFFF",
+          "text": "Bereit zur Durchsicht",
+          "value": "bereit"
+        },
+        {
+          "background": "#E35169",
+          "foreground": "#FFFFFF",
+          "text": "Fehler",
+          "value": "fehler"
+        }
+      ],
+      "showAsDot": true
+    },
+    "field": "status",
+    "group": null,
+    "hidden": false,
+    "interface": "select-dropdown",
+    "note": null,
+    "options": {
+      "choices": [
+        {
+          "text": "Geplant",
+          "value": "geplant"
+        },
+        {
+          "text": "Briefing laeuft",
+          "value": "briefing"
+        },
+        {
+          "text": "Meldungen werden geschrieben",
+          "value": "schreibt"
+        },
+        {
+          "text": "Bereit zur Durchsicht",
+          "value": "bereit"
+        },
+        {
+          "text": "Fehler",
+          "value": "fehler"
+        }
+      ]
+    },
+    "readonly": true,
+    "required": false,
+    "searchable": true,
+    "sort": 4,
+    "special": null,
+    "translations": null,
+    "validation": null,
+    "validation_message": null,
+    "width": "half"
+  },
+  "schema": {
+    "name": "status",
+    "table": "laeufe",
+    "data_type": "character varying",
+    "default_value": "geplant",
+    "max_length": 32,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "is_nullable": false,
+    "is_unique": false,
+    "is_indexed": false,
+    "is_primary_key": false,
+    "is_generated": false,
+    "generation_expression": null,
+    "has_auto_increment": false,
+    "foreign_key_table": null,
+    "foreign_key_column": null
+  }
+}

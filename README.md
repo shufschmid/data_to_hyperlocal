@@ -50,17 +50,25 @@ Stop with `docker compose down`; add `-v` to also delete the database.
 
 ### What you get
 
-The example feature is a **notes** collection with an AI summary. It shows every
-pattern in the stack end to end:
+The application is **«Die Redaktion»**: public data in, local journalism out.
 
-- a collection created by a **TypeScript migration** (`apps/directus/migrations/`)
-- an **MUI** page that lists and creates notes over **GraphQL** via Apollo
-- a **Directus extension endpoint** that summarises a note with the **Claude API**
-- a **hook** that clears the summary when the note text changes
-- a **Flow operation** that backfills missing summaries — attach it to a Flow with a
-  Schedule trigger and it becomes a nightly job
-
-Deleting all of it is step 3 of [Starting a new project](CLAUDE.md#starting-a-new-project).
+- **Watching** — a daily Flow asks data.bl.ch what changed and the statistics
+  office's agenda what is coming. A dataset with figures per municipality becomes
+  a candidate.
+- **Writing** — one Claude call settles the angle for the whole run, then one
+  cheap call per municipality writes the article. The shared half of the prompt
+  is byte-identical across them, so the cache carries it.
+- **Checking** — every draft is tested for relative time references and for
+  percentages the model worked out for itself. Failures go back once with the
+  offending words named, then land as a flagged draft. Never published silently.
+- **Reviewing** — the editor revises by chat, singly or across a whole run. An
+  instruction that reads like a lasting preference is remembered and applies next
+  year too.
+- **Approving** — an article can go out on a one-time link. Opening that link
+  records nothing; only a button does. A message in counter-check cannot reach
+  publication without an unambiguous yes.
+- **Publishing** — `status = publiziert`, which the Dorfkönig reads by
+  municipality.
 
 ---
 

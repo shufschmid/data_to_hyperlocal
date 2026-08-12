@@ -1,0 +1,25 @@
+{
+  "collection": "chat_nachrichten",
+  "field": "meldung",
+  "related_collection": "meldungen",
+  "meta": {
+    "junction_field": null,
+    "many_collection": "chat_nachrichten",
+    "many_field": "meldung",
+    "one_allowed_collections": null,
+    "one_collection": "meldungen",
+    "one_collection_field": null,
+    "one_deselect_action": "nullify",
+    "one_field": null,
+    "sort_field": null
+  },
+  "schema": {
+    "table": "chat_nachrichten",
+    "column": "meldung",
+    "foreign_key_table": "meldungen",
+    "foreign_key_column": "id",
+    "constraint_name": "chat_nachrichten_meldung_foreign",
+    "on_update": "NO ACTION",
+    "on_delete": "CASCADE"
+  }
+}

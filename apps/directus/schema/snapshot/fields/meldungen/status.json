@@ -1,0 +1,101 @@
+{
+  "collection": "meldungen",
+  "field": "status",
+  "type": "string",
+  "meta": {
+    "collection": "meldungen",
+    "conditions": null,
+    "display": "labels",
+    "display_options": {
+      "choices": [
+        {
+          "background": "#A2B5CD",
+          "foreground": "#FFFFFF",
+          "text": "Entwurf",
+          "value": "entwurf"
+        },
+        {
+          "background": "#FFA439",
+          "foreground": "#FFFFFF",
+          "text": "In Gegenpruefung",
+          "value": "in_pruefung"
+        },
+        {
+          "background": "#3399FF",
+          "foreground": "#FFFFFF",
+          "text": "Freigegeben",
+          "value": "freigegeben"
+        },
+        {
+          "background": "#2ECDA7",
+          "foreground": "#FFFFFF",
+          "text": "Publiziert",
+          "value": "publiziert"
+        },
+        {
+          "background": "#E35169",
+          "foreground": "#FFFFFF",
+          "text": "Verworfen",
+          "value": "verworfen"
+        }
+      ],
+      "showAsDot": true
+    },
+    "field": "status",
+    "group": null,
+    "hidden": false,
+    "interface": "select-dropdown",
+    "note": "Der Uebergang wird von einem Hook geprueft — auch beim Bearbeiten hier im Adminbereich.",
+    "options": {
+      "choices": [
+        {
+          "text": "Entwurf",
+          "value": "entwurf"
+        },
+        {
+          "text": "In Gegenpruefung",
+          "value": "in_pruefung"
+        },
+        {
+          "text": "Freigegeben",
+          "value": "freigegeben"
+        },
+        {
+          "text": "Publiziert",
+          "value": "publiziert"
+        },
+        {
+          "text": "Verworfen",
+          "value": "verworfen"
+        }
+      ]
+    },
+    "readonly": false,
+    "required": false,
+    "searchable": true,
+    "sort": 4,
+    "special": null,
+    "translations": null,
+    "validation": null,
+    "validation_message": null,
+    "width": "half"
+  },
+  "schema": {
+    "name": "status",
+    "table": "meldungen",
+    "data_type": "character varying",
+    "default_value": "entwurf",
+    "max_length": 32,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "is_nullable": false,
+    "is_unique": false,
+    "is_indexed": false,
+    "is_primary_key": false,
+    "is_generated": false,
+    "generation_expression": null,
+    "has_auto_increment": false,
+    "foreign_key_table": null,
+    "foreign_key_column": null
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "collection": "portal_seiten",
+  "field": "bereich",
+  "type": "uuid",
+  "meta": {
+    "collection": "portal_seiten",
+    "conditions": null,
+    "display": "related-values",
+    "display_options": {
+      "template": "{{ pfad }}"
+    },
+    "field": "bereich",
+    "group": null,
+    "hidden": false,
+    "interface": "select-dropdown-m2o",
+    "note": null,
+    "options": {
+      "template": "{{ pfad }} {{ titel }}"
+    },
+    "readonly": false,
+    "required": false,
+    "searchable": true,
+    "sort": 3,
+    "special": [
+      "m2o"
+    ],
+    "translations": null,
+    "validation": null,
+    "validation_message": null,
+    "width": "half"
+  },
+  "schema": {
+    "name": "bereich",
+    "table": "portal_seiten",
+    "data_type": "uuid",
+    "default_value": null,
+    "max_length": null,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "is_nullable": true,
+    "is_unique": false,
+    "is_indexed": false,
+    "is_primary_key": false,
+    "is_generated": false,
+    "generation_expression": null,
+    "has_auto_increment": false,
+    "foreign_key_table": "portal_bereiche",
+    "foreign_key_column": "id"
+  }
+}

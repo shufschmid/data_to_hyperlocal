@@ -1,0 +1,91 @@
+{
+  "collection": "datensaetze",
+  "field": "status",
+  "type": "string",
+  "meta": {
+    "collection": "datensaetze",
+    "conditions": null,
+    "display": "labels",
+    "display_options": {
+      "choices": [
+        {
+          "background": "#FFA439",
+          "foreground": "#FFFFFF",
+          "text": "Neu",
+          "value": "neu"
+        },
+        {
+          "background": "#2ECDA7",
+          "foreground": "#FFFFFF",
+          "text": "Relevant",
+          "value": "relevant"
+        },
+        {
+          "background": "#A2B5CD",
+          "foreground": "#FFFFFF",
+          "text": "Ignoriert",
+          "value": "ignoriert"
+        },
+        {
+          "background": "#3399FF",
+          "foreground": "#FFFFFF",
+          "text": "Aufbereitet",
+          "value": "aufbereitet"
+        }
+      ],
+      "showAsDot": true
+    },
+    "field": "status",
+    "group": null,
+    "hidden": false,
+    "interface": "select-dropdown",
+    "note": null,
+    "options": {
+      "choices": [
+        {
+          "text": "Neu",
+          "value": "neu"
+        },
+        {
+          "text": "Relevant",
+          "value": "relevant"
+        },
+        {
+          "text": "Ignoriert",
+          "value": "ignoriert"
+        },
+        {
+          "text": "Aufbereitet",
+          "value": "aufbereitet"
+        }
+      ]
+    },
+    "readonly": false,
+    "required": false,
+    "searchable": true,
+    "sort": 6,
+    "special": null,
+    "translations": null,
+    "validation": null,
+    "validation_message": null,
+    "width": "half"
+  },
+  "schema": {
+    "name": "status",
+    "table": "datensaetze",
+    "data_type": "character varying",
+    "default_value": "neu",
+    "max_length": 32,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "is_nullable": false,
+    "is_unique": false,
+    "is_indexed": false,
+    "is_primary_key": false,
+    "is_generated": false,
+    "generation_expression": null,
+    "has_auto_increment": false,
+    "foreign_key_table": null,
+    "foreign_key_column": null
+  }
+}

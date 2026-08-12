@@ -1,0 +1,28 @@
+{
+  "collection": "portal_seiten",
+  "meta": {
+    "accountability": "all",
+    "archive_app_filter": true,
+    "archive_field": null,
+    "archive_value": null,
+    "collapse": "open",
+    "collection": "portal_seiten",
+    "color": null,
+    "display_template": "{{ pfad }} {{ titel }}",
+    "group": null,
+    "hidden": false,
+    "icon": "table_view",
+    "item_duplication_fields": null,
+    "note": "Jede besuchte Seite des Statistikportals, mit ihrer Einordnung.",
+    "preview_url": null,
+    "singleton": false,
+    "sort": null,
+    "sort_field": null,
+    "translations": null,
+    "unarchive_value": null,
+    "versioning": false
+  },
+  "schema": {
+    "name": "portal_seiten"
+  }
+}

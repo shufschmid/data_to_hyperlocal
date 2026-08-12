@@ -1,0 +1,28 @@
+{
+  "collection": "chat_nachrichten",
+  "meta": {
+    "accountability": "all",
+    "archive_app_filter": true,
+    "archive_field": null,
+    "archive_value": null,
+    "collapse": "open",
+    "collection": "chat_nachrichten",
+    "color": null,
+    "display_template": "{{ rolle }}: {{ inhalt }}",
+    "group": null,
+    "hidden": false,
+    "icon": "forum",
+    "item_duplication_fields": null,
+    "note": "Verlauf der Redaktionsgespraeche. Quelle fuer das Gedaechtnis in redaktionswissen.",
+    "preview_url": null,
+    "singleton": false,
+    "sort": null,
+    "sort_field": "position",
+    "translations": null,
+    "unarchive_value": null,
+    "versioning": false
+  },
+  "schema": {
+    "name": "chat_nachrichten"
+  }
+}

@@ -1,0 +1,51 @@
+[
+  {
+    "name": "Abarbeiten",
+    "key": "abarbeiten",
+    "type": "redaktion-abarbeiten",
+    "position_x": 19,
+    "position_y": 1,
+    "options": {
+      "laeufe": 1,
+      "meldungen": 5,
+      "briefing_modell": "claude-sonnet-5"
+    },
+    "resolve": null,
+    "reject": null,
+    "flow": "4549b1ea-55df-4a72-a2a0-19b0c4fc7979",
+    "_syncId": "a7c54ed8-f762-431b-9716-39a268d20733"
+  },
+  {
+    "name": "Inventur",
+    "key": "portal_inventur",
+    "type": "portal-inventur",
+    "position_x": 19,
+    "position_y": 1,
+    "options": {
+      "seiten": 200,
+      "abdeckungen": 40
+    },
+    "resolve": null,
+    "reject": null,
+    "flow": "6213f7ac-210c-4f51-976a-56f6cf042501",
+    "_syncId": "53e7cdc8-a297-45b9-a7af-6422b1dd215a"
+  },
+  {
+    "name": "Quellen pruefen",
+    "key": "quellen_pruefen",
+    "type": "quellen-pruefen",
+    "position_x": 19,
+    "position_y": 1,
+    "options": {
+      "seiten": 2,
+      "bewertungen": 10,
+      "zuordnungen": 10,
+      "tabellen": 5,
+      "gemeindepruefungen": 25
+    },
+    "resolve": null,
+    "reject": null,
+    "flow": "804821a8-2dc2-4fe4-958b-9a934a6b0d37",
+    "_syncId": "93854eaf-8fc4-42cb-b3a4-ca11b614ce1b"
+  }
+]

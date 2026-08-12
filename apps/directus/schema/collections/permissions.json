@@ -1,0 +1,43 @@
+[
+  {
+    "collection": "gemeinden",
+    "action": "read",
+    "permissions": {},
+    "validation": null,
+    "presets": null,
+    "fields": [
+      "id",
+      "bfs_nummer",
+      "name",
+      "bezirk"
+    ],
+    "policy": "a74f7717-9fdb-4331-822a-7b200af48597",
+    "_syncId": "3fdf3e47-70af-4347-976c-23cca35aa256"
+  },
+  {
+    "collection": "meldungen",
+    "action": "read",
+    "permissions": {
+      "status": {
+        "_eq": "publiziert"
+      }
+    },
+    "validation": null,
+    "presets": null,
+    "fields": [
+      "id",
+      "titel",
+      "lead",
+      "text",
+      "status",
+      "datengrundlage",
+      "publiziert_am",
+      "date_created",
+      "date_updated",
+      "gemeinde",
+      "lauf"
+    ],
+    "policy": "a74f7717-9fdb-4331-822a-7b200af48597",
+    "_syncId": "e2552aa7-e52d-4ccc-b4d0-b07d07deef53"
+  }
+]

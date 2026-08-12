@@ -1,35 +1,46 @@
-# schema/ — the data model, in version control
+# schema/ — Directus configuration, in version control
 
 This folder is written by [directus-sync](https://tractr.github.io/directus-sync/). It
 is generated, never hand-edited.
 
 ```bash
-npm run schema:dump   # live Directus  →  this folder   (after changing the model in the admin UI)
-npm run schema:diff   # show what a push would change
-npm run schema:load   # this folder    →  live Directus  (on a colleague's machine, in CI, on boot)
+npm run schema:dump   # live Directus  →  this folder
+npm run schema:diff   # show what differs between this folder and live Directus
+npm run schema:load   # this folder    →  live Directus  (colleague's machine, CI, boot)
 ```
 
-Both commands talk to a **running** Directus over HTTP and need credentials —
+All three talk to a **running** Directus over HTTP and need credentials —
 `DIRECTUS_URL` plus either `DIRECTUS_TOKEN` or `DIRECTUS_ADMIN_EMAIL`/`DIRECTUS_ADMIN_PASSWORD`
 in `.env`. The container entrypoint uses the admin credentials.
 
-After the first `schema:dump` you get:
+## What is applied, and what is only recorded
 
-```
-schema/
-├── snapshot/          collections, fields, relations
-├── flows/             Flows incl. their Schedule (cron) triggers
-├── operations/        the steps inside those Flows
-├── roles/  policies/  permissions/
-├── settings/ presets/ dashboards/ panels/ translations/
-└── directus-sync.id-map.json   maps local ids to remote ids — commit it
-```
+This is the important part, and it is not symmetric:
 
-`npm run schema:load` is a **diff-and-apply**, so it is safe to run repeatedly.
+| Folder                                                                                                                | Owned by             | Applied by `schema:load`?     |
+| --------------------------------------------------------------------------------------------------------------------- | -------------------- | ----------------------------- |
+| `collections/` — flows, operations, roles, policies, permissions, settings, presets, dashboards, panels, translations | **this folder**      | **yes**                       |
+| `snapshot/` — collections, fields, relations                                                                          | **`../migrations/`** | **no** (`push --no-snapshot`) |
+
+`snapshot/` is dumped so the data model is readable in a diff and so `schema:diff`
+can prove a migration wrote what Directus itself would have written. It is
+deliberately **not** pushed.
+
+The reason is a sharp edge: `directus-sync push` treats the snapshot as the whole
+truth and **deletes any collection that is not in it**. Add a migration, boot the
+container before re-dumping, and the push silently drops the collections that
+migration just created — tables gone, no error in the log. Excluding the snapshot
+from the push removes that failure mode entirely.
 
 ## The one rule
 
 Every collection is owned by exactly one mechanism — either this folder or
-`../migrations/`. Never both: a `schema:load` that tries to create a collection a
-migration already created fails with "collection already exists". See
-`apps/directus/CLAUDE.md` for which to pick.
+`../migrations/`. Never both. In this project the split is fixed:
+
+- **Data model** (tables, fields, relations) → migrations, always.
+- **Configuration** (Flows and their cron triggers, roles, permissions, settings)
+  → this folder, always.
+
+After changing a migration, run `npm run schema:dump` and check that
+`npm run schema:diff` comes back with no changes. That is the gate: an empty diff
+means the migration and Directus agree. See `apps/directus/CLAUDE.md`.

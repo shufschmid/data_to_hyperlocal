@@ -1,0 +1,59 @@
+{
+  "collection": "meldungen",
+  "field": "entscheidung",
+  "type": "string",
+  "meta": {
+    "collection": "meldungen",
+    "conditions": null,
+    "display": "labels",
+    "display_options": null,
+    "field": "entscheidung",
+    "group": null,
+    "hidden": false,
+    "interface": "select-dropdown",
+    "note": "\"Unklar\" gilt nie als Freigabe.",
+    "options": {
+      "choices": [
+        {
+          "text": "Freigegeben",
+          "value": "ja"
+        },
+        {
+          "text": "Abgelehnt",
+          "value": "nein"
+        },
+        {
+          "text": "Unklar",
+          "value": "unklar"
+        }
+      ]
+    },
+    "readonly": true,
+    "required": false,
+    "searchable": true,
+    "sort": 17,
+    "special": null,
+    "translations": null,
+    "validation": null,
+    "validation_message": null,
+    "width": "half"
+  },
+  "schema": {
+    "name": "entscheidung",
+    "table": "meldungen",
+    "data_type": "character varying",
+    "default_value": null,
+    "max_length": 16,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "is_nullable": true,
+    "is_unique": false,
+    "is_indexed": false,
+    "is_primary_key": false,
+    "is_generated": false,
+    "generation_expression": null,
+    "has_auto_increment": false,
+    "foreign_key_table": null,
+    "foreign_key_column": null
+  }
+}

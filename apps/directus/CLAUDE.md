@@ -63,7 +63,7 @@ icons, translations, roles, permissions, dashboards, Flows.
 
 **Migrations (`migrations/*.mts`) — for what must happen without a human clicking:**
 
-- bootstrapping a table on a fresh install (the template's `notes` example)
+- bootstrapping a table on a fresh install (the `gemeinden` seed in this project)
 - data backfills and repairs, index tuning, tables Directus should not manage
 
 Rules for migrations:
@@ -80,7 +80,7 @@ Rules for migrations:
   database — but the admin UI only lists collections that have a
   `directus_collections` row, and it renders a plain text input for every field with
   no `directus_fields` row. Skip those inserts and you ship a collection your
-  colleagues can neither see nor edit. `20260729A-example-notes-collection.mts` shows
+  colleagues can neither see nor edit. `20260804C-datensaetze.mts` shows
   the full shape, including the `date-created`/`date-updated` specials and the JSON
   columns (pass them as JSON strings — knex does not serialise objects into a `json`
   column).
@@ -103,7 +103,7 @@ the choice matters:
 export default defineEndpoint((router, { services, getSchema, logger }) => {
   router.post('/:id', async (req: ApiRequest, res, next) => {
     if (!isAuthenticated(req)) return next(new ForbiddenError())
-    const items = new ItemsService('notes', {
+    const meldungen = new ItemsService('meldungen', {
       schema: await getSchema(),
       accountability: req.accountability
     })
@@ -130,9 +130,9 @@ export default defineEndpoint((router, { services, getSchema, logger }) => {
   cause; never return a raw provider error to the browser (it can contain the prompt).
 - Wrap only the part that can genuinely fail. A single `try` around the whole
   handler turns every bad request into the same 502: give the caller's mistakes
-  their own 4xx (see `EmptyNoteBodyError` in `notes-summary`) and keep the generic
+  their own 4xx (see `LeereAnweisung` in `redaktion`) and keep the generic
   5xx for what really is a fault.
-- Working example: `src/endpoints/notes-summary/`.
+- Working example: `src/endpoints/redaktion/` — note the deliberately public `/freigabe` routes and why they are safe.
 
 ### Hook — react to a write, from any source
 
@@ -145,7 +145,7 @@ GraphQL, other extensions), which makes it the right place for invariants.
 - Hooks block the request. Nothing slow belongs here — that is what Flows are for.
 - Anything derived by an LLM is a cache: invalidate it in a hook when its source
   changes, so a stale summary can never outlive the text it describes. Example:
-  `src/hooks/notes-normalize/`.
+  `src/hooks/meldung-status/` — it guards the editorial state machine on every write path.
 
 ### Operation — a step a Flow can call. **This is how scheduled work is done.**
 
@@ -164,7 +164,7 @@ and compose so `0 7` means 07:00 Swiss wall-clock all year.
 
 Write scheduled handlers to be idempotent and **bounded** — a scheduled run can
 overlap a previous one, and an unbounded run is how a nightly job turns into a
-surprise API bill. Example: `src/operations/notes-summarize-pending/` (a `limit`
+surprise API bill. Example: `src/operations/quellen-pruefen/` (two separate budgets
 option, one Claude call per item, one bad item skipped rather than aborting).
 
 ## Calling Claude
@@ -188,12 +188,12 @@ const validated = parseSummary(answer) // never trust the shape
 - Both take an optional `MessageSender` so tests inject a stub and never hit the
   network. See `src/shared/claude.test.ts`.
 - Keep prompts in their own module next to the handler
-  (`endpoints/notes-summary/prompt.ts`) so prompt building and answer validation are
+  (`redaktion/prompt.ts`) so prompt building and answer validation are
   unit-testable without a network call. Do this for every AI feature.
 - **Store each part of an answer in its own field.** Packing structured output into
   one text column (`summary\n\n#tag #tag`) forces the frontend to parse it back
   apart, which is the same format written twice in two packages — they drift. Use a
-  `cast-csv` column for a list (`notes.ai_summary_tags`; Directus exposes it as
+  `cast-csv` column for a list (`meldungen.zeit_warnungen`; Directus exposes it as
   `[String]` in GraphQL) or `cast-json` for anything nested. The mapping from
   validated answer to columns is one pure function (`summaryFields`), shared by the
   endpoint and the Flow operation so the two cannot diverge.
