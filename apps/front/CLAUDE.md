@@ -29,14 +29,16 @@ apps/front/src/
 │   └── api/                 route handlers — proxies, nothing else
 │       ├── auth/{login,logout,session}/
 │       ├── graphql/         the browser's only data endpoint
-│       ├── notes/[id]/summary/   calls the extension endpoint
+│       ├── redaktion/[...pfad]/  calls the extension endpoint (allowlisted)
+│       ├── freigabe/             PUBLIC — the counter-check link
 │       └── health/          docker healthcheck
 ├── components/              MUI components; *.test.tsx next to them
 ├── graphql/                 gql documents + result types, one file per collection
 └── lib/
     ├── apollo.ts            client factory (points at /api/graphql)
     ├── theme.ts             the single MUI theme
-    ├── notes.ts             pure presentation helpers (tested)
+    ├── redaktion.ts         pure presentation helpers (tested)
+    ├── public.server.ts     server-only: the ONE unauthenticated path
     ├── directus.server.ts   server-only: login/refresh/logout/fetch
     ├── session.server.ts    server-only: the two httpOnly cookies
     └── proxy.server.ts      server-only: browser request → Directus request
@@ -64,14 +66,14 @@ component is a build error, which is what keeps tokens off the browser.
 Reads and writes to collections go through Apollo against `/api/graphql`:
 
 ```ts
-const { data, loading, error, refetch } = useQuery<NotesQueryResult>(NOTES_QUERY, {
+const { data, loading, error, refetch } = useQuery<MeldungenErgebnis>(MELDUNGEN_QUERY, {
   fetchPolicy: LIVE_FETCH_POLICY
 })
 ```
 
 - Documents live in `src/graphql/*.ts`, never inline in a component. Directus derives
-  the API from the data model: collection `notes` gives `notes`, `notes_by_id`,
-  `create_notes_item(s)`, `update_notes_item(s)`, `delete_notes_item(s)`. Explore it
+  the API from the data model: collection `meldungen` gives `meldungen`, `meldungen_by_id`,
+  `create_meldungen_item(s)` and so on. Explore it
   at http://localhost:8055/graphql.
 - Apollo Client 4: `ApolloClient`, `InMemoryCache`, `HttpLink`, `gql` come from
   `@apollo/client`; the hooks from `@apollo/client/react`. Default options require a
@@ -84,7 +86,7 @@ const { data, loading, error, refetch } = useQuery<NotesQueryResult>(NOTES_QUERY
   data-fetching components live below a gate that starts in a loading state
   (`AppShell` checks the session in the browser first). Keep it that way.
 - Anything that is not a plain collection read/write is a `fetch` to a route handler
-  that forwards to an extension endpoint — see `handleSummarize` in `NotesPanel.tsx`.
+  that forwards to an extension endpoint — see `aktion` in `RedaktionPanel.tsx`.
 
 ## Adding a page
 
@@ -117,7 +119,7 @@ No prompts, no calculations, no writes assembled by hand.
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params // params is a Promise in Next 15+
   if (!/^[0-9a-f-]{36}$/i.test(id)) return problem(400, 'Ungueltige Notiz-ID.')
-  return proxyToDirectus(`/notes-summary/${id}`, { method: 'POST' })
+  return proxyToDirectus(`/redaktion/meldungen/${id}/publizieren`, { method: 'POST' })
 }
 ```
 
@@ -136,11 +138,11 @@ replayed after a token refresh.
 
 ## Testing
 
-- Pure helpers in `src/lib/*.ts` get plain unit tests (`notes.test.ts`).
+- Pure helpers in `src/lib/*.ts` get plain unit tests (`redaktion.test.ts`).
 - Components get Testing Library tests driven by roles and visible text
-  (`NoteCard.test.tsx`) — that is also how the accessible name gets checked.
+  (`MeldungKarte`) — that is also how the accessible name gets checked.
 - Keep components presentational (props in, callbacks out); the one component that
-  fetches (`NotesPanel`) stays thin so everything else is trivially testable.
+  fetches (`RedaktionPanel`) stays thin so everything else is trivially testable.
 
 ## Environment
 
