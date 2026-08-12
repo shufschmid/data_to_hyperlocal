@@ -1,8 +1,10 @@
 import type Anthropic from '@anthropic-ai/sdk'
 import { describe, expect, it, vi } from 'vitest'
 import {
+  cacheableSystem,
   ClaudeFormatError,
   ClaudeTruncatedError,
+  completeChat,
   completeJson,
   completeText,
   extractJson,
@@ -61,12 +63,58 @@ describe('completeText', () => {
     )
   })
 
-  it('omits temperature when it was not requested', async () => {
+  // temperature, top_p and top_k are rejected with a 400 on the current models,
+  // so the wrapper must never grow a way to send them.
+  it('never sends sampling parameters', async () => {
     const send = vi.fn<MessageSender>().mockResolvedValue(message('ok'))
 
     await completeText({ prompt: 'frage' }, send)
 
-    expect(send.mock.calls[0]?.[0]).not.toHaveProperty('temperature')
+    const body = send.mock.calls[0]?.[0]
+    expect(body).not.toHaveProperty('temperature')
+    expect(body).not.toHaveProperty('top_p')
+    expect(body).not.toHaveProperty('top_k')
+  })
+
+  it('omits thinking and output_config unless they were asked for', async () => {
+    const send = vi.fn<MessageSender>().mockResolvedValue(message('ok'))
+
+    await completeText({ prompt: 'frage' }, send)
+
+    const body = send.mock.calls[0]?.[0]
+    expect(body).not.toHaveProperty('thinking')
+    expect(body).not.toHaveProperty('output_config')
+  })
+
+  it('passes thinking and effort through', async () => {
+    const send = vi.fn<MessageSender>().mockResolvedValue(message('ok'))
+
+    await completeText(
+      { prompt: 'frage', thinking: 'disabled', effort: 'low' },
+      send
+    )
+
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        thinking: { type: 'disabled' },
+        output_config: { effort: 'low' }
+      })
+    )
+  })
+
+  it('forwards a block system prompt unchanged, cache marker included', async () => {
+    const send = vi.fn<MessageSender>().mockResolvedValue(message('ok'))
+    const system = cacheableSystem('geteilte Regeln')
+
+    await completeText({ prompt: 'frage', system }, send)
+
+    expect(send.mock.calls[0]?.[0]?.system).toEqual([
+      {
+        type: 'text',
+        text: 'geteilte Regeln',
+        cache_control: { type: 'ephemeral' }
+      }
+    ])
   })
 
   it('throws instead of returning a truncated answer', async () => {
@@ -76,6 +124,37 @@ describe('completeText', () => {
 
     await expect(
       completeText({ prompt: 'frage', maxTokens: 16 }, send)
+    ).rejects.toBeInstanceOf(ClaudeTruncatedError)
+  })
+})
+
+describe('completeChat', () => {
+  it('sends the turn history as given', async () => {
+    const send = vi.fn<MessageSender>().mockResolvedValue(message('antwort'))
+    const messages = [
+      { role: 'user' as const, content: 'kuerzer bitte' },
+      { role: 'assistant' as const, content: 'gekuerzt' },
+      { role: 'user' as const, content: 'und ohne Zahlen' }
+    ]
+
+    const answer = await completeChat({ messages, system: 'Regeln' }, send)
+
+    expect(answer).toBe('antwort')
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({ messages, system: 'Regeln' })
+    )
+  })
+
+  it('treats a truncated answer as an error here too', async () => {
+    const send = vi
+      .fn<MessageSender>()
+      .mockResolvedValue(message('halb', 'max_tokens'))
+
+    await expect(
+      completeChat(
+        { messages: [{ role: 'user', content: 'frage' }], maxTokens: 16 },
+        send
+      )
     ).rejects.toBeInstanceOf(ClaudeTruncatedError)
   })
 })
