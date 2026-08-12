@@ -1,0 +1,25 @@
+# Line endings, pinned.
+#
+# Without this, a Windows checkout with core.autocrlf=true rewrites
+# docker/entrypoint.sh with CRLF. The file still looks fine in an editor, but
+# inside the Linux container `set -e\r` is not a flag and the container dies at
+# startup with "set: Illegal option -". Everything that is read by a shell, a
+# container, or a container runtime therefore stays LF regardless of platform.
+
+# LF everywhere, in the repository *and* in the working tree. Prettier's
+# endOfLine default is "lf", so a CRLF checkout makes `prettier --check` fail on
+# files nobody touched — and the pre-commit hook then rewrites whole files as
+# pure line-ending churn.
+* text=auto eol=lf
+
+# Genuinely binary, so git never inspects or converts them.
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+
+# Aufgezeichnete Portalseiten sind Belege: byte-identisch lassen, sonst
+# normalisiert Git ihnen die Zeilenenden weg, die der Server geschickt hat.
+apps/directus/extensions/app/src/shared/statbl/fixtures/*.html -text
