@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(wsl -d Ubuntu -- bash -lc \"cd /mnt/c/Users/shufs/dev/data_to_hyperlocal && docker compose logs directus --tail=60 2>&1\")",
+      "Bash(git add *)",
+      "PowerShell(wsl -d Ubuntu -- bash -lc \"cd /mnt/c/Users/shufs/dev/data_to_hyperlocal && docker compose down -v 2>&1 | tail -3 && docker compose up --build -d 2>&1 | tail -25\")",
+      "PowerShell(wsl -d Ubuntu -- bash -lc \"cd /mnt/c/Users/shufs/dev/data_to_hyperlocal && docker compose ps --format 'table {{.Service}}\\\\t{{.Status}}' && echo '--- directus log ---' && docker compose logs directus --tail=25\")",
+      "PowerShell(try { $r = Invoke-RestMethod -Uri 'http://localhost:8055/server/health' -TimeoutSec 8; \"Windows-localhost erreicht Directus: $\\($r.status\\)\" } catch { \"Windows-localhost NICHT erreichbar: $\\($_.Exception.Message\\)\" })",
+      "Bash(cp -n .env.example .env)",
+      "Bash(printf '\\\\nDIRECTUS_ADMIN_EMAIL=\"admin@wepublish.ch\"\\\\nDIRECTUS_ADMIN_PASSWORD=\"admin123\"\\\\n')",
+      "Bash(node -pe ' *)",
+      "Bash(cp schema/snapshot/fields/gemeinden/bezirk.json /tmp/bezirk.bak)",
+      "Bash(node -e ' *)",
+      "Bash(npx tsc *)",
+      "WebFetch(domain:data.bl.ch)",
+      "Bash(curl -s https://data.bl.ch/api/explore/v2.1/catalog/datasets/12060/records?limit=200)",
+      "PowerShell(wsl -d Ubuntu -- bash -lc \"cd /mnt/c/Users/shufs/dev/data_to_hyperlocal && echo '=== .mts/.mjs im Image ===' && docker compose exec -T directus ls -1 migrations/ && echo '' && echo '=== angewandte Migrationen in der DB ===' && docker compose exec -T postgres psql -U postgres -d directus -c \\\\\"select version, name from directus_migrations where version like '2026%' order by version)",
+      "PowerShell(\\\\\"\")",
+      "PowerShell(wsl -d Ubuntu -- bash -lc 'cd /mnt/c/Users/shufs/dev/data_to_hyperlocal && echo \"=== Dateien in migrations/ im Image ===\" && docker compose exec -T directus ls -1 migrations/')",
+      "PowerShell(wsl -d Ubuntu -- bash -lc 'cd /mnt/c/Users/shufs/dev/data_to_hyperlocal && docker compose exec -T directus sh -c \"pwd; echo ---; ls -1 /cms/migrations 2>&1\"')",
+      "PowerShell(wsl -d Ubuntu -- bash -lc 'cd /mnt/c/Users/shufs/dev/data_to_hyperlocal && docker compose exec -T directus sh -c \"ls -1a /cms | head -30\"')",
+      "PowerShell(wsl -d Ubuntu -- bash -lc 'cd /mnt/c/Users/shufs/dev/data_to_hyperlocal && docker compose exec -T directus sh -c \"ls -1 /cms/migrations | sort | tr \\\\\"\\\\n\\\\\" \\\\\" \\\\\"; echo\"')",
+      "PowerShell(wsl -d Ubuntu -- docker compose --project-directory /mnt/c/Users/shufs/dev/data_to_hyperlocal exec -T directus ls /cms/migrations)",
+      "PowerShell(wsl -d Ubuntu -- docker compose --project-directory /mnt/c/Users/shufs/dev/data_to_hyperlocal exec -T postgres psql -U postgres -d directus -t -c \"select version, name, timestamp from directus_migrations where version like '2026%' order by version\")",
+      "PowerShell(wsl -d Ubuntu -- docker compose --project-directory /mnt/c/Users/shufs/dev/data_to_hyperlocal exec -T postgres psql -U postgres -d directus -t -c \"select tablename from pg_tables where schemaname='public' and tablename in \\('gemeinden','quellen','datensaetze','laeufe','meldungen','chat_nachrichten','redaktionswissen'\\) order by tablename\")",
+      "PowerShell(wsl -d Ubuntu -- docker compose --project-directory /mnt/c/Users/shufs/dev/data_to_hyperlocal exec -T postgres psql -U postgres -d directus -t -c \"select collection from directus_collections order by collection\")",
+      "PowerShell(\"--- directus_collections ---\")",
+      "Bash(npx directus-sync *)",
+      "PowerShell(wsl -d Ubuntu -- bash -lc 'cd /mnt/c/Users/shufs/dev/data_to_hyperlocal && docker compose down -v 2>&1 | tail -2 && docker compose up --build -d 2>&1 | tail -8')",
+      "Bash(curl -s \"https://data.bl.ch/api/explore/v2.1/catalog/datasets?where=dataset_id%3D%2212060%22&limit=1\")",
+      "PowerShell(wsl -d Ubuntu -- bash -lc 'cd /mnt/c/Users/shufs/dev/data_to_hyperlocal && docker compose up -d 2>&1 | tail -6')",
+      "PowerShell(wsl -d Ubuntu -- docker compose --project-directory /mnt/c/Users/shufs/dev/data_to_hyperlocal exec -T directus sh -c 'echo \"gesetzt=${ANTHROPIC_API_KEY:+ja} laenge=${#ANTHROPIC_API_KEY} modell=$ANTHROPIC_MODEL\"')",
+      "PowerShell(wsl -d Ubuntu -- bash -lc 'cd /mnt/c/Users/shufs/dev/data_to_hyperlocal && docker compose up -d --force-recreate directus front 2>&1 | tail -8')",
+      "PowerShell(wsl -d Ubuntu -- docker compose --project-directory /mnt/c/Users/shufs/dev/data_to_hyperlocal exec -T directus printenv ANTHROPIC_MODEL)",
+      "PowerShell(wsl -d Ubuntu -- docker compose --project-directory /mnt/c/Users/shufs/dev/data_to_hyperlocal exec -T directus sh -c 'echo laenge=${#ANTHROPIC_API_KEY}')",
+      "PowerShell(wsl -d Ubuntu -- bash -c \"cd /mnt/c/Users/shufs/dev/data_to_hyperlocal && docker compose exec -T directus printenv ANTHROPIC_API_KEY | tr -d '\\\\n' | wc -c\")",
+      "Bash(npx vitest *)",
+      "Bash(grep -vE \"^\\\\s*$\")",
+      "Bash(npx prettier *)"
+    ],
+    "additionalDirectories": ["\\tmp"]
+  }
+}

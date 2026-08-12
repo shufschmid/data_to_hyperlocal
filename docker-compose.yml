@@ -57,6 +57,10 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5}
 
+      # Kontakt im User-Agent der Agenda-Abfrage. Die Anwendung gibt sich dort
+      # ehrlich zu erkennen, statt einen Browser vorzutaeuschen.
+      AGENDA_KONTAKT: ${AGENDA_KONTAKT:-it@bajour.ch}
+
       EXTENSIONS_PATH: ./extensions
       # Auto-reload watches the filesystem; pointless in an immutable image.
       EXTENSIONS_AUTO_RELOAD: 'false'
