@@ -21,22 +21,43 @@
     },
     "entries": [
       {
-        "type": "endpoint",
-        "name": "notes-summary",
-        "source": "src/endpoints/notes-summary/index.ts"
-      },
-      {
-        "type": "hook",
-        "name": "notes-normalize",
-        "source": "src/hooks/notes-normalize/index.ts"
+        "type": "operation",
+        "name": "quellen-pruefen",
+        "source": {
+          "app": "src/operations/quellen-pruefen/app.ts",
+          "api": "src/operations/quellen-pruefen/api.ts"
+        }
       },
       {
         "type": "operation",
-        "name": "notes-summarize-pending",
+        "name": "portal-inventur",
         "source": {
-          "app": "src/operations/notes-summarize-pending/app.ts",
-          "api": "src/operations/notes-summarize-pending/api.ts"
+          "app": "src/operations/portal-inventur/app.ts",
+          "api": "src/operations/portal-inventur/api.ts"
         }
+      },
+      {
+        "type": "operation",
+        "name": "redaktion-abarbeiten",
+        "source": {
+          "app": "src/operations/redaktion-abarbeiten/app.ts",
+          "api": "src/operations/redaktion-abarbeiten/api.ts"
+        }
+      },
+      {
+        "type": "endpoint",
+        "name": "redaktion",
+        "source": "src/endpoints/redaktion/index.ts"
+      },
+      {
+        "type": "hook",
+        "name": "meldung-status",
+        "source": "src/hooks/meldung-status/index.ts"
+      },
+      {
+        "type": "hook",
+        "name": "ankuendigung-schluessel",
+        "source": "src/hooks/ankuendigung-schluessel/index.ts"
       }
     ],
     "host": "^11.0.0"
