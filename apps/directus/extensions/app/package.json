@@ -38,6 +38,14 @@
       },
       {
         "type": "operation",
+        "name": "sportresultate-holen",
+        "source": {
+          "app": "src/operations/sportresultate-holen/app.ts",
+          "api": "src/operations/sportresultate-holen/api.ts"
+        }
+      },
+      {
+        "type": "operation",
         "name": "redaktion-abarbeiten",
         "source": {
           "app": "src/operations/redaktion-abarbeiten/app.ts",

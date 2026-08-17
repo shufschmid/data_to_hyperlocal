@@ -3,14 +3,10 @@ type Query {
   quellen_by_id(id: ID!, version: String): quellen
   quellen_aggregated(groupBy: [String], filter: quellen_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [quellen_aggregated!]!
   quellen_by_version(version: String!, id: ID!): version_quellen
-  datensaetze(filter: datensaetze_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [datensaetze!]!
-  datensaetze_by_id(id: ID!, version: String): datensaetze
-  datensaetze_aggregated(groupBy: [String], filter: datensaetze_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [datensaetze_aggregated!]!
-  datensaetze_by_version(version: String!, id: ID!): version_datensaetze
-  chat_nachrichten(filter: chat_nachrichten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [chat_nachrichten!]!
-  chat_nachrichten_by_id(id: ID!, version: String): chat_nachrichten
-  chat_nachrichten_aggregated(groupBy: [String], filter: chat_nachrichten_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [chat_nachrichten_aggregated!]!
-  chat_nachrichten_by_version(version: String!, id: ID!): version_chat_nachrichten
+  ankuendigungen(filter: ankuendigungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [ankuendigungen!]!
+  ankuendigungen_by_id(id: ID!, version: String): ankuendigungen
+  ankuendigungen_aggregated(groupBy: [String], filter: ankuendigungen_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [ankuendigungen_aggregated!]!
+  ankuendigungen_by_version(version: String!, id: ID!): version_ankuendigungen
   meldungen(filter: meldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [meldungen!]!
   meldungen_by_id(id: ID!, version: String): meldungen
   meldungen_aggregated(groupBy: [String], filter: meldungen_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [meldungen_aggregated!]!
@@ -19,22 +15,18 @@ type Query {
   gemeinden_by_id(id: ID!, version: String): gemeinden
   gemeinden_aggregated(groupBy: [String], filter: gemeinden_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [gemeinden_aggregated!]!
   gemeinden_by_version(version: String!, id: ID!): version_gemeinden
-  redaktionswissen(filter: redaktionswissen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [redaktionswissen!]!
-  redaktionswissen_by_id(id: ID!, version: String): redaktionswissen
-  redaktionswissen_aggregated(groupBy: [String], filter: redaktionswissen_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [redaktionswissen_aggregated!]!
-  redaktionswissen_by_version(version: String!, id: ID!): version_redaktionswissen
+  chat_nachrichten(filter: chat_nachrichten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [chat_nachrichten!]!
+  chat_nachrichten_by_id(id: ID!, version: String): chat_nachrichten
+  chat_nachrichten_aggregated(groupBy: [String], filter: chat_nachrichten_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [chat_nachrichten_aggregated!]!
+  chat_nachrichten_by_version(version: String!, id: ID!): version_chat_nachrichten
   laeufe(filter: laeufe_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [laeufe!]!
   laeufe_by_id(id: ID!, version: String): laeufe
   laeufe_aggregated(groupBy: [String], filter: laeufe_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [laeufe_aggregated!]!
   laeufe_by_version(version: String!, id: ID!): version_laeufe
-  directus_sync_id_map(filter: directus_sync_id_map_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [directus_sync_id_map!]!
-  directus_sync_id_map_by_id(id: ID!, version: String): directus_sync_id_map
-  directus_sync_id_map_aggregated(groupBy: [String], filter: directus_sync_id_map_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [directus_sync_id_map_aggregated!]!
-  directus_sync_id_map_by_version(version: String!, id: ID!): version_directus_sync_id_map
-  ankuendigungen(filter: ankuendigungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [ankuendigungen!]!
-  ankuendigungen_by_id(id: ID!, version: String): ankuendigungen
-  ankuendigungen_aggregated(groupBy: [String], filter: ankuendigungen_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [ankuendigungen_aggregated!]!
-  ankuendigungen_by_version(version: String!, id: ID!): version_ankuendigungen
+  redaktionswissen(filter: redaktionswissen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [redaktionswissen!]!
+  redaktionswissen_by_id(id: ID!, version: String): redaktionswissen
+  redaktionswissen_aggregated(groupBy: [String], filter: redaktionswissen_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [redaktionswissen_aggregated!]!
+  redaktionswissen_by_version(version: String!, id: ID!): version_redaktionswissen
   portal_bereiche(filter: portal_bereiche_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [portal_bereiche!]!
   portal_bereiche_by_id(id: ID!, version: String): portal_bereiche
   portal_bereiche_aggregated(groupBy: [String], filter: portal_bereiche_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [portal_bereiche_aggregated!]!
@@ -43,86 +35,116 @@ type Query {
   portal_seiten_by_id(id: ID!, version: String): portal_seiten
   portal_seiten_aggregated(groupBy: [String], filter: portal_seiten_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [portal_seiten_aggregated!]!
   portal_seiten_by_version(version: String!, id: ID!): version_portal_seiten
+  datensaetze(filter: datensaetze_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [datensaetze!]!
+  datensaetze_by_id(id: ID!, version: String): datensaetze
+  datensaetze_aggregated(groupBy: [String], filter: datensaetze_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [datensaetze_aggregated!]!
+  datensaetze_by_version(version: String!, id: ID!): version_datensaetze
+  directus_sync_id_map(filter: directus_sync_id_map_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [directus_sync_id_map!]!
+  directus_sync_id_map_by_id(id: ID!, version: String): directus_sync_id_map
+  directus_sync_id_map_aggregated(groupBy: [String], filter: directus_sync_id_map_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [directus_sync_id_map_aggregated!]!
+  directus_sync_id_map_by_version(version: String!, id: ID!): version_directus_sync_id_map
+  vereine(filter: vereine_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [vereine!]!
+  vereine_by_id(id: ID!, version: String): vereine
+  vereine_aggregated(groupBy: [String], filter: vereine_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [vereine_aggregated!]!
+  vereine_by_version(version: String!, id: ID!): version_vereine
+  spiele(filter: spiele_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [spiele!]!
+  spiele_by_id(id: ID!, version: String): spiele
+  spiele_aggregated(groupBy: [String], filter: spiele_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [spiele_aggregated!]!
+  spiele_by_version(version: String!, id: ID!): version_spiele
 }
 
 type Mutation {
   create_quellen_items(filter: quellen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_quellen_input!]): [quellen!]!
   create_quellen_item(data: create_quellen_input!): quellen
-  create_datensaetze_items(filter: datensaetze_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_datensaetze_input!]): [datensaetze!]!
-  create_datensaetze_item(data: create_datensaetze_input!): datensaetze
-  create_chat_nachrichten_items(filter: chat_nachrichten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_chat_nachrichten_input!]): [chat_nachrichten!]!
-  create_chat_nachrichten_item(data: create_chat_nachrichten_input!): chat_nachrichten
+  create_ankuendigungen_items(filter: ankuendigungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_ankuendigungen_input!]): [ankuendigungen!]!
+  create_ankuendigungen_item(data: create_ankuendigungen_input!): ankuendigungen
   create_meldungen_items(filter: meldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_meldungen_input!]): [meldungen!]!
   create_meldungen_item(data: create_meldungen_input!): meldungen
   create_gemeinden_items(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_gemeinden_input!]): [gemeinden!]!
   create_gemeinden_item(data: create_gemeinden_input!): gemeinden
-  create_redaktionswissen_items(filter: redaktionswissen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_redaktionswissen_input!]): [redaktionswissen!]!
-  create_redaktionswissen_item(data: create_redaktionswissen_input!): redaktionswissen
+  create_chat_nachrichten_items(filter: chat_nachrichten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_chat_nachrichten_input!]): [chat_nachrichten!]!
+  create_chat_nachrichten_item(data: create_chat_nachrichten_input!): chat_nachrichten
   create_laeufe_items(filter: laeufe_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_laeufe_input!]): [laeufe!]!
   create_laeufe_item(data: create_laeufe_input!): laeufe
-  create_directus_sync_id_map_items(filter: directus_sync_id_map_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_directus_sync_id_map_input!]): [directus_sync_id_map!]!
-  create_directus_sync_id_map_item(data: create_directus_sync_id_map_input!): directus_sync_id_map
-  create_ankuendigungen_items(filter: ankuendigungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_ankuendigungen_input!]): [ankuendigungen!]!
-  create_ankuendigungen_item(data: create_ankuendigungen_input!): ankuendigungen
+  create_redaktionswissen_items(filter: redaktionswissen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_redaktionswissen_input!]): [redaktionswissen!]!
+  create_redaktionswissen_item(data: create_redaktionswissen_input!): redaktionswissen
   create_portal_bereiche_items(filter: portal_bereiche_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_portal_bereiche_input!]): [portal_bereiche!]!
   create_portal_bereiche_item(data: create_portal_bereiche_input!): portal_bereiche
   create_portal_seiten_items(filter: portal_seiten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_portal_seiten_input!]): [portal_seiten!]!
   create_portal_seiten_item(data: create_portal_seiten_input!): portal_seiten
+  create_datensaetze_items(filter: datensaetze_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_datensaetze_input!]): [datensaetze!]!
+  create_datensaetze_item(data: create_datensaetze_input!): datensaetze
+  create_directus_sync_id_map_items(filter: directus_sync_id_map_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_directus_sync_id_map_input!]): [directus_sync_id_map!]!
+  create_directus_sync_id_map_item(data: create_directus_sync_id_map_input!): directus_sync_id_map
+  create_vereine_items(filter: vereine_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_vereine_input!]): [vereine!]!
+  create_vereine_item(data: create_vereine_input!): vereine
+  create_spiele_items(filter: spiele_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_spiele_input!]): [spiele!]!
+  create_spiele_item(data: create_spiele_input!): spiele
   update_quellen_items(filter: quellen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_quellen_input!): [quellen!]!
   update_quellen_batch(filter: quellen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_quellen_input!]): [quellen!]!
   update_quellen_item(id: ID!, data: update_quellen_input!): quellen
-  update_datensaetze_items(filter: datensaetze_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_datensaetze_input!): [datensaetze!]!
-  update_datensaetze_batch(filter: datensaetze_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_datensaetze_input!]): [datensaetze!]!
-  update_datensaetze_item(id: ID!, data: update_datensaetze_input!): datensaetze
-  update_chat_nachrichten_items(filter: chat_nachrichten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_chat_nachrichten_input!): [chat_nachrichten!]!
-  update_chat_nachrichten_batch(filter: chat_nachrichten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_chat_nachrichten_input!]): [chat_nachrichten!]!
-  update_chat_nachrichten_item(id: ID!, data: update_chat_nachrichten_input!): chat_nachrichten
+  update_ankuendigungen_items(filter: ankuendigungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_ankuendigungen_input!): [ankuendigungen!]!
+  update_ankuendigungen_batch(filter: ankuendigungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_ankuendigungen_input!]): [ankuendigungen!]!
+  update_ankuendigungen_item(id: ID!, data: update_ankuendigungen_input!): ankuendigungen
   update_meldungen_items(filter: meldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_meldungen_input!): [meldungen!]!
   update_meldungen_batch(filter: meldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_meldungen_input!]): [meldungen!]!
   update_meldungen_item(id: ID!, data: update_meldungen_input!): meldungen
   update_gemeinden_items(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_gemeinden_input!): [gemeinden!]!
   update_gemeinden_batch(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_gemeinden_input!]): [gemeinden!]!
   update_gemeinden_item(id: ID!, data: update_gemeinden_input!): gemeinden
-  update_redaktionswissen_items(filter: redaktionswissen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_redaktionswissen_input!): [redaktionswissen!]!
-  update_redaktionswissen_batch(filter: redaktionswissen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_redaktionswissen_input!]): [redaktionswissen!]!
-  update_redaktionswissen_item(id: ID!, data: update_redaktionswissen_input!): redaktionswissen
+  update_chat_nachrichten_items(filter: chat_nachrichten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_chat_nachrichten_input!): [chat_nachrichten!]!
+  update_chat_nachrichten_batch(filter: chat_nachrichten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_chat_nachrichten_input!]): [chat_nachrichten!]!
+  update_chat_nachrichten_item(id: ID!, data: update_chat_nachrichten_input!): chat_nachrichten
   update_laeufe_items(filter: laeufe_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_laeufe_input!): [laeufe!]!
   update_laeufe_batch(filter: laeufe_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_laeufe_input!]): [laeufe!]!
   update_laeufe_item(id: ID!, data: update_laeufe_input!): laeufe
-  update_directus_sync_id_map_items(filter: directus_sync_id_map_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_directus_sync_id_map_input!): [directus_sync_id_map!]!
-  update_directus_sync_id_map_batch(filter: directus_sync_id_map_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_directus_sync_id_map_input!]): [directus_sync_id_map!]!
-  update_directus_sync_id_map_item(id: ID!, data: update_directus_sync_id_map_input!): directus_sync_id_map
-  update_ankuendigungen_items(filter: ankuendigungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_ankuendigungen_input!): [ankuendigungen!]!
-  update_ankuendigungen_batch(filter: ankuendigungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_ankuendigungen_input!]): [ankuendigungen!]!
-  update_ankuendigungen_item(id: ID!, data: update_ankuendigungen_input!): ankuendigungen
+  update_redaktionswissen_items(filter: redaktionswissen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_redaktionswissen_input!): [redaktionswissen!]!
+  update_redaktionswissen_batch(filter: redaktionswissen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_redaktionswissen_input!]): [redaktionswissen!]!
+  update_redaktionswissen_item(id: ID!, data: update_redaktionswissen_input!): redaktionswissen
   update_portal_bereiche_items(filter: portal_bereiche_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_portal_bereiche_input!): [portal_bereiche!]!
   update_portal_bereiche_batch(filter: portal_bereiche_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_portal_bereiche_input!]): [portal_bereiche!]!
   update_portal_bereiche_item(id: ID!, data: update_portal_bereiche_input!): portal_bereiche
   update_portal_seiten_items(filter: portal_seiten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_portal_seiten_input!): [portal_seiten!]!
   update_portal_seiten_batch(filter: portal_seiten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_portal_seiten_input!]): [portal_seiten!]!
   update_portal_seiten_item(id: ID!, data: update_portal_seiten_input!): portal_seiten
+  update_datensaetze_items(filter: datensaetze_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_datensaetze_input!): [datensaetze!]!
+  update_datensaetze_batch(filter: datensaetze_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_datensaetze_input!]): [datensaetze!]!
+  update_datensaetze_item(id: ID!, data: update_datensaetze_input!): datensaetze
+  update_directus_sync_id_map_items(filter: directus_sync_id_map_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_directus_sync_id_map_input!): [directus_sync_id_map!]!
+  update_directus_sync_id_map_batch(filter: directus_sync_id_map_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_directus_sync_id_map_input!]): [directus_sync_id_map!]!
+  update_directus_sync_id_map_item(id: ID!, data: update_directus_sync_id_map_input!): directus_sync_id_map
+  update_vereine_items(filter: vereine_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_vereine_input!): [vereine!]!
+  update_vereine_batch(filter: vereine_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_vereine_input!]): [vereine!]!
+  update_vereine_item(id: ID!, data: update_vereine_input!): vereine
+  update_spiele_items(filter: spiele_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_spiele_input!): [spiele!]!
+  update_spiele_batch(filter: spiele_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_spiele_input!]): [spiele!]!
+  update_spiele_item(id: ID!, data: update_spiele_input!): spiele
   delete_quellen_items(ids: [ID]!): delete_many
   delete_quellen_item(id: ID!): delete_one
-  delete_datensaetze_items(ids: [ID]!): delete_many
-  delete_datensaetze_item(id: ID!): delete_one
-  delete_chat_nachrichten_items(ids: [ID]!): delete_many
-  delete_chat_nachrichten_item(id: ID!): delete_one
+  delete_ankuendigungen_items(ids: [ID]!): delete_many
+  delete_ankuendigungen_item(id: ID!): delete_one
   delete_meldungen_items(ids: [ID]!): delete_many
   delete_meldungen_item(id: ID!): delete_one
   delete_gemeinden_items(ids: [ID]!): delete_many
   delete_gemeinden_item(id: ID!): delete_one
-  delete_redaktionswissen_items(ids: [ID]!): delete_many
-  delete_redaktionswissen_item(id: ID!): delete_one
+  delete_chat_nachrichten_items(ids: [ID]!): delete_many
+  delete_chat_nachrichten_item(id: ID!): delete_one
   delete_laeufe_items(ids: [ID]!): delete_many
   delete_laeufe_item(id: ID!): delete_one
-  delete_directus_sync_id_map_items(ids: [ID]!): delete_many
-  delete_directus_sync_id_map_item(id: ID!): delete_one
-  delete_ankuendigungen_items(ids: [ID]!): delete_many
-  delete_ankuendigungen_item(id: ID!): delete_one
+  delete_redaktionswissen_items(ids: [ID]!): delete_many
+  delete_redaktionswissen_item(id: ID!): delete_one
   delete_portal_bereiche_items(ids: [ID]!): delete_many
   delete_portal_bereiche_item(id: ID!): delete_one
   delete_portal_seiten_items(ids: [ID]!): delete_many
   delete_portal_seiten_item(id: ID!): delete_one
+  delete_datensaetze_items(ids: [ID]!): delete_many
+  delete_datensaetze_item(id: ID!): delete_one
+  delete_directus_sync_id_map_items(ids: [ID]!): delete_many
+  delete_directus_sync_id_map_item(id: ID!): delete_one
+  delete_vereine_items(ids: [ID]!): delete_many
+  delete_vereine_item(id: ID!): delete_one
+  delete_spiele_items(ids: [ID]!): delete_many
+  delete_spiele_item(id: ID!): delete_one
 }
 
 type Subscription {
@@ -141,25 +163,27 @@ type Subscription {
   directus_flows_mutated(event: EventEnum): directus_flows_mutated
   directus_operations_mutated(event: EventEnum): directus_operations_mutated
   directus_translations_mutated(event: EventEnum): directus_translations_mutated
+  directus_versions_mutated(event: EventEnum): directus_versions_mutated
   directus_policies_mutated(event: EventEnum): directus_policies_mutated
   directus_access_mutated(event: EventEnum): directus_access_mutated
-  directus_versions_mutated(event: EventEnum): directus_versions_mutated
-  directus_comments_mutated(event: EventEnum): directus_comments_mutated
   directus_settings_mutated(event: EventEnum): directus_settings_mutated
+  directus_comments_mutated(event: EventEnum): directus_comments_mutated
   directus_deployments_mutated(event: EventEnum): directus_deployments_mutated
   directus_deployment_projects_mutated(event: EventEnum): directus_deployment_projects_mutated
   directus_deployment_runs_mutated(event: EventEnum): directus_deployment_runs_mutated
   quellen_mutated(event: EventEnum): quellen_mutated
-  datensaetze_mutated(event: EventEnum): datensaetze_mutated
-  chat_nachrichten_mutated(event: EventEnum): chat_nachrichten_mutated
+  ankuendigungen_mutated(event: EventEnum): ankuendigungen_mutated
   meldungen_mutated(event: EventEnum): meldungen_mutated
   gemeinden_mutated(event: EventEnum): gemeinden_mutated
-  redaktionswissen_mutated(event: EventEnum): redaktionswissen_mutated
+  chat_nachrichten_mutated(event: EventEnum): chat_nachrichten_mutated
   laeufe_mutated(event: EventEnum): laeufe_mutated
-  directus_sync_id_map_mutated(event: EventEnum): directus_sync_id_map_mutated
-  ankuendigungen_mutated(event: EventEnum): ankuendigungen_mutated
+  redaktionswissen_mutated(event: EventEnum): redaktionswissen_mutated
   portal_bereiche_mutated(event: EventEnum): portal_bereiche_mutated
   portal_seiten_mutated(event: EventEnum): portal_seiten_mutated
+  datensaetze_mutated(event: EventEnum): datensaetze_mutated
+  directus_sync_id_map_mutated(event: EventEnum): directus_sync_id_map_mutated
+  vereine_mutated(event: EventEnum): vereine_mutated
+  spiele_mutated(event: EventEnum): spiele_mutated
 }
 
 """The `Boolean` scalar type represents `true` or `false`."""
@@ -215,7 +239,7 @@ type ankuendigungen {
   """
   Normalisierter Titel. Haelt einen Eintrag ueber den Wechsel von angekuendigt zu publiziert zusammen.
   """
-  schluessel: String!
+  schluessel: String
 
   """
   Kann von Hand erfasst werden, wenn die Agenda-Abfrage abgewiesen wurde.
@@ -248,6 +272,12 @@ type ankuendigungen {
 
   """Warum dieser Datensatz zugeordnet wurde — oder warum keiner passt."""
   zuordnung_hinweis: String
+
+  """
+  Wann dem Link dieses Eintrags zuletzt gefolgt wurde. Leeren, um es erneut zu versuchen.
+  """
+  link_geprueft: Date
+  link_geprueft_func: datetime_functions
 }
 
 type ankuendigungen_aggregated {
@@ -293,6 +323,11 @@ type ankuendigungen_aggregated_count {
 
   """Warum dieser Datensatz zugeordnet wurde — oder warum keiner passt."""
   zuordnung_hinweis: Int
+
+  """
+  Wann dem Link dieses Eintrags zuletzt gefolgt wurde. Leeren, um es erneut zu versuchen.
+  """
+  link_geprueft: Int
 }
 
 type ankuendigungen_mutated {
@@ -412,6 +447,29 @@ type datensaetze {
   Auftrag, den jeder neue Lauf zu diesem Datensatz erbt — auch der naechstes Jahr.
   """
   standard_vorgabe: String
+
+  """
+  Stand, fuer den zuletzt ein Lauf eroeffnet wurde. Leeren, um erneut einen Lauf zu erzwingen.
+  """
+  lauf_stand: String
+
+  """
+  Wann die Gemeindespalte gegen echte Werte geprueft wurde. Leeren, um erneut zu pruefen.
+  """
+  gemeinde_geprueft: Date
+  gemeinde_geprueft_func: datetime_functions
+
+  """Aktualisierungsrhythmus laut Katalog: annual, daily, irregular …"""
+  rhythmus: String
+
+  """
+  Wann sich die Daten selbst zuletzt geaendert haben — nicht die Beschreibung.
+  """
+  daten_stand: Date
+  daten_stand_func: datetime_functions
+
+  """Zeilen im Portal."""
+  zeilen: Int
 }
 
 type datensaetze_aggregated {
@@ -419,6 +477,12 @@ type datensaetze_aggregated {
   countAll: Int
   count: datensaetze_aggregated_count
   countDistinct: datensaetze_aggregated_count
+  avg: datensaetze_aggregated_fields
+  sum: datensaetze_aggregated_fields
+  avgDistinct: datensaetze_aggregated_fields
+  sumDistinct: datensaetze_aggregated_fields
+  min: datensaetze_aggregated_fields
+  max: datensaetze_aggregated_fields
 }
 
 type datensaetze_aggregated_count {
@@ -463,6 +527,32 @@ type datensaetze_aggregated_count {
   Auftrag, den jeder neue Lauf zu diesem Datensatz erbt — auch der naechstes Jahr.
   """
   standard_vorgabe: Int
+
+  """
+  Stand, fuer den zuletzt ein Lauf eroeffnet wurde. Leeren, um erneut einen Lauf zu erzwingen.
+  """
+  lauf_stand: Int
+
+  """
+  Wann die Gemeindespalte gegen echte Werte geprueft wurde. Leeren, um erneut zu pruefen.
+  """
+  gemeinde_geprueft: Int
+
+  """Aktualisierungsrhythmus laut Katalog: annual, daily, irregular …"""
+  rhythmus: Int
+
+  """
+  Wann sich die Daten selbst zuletzt geaendert haben — nicht die Beschreibung.
+  """
+  daten_stand: Int
+
+  """Zeilen im Portal."""
+  zeilen: Int
+}
+
+type datensaetze_aggregated_fields {
+  """Zeilen im Portal."""
+  zeilen: Float
 }
 
 type datensaetze_mutated {
@@ -1696,6 +1786,179 @@ type redaktionswissen_mutated {
   data: redaktionswissen
 }
 
+type spiele {
+  id: ID!
+
+  """Kennung des Verbands. Identitaet des Spiels — daher eindeutig."""
+  spielnummer: String!
+  verein(filter: vereine_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): vereine
+  gemeinde(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): gemeinden
+  sportart: String!
+  datum: Date!
+  datum_func: datetime_functions
+  heim: String!
+  gast: String!
+
+  """Leer, solange die Quelle kein vollstaendiges Resultat zeigt."""
+  tore_heim: Int
+  tore_gast: Int
+  wettbewerb: String!
+  ort: String
+
+  """Vermerk der Quelle, etwa "verschoben" oder "nicht gespielt (Gegner)"."""
+  status: String
+  quelle_url: String
+  date_created: Date
+  date_created_func: datetime_functions
+  date_updated: Date
+  date_updated_func: datetime_functions
+}
+
+type spiele_aggregated {
+  group: JSON
+  countAll: Int
+  count: spiele_aggregated_count
+  countDistinct: spiele_aggregated_count
+  avg: spiele_aggregated_fields
+  sum: spiele_aggregated_fields
+  avgDistinct: spiele_aggregated_fields
+  sumDistinct: spiele_aggregated_fields
+  min: spiele_aggregated_fields
+  max: spiele_aggregated_fields
+}
+
+type spiele_aggregated_count {
+  id: Int
+
+  """Kennung des Verbands. Identitaet des Spiels — daher eindeutig."""
+  spielnummer: Int
+  verein: Int
+  gemeinde: Int
+  sportart: Int
+  datum: Int
+  heim: Int
+  gast: Int
+
+  """Leer, solange die Quelle kein vollstaendiges Resultat zeigt."""
+  tore_heim: Int
+  tore_gast: Int
+  wettbewerb: Int
+  ort: Int
+
+  """Vermerk der Quelle, etwa "verschoben" oder "nicht gespielt (Gegner)"."""
+  status: Int
+  quelle_url: Int
+  date_created: Int
+  date_updated: Int
+}
+
+type spiele_aggregated_fields {
+  """Leer, solange die Quelle kein vollstaendiges Resultat zeigt."""
+  tore_heim: Float
+  tore_gast: Float
+}
+
+type spiele_mutated {
+  key: ID!
+  event: EventEnum
+  data: spiele
+}
+
+type vereine {
+  id: ID!
+  name: String!
+  gemeinde(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): gemeinden
+  sportart: String!
+
+  """
+  Aushaengeschild = ueberregionale Ausstrahlung. Breitensport = das Dorf selbst.
+  """
+  bedeutung: String
+
+  """
+  Momentaufnahme — Ligazugehoerigkeit aendert jede Saison und wird fuer Fussball aus der Quelle nachgefuehrt.
+  """
+  liga: String
+  spielort: String
+
+  """
+  Warum der Verein fuer die Gemeinde zaehlt. Fliesst als Kontext in die Meldung ein.
+  """
+  notiz: String
+  quelle: String
+
+  """
+  Kennung des Vereins bei der Quelle. Leer, solange nichts zugeordnet ist.
+  """
+  externe_id: String
+
+  """
+  Seite mit den Resultaten — noetig fuer Sportarten ohne zentrale Quelle.
+  """
+  ergebnis_url: String
+
+  """Solange nicht gesetzt, ist der Verein ein Vorschlag der Quelle."""
+  zuordnung_geprueft: Boolean!
+  aktiv: Boolean
+  date_created: Date
+  date_created_func: datetime_functions
+  date_updated: Date
+  date_updated_func: datetime_functions
+}
+
+type vereine_aggregated {
+  group: JSON
+  countAll: Int
+  count: vereine_aggregated_count
+  countDistinct: vereine_aggregated_count
+}
+
+type vereine_aggregated_count {
+  id: Int
+  name: Int
+  gemeinde: Int
+  sportart: Int
+
+  """
+  Aushaengeschild = ueberregionale Ausstrahlung. Breitensport = das Dorf selbst.
+  """
+  bedeutung: Int
+
+  """
+  Momentaufnahme — Ligazugehoerigkeit aendert jede Saison und wird fuer Fussball aus der Quelle nachgefuehrt.
+  """
+  liga: Int
+  spielort: Int
+
+  """
+  Warum der Verein fuer die Gemeinde zaehlt. Fliesst als Kontext in die Meldung ein.
+  """
+  notiz: Int
+  quelle: Int
+
+  """
+  Kennung des Vereins bei der Quelle. Leer, solange nichts zugeordnet ist.
+  """
+  externe_id: Int
+
+  """
+  Seite mit den Resultaten — noetig fuer Sportarten ohne zentrale Quelle.
+  """
+  ergebnis_url: Int
+
+  """Solange nicht gesetzt, ist der Verein ein Vorschlag der Quelle."""
+  zuordnung_geprueft: Int
+  aktiv: Int
+  date_created: Int
+  date_updated: Int
+}
+
+type vereine_mutated {
+  key: ID!
+  event: EventEnum
+  data: vereine
+}
+
 """"""
 type version_ankuendigungen {
   id: ID
@@ -1731,6 +1994,11 @@ type version_ankuendigungen {
 
   """Warum dieser Datensatz zugeordnet wurde — oder warum keiner passt."""
   zuordnung_hinweis: String
+
+  """
+  Wann dem Link dieses Eintrags zuletzt gefolgt wurde. Leeren, um es erneut zu versuchen.
+  """
+  link_geprueft: Date
 }
 
 """"""
@@ -1789,6 +2057,27 @@ type version_datensaetze {
   Auftrag, den jeder neue Lauf zu diesem Datensatz erbt — auch der naechstes Jahr.
   """
   standard_vorgabe: String
+
+  """
+  Stand, fuer den zuletzt ein Lauf eroeffnet wurde. Leeren, um erneut einen Lauf zu erzwingen.
+  """
+  lauf_stand: String
+
+  """
+  Wann die Gemeindespalte gegen echte Werte geprueft wurde. Leeren, um erneut zu pruefen.
+  """
+  gemeinde_geprueft: Date
+
+  """Aktualisierungsrhythmus laut Katalog: annual, daily, irregular …"""
+  rhythmus: String
+
+  """
+  Wann sich die Daten selbst zuletzt geaendert haben — nicht die Beschreibung.
+  """
+  daten_stand: Date
+
+  """Zeilen im Portal."""
+  zeilen: Int
 }
 
 """"""
@@ -1997,6 +2286,73 @@ type version_redaktionswissen {
   date_updated: Date
 }
 
+""""""
+type version_spiele {
+  id: ID
+
+  """Kennung des Verbands. Identitaet des Spiels — daher eindeutig."""
+  spielnummer: String
+  verein: JSON
+  gemeinde: JSON
+  sportart: String
+  datum: Date
+  heim: String
+  gast: String
+
+  """Leer, solange die Quelle kein vollstaendiges Resultat zeigt."""
+  tore_heim: Int
+  tore_gast: Int
+  wettbewerb: String
+  ort: String
+
+  """Vermerk der Quelle, etwa "verschoben" oder "nicht gespielt (Gegner)"."""
+  status: String
+  quelle_url: String
+  date_created: Date
+  date_updated: Date
+}
+
+""""""
+type version_vereine {
+  id: ID
+  name: String
+  gemeinde: JSON
+  sportart: String
+
+  """
+  Aushaengeschild = ueberregionale Ausstrahlung. Breitensport = das Dorf selbst.
+  """
+  bedeutung: String
+
+  """
+  Momentaufnahme — Ligazugehoerigkeit aendert jede Saison und wird fuer Fussball aus der Quelle nachgefuehrt.
+  """
+  liga: String
+  spielort: String
+
+  """
+  Warum der Verein fuer die Gemeinde zaehlt. Fliesst als Kontext in die Meldung ein.
+  """
+  notiz: String
+  quelle: String
+
+  """
+  Kennung des Vereins bei der Quelle. Leer, solange nichts zugeordnet ist.
+  """
+  externe_id: String
+
+  """
+  Seite mit den Resultaten — noetig fuer Sportarten ohne zentrale Quelle.
+  """
+  ergebnis_url: String
+
+  """Solange nicht gesetzt, ist der Verein ein Vorschlag der Quelle."""
+  zuordnung_geprueft: Boolean
+  aktiv: Boolean
+  date_created: Date
+  date_updated: Date
+}
+
 input ankuendigungen_filter {
   id: id_filter_operators
   quelle: quellen_filter
@@ -2019,6 +2375,8 @@ input ankuendigungen_filter {
   zuordnung_geprueft: date_filter_operators
   zuordnung_geprueft_func: datetime_function_filter_operators
   zuordnung_hinweis: string_filter_operators
+  link_geprueft: date_filter_operators
+  link_geprueft_func: datetime_function_filter_operators
   _and: [ankuendigungen_filter]
   _or: [ankuendigungen_filter]
 }
@@ -2069,7 +2427,7 @@ input create_ankuendigungen_input {
   """
   Normalisierter Titel. Haelt einen Eintrag ueber den Wechsel von angekuendigt zu publiziert zusammen.
   """
-  schluessel: String!
+  schluessel: String
 
   """
   Kann von Hand erfasst werden, wenn die Agenda-Abfrage abgewiesen wurde.
@@ -2096,6 +2454,11 @@ input create_ankuendigungen_input {
 
   """Warum dieser Datensatz zugeordnet wurde — oder warum keiner passt."""
   zuordnung_hinweis: String
+
+  """
+  Wann dem Link dieses Eintrags zuletzt gefolgt wurde. Leeren, um es erneut zu versuchen.
+  """
+  link_geprueft: Date
 }
 
 input create_chat_nachrichten_input {
@@ -2152,6 +2515,27 @@ input create_datensaetze_input {
   Auftrag, den jeder neue Lauf zu diesem Datensatz erbt — auch der naechstes Jahr.
   """
   standard_vorgabe: String
+
+  """
+  Stand, fuer den zuletzt ein Lauf eroeffnet wurde. Leeren, um erneut einen Lauf zu erzwingen.
+  """
+  lauf_stand: String
+
+  """
+  Wann die Gemeindespalte gegen echte Werte geprueft wurde. Leeren, um erneut zu pruefen.
+  """
+  gemeinde_geprueft: Date
+
+  """Aktualisierungsrhythmus laut Katalog: annual, daily, irregular …"""
+  rhythmus: String
+
+  """
+  Wann sich die Daten selbst zuletzt geaendert haben — nicht die Beschreibung.
+  """
+  daten_stand: Date
+
+  """Zeilen im Portal."""
+  zeilen: Int
 }
 
 input create_directus_sync_id_map_input {
@@ -2352,6 +2736,71 @@ input create_redaktionswissen_input {
   date_updated: Date
 }
 
+input create_spiele_input {
+  id: ID
+
+  """Kennung des Verbands. Identitaet des Spiels — daher eindeutig."""
+  spielnummer: String!
+  verein: create_vereine_input
+  gemeinde: create_gemeinden_input
+  sportart: String!
+  datum: Date!
+  heim: String!
+  gast: String!
+
+  """Leer, solange die Quelle kein vollstaendiges Resultat zeigt."""
+  tore_heim: Int
+  tore_gast: Int
+  wettbewerb: String!
+  ort: String
+
+  """Vermerk der Quelle, etwa "verschoben" oder "nicht gespielt (Gegner)"."""
+  status: String
+  quelle_url: String
+  date_created: Date
+  date_updated: Date
+}
+
+input create_vereine_input {
+  id: ID
+  name: String!
+  gemeinde: create_gemeinden_input
+  sportart: String!
+
+  """
+  Aushaengeschild = ueberregionale Ausstrahlung. Breitensport = das Dorf selbst.
+  """
+  bedeutung: String
+
+  """
+  Momentaufnahme — Ligazugehoerigkeit aendert jede Saison und wird fuer Fussball aus der Quelle nachgefuehrt.
+  """
+  liga: String
+  spielort: String
+
+  """
+  Warum der Verein fuer die Gemeinde zaehlt. Fliesst als Kontext in die Meldung ein.
+  """
+  notiz: String
+  quelle: String
+
+  """
+  Kennung des Vereins bei der Quelle. Leer, solange nichts zugeordnet ist.
+  """
+  externe_id: String
+
+  """
+  Seite mit den Resultaten — noetig fuer Sportarten ohne zentrale Quelle.
+  """
+  ergebnis_url: String
+
+  """Solange nicht gesetzt, ist der Verein ein Vorschlag der Quelle."""
+  zuordnung_geprueft: Boolean!
+  aktiv: Boolean
+  date_created: Date
+  date_updated: Date
+}
+
 input date_filter_operators {
   _eq: String
   _neq: String
@@ -2395,6 +2844,13 @@ input datensaetze_filter {
   date_updated_func: datetime_function_filter_operators
   gemeindefeld: string_filter_operators
   standard_vorgabe: string_filter_operators
+  lauf_stand: string_filter_operators
+  gemeinde_geprueft: date_filter_operators
+  gemeinde_geprueft_func: datetime_function_filter_operators
+  rhythmus: string_filter_operators
+  daten_stand: date_filter_operators
+  daten_stand_func: datetime_function_filter_operators
+  zeilen: number_filter_operators
   _and: [datensaetze_filter]
   _or: [datensaetze_filter]
 }
@@ -3140,6 +3596,30 @@ input redaktionswissen_filter {
   _or: [redaktionswissen_filter]
 }
 
+input spiele_filter {
+  id: id_filter_operators
+  spielnummer: string_filter_operators
+  verein: vereine_filter
+  gemeinde: gemeinden_filter
+  sportart: string_filter_operators
+  datum: date_filter_operators
+  datum_func: datetime_function_filter_operators
+  heim: string_filter_operators
+  gast: string_filter_operators
+  tore_heim: number_filter_operators
+  tore_gast: number_filter_operators
+  wettbewerb: string_filter_operators
+  ort: string_filter_operators
+  status: string_filter_operators
+  quelle_url: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  _and: [spiele_filter]
+  _or: [spiele_filter]
+}
+
 input string_filter_operators {
   _eq: String
   _neq: String
@@ -3196,6 +3676,11 @@ input update_ankuendigungen_input {
 
   """Warum dieser Datensatz zugeordnet wurde — oder warum keiner passt."""
   zuordnung_hinweis: String
+
+  """
+  Wann dem Link dieses Eintrags zuletzt gefolgt wurde. Leeren, um es erneut zu versuchen.
+  """
+  link_geprueft: Date
 }
 
 input update_chat_nachrichten_input {
@@ -3252,6 +3737,27 @@ input update_datensaetze_input {
   Auftrag, den jeder neue Lauf zu diesem Datensatz erbt — auch der naechstes Jahr.
   """
   standard_vorgabe: String
+
+  """
+  Stand, fuer den zuletzt ein Lauf eroeffnet wurde. Leeren, um erneut einen Lauf zu erzwingen.
+  """
+  lauf_stand: String
+
+  """
+  Wann die Gemeindespalte gegen echte Werte geprueft wurde. Leeren, um erneut zu pruefen.
+  """
+  gemeinde_geprueft: Date
+
+  """Aktualisierungsrhythmus laut Katalog: annual, daily, irregular …"""
+  rhythmus: String
+
+  """
+  Wann sich die Daten selbst zuletzt geaendert haben — nicht die Beschreibung.
+  """
+  daten_stand: Date
+
+  """Zeilen im Portal."""
+  zeilen: Int
 }
 
 input update_directus_sync_id_map_input {
@@ -3450,4 +3956,91 @@ input update_redaktionswissen_input {
   aktiv: Boolean
   date_created: Date
   date_updated: Date
+}
+
+input update_spiele_input {
+  id: ID
+
+  """Kennung des Verbands. Identitaet des Spiels — daher eindeutig."""
+  spielnummer: String
+  verein: update_vereine_input
+  gemeinde: update_gemeinden_input
+  sportart: String
+  datum: Date
+  heim: String
+  gast: String
+
+  """Leer, solange die Quelle kein vollstaendiges Resultat zeigt."""
+  tore_heim: Int
+  tore_gast: Int
+  wettbewerb: String
+  ort: String
+
+  """Vermerk der Quelle, etwa "verschoben" oder "nicht gespielt (Gegner)"."""
+  status: String
+  quelle_url: String
+  date_created: Date
+  date_updated: Date
+}
+
+input update_vereine_input {
+  id: ID
+  name: String
+  gemeinde: update_gemeinden_input
+  sportart: String
+
+  """
+  Aushaengeschild = ueberregionale Ausstrahlung. Breitensport = das Dorf selbst.
+  """
+  bedeutung: String
+
+  """
+  Momentaufnahme — Ligazugehoerigkeit aendert jede Saison und wird fuer Fussball aus der Quelle nachgefuehrt.
+  """
+  liga: String
+  spielort: String
+
+  """
+  Warum der Verein fuer die Gemeinde zaehlt. Fliesst als Kontext in die Meldung ein.
+  """
+  notiz: String
+  quelle: String
+
+  """
+  Kennung des Vereins bei der Quelle. Leer, solange nichts zugeordnet ist.
+  """
+  externe_id: String
+
+  """
+  Seite mit den Resultaten — noetig fuer Sportarten ohne zentrale Quelle.
+  """
+  ergebnis_url: String
+
+  """Solange nicht gesetzt, ist der Verein ein Vorschlag der Quelle."""
+  zuordnung_geprueft: Boolean
+  aktiv: Boolean
+  date_created: Date
+  date_updated: Date
+}
+
+input vereine_filter {
+  id: id_filter_operators
+  name: string_filter_operators
+  gemeinde: gemeinden_filter
+  sportart: string_filter_operators
+  bedeutung: string_filter_operators
+  liga: string_filter_operators
+  spielort: string_filter_operators
+  notiz: string_filter_operators
+  quelle: string_filter_operators
+  externe_id: string_filter_operators
+  ergebnis_url: string_filter_operators
+  zuordnung_geprueft: boolean_filter_operators
+  aktiv: boolean_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  _and: [vereine_filter]
+  _or: [vereine_filter]
 }

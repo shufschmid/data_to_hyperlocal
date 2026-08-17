@@ -1,0 +1,95 @@
+{
+  "collection": "vereine",
+  "field": "sportart",
+  "type": "string",
+  "meta": {
+    "collection": "vereine",
+    "conditions": null,
+    "display": "labels",
+    "display_options": null,
+    "field": "sportart",
+    "group": null,
+    "hidden": false,
+    "interface": "select-dropdown",
+    "note": null,
+    "options": {
+      "choices": [
+        {
+          "text": "Fussball",
+          "value": "Fussball"
+        },
+        {
+          "text": "Volleyball",
+          "value": "Volleyball"
+        },
+        {
+          "text": "Basketball",
+          "value": "Basketball"
+        },
+        {
+          "text": "Handball",
+          "value": "Handball"
+        },
+        {
+          "text": "Unihockey",
+          "value": "Unihockey"
+        },
+        {
+          "text": "American Football",
+          "value": "American Football"
+        },
+        {
+          "text": "Schwimmen",
+          "value": "Schwimmen"
+        },
+        {
+          "text": "Schwingen",
+          "value": "Schwingen"
+        },
+        {
+          "text": "Curling",
+          "value": "Curling"
+        },
+        {
+          "text": "Schach",
+          "value": "Schach"
+        },
+        {
+          "text": "Turnen",
+          "value": "Turnen"
+        },
+        {
+          "text": "Anderer",
+          "value": "Anderer"
+        }
+      ]
+    },
+    "readonly": false,
+    "required": true,
+    "searchable": true,
+    "sort": 4,
+    "special": null,
+    "translations": null,
+    "validation": null,
+    "validation_message": null,
+    "width": "half"
+  },
+  "schema": {
+    "name": "sportart",
+    "table": "vereine",
+    "data_type": "character varying",
+    "default_value": null,
+    "max_length": 40,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "is_nullable": false,
+    "is_unique": false,
+    "is_indexed": false,
+    "is_primary_key": false,
+    "is_generated": false,
+    "generation_expression": null,
+    "has_auto_increment": false,
+    "foreign_key_table": null,
+    "foreign_key_column": null
+  }
+}

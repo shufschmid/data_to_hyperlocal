@@ -43,5 +43,19 @@
     },
     "operation": "93854eaf-8fc4-42cb-b3a4-ca11b614ce1b",
     "_syncId": "804821a8-2dc2-4fe4-958b-9a934a6b0d37"
+  },
+  {
+    "name": "Sportresultate holen",
+    "icon": "scoreboard",
+    "color": "#2ECDA7",
+    "description": "Liest taeglich das Match Center und legt Resultate und kommende Begegnungen der erfassten Vereine ab.",
+    "status": "active",
+    "trigger": "schedule",
+    "accountability": "all",
+    "options": {
+      "cron": "0 30 6 * * *"
+    },
+    "operation": "72c6e871-2ba9-4348-bfa8-fa1d6f7c6f84",
+    "_syncId": "9bfef9c8-6baf-4dc2-a801-30374bdd1e4e"
   }
 ]

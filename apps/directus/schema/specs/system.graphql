@@ -62,19 +62,19 @@ type Query {
   translations(filter: directus_translations_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [directus_translations!]!
   translations_by_id(id: ID!, version: String): directus_translations
   translations_aggregated(groupBy: [String], filter: directus_translations_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [directus_translations_aggregated!]!
+  versions(filter: directus_versions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [directus_versions!]!
+  versions_by_id(id: ID!, version: String): directus_versions
+  versions_aggregated(groupBy: [String], filter: directus_versions_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [directus_versions_aggregated!]!
   policies(filter: directus_policies_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [directus_policies!]!
   policies_by_id(id: ID!, version: String): directus_policies
   policies_aggregated(groupBy: [String], filter: directus_policies_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [directus_policies_aggregated!]!
   access(filter: directus_access_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [directus_access!]!
   access_by_id(id: ID!, version: String): directus_access
   access_aggregated(groupBy: [String], filter: directus_access_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [directus_access_aggregated!]!
-  versions(filter: directus_versions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [directus_versions!]!
-  versions_by_id(id: ID!, version: String): directus_versions
-  versions_aggregated(groupBy: [String], filter: directus_versions_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [directus_versions_aggregated!]!
+  settings(version: String): directus_settings
   comments(filter: directus_comments_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [directus_comments!]!
   comments_by_id(id: ID!, version: String): directus_comments
   comments_aggregated(groupBy: [String], filter: directus_comments_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [directus_comments_aggregated!]!
-  settings(version: String): directus_settings
   deployments(filter: directus_deployments_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [directus_deployments!]!
   deployments_by_id(id: ID!, version: String): directus_deployments
   deployments_aggregated(groupBy: [String], filter: directus_deployments_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [directus_deployments_aggregated!]!
@@ -144,12 +144,12 @@ type Mutation {
   create_operations_item(data: create_directus_operations_input!): directus_operations
   create_translations_items(filter: directus_translations_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_directus_translations_input!]): [directus_translations!]!
   create_translations_item(data: create_directus_translations_input!): directus_translations
+  create_versions_items(filter: directus_versions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_directus_versions_input!]): [directus_versions!]!
+  create_versions_item(data: create_directus_versions_input!): directus_versions
   create_policies_items(filter: directus_policies_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_directus_policies_input!]): [directus_policies!]!
   create_policies_item(data: create_directus_policies_input!): directus_policies
   create_access_items(filter: directus_access_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_directus_access_input!]): [directus_access!]!
   create_access_item(data: create_directus_access_input!): directus_access
-  create_versions_items(filter: directus_versions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_directus_versions_input!]): [directus_versions!]!
-  create_versions_item(data: create_directus_versions_input!): directus_versions
   create_comments_items(filter: directus_comments_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_directus_comments_input!]): [directus_comments!]!
   create_comments_item(data: create_directus_comments_input!): directus_comments
   create_deployments_items(filter: directus_deployments_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_directus_deployments_input!]): [directus_deployments!]!
@@ -197,19 +197,19 @@ type Mutation {
   update_translations_items(filter: directus_translations_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_directus_translations_input!): [directus_translations!]!
   update_translations_batch(filter: directus_translations_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_directus_translations_input!]): [directus_translations!]!
   update_translations_item(id: ID!, data: update_directus_translations_input!): directus_translations
+  update_versions_items(filter: directus_versions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_directus_versions_input!): [directus_versions!]!
+  update_versions_batch(filter: directus_versions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_directus_versions_input!]): [directus_versions!]!
+  update_versions_item(id: ID!, data: update_directus_versions_input!): directus_versions
   update_policies_items(filter: directus_policies_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_directus_policies_input!): [directus_policies!]!
   update_policies_batch(filter: directus_policies_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_directus_policies_input!]): [directus_policies!]!
   update_policies_item(id: ID!, data: update_directus_policies_input!): directus_policies
   update_access_items(filter: directus_access_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_directus_access_input!): [directus_access!]!
   update_access_batch(filter: directus_access_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_directus_access_input!]): [directus_access!]!
   update_access_item(id: ID!, data: update_directus_access_input!): directus_access
-  update_versions_items(filter: directus_versions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_directus_versions_input!): [directus_versions!]!
-  update_versions_batch(filter: directus_versions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_directus_versions_input!]): [directus_versions!]!
-  update_versions_item(id: ID!, data: update_directus_versions_input!): directus_versions
+  update_settings(data: update_directus_settings_input!): directus_settings
   update_comments_items(filter: directus_comments_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_directus_comments_input!): [directus_comments!]!
   update_comments_batch(filter: directus_comments_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_directus_comments_input!]): [directus_comments!]!
   update_comments_item(id: ID!, data: update_directus_comments_input!): directus_comments
-  update_settings(data: update_directus_settings_input!): directus_settings
   update_deployments_items(filter: directus_deployments_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_directus_deployments_input!): [directus_deployments!]!
   update_deployments_batch(filter: directus_deployments_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_directus_deployments_input!]): [directus_deployments!]!
   update_deployments_item(id: ID!, data: update_directus_deployments_input!): directus_deployments
@@ -245,12 +245,12 @@ type Mutation {
   delete_operations_item(id: ID!): delete_one
   delete_translations_items(ids: [ID]!): delete_many
   delete_translations_item(id: ID!): delete_one
+  delete_versions_items(ids: [ID]!): delete_many
+  delete_versions_item(id: ID!): delete_one
   delete_policies_items(ids: [ID]!): delete_many
   delete_policies_item(id: ID!): delete_one
   delete_access_items(ids: [ID]!): delete_many
   delete_access_item(id: ID!): delete_one
-  delete_versions_items(ids: [ID]!): delete_many
-  delete_versions_item(id: ID!): delete_one
   delete_comments_items(ids: [ID]!): delete_many
   delete_comments_item(id: ID!): delete_one
   delete_deployments_items(ids: [ID]!): delete_many
@@ -277,25 +277,27 @@ type Subscription {
   directus_flows_mutated(event: EventEnum): directus_flows_mutated
   directus_operations_mutated(event: EventEnum): directus_operations_mutated
   directus_translations_mutated(event: EventEnum): directus_translations_mutated
+  directus_versions_mutated(event: EventEnum): directus_versions_mutated
   directus_policies_mutated(event: EventEnum): directus_policies_mutated
   directus_access_mutated(event: EventEnum): directus_access_mutated
-  directus_versions_mutated(event: EventEnum): directus_versions_mutated
-  directus_comments_mutated(event: EventEnum): directus_comments_mutated
   directus_settings_mutated(event: EventEnum): directus_settings_mutated
+  directus_comments_mutated(event: EventEnum): directus_comments_mutated
   directus_deployments_mutated(event: EventEnum): directus_deployments_mutated
   directus_deployment_projects_mutated(event: EventEnum): directus_deployment_projects_mutated
   directus_deployment_runs_mutated(event: EventEnum): directus_deployment_runs_mutated
   quellen_mutated(event: EventEnum): quellen_mutated
-  datensaetze_mutated(event: EventEnum): datensaetze_mutated
-  chat_nachrichten_mutated(event: EventEnum): chat_nachrichten_mutated
+  ankuendigungen_mutated(event: EventEnum): ankuendigungen_mutated
   meldungen_mutated(event: EventEnum): meldungen_mutated
   gemeinden_mutated(event: EventEnum): gemeinden_mutated
-  redaktionswissen_mutated(event: EventEnum): redaktionswissen_mutated
+  chat_nachrichten_mutated(event: EventEnum): chat_nachrichten_mutated
   laeufe_mutated(event: EventEnum): laeufe_mutated
-  directus_sync_id_map_mutated(event: EventEnum): directus_sync_id_map_mutated
-  ankuendigungen_mutated(event: EventEnum): ankuendigungen_mutated
+  redaktionswissen_mutated(event: EventEnum): redaktionswissen_mutated
   portal_bereiche_mutated(event: EventEnum): portal_bereiche_mutated
   portal_seiten_mutated(event: EventEnum): portal_seiten_mutated
+  datensaetze_mutated(event: EventEnum): datensaetze_mutated
+  directus_sync_id_map_mutated(event: EventEnum): directus_sync_id_map_mutated
+  vereine_mutated(event: EventEnum): vereine_mutated
+  spiele_mutated(event: EventEnum): spiele_mutated
 }
 
 """The `Boolean` scalar type represents `true` or `false`."""
@@ -367,7 +369,7 @@ type ankuendigungen {
   """
   Normalisierter Titel. Haelt einen Eintrag ueber den Wechsel von angekuendigt zu publiziert zusammen.
   """
-  schluessel: String!
+  schluessel: String
 
   """
   Kann von Hand erfasst werden, wenn die Agenda-Abfrage abgewiesen wurde.
@@ -400,6 +402,12 @@ type ankuendigungen {
 
   """Warum dieser Datensatz zugeordnet wurde — oder warum keiner passt."""
   zuordnung_hinweis: String
+
+  """
+  Wann dem Link dieses Eintrags zuletzt gefolgt wurde. Leeren, um es erneut zu versuchen.
+  """
+  link_geprueft: Date
+  link_geprueft_func: datetime_functions
 }
 
 type ankuendigungen_mutated {
@@ -491,6 +499,29 @@ type datensaetze {
   Auftrag, den jeder neue Lauf zu diesem Datensatz erbt — auch der naechstes Jahr.
   """
   standard_vorgabe: String
+
+  """
+  Stand, fuer den zuletzt ein Lauf eroeffnet wurde. Leeren, um erneut einen Lauf zu erzwingen.
+  """
+  lauf_stand: String
+
+  """
+  Wann die Gemeindespalte gegen echte Werte geprueft wurde. Leeren, um erneut zu pruefen.
+  """
+  gemeinde_geprueft: Date
+  gemeinde_geprueft_func: datetime_functions
+
+  """Aktualisierungsrhythmus laut Katalog: annual, daily, irregular …"""
+  rhythmus: String
+
+  """
+  Wann sich die Daten selbst zuletzt geaendert haben — nicht die Beschreibung.
+  """
+  daten_stand: Date
+  daten_stand_func: datetime_functions
+
+  """Zeilen im Portal."""
+  zeilen: Int
 }
 
 type datensaetze_mutated {
@@ -2173,9 +2204,91 @@ type server_info_query_limit {
   max: Int
 }
 
+type spiele {
+  id: ID!
+
+  """Kennung des Verbands. Identitaet des Spiels — daher eindeutig."""
+  spielnummer: String!
+  verein(filter: vereine_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): vereine
+  gemeinde(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): gemeinden
+  sportart: String!
+  datum: Date!
+  datum_func: datetime_functions
+  heim: String!
+  gast: String!
+
+  """Leer, solange die Quelle kein vollstaendiges Resultat zeigt."""
+  tore_heim: Int
+  tore_gast: Int
+  wettbewerb: String!
+  ort: String
+
+  """Vermerk der Quelle, etwa "verschoben" oder "nicht gespielt (Gegner)"."""
+  status: String
+  quelle_url: String
+  date_created: Date
+  date_created_func: datetime_functions
+  date_updated: Date
+  date_updated_func: datetime_functions
+}
+
+type spiele_mutated {
+  key: ID!
+  event: EventEnum
+  data: spiele
+}
+
 type users_me_tfa_generate_data {
   secret: String
   otpauth_url: String
+}
+
+type vereine {
+  id: ID!
+  name: String!
+  gemeinde(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): gemeinden
+  sportart: String!
+
+  """
+  Aushaengeschild = ueberregionale Ausstrahlung. Breitensport = das Dorf selbst.
+  """
+  bedeutung: String
+
+  """
+  Momentaufnahme — Ligazugehoerigkeit aendert jede Saison und wird fuer Fussball aus der Quelle nachgefuehrt.
+  """
+  liga: String
+  spielort: String
+
+  """
+  Warum der Verein fuer die Gemeinde zaehlt. Fliesst als Kontext in die Meldung ein.
+  """
+  notiz: String
+  quelle: String
+
+  """
+  Kennung des Vereins bei der Quelle. Leer, solange nichts zugeordnet ist.
+  """
+  externe_id: String
+
+  """
+  Seite mit den Resultaten — noetig fuer Sportarten ohne zentrale Quelle.
+  """
+  ergebnis_url: String
+
+  """Solange nicht gesetzt, ist der Verein ein Vorschlag der Quelle."""
+  zuordnung_geprueft: Boolean!
+  aktiv: Boolean
+  date_created: Date
+  date_created_func: datetime_functions
+  date_updated: Date
+  date_updated_func: datetime_functions
+}
+
+type vereine_mutated {
+  key: ID!
+  event: EventEnum
+  data: vereine
 }
 
 type write_directus_collections {
@@ -2320,6 +2433,8 @@ input ankuendigungen_filter {
   zuordnung_geprueft: date_filter_operators
   zuordnung_geprueft_func: datetime_function_filter_operators
   zuordnung_hinweis: string_filter_operators
+  link_geprueft: date_filter_operators
+  link_geprueft_func: datetime_function_filter_operators
   _and: [ankuendigungen_filter]
   _or: [ankuendigungen_filter]
 }
@@ -2687,6 +2802,13 @@ input datensaetze_filter {
   date_updated_func: datetime_function_filter_operators
   gemeindefeld: string_filter_operators
   standard_vorgabe: string_filter_operators
+  lauf_stand: string_filter_operators
+  gemeinde_geprueft: date_filter_operators
+  gemeinde_geprueft_func: datetime_function_filter_operators
+  rhythmus: string_filter_operators
+  daten_stand: date_filter_operators
+  daten_stand_func: datetime_function_filter_operators
+  zeilen: number_filter_operators
   _and: [datensaetze_filter]
   _or: [datensaetze_filter]
 }
@@ -3866,6 +3988,28 @@ input update_directus_versions_input {
   user_created: update_directus_users_input
   user_updated: update_directus_users_input
   delta: JSON
+}
+
+input vereine_filter {
+  id: id_filter_operators
+  name: string_filter_operators
+  gemeinde: gemeinden_filter
+  sportart: string_filter_operators
+  bedeutung: string_filter_operators
+  liga: string_filter_operators
+  spielort: string_filter_operators
+  notiz: string_filter_operators
+  quelle: string_filter_operators
+  externe_id: string_filter_operators
+  ergebnis_url: string_filter_operators
+  zuordnung_geprueft: boolean_filter_operators
+  aktiv: boolean_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  _and: [vereine_filter]
+  _or: [vereine_filter]
 }
 
 input write_directus_collections_input {

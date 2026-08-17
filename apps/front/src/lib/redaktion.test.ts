@@ -5,7 +5,10 @@ import {
   fortschritt,
   istBeschaeftigt,
   laufStatusText,
-  nachBezirk,
+  filterGemeinden,
+  resultat,
+  teileSpiele,
+  vereineNachGemeinde,
   nachQuartal,
   statusFarbe,
   statusText,
@@ -124,37 +127,136 @@ describe('absaetze', () => {
   })
 })
 
-describe('nachBezirk', () => {
+describe('filterGemeinden', () => {
   const gemeinden = [
-    { bezirk: 'Liestal', name: 'Liestal' },
-    { bezirk: 'Arlesheim', name: 'Therwil' },
-    { bezirk: 'Arlesheim', name: 'Aesch' },
-    { bezirk: 'Waldenburg', name: 'Oberdorf' }
+    { name: 'Liestal', bezirk: 'Liestal', bfs_nummer: 2829, aktiv: true },
+    { name: 'Therwil', bezirk: 'Arlesheim', bfs_nummer: 2775, aktiv: false },
+    { name: 'Münchenstein', bezirk: 'Arlesheim', bfs_nummer: 2769, aktiv: true },
+    { name: 'Riehen', bezirk: 'Basel-Stadt', bfs_nummer: 2703, aktiv: true }
   ]
 
-  // 86 switches in one flat list is a wall, not a control.
-  it('gruppiert nach Bezirk', () => {
-    const gruppen = nachBezirk(gemeinden)
-
-    expect(gruppen.map((g) => g.bezirk)).toEqual(['Arlesheim', 'Liestal', 'Waldenburg'])
-    expect(gruppen.at(0)?.gemeinden.map((g) => g.name)).toEqual(['Aesch', 'Therwil'])
+  it('sortiert alphabetisch nach Schweizer Gepflogenheit', () => {
+    expect(filterGemeinden(gemeinden, '', false).map((g) => g.name)).toEqual([
+      'Liestal',
+      'Münchenstein',
+      'Riehen',
+      'Therwil'
+    ])
   })
 
-  it('sortiert nach Schweizer Gepflogenheit', () => {
-    const mitUmlaut = [
-      { bezirk: 'A', name: 'Zwingen' },
-      { bezirk: 'A', name: 'Ärgerlich' },
-      { bezirk: 'A', name: 'Aesch' }
-    ]
-    expect(
-      nachBezirk(mitUmlaut)
-        .at(0)
-        ?.gemeinden.map((g) => g.name)
-    ).toEqual(['Aesch', 'Ärgerlich', 'Zwingen'])
+  it('findet auch ohne Umlaut', () => {
+    expect(filterGemeinden(gemeinden, 'munchenstein', false).map((g) => g.name)).toEqual(['Münchenstein'])
+  })
+
+  it('sucht nach BFS-Nummer und Bezirk', () => {
+    expect(filterGemeinden(gemeinden, '2703', false).map((g) => g.name)).toEqual(['Riehen'])
+    expect(filterGemeinden(gemeinden, 'arlesheim', false).map((g) => g.name)).toEqual([
+      'Münchenstein',
+      'Therwil'
+    ])
+  })
+
+  // Riehen is the reason the district accordions went: outside the five
+  // Basel-Landschaft districts it arrived as its own collapsed one-item group.
+  it('zeigt eine Gemeinde ausserhalb der BL-Bezirke gleichberechtigt', () => {
+    expect(filterGemeinden(gemeinden, '', true).map((g) => g.name)).toContain('Riehen')
+  })
+
+  it('filtert auf aktive Gemeinden', () => {
+    expect(filterGemeinden(gemeinden, '', true).map((g) => g.name)).toEqual([
+      'Liestal',
+      'Münchenstein',
+      'Riehen'
+    ])
   })
 
   it('vertraegt eine leere Liste', () => {
-    expect(nachBezirk([])).toEqual([])
+    expect(filterGemeinden([], 'x', false)).toEqual([])
+  })
+})
+
+describe('teileSpiele', () => {
+  const jetzt = new Date('2026-08-20T12:00:00Z')
+  const spiel = (datum: string) => ({ datum })
+
+  it('trennt an der Uhr und sortiert von der Gegenwart weg', () => {
+    const { vergangen, kommend } = teileSpiele(
+      [
+        spiel('2026-08-18T18:00:00Z'),
+        spiel('2026-08-25T18:00:00Z'),
+        spiel('2026-08-19T18:00:00Z'),
+        spiel('2026-08-21T18:00:00Z')
+      ],
+      jetzt
+    )
+
+    expect(vergangen.map((s) => s.datum)).toEqual(['2026-08-19T18:00:00Z', '2026-08-18T18:00:00Z'])
+    expect(kommend.map((s) => s.datum)).toEqual(['2026-08-21T18:00:00Z', '2026-08-25T18:00:00Z'])
+  })
+
+  // A finished match whose result the source has not published yet still
+  // belongs to the past — otherwise the fixture an editor is waiting for hides
+  // among the upcoming ones.
+  it('richtet sich nach dem Datum, nicht nach dem Resultat', () => {
+    const { vergangen } = teileSpiele([spiel('2026-08-20T09:00:00Z')], jetzt)
+    expect(vergangen).toHaveLength(1)
+  })
+
+  it('wirft kaputte Daten weg, statt zu raten', () => {
+    const { vergangen, kommend } = teileSpiele([spiel('kein datum')], jetzt)
+    expect(vergangen).toEqual([])
+    expect(kommend).toEqual([])
+  })
+
+  it('vertraegt eine leere Liste', () => {
+    expect(teileSpiele([], jetzt)).toEqual({ vergangen: [], kommend: [] })
+  })
+})
+
+describe('resultat', () => {
+  it('schreibt das Resultat in Spielrichtung', () => {
+    expect(resultat(3, 1)).toBe('3:1')
+    expect(resultat(0, 0)).toBe('0:0')
+  })
+
+  // Half a score is not a score — inventing the other half is how a reversed
+  // scoreline reaches an article.
+  it('zeigt nichts, solange nicht beide Zahlen dastehen', () => {
+    expect(resultat(null, null)).toBe('–')
+    expect(resultat(3, null)).toBe('–')
+    expect(resultat(null, 1)).toBe('–')
+  })
+})
+
+describe('vereineNachGemeinde', () => {
+  const verein = (name: string, bedeutung: string, gemeinde: string | null) => ({
+    name,
+    bedeutung,
+    gemeinde: gemeinde === null ? null : { id: gemeinde }
+  })
+
+  it('gruppiert nach Gemeinde, Aushaengeschild zuerst', () => {
+    const nach = vereineNachGemeinde([
+      verein('FC Aesch', 'breitensport', 'g1'),
+      verein("Sm'Aesch Pfeffingen", 'aushaengeschild', 'g1'),
+      verein('FC Pratteln', 'breitensport', 'g2')
+    ])
+
+    expect(nach.get('g1')?.map((v) => v.name)).toEqual(["Sm'Aesch Pfeffingen", 'FC Aesch'])
+    expect(nach.get('g2')?.map((v) => v.name)).toEqual(['FC Pratteln'])
+  })
+
+  it('sortiert gleichrangige Vereine alphabetisch', () => {
+    const nach = vereineNachGemeinde([
+      verein('TV Pratteln NS', 'aushaengeschild', 'g1'),
+      verein('Gladiators beider Basel', 'aushaengeschild', 'g1')
+    ])
+
+    expect(nach.get('g1')?.map((v) => v.name)).toEqual(['Gladiators beider Basel', 'TV Pratteln NS'])
+  })
+
+  it('ueberspringt Vereine ohne Gemeinde', () => {
+    expect(vereineNachGemeinde([verein('Heimatlos', 'breitensport', null)]).size).toBe(0)
   })
 })
 

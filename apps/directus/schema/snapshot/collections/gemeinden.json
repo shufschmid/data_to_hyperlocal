@@ -13,7 +13,7 @@
     "hidden": false,
     "icon": "location_city",
     "item_duplication_fields": null,
-    "note": "Gemeinden des Kantons Basel-Landschaft. \"Aktiv\" steuert, fuer welche Gemeinden Meldungen erzeugt werden.",
+    "note": "Gemeinden, ueber die berichtet wird — Basel-Landschaft vollstaendig, dazu Riehen (BS) fuer den Sport. \"Aktiv\" steuert, fuer welche Gemeinden Meldungen erzeugt werden.",
     "preview_url": null,
     "singleton": false,
     "sort": null,

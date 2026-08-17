@@ -26,6 +26,8 @@ import {
   DATENSATZ_WAHL_QUERY,
   GEMEINDE_AKTIV_MUTATION,
   GEMEINDEN_QUERY,
+  VEREINE_QUERY,
+  SPIELE_QUERY,
   LAEUFE_QUERY,
   MELDUNGEN_QUERY,
   PORTAL_BEOBACHTEN_MUTATION,
@@ -39,6 +41,8 @@ import {
   type DatensatzWahlErgebnis,
   type GemeindeAktivErgebnis,
   type GemeindenErgebnis,
+  type VereineErgebnis,
+  type SpieleErgebnis,
   type LaeufeErgebnis,
   type MeldungenErgebnis,
   type MeldungFelder,
@@ -51,6 +55,7 @@ import { fortschritt, laufStatusText, zeitleiste } from '@/lib/redaktion'
 import { Zeitleiste } from './Zeitleiste'
 import { AuftragDialog, type AuftragZiel } from './AuftragDialog'
 import { GemeindenAuswahl } from './GemeindenAuswahl'
+import { Sportresultate } from './Sportresultate'
 import { AgendaErfassen } from './AgendaErfassen'
 import { PortalUebersicht } from './PortalUebersicht'
 import { QuellenHinweis } from './QuellenHinweis'
@@ -108,6 +113,12 @@ export function RedaktionPanel() {
     fetchPolicy: LIVE_FETCH_POLICY
   })
   const gemeinden = useQuery<GemeindenErgebnis>(GEMEINDEN_QUERY, {
+    fetchPolicy: LIVE_FETCH_POLICY
+  })
+  const vereine = useQuery<VereineErgebnis>(VEREINE_QUERY, {
+    fetchPolicy: LIVE_FETCH_POLICY
+  })
+  const spiele = useQuery<SpieleErgebnis>(SPIELE_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY
   })
   const [setzeAktiv] = useMutation<GemeindeAktivErgebnis>(GEMEINDE_AKTIV_MUTATION)
@@ -318,7 +329,8 @@ export function RedaktionPanel() {
 
       <Tabs value={reiter} onChange={(_, v: number) => setReiter(v)}>
         <Tab label="Läufe" />
-        <Tab label="Datenquellen" />
+        <Tab label="statistik.bl" />
+        <Tab label="Sportresultate" />
         <Tab label="Gelerntes" />
         <Tab label="Gemeinden" />
       </Tabs>
@@ -535,6 +547,16 @@ export function RedaktionPanel() {
       )}
 
       {reiter === 2 && (
+        <Stack spacing={2}>
+          <Typography variant="body2" color="text.secondary">
+            Resultate und kommende Begegnungen der erfassten Vereine — nur Aktivmannschaften, kein Nachwuchs
+            und keine Testspiele. Wird täglich aus dem Match Center des Verbands nachgeführt.
+          </Typography>
+          <Sportresultate spiele={spiele.data?.spiele ?? []} laedt={spiele.loading} />
+        </Stack>
+      )}
+
+      {reiter === 3 && (
         <Stack spacing={1}>
           <Typography variant="body2" color="text.secondary">
             Regeln, die aus deinen Anweisungen gelernt wurden. Sie fliessen in jede weitere Meldung ein — auch
@@ -552,7 +574,7 @@ export function RedaktionPanel() {
         </Stack>
       )}
 
-      {reiter === 3 && (
+      {reiter === 4 && (
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
             Für welche Gemeinden ein Lauf Meldungen schreibt. Gilt ab dem nächsten Lauf; bereits erzeugte
@@ -561,9 +583,9 @@ export function RedaktionPanel() {
           {gemeinden.loading && <CircularProgress />}
           <GemeindenAuswahl
             gemeinden={gemeinden.data?.gemeinden ?? []}
+            vereine={vereine.data?.vereine ?? []}
             laeuft={sendet}
             onUmschalten={(id, aktiv) => schalteGemeinden([id], aktiv)}
-            onBezirk={schalteGemeinden}
           />
         </Stack>
       )}
