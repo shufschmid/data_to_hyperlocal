@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { istInteressant, ordneVereinZu, parseWhatsOn } from './parse'
+import {
+  istInteressant,
+  ordneVereinZu,
+  parseVereinsseite,
+  parseWhatsOn
+} from './parse'
 
 // Verbatim from the FVNWS "what's on" page, 17 August 2026 — including the
 // duplicated competition/Spielnummer block the page really emits.
@@ -220,5 +225,73 @@ describe('ordneVereinZu', () => {
 
   it('meldet nichts, wenn keiner unserer Vereine spielt', () => {
     expect(ordneVereinZu(spiel('FC Basel', 'FC Zürich'), vereine)).toBeNull()
+  })
+})
+
+// Wortwoertlich von der Vereinsseite des FC Amicitia Riehen (v=478) am 20.08.,
+// einen Tag nach dem Spiel. Der Gegner fehlt im Markdown, der Score nicht.
+const VEREINSSEITE = `
+# Verein
+Teams: 31
+#### Aktuelle Spiele
+Mi 19.08.2026
+20:00
+FC Amicitia Riehen
+3
+3
+Meisterschaft 2. Liga (FAEW)
+Spielnummer 142793
+Fiechten - 1, Reinach
+Spielnummer 142793
+Fiechten - 1, Reinach
+20:30
+FC Amicitia Riehen b (Jun.B 1/S)
+3
+0
+Trainingsspiele
+Spielnummer 704101
+Grendelmatte, Riehen
+Sa 22.08.2026
+16:00
+FC Amicitia Riehen
+Meisterschaft 2. Liga (FAEW)
+Spielnummer 146941
+Schiffacker, Rheinfelden
+`
+
+describe('parseVereinsseite', () => {
+  const resultate = parseVereinsseite(VEREINSSEITE)
+
+  it('liest den Score zu jeder Spielnummer', () => {
+    expect(resultate.find((r) => r.spielnummer === '142793')).toEqual({
+      spielnummer: '142793',
+      toreHeim: 3,
+      toreGast: 3
+    })
+  })
+
+  // Die Richtung ist heim:gast — im Browser lesen dieselben Zeilen
+  // "FC Aesch a – SC Binningen b 0:6" und "SV Muttenz b – FC Aesch a 0:4".
+  it('liest die Zahlen in Spielrichtung, nicht aus Sicht des Vereins', () => {
+    const jun = resultate.find((r) => r.spielnummer === '704101')
+    expect(jun?.toreHeim).toBe(3)
+    expect(jun?.toreGast).toBe(0)
+  })
+
+  // Eine noch nicht gespielte Begegnung druckt keine Zahlen.
+  it('ueberspringt eine Ansetzung ohne Resultat', () => {
+    expect(resultate.some((r) => r.spielnummer === '146941')).toBe(false)
+  })
+
+  it('nimmt eine einzelne Zahl nicht fuer ein Resultat', () => {
+    expect(
+      parseVereinsseite(
+        '20:00\nFC X\n3\nMeisterschaft 2. Liga\nSpielnummer 999'
+      )
+    ).toEqual([])
+  })
+
+  it('vertraegt eine leere Seite', () => {
+    expect(parseVereinsseite('')).toEqual([])
   })
 })

@@ -1,10 +1,10 @@
 // Parsing the SFV Match Center's "what's on" page.
 //
 // Why this page and not the club page: a club page (`?v=<id>`) lists only the
-// club's OWN team plus the score, never the opponent. For an away match that
-// leaves "FC Pratteln C1 — 4 — 2" with no way to tell whether Pratteln won 4:2
-// or lost 2:4. Publishing a reversed scoreline is exactly the failure `zahlen.ts`
-// exists to prevent, so the club page is not used as a result source.
+// club's OWN team, never the opponent, so it cannot say who played whom. It is
+// therefore no use as a *fixture* source — but it does keep the score long
+// after this page has moved on, which is what `parseVereinsseite` below is for.
+// The two are read together, joined on the Spielnummer both of them print.
 //
 // The "what's on" page names both teams in playing order and always sets the
 // venue at the first-named team's ground — verified across three clubs by
@@ -205,4 +205,73 @@ function normalisiere(text: string): string {
     .replace(/[`'’]/g, "'")
     .replace(/\s+/g, ' ')
     .trim()
+}
+
+// ---------------------------------------------------------------------------
+// Nachtrag: the score, read from a club page.
+//
+// The 'what's on' page only ever looks forward — measured on 20.08. its window
+// was 20.–23.08., so the match played on the 19th had already rolled off it.
+// A fixture stored while it was upcoming would therefore never receive its
+// result from that source. The club page keeps it.
+//
+// The club page does not name the opponent in Markdown, which is why it is not
+// a fixture source. It does not have to be: the fixture is already stored with
+// heim and gast in playing order, so this pass only carries the score across,
+// joined on the Spielnummer both pages print.
+//
+// Direction is heim:gast — visible in the browser, where the same rows read
+// 'FC Aesch a – SC Binningen b  0 : 6' at Aesch's ground and
+// 'SV Muttenz b – FC Aesch a  0 : 4' at Muttenz's. Only the opponent column is
+// lost in conversion, never the order.
+
+export interface Resultat {
+  spielnummer: string
+  toreHeim: number
+  toreGast: number
+}
+
+/**
+ * Reads every finished result on a club page.
+ *
+ * Rows without exactly two numbers are skipped: a fixture that has not been
+ * played prints none, and a single number is a group or a table position.
+ */
+export function parseVereinsseite(markdown: string): Resultat[] {
+  const zeilen = markdown
+    .split('\n')
+    .map((z) => z.trim())
+    .filter((z) => z !== '')
+
+  const gefunden = new Map<string, Resultat>()
+  let puffer: string[] = []
+
+  for (const zeile of zeilen) {
+    if (ZEIT.test(zeile)) {
+      puffer = []
+      continue
+    }
+
+    const nummer = SPIELNUMMER.exec(zeile)
+    if (nummer === null) {
+      puffer.push(zeile)
+      continue
+    }
+
+    const id = nummer[1]
+    const zahlen = puffer
+      .filter((z) => NUR_ZAHL.test(z))
+      .map((z) => Number.parseInt(z, 10))
+
+    if (id !== undefined && !gefunden.has(id) && zahlen.length === 2) {
+      gefunden.set(id, {
+        spielnummer: id,
+        toreHeim: zahlen[0] as number,
+        toreGast: zahlen[1] as number
+      })
+    }
+    puffer = []
+  }
+
+  return [...gefunden.values()]
 }

@@ -3,6 +3,7 @@ import { CrawlerFehler, scrape, WHATS_ON_URL } from '../../shared/crawler'
 import {
   istInteressant,
   ordneVereinZu,
+  parseVereinsseite,
   parseWhatsOn
 } from '../../shared/matchcenter/parse'
 import { parseGameCenter } from '../../shared/swissvolley/parse'
@@ -215,6 +216,61 @@ export default defineOperationApi<Optionen>({
       }
     }
 
+    let nachgetragen = 0
+
+    // Nachtrag: the score for football, from each club's own page.
+    //
+    // The 'what's on' page only looks forward, so a fixture stored while it was
+    // upcoming never sees its own result there — measured on 20.08., the match
+    // played on the 19th had already rolled off the window. The club page keeps
+    // it, and the Spielnummer joins the two.
+    //
+    // Only rows we already know are touched, and only their score. The club
+    // page cannot name an opponent, so it never creates a fixture.
+    for (const verein of fussball) {
+      if (verein.ergebnis_url === null) continue
+      try {
+        const ergebnis = await scrape(verein.ergebnis_url)
+        const resultate = parseVereinsseite(ergebnis.markdown)
+        let getragen = 0
+
+        for (const resultat of resultate) {
+          const offen = (await spieleService.readByQuery({
+            filter: {
+              spielnummer: { _eq: resultat.spielnummer },
+              tore_heim: { _null: true }
+            },
+            fields: ['id'],
+            limit: 1
+          })) as Array<{ id: string }>
+
+          const treffer = offen[0]
+          if (treffer === undefined) continue
+          await spieleService.updateOne(treffer.id, {
+            tore_heim: resultat.toreHeim,
+            tore_gast: resultat.toreGast
+          })
+          getragen += 1
+          nachgetragen += 1
+        }
+
+        if (getragen > 0) {
+          logger.info(
+            `sportresultate: ${verein.name} — ${getragen} Resultat(e) nachgetragen.`
+          )
+        }
+      } catch (ausnahme) {
+        const grund =
+          ausnahme instanceof CrawlerFehler
+            ? ausnahme.message
+            : String(ausnahme)
+        logger.warn(
+          `sportresultate: Vereinsseite ${verein.name} nicht lesbar — ${grund}`
+        )
+        fehler.push(`${verein.name} (Nachtrag): ${grund}`)
+      }
+    }
+
     const MIT_KONNEKTOR = new Set(['fvnws', 'swissvolley', 'handball'])
     const ohneKonnektor = [
       ...new Set(
@@ -287,6 +343,7 @@ export default defineOperationApi<Optionen>({
       gefunden: zeilen.length,
       neu,
       aktualisiert,
+      nachgetragen,
       ohneKonnektor,
       fehler
     }

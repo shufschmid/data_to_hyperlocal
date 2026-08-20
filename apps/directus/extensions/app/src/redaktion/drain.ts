@@ -551,15 +551,20 @@ async function verarbeiteMeldungen(
     database,
     'meldungen',
     (q) =>
-      q.where((w) =>
-        w
-          .where('verarbeitung', 'geplant')
-          .orWhere((r) =>
-            r
-              .where('verarbeitung', 'laeuft')
-              .andWhere('gesperrt_bis', '<', jetzt())
-          )
-      ),
+      q
+        // Match reports are revised synchronously in the endpoint — they have
+        // no run, and loading run material for them would throw. This guard is
+        // the second line of defence should one ever be queued anyway.
+        .whereNotNull('lauf')
+        .where((w) =>
+          w
+            .where('verarbeitung', 'geplant')
+            .orWhere((r) =>
+              r
+                .where('verarbeitung', 'laeuft')
+                .andWhere('gesperrt_bis', '<', jetzt())
+            )
+        ),
     ['id', 'lauf', 'gemeinde', 'anweisung', 'versuche', 'datengrundlage'],
     anzahl,
     jetzt()
