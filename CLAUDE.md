@@ -107,6 +107,15 @@ them is wrong even if it works.
    run, and if all of them are turned away it says so on the source so a person
    can enter the entry by hand.
 
+   The spacing is the part that matters, and it was measured. The challenge is a
+   window, not a verdict: a cold process gets challenged once and is served
+   normally four seconds later, but a bad patch outlasts that. Three attempts at
+   a flat four seconds covered eight seconds of wall clock — which is how the
+   06:00 run could report a bot check for a page that answered by hand all
+   morning. The pause now doubles (4s, 8s, 16s, 32s) over five attempts, so a run
+   spans a minute at a _lower_ request rate than before. That fixed it; the
+   source has read all 44 announcements since.
+
    The workspace has five tabs: **Läufe · statistik.bl · Sportresultate ·
    Gelerntes · Gemeinden**. „Sportresultate" is the second feed and works the
    same way as the first: a source that publishes on its own schedule, watched
@@ -174,6 +183,7 @@ them is wrong even if it works.
 | a new rule about what an article may say      | the prompt in `redaktion/prompt.ts` **and** a check next to it — a prompt is a request, a check is a rule |
 | a table on statistik.bl.ch the newsroom wants | paste its URL in the workspace — „statistik.bl" → „Auftrag …" — it becomes an ordinary dataset            |
 | a club whose results the newsroom wants       | a row in `vereine` with its `ergebnis_url`, then a connector for that `quelle`                            |
+| a new rule about what a match report may say  | `redaktion/spielbericht.ts` — the prompt **and** the check next to it                                     |
 | a one-off data repair or backfill             | `apps/directus/migrations/*.mts`                                                                          |
 | an agenda entry the crawler could not fetch   | the banner in the workspace → „Eintrag von Hand erfassen"                                                 |
 | a new environment variable                    | `apps/directus/.env.example` **and** root `.env.example` **and** docker-compose.yml                       |
@@ -278,6 +288,23 @@ Flow "Sportresultate holen"  (0 30 6 * * *)
        │                 "0 - 0", so a score is only read once the match is past.
        └─ everything else — skipped, and the sports are named in the log
 ```
+
+A result becomes an article through `POST /redaktion/spielberichte` — the
+"Meldungen erzeugen" button in the Sportresultate tab. It writes one Meldung per
+result that has none yet, straight through rather than queued: one model call
+over facts already held, so there is nothing to schedule. That also keeps the
+statistics queue out of it, since `drain` only picks up rows it marked `geplant`
+itself.
+
+Match reports are ordinary `meldungen` — same review, chat, counter-check and
+publishing. They carry `spiel` instead of `lauf`, which is why `lauf` is nullable
+and the old `unique(lauf, gemeinde)` is now two partial indexes.
+
+The prompt is handed the outcome, not just the two numbers: working out who won
+means knowing which side the club played on, and that is arithmetic the model
+must not do. Afterwards every figure in the text is checked against what was
+handed over — a stray "Rang 7" is flagged, because a table position is exactly
+the kind of number that quietly turns out wrong.
 
 **Three sports have connectors: football, volleyball, handball.** Basketball,
 chess, Schwingen, swimming, American football and curling are recorded as clubs

@@ -3,14 +3,16 @@
 import { useMemo, useState } from 'react'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
 import MenuItem from '@mui/material/MenuItem'
 import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
-import type { SpielFelder } from '@/graphql/redaktion'
-import { formatiereZeitpunkt, resultat, teileSpiele } from '@/lib/redaktion'
+import type { AlleMeldungFelder, MeldungFelder, SpielFelder } from '@/graphql/redaktion'
+import { formatiereZeitpunkt, resultat, statusText, teileSpiele } from '@/lib/redaktion'
+import { MeldungKarte } from './MeldungKarte'
 
 // Results and fixtures of the clubs the newsroom follows.
 //
@@ -28,9 +30,25 @@ export interface SportresultateProps {
   laedt?: boolean
   /** The clock that separates played from upcoming. Injected by tests. */
   jetzt?: Date
+  /** The reports themselves, so a match can show the text written about it. */
+  berichte?: readonly AlleMeldungFelder[]
+  /** Writes a report for every result that has none yet. */
+  onMeldungenErzeugen?: () => Promise<void>
+  onChat?: (id: string, anweisung: string) => Promise<void>
+  onAktion?: (id: string, aktion: 'publizieren' | 'pruefung' | 'verwerfen') => Promise<void>
+  laeuft?: boolean
 }
 
-export function Sportresultate({ spiele, laedt = false, jetzt }: SportresultateProps) {
+export function Sportresultate({
+  spiele,
+  laedt = false,
+  jetzt,
+  berichte = [],
+  onMeldungenErzeugen,
+  onChat,
+  onAktion,
+  laeuft = false
+}: SportresultateProps) {
   const [gemeinde, setGemeinde] = useState(ALLE)
   const [sportart, setSportart] = useState(ALLE)
 
@@ -64,6 +82,24 @@ export function Sportresultate({ spiele, laedt = false, jetzt }: SportresultateP
     [gefiltert, jetzt]
   )
 
+  // Counted across every match, not just the filtered view: the button writes
+  // for all of them, so a count that followed the filter would promise less
+  // than it does.
+  const nachSpiel = useMemo(() => {
+    const karte = new Map<string, AlleMeldungFelder>()
+    for (const bericht of berichte) {
+      if (bericht.spiel !== null) karte.set(bericht.spiel.id, bericht)
+    }
+    return karte
+  }, [berichte])
+  const offen = useMemo(
+    () =>
+      spiele.filter(
+        (spiel) => spiel.tore_heim !== null && spiel.tore_gast !== null && !nachSpiel.has(spiel.id)
+      ).length,
+    [spiele, nachSpiel]
+  )
+
   return (
     <Stack spacing={2}>
       {spiele.length === 0 && !laedt && (
@@ -71,6 +107,23 @@ export function Sportresultate({ spiele, laedt = false, jetzt }: SportresultateP
           Noch keine Spiele erfasst. Der Lauf „Sportresultate holen“ trägt sie ein, sobald der Verband die
           nächsten Begegnungen aufschaltet.
         </Alert>
+      )}
+
+      {onMeldungenErzeugen !== undefined && (
+        <Stack direction="row" spacing={2} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+          <Button
+            variant="contained"
+            disabled={laeuft || offen === 0}
+            onClick={() => void onMeldungenErzeugen()}
+          >
+            {laeuft ? 'Wird geschrieben …' : 'Meldungen erzeugen'}
+          </Button>
+          <Typography variant="body2" color="text.secondary">
+            {offen === 0
+              ? 'Alle vorliegenden Resultate haben eine Meldung.'
+              : `${offen} ${offen === 1 ? 'Resultat wartet' : 'Resultate warten'} auf eine Meldung.`}
+          </Typography>
+        </Stack>
       )}
 
       <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap' }}>
@@ -106,8 +159,24 @@ export function Sportresultate({ spiele, laedt = false, jetzt }: SportresultateP
         </TextField>
       </Stack>
 
-      <SpielListe titel="Resultate" spiele={vergangen} leer="Noch keine gespielten Begegnungen." />
-      <SpielListe titel="Kommende Begegnungen" spiele={kommend} leer="Zurzeit sind keine Spiele angesetzt." />
+      <SpielListe
+        titel="Resultate"
+        spiele={vergangen}
+        leer="Noch keine gespielten Begegnungen."
+        berichte={nachSpiel}
+        laeuft={laeuft}
+        onChat={onChat}
+        onAktion={onAktion}
+      />
+      <SpielListe
+        titel="Kommende Begegnungen"
+        spiele={kommend}
+        leer="Zurzeit sind keine Spiele angesetzt."
+        berichte={nachSpiel}
+        laeuft={laeuft}
+        onChat={onChat}
+        onAktion={onAktion}
+      />
     </Stack>
   )
 }
@@ -115,11 +184,19 @@ export function Sportresultate({ spiele, laedt = false, jetzt }: SportresultateP
 function SpielListe({
   titel,
   spiele,
-  leer
+  leer,
+  berichte,
+  laeuft,
+  onChat,
+  onAktion
 }: {
   titel: string
   spiele: readonly SpielFelder[]
   leer: string
+  berichte: Map<string, AlleMeldungFelder>
+  laeuft: boolean
+  onChat?: (id: string, anweisung: string) => Promise<void>
+  onAktion?: (id: string, aktion: 'publizieren' | 'pruefung' | 'verwerfen') => Promise<void>
 }) {
   return (
     <Stack spacing={1}>
@@ -138,7 +215,14 @@ function SpielListe({
         <Paper sx={{ p: 1 }}>
           <Stack divider={<Box sx={{ borderBottom: 1, borderColor: 'divider' }} />}>
             {spiele.map((spiel) => (
-              <SpielZeile key={spiel.id} spiel={spiel} />
+              <SpielZeile
+                key={spiel.id}
+                spiel={spiel}
+                bericht={berichte.get(spiel.id) ?? null}
+                laeuft={laeuft}
+                onChat={onChat}
+                onAktion={onAktion}
+              />
             ))}
           </Stack>
         </Paper>
@@ -147,7 +231,20 @@ function SpielListe({
   )
 }
 
-function SpielZeile({ spiel }: { spiel: SpielFelder }) {
+function SpielZeile({
+  spiel,
+  bericht,
+  laeuft,
+  onChat,
+  onAktion
+}: {
+  spiel: SpielFelder
+  bericht: AlleMeldungFelder | null
+  laeuft: boolean
+  onChat?: (id: string, anweisung: string) => Promise<void>
+  onAktion?: (id: string, aktion: 'publizieren' | 'pruefung' | 'verwerfen') => Promise<void>
+}) {
+  const [zeigeBericht, setZeigeBericht] = useState(false)
   const offen = spiel.tore_heim === null || spiel.tore_gast === null
 
   return (
@@ -169,14 +266,40 @@ function SpielZeile({ spiel }: { spiel: SpielFelder }) {
         </Typography>
       </Stack>
 
-      <Stack direction="row" spacing={1} sx={{ alignItems: 'baseline', flexWrap: 'wrap' }}>
+      <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+        {/* Die Sportart zuerst: sobald mehrere Verbaende liefern, ist sie das
+            Erste, was eine Zeile einordnet. */}
+        <Chip size="small" variant="outlined" label={spiel.sportart} />
         <Typography variant="caption" color="text.secondary">
           {formatiereZeitpunkt(spiel.datum)}
           {spiel.gemeinde === null ? '' : ` · ${spiel.gemeinde.name}`} · {spiel.wettbewerb}
           {spiel.ort === null ? '' : ` · ${spiel.ort}`}
         </Typography>
         {spiel.status !== null && <Chip size="small" color="warning" label={spiel.status} />}
+        {bericht !== null && (
+          <Button size="small" onClick={() => setZeigeBericht(!zeigeBericht)} aria-expanded={zeigeBericht}>
+            {zeigeBericht ? 'Bericht zuklappen' : `Bericht anzeigen (${statusText(bericht.status)})`}
+          </Button>
+        )}
       </Stack>
+
+      {/* Der Bericht steht bei seinem Spiel — als vollwertige Karte mit Chat
+          und Einzelaktionen, dieselbe wie bei den Statistik-Meldungen. Erst auf
+          Klick, weil ein Wochenende sechs Berichte in die Liste stellt. */}
+      {bericht !== null && zeigeBericht && (
+        <Box sx={{ mt: 1 }}>
+          <MeldungKarte
+            meldung={bericht as unknown as MeldungFelder}
+            laeuft={laeuft}
+            onChat={async (id, anweisung) => {
+              await onChat?.(id, anweisung)
+            }}
+            onAktion={async (id, was) => {
+              await onAktion?.(id, was)
+            }}
+          />
+        </Box>
+      )}
     </Box>
   )
 }

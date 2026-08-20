@@ -26,6 +26,7 @@ apps/front/src/
 │   ├── layout.tsx           server component: MUI cache provider + colour-scheme script
 │   ├── providers.tsx        'use client': ApolloProvider + ThemeProvider
 │   ├── page.tsx             renders <AppShell />
+│   ├── blog/                PUBLIC page — published articles only, no session gate
 │   └── api/                 route handlers — proxies, nothing else
 │       ├── auth/{login,logout,session}/
 │       ├── graphql/         the browser's only data endpoint
@@ -38,7 +39,7 @@ apps/front/src/
     ├── apollo.ts            client factory (points at /api/graphql)
     ├── theme.ts             the single MUI theme
     ├── redaktion.ts         pure presentation helpers (tested)
-    ├── public.server.ts     server-only: the ONE unauthenticated path
+    ├── public.server.ts     server-only: the few unauthenticated paths (approval, public blog)
     ├── directus.server.ts   server-only: login/refresh/logout/fetch
     ├── session.server.ts    server-only: the two httpOnly cookies
     └── proxy.server.ts      server-only: browser request → Directus request

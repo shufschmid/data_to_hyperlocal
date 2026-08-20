@@ -445,3 +445,105 @@ export function zeitleiste(quellen: ZeitleistenQuellen, hoechstens = 40): Zeitle
     weitere: Math.max(datiert.length - Math.max(hoechstens, 0), 0)
   }
 }
+
+// ---------------------------------------------------------------------------
+// Meldungen, zweimal anders sortiert.
+//
+// Dieselbe Menge traegt jetzt zwei Ansichten: die Zeitleiste zeigt sie unter
+// ihrem Datensatz-Lauf, der Gemeinde-Blog mischt Statistik und Sport
+// chronologisch. Beides sind reine Funktionen, damit die Reihenfolge pruefbar
+// ist, ohne eine Komponente zu rendern.
+
+/** Buendelt Meldungen nach ihrem Lauf. Sportberichte haben keinen und fallen raus. */
+export function meldungenNachLauf<T extends { lauf: { id: string } | null }>(
+  meldungen: readonly T[]
+): Map<string, T[]> {
+  const nach = new Map<string, T[]>()
+  for (const meldung of meldungen) {
+    if (meldung.lauf === null) continue
+    const bisher = nach.get(meldung.lauf.id)
+    if (bisher === undefined) nach.set(meldung.lauf.id, [meldung])
+    else bisher.push(meldung)
+  }
+  return nach
+}
+
+/**
+ * Wann eine Meldung im Blog steht.
+ *
+ * Publikationsdatum, solange es eines gibt — das ist der Moment, in dem der
+ * Beitrag oeffentlich wurde. Ein Entwurf hat keines und wird nach seiner
+ * Entstehung einsortiert, damit er nicht ans Ende der Liste faellt.
+ */
+export function blogDatum(meldung: {
+  publiziert_am: string | null
+  date_created: string | null
+}): string | null {
+  return meldung.publiziert_am ?? meldung.date_created
+}
+
+export interface GemeindeBlog<T> {
+  gemeinde: { id: string; name: string }
+  beitraege: T[]
+}
+
+/**
+ * Ein Blog je Gemeinde, neueste zuerst.
+ *
+ * Herkunftsblind mit Absicht: ob ein Beitrag aus einer Statistik oder aus einem
+ * Spiel entstand, ist eine Frage der Produktion, nicht der Lektuere. Weitere
+ * Quellen reihen sich spaeter ohne Aenderung hier ein.
+ */
+export function blogNachGemeinde<
+  T extends {
+    publiziert_am: string | null
+    date_created: string | null
+    gemeinde: { id: string; name: string } | null
+  }
+>(meldungen: readonly T[]): GemeindeBlog<T>[] {
+  const nach = new Map<string, GemeindeBlog<T>>()
+
+  for (const meldung of meldungen) {
+    if (meldung.gemeinde === null) continue
+    const vorhanden = nach.get(meldung.gemeinde.id)
+    if (vorhanden === undefined) {
+      nach.set(meldung.gemeinde.id, {
+        gemeinde: { id: meldung.gemeinde.id, name: meldung.gemeinde.name },
+        beitraege: [meldung]
+      })
+    } else {
+      vorhanden.beitraege.push(meldung)
+    }
+  }
+
+  for (const blog of nach.values()) {
+    blog.beitraege.sort((a, b) => {
+      const da = blogDatum(a)
+      const db = blogDatum(b)
+      if (da === null) return 1
+      if (db === null) return -1
+      return new Date(db).getTime() - new Date(da).getTime()
+    })
+  }
+
+  return [...nach.values()].sort((a, b) => a.gemeinde.name.localeCompare(b.gemeinde.name, 'de-CH'))
+}
+
+/**
+ * Der URL-Name einer Gemeinde: `?gemeinde=muenchenstein`.
+ *
+ * Ein Slug statt der UUID, weil die Adresse von Hand tippbar und zwischen
+ * Installationen stabil sein soll — die UUID ist beides nicht. Umlaute werden
+ * ausgeschrieben (ue statt u), wie es Schweizer Ortsnamen in URLs halten.
+ */
+export function gemeindeSlug(name: string): string {
+  return name
+    .toLocaleLowerCase('de-CH')
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+}

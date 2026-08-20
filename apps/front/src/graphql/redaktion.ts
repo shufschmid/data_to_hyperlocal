@@ -177,6 +177,76 @@ export const MELDUNGEN_QUERY = gql`
   }
 `
 
+// Alle Meldungen auf einmal — Statistik wie Sport.
+//
+// Loest die zwei frueheren Abfragen ab (eine pro Lauf, eine fuer Spielberichte).
+// Der Grund ist die neue Aufteilung: die Zeitleiste zeigt die Berichte unter
+// ihrem Eintrag, und der Gemeinde-Blog mischt beide Herkuenfte chronologisch.
+// Beides braucht denselben Bestand, nur anders gruppiert — zwei Abfragen dafuer
+// waeren zwei Wahrheiten.
+//
+// `lauf` und `spiel` sind beide nullbar und schliessen einander aus: eine
+// Meldung gehoert entweder zu einem Datensatz-Lauf oder zu einer Begegnung.
+export interface AlleMeldungFelder {
+  id: string
+  titel: string | null
+  lead: string | null
+  text: string | null
+  status: string
+  verarbeitung: string
+  zeit_warnungen: string[] | null
+  fehler: string | null
+  publiziert_am: string | null
+  date_created: string | null
+  gemeinde: { id: string; name: string; bezirk: string } | null
+  lauf: { id: string } | null
+  spiel: {
+    id: string
+    heim: string
+    gast: string
+    datum: string
+    sportart: string
+    wettbewerb: string
+  } | null
+}
+
+export interface AlleMeldungenErgebnis {
+  meldungen: AlleMeldungFelder[]
+}
+
+export const ALLE_MELDUNGEN_QUERY = gql`
+  query AlleMeldungen {
+    meldungen(sort: ["-date_created"], limit: -1) {
+      id
+      titel
+      lead
+      text
+      status
+      verarbeitung
+      zeit_warnungen
+      fehler
+      publiziert_am
+      date_created
+      gemeinde {
+        id
+        name
+        bezirk
+      }
+      lauf {
+        id
+      }
+      spiel {
+        id
+        heim
+        gast
+        datum
+        sportart
+        wettbewerb
+      }
+    }
+  }
+`
+
 export interface ChatNachricht {
   id: string
   rolle: string

@@ -9,6 +9,7 @@ import { proxyToDirectus, problem } from '@/lib/proxy.server'
 // signed-in user.
 const ERLAUBT: RegExp[] = [
   /^tabellen$/i,
+  /^spielberichte$/i,
   /^ankuendigungen$/i,
   /^datensaetze\/[0-9a-f-]{36}\/lauf$/i,
   /^laeufe\/[0-9a-f-]{36}\/(chat|publizieren|pruefung|verwerfen)$/i,
