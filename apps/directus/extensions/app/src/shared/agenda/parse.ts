@@ -170,3 +170,72 @@ export function parseAgenda(html: string, basisUrl: string): AgendaEintrag[] {
 export function agendaSchluessel(eintrag: AgendaEintrag): string {
   return eintrag.titel.toLowerCase().replace(/\s+/g, ' ').trim()
 }
+
+// ---------------------------------------------------------------------------
+// The same agenda, read from Markdown.
+//
+// Only used when every honest attempt has been refused: the crawler renders the
+// page in a real browser, and what comes back is Markdown rather than the HTML
+// `parseAgenda` above expects. The shape is flatter but carries everything —
+// quarter heading, date, title, link:
+//
+//     **1. Quartal: Januar–März**26.01.2026
+//     [Sozialmedizinische Institutionen 2024](https://statistik.bl.ch/…/14_4)
+//
+// The first date of a quarter is glued to its heading, which is why the date is
+// searched for anywhere in the line rather than anchored at its start.
+
+const MD_QUARTAL = /(\d\.\s*Quartal:[^*\n]*)/
+const MD_DATUM = /(\d{2})\.(\d{2})\.(\d{4})/
+const MD_TITEL = /^\[([^\]]+)\]\(([^)]+)\)$/
+
+/**
+ * Reads the agenda out of the crawler's Markdown.
+ *
+ * An entry needs a title; a date is optional, because the office announces some
+ * statistics for a quarter without fixing a day. Those arrive as `geplant`,
+ * exactly as from the HTML path, so the rest of the pipeline cannot tell which
+ * route an entry took.
+ */
+export function parseAgendaMarkdown(markdown: string): AgendaEintrag[] {
+  const zeilen = markdown
+    .split('\n')
+    .map((z) => z.trim())
+    .filter((z) => z !== '')
+
+  const eintraege: AgendaEintrag[] = []
+  let quartal: string | null = null
+  let datum: string | null = null
+
+  for (const zeile of zeilen) {
+    const q = MD_QUARTAL.exec(zeile)
+    if (q !== null && q[1] !== undefined) quartal = q[1].trim()
+
+    const titel = MD_TITEL.exec(zeile)
+    if (titel !== null && titel[1] !== undefined && titel[2] !== undefined) {
+      eintraege.push({
+        datum,
+        quartal,
+        titel: titel[1].trim(),
+        link: titel[2].trim(),
+        status: datum === null ? 'geplant' : 'publiziert'
+      })
+      // Each date belongs to exactly one entry; keeping it would hand the same
+      // day to every following title.
+      datum = null
+      continue
+    }
+
+    const d = MD_DATUM.exec(zeile.replace(/\*/g, ''))
+    if (
+      d !== null &&
+      d[1] !== undefined &&
+      d[2] !== undefined &&
+      d[3] !== undefined
+    ) {
+      datum = `${d[3]}-${d[2]}-${d[1]}`
+    }
+  }
+
+  return eintraege
+}

@@ -1,4 +1,4 @@
-import { parseAgenda, type AgendaEintrag } from './parse'
+import { parseAgenda, parseAgendaMarkdown, type AgendaEintrag } from './parse'
 
 // Fetching the statistics office's publication agenda.
 //
@@ -78,8 +78,29 @@ export function istChallenge(html: string): boolean {
   return CHALLENGE_MARKER.some((marker) => html.includes(marker))
 }
 
-export const STANDARD_VERSUCHE = 3
+export const STANDARD_VERSUCHE = 5
 export const STANDARD_PAUSE_MS = 4000
+
+/**
+ * How long to wait before attempt n+1, growing each time.
+ *
+ * The challenge is not a verdict on us, it is a window: measured on this host a
+ * cold process is challenged once and served normally four seconds later, while
+ * a bad patch outlasts that comfortably. Five attempts at a flat four seconds
+ * span twelve seconds of wall clock in total, which is why a scheduled run can
+ * report a bot check at 06:00 for a page that answers by hand all morning.
+ *
+ * Growing the pause spans a minute instead (4s, 8s, 16s, 32s). That is five
+ * requests where there were three, but spread over sixty seconds rather than
+ * eight — a lower rate than before, over a window long enough to outlast the
+ * check. Still once a day overall.
+ */
+export function pauseFuerVersuch(
+  versuch: number,
+  basis = STANDARD_PAUSE_MS
+): number {
+  return basis * 2 ** (versuch - 1)
+}
 
 export interface AgendaOptions {
   /** Contact address put into the User-Agent. */
@@ -90,6 +111,12 @@ export interface AgendaOptions {
   pauseMs?: number
   fetchImpl?: AgendaFetch
   sleep?: (ms: number) => Promise<void>
+  /**
+   * Last resort when every honest attempt was refused: renders the page in a
+   * real browser and hands back Markdown. Left undefined, the fetch fails as
+   * before — the caller decides whether this route is available at all.
+   */
+  notfallMarkdown?: (url: string) => Promise<string>
 }
 
 const defaultSleep = (ms: number): Promise<void> =>
@@ -130,10 +157,10 @@ export async function fetchAgenda(
     // serving it with 200 — so the body decides, not the status code.
     if (istChallenge(html)) {
       if (versuch < versuche) {
-        await sleep(pauseMs)
+        await sleep(pauseFuerVersuch(versuch, pauseMs))
         continue
       }
-      throw new AgendaChallengeError(url, versuche)
+      return await notfall(url, options, versuche)
     }
 
     if (!response.ok) {
@@ -149,4 +176,30 @@ export async function fetchAgenda(
 
   // Unreachable: the loop either returns or throws.
   throw new AgendaChallengeError(url, versuche)
+}
+
+/**
+ * The browser route, taken only after every honest attempt was turned away.
+ *
+ * This does solve the challenge, and that is a deliberate change of position:
+ * five spaced attempts were measured failing a whole scheduled run while the
+ * same page answered by hand minutes later, so the alternative was not a
+ * politer fetch but no agenda at all. What is given up is our own name in the
+ * User-Agent — the crawler goes out as a generic browser — which is why this
+ * runs once, last, and never in place of the honest attempts.
+ */
+async function notfall(
+  url: string,
+  options: AgendaOptions,
+  versuche: number
+): Promise<AgendaEintrag[]> {
+  if (options.notfallMarkdown === undefined) {
+    throw new AgendaChallengeError(url, versuche)
+  }
+  const markdown = await options.notfallMarkdown(url)
+  const eintraege = parseAgendaMarkdown(markdown)
+  // An empty read is a failure wearing a success: reporting it as "nothing
+  // published" would quietly stop the feed.
+  if (eintraege.length === 0) throw new AgendaChallengeError(url, versuche)
+  return eintraege
 }

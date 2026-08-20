@@ -4,6 +4,7 @@ import {
   AgendaRequestError,
   buildUserAgent,
   fetchAgenda,
+  pauseFuerVersuch,
   istChallenge,
   type AgendaFetch
 } from './index'
@@ -134,7 +135,25 @@ describe('fetchAgenda', () => {
     expect(fetchImpl).toHaveBeenCalledTimes(3)
     // Pauses between attempts, not after the last one.
     expect(sleep).toHaveBeenCalledTimes(2)
-    expect(sleep).toHaveBeenCalledWith(4000)
+    // Growing, so a run outlasts a challenge window instead of giving up
+    // inside a few seconds.
+    expect(sleep.mock.calls.map((c) => c[0])).toEqual([4000, 8000])
+  })
+
+  it('wartet immer laenger, statt in Sekunden aufzugeben', () => {
+    expect([1, 2, 3, 4].map((v) => pauseFuerVersuch(v, 4000))).toEqual([
+      4000, 8000, 16000, 32000
+    ])
+  })
+
+  // Five attempts spanning a minute — the old flat pause gave up after eight
+  // seconds, which is shorter than the challenge window this failed on.
+  it('spannt mit den Standardwerten eine Minute auf', () => {
+    const gesamt = [1, 2, 3, 4]
+      .map((v) => pauseFuerVersuch(v))
+      .reduce((a, b) => a + b, 0)
+    expect(gesamt).toBe(60000)
+    expect(gesamt / 1000).toBe(60)
   })
 
   it('hoert sofort auf, sobald ein Versuch durchkommt', async () => {

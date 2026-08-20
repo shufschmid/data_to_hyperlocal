@@ -18,7 +18,7 @@
     "schema:load": "if [ -d schema/collections ]; then directus-sync push --no-snapshot; else echo 'schema/ enthaelt noch keinen Dump — schema:load uebersprungen. Erst \"npm run schema:dump\" ausfuehren.'; fi",
     "schema:diff": "directus-sync diff",
     "directus:init": "ADMIN_EMAIL=admin@wepublish.ch ADMIN_PASSWORD=admin123 PUBLIC_URL=/ DB_HOST=127.0.0.1 DB_PASSWORD=password KEY=59ccea19-23112-4a08-8sw72-dd2312341412 SECRET=1234 npx directus bootstrap && npm run database:migrate && npm run schema:load",
-    "directus:start": "CACHE_ENABLED=false EXTENSIONS_AUTO_RELOAD=true PUBLIC_URL=/ DB_HOST=127.0.0.1 DB_PASSWORD=password KEY=59ccea19-23112-4a08-8sw72-dd2312341412 SECRET=1234 npx directus start",
+    "directus:start": "set -a; [ -f .env ] && . ./.env; set +a; CACHE_ENABLED=false EXTENSIONS_AUTO_RELOAD=true PUBLIC_URL=/ DB_HOST=127.0.0.1 DB_PASSWORD=password KEY=59ccea19-23112-4a08-8sw72-dd2312341412 SECRET=1234 npx directus start",
     "setup": "cp -n .env.example .env; npm install && npm run build",
     "db:start": "docker compose up -d",
     "db:reset": "docker compose down -v",

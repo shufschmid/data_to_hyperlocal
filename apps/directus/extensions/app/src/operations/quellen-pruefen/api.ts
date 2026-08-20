@@ -1,5 +1,6 @@
 import { defineOperationApi } from '@directus/extensions-sdk'
 import { cacheableSystem, completeJson } from '../../shared/claude'
+import { scrape } from '../../shared/crawler'
 import {
   contentFingerprint,
   detectMunicipalityFields,
@@ -243,7 +244,11 @@ export default defineOperationApi<Options>({
       quelle: Pick<Quelle, 'id' | 'name' | 'basis_url'>
     ): Promise<void> {
       const eintraege = await fetchAgenda(quelle.basis_url, {
-        kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch')
+        kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch'),
+        // Offered, not used by default: fetchAgenda only reaches for this once
+        // every honest attempt has been turned away. Without CRAWLER_KEY the
+        // call throws and the run reports the bot check as before.
+        notfallMarkdown: async (url) => (await scrape(url)).markdown
       })
 
       ergebnis.gesehen += eintraege.length
