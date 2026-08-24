@@ -169,12 +169,18 @@ them is wrong even if it works.
    [Trigger docs](https://directus.com/docs/guides/flows/triggers). No system cron,
    no `setInterval` in a hook, no scheduler container. The Flow calls a custom
    operation from the bundle; the Flow itself is committed via `schema:dump`.
+9. **The data model is synced, never migrated.** Collections, fields, relations,
+   roles, permissions and Flows are built in the Directus admin UI and committed with
+   `npm run schema:dump` (directus-sync → `apps/directus/schema/`). A migration must
+   never create or alter structure; `apps/directus/migrations/` is a last resort for
+   row data and for indexes Directus does not manage — see
+   [apps/directus/CLAUDE.md](apps/directus/CLAUDE.md).
 
 ## Where does this feature go?
 
 | The change is…                                | Goes to                                                                                                   |
 | --------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| a new collection or field                     | Directus admin UI, then `npm run schema:dump` — [apps/directus](apps/directus/)                           |
+| a new collection, field, relation or role     | Directus admin UI, then `npm run schema:dump` — [apps/directus](apps/directus/)                           |
 | a calculation, validation or business rule    | extension bundle (endpoint or hook)                                                                       |
 | anything that calls Claude                    | extension bundle, via `shared/claude.ts`                                                                  |
 | something that must run nightly/hourly        | Flow with a Schedule trigger + a custom operation in the bundle                                           |
@@ -184,7 +190,7 @@ them is wrong even if it works.
 | a table on statistik.bl.ch the newsroom wants | paste its URL in the workspace — „statistik.bl" → „Auftrag …" — it becomes an ordinary dataset            |
 | a club whose results the newsroom wants       | a row in `vereine` with its `ergebnis_url`, then a connector for that `quelle`                            |
 | a new rule about what a match report may say  | `redaktion/spielbericht.ts` — the prompt **and** the check next to it                                     |
-| a one-off data repair or backfill             | `apps/directus/migrations/*.mts`                                                                          |
+| a one-off data repair or backfill             | rows only: a one-shot Flow, else `apps/directus/migrations/*.mts` as a last resort                        |
 | an agenda entry the crawler could not fetch   | the banner in the workspace → „Eintrag von Hand erfassen"                                                 |
 | a new environment variable                    | `apps/directus/.env.example` **and** root `.env.example` **and** docker-compose.yml                       |
 

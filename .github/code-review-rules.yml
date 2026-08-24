@@ -1,0 +1,552 @@
+# Architectural rules for this repository, checked on every pull request by
+# .github/workflows/code-review.yml (wepublish/gha-review).
+#
+# These are the rules written in prose in the CLAUDE.md files, restated so a
+# model can check them. When you change a rule there, change it here too —
+# and when you delete the example feature or grow past the template's layout,
+# adapt the globs.
+#
+# This is for architecture, not style: Prettier and `tsc --noEmit` already
+# cover formatting and types, and a rule they can enforce does not belong here.
+#
+# Each rule needs:
+#   id           stable slug; findings and the report reference it
+#   title        one line, shown in the report and in GitHub annotations
+#   description  the actual instruction handed to the model — be specific
+# Optional:
+#   severity     error (default) | warning | info — drives the fail-on threshold
+#   include      globs limiting the rule to certain files (default: all files)
+#   exclude      globs exempting files from the rule
+#
+# Write descriptions the way you would brief a new reviewer: say what counts as
+# a violation, and say what does not. Rules phrased as vague aspirations
+# ("code should be clean") produce noisy, low-confidence findings.
+#
+# The stack description the model reviews against lives in the workflow, as the
+# `project-context` input — keep the two in sync.
+
+rules:
+  # ── Platform constraints ────────────────────────────────────────────────
+
+  - id: single-llm-client
+    title: Every LLM call goes through the shared Claude client
+    severity: error
+    include: ['apps/**/*.ts', 'apps/**/*.tsx', 'apps/**/*.mts']
+    exclude: ['**/shared/claude.ts', '**/*.test.ts', '**/*.test.tsx']
+    description: |
+      The Claude API is the only inference provider, and
+      `apps/directus/extensions/app/src/shared/claude.ts` is the only module
+      that talks to it. Callers use `completeText` / `completeJson` from that
+      module.
+
+      A violation is: importing a model SDK (`@anthropic-ai/sdk`, `openai`,
+      `@google/genai`, `ollama`, …) anywhere outside `shared/claude.ts`; a
+      `fetch` to an inference endpoint (`api.anthropic.com`,
+      `api.openai.com`, a local model server); loading model weights; or any
+      code path that runs a model locally instead of calling the API.
+
+      Not a violation: `shared/claude.ts` itself, tests that inject a stubbed
+      `MessageSender`, and code that merely passes prompts to the shared
+      helpers.
+
+  - id: no-filesystem-state
+    title: No persistent file storage outside Directus
+    severity: error
+    include: ['apps/**/*.ts', 'apps/**/*.tsx', 'apps/**/*.mts']
+    exclude: ['**/*.test.ts', '**/*.test.tsx', '**/*.config.ts', '**/*.config.mts']
+    description: |
+      Containers are disposable: anything written outside a named volume is
+      gone on the next deploy. Application state goes into a Directus
+      collection; binaries go through Directus Files.
+
+      A violation is application code writing to the filesystem — `fs.writeFile`,
+      `fs.appendFile`, `fs.mkdir`, `createWriteStream`, a JSON state file, a
+      disk cache directory, a log file, a `./data` or `./tmp` path — to keep
+      data that must survive the request or the container.
+
+      Not a violation: reading files that ship with the code (templates,
+      fixtures, migrations), build-time or test-time writes, and writes to a
+      path that is an explicitly mounted volume in docker-compose.yml.
+
+  - id: no-extra-services
+    title: No new infrastructure services or outbound dependencies
+    severity: error
+    include: ['docker-compose.yml', 'docker-compose.yaml', 'apps/**/package.json', 'apps/**/*.ts']
+    exclude: ['**/*.test.ts']
+    description: |
+      The stack is Postgres, Directus and the frontend. The Claude API is the
+      single outbound dependency. Adding infrastructure is a deliberate
+      architectural decision, not a commit.
+
+      A violation is introducing a new runtime service or a client for one:
+      Redis, a queue or message broker (BullMQ, RabbitMQ, Kafka, SQS), a
+      search engine, a vector database, an external cron host, a side-car
+      container, or a third-party HTTP API called at runtime.
+
+      Not a violation: dev-only or test-only dependencies, the existing
+      Postgres/Directus/frontend services, and calls to the Claude API.
+
+  - id: typescript-only
+    title: Business logic is TypeScript, not shell or Python
+    severity: error
+    include: ['**/*.sh', '**/*.py', '**/*.bash']
+    exclude: ['apps/directus/docker/entrypoint.sh', '**/node_modules/**']
+    description: |
+      All logic — backend, frontend, migrations, scripts — is TypeScript. The
+      container entrypoint is the one exception, and it only orchestrates
+      commands.
+
+      A violation is a shell or Python file that carries a business rule: a
+      calculation, a data transformation, a validation, a query that shapes
+      domain data, or a scheduled job's actual work.
+
+      Not a violation: scripts that only invoke other commands, set
+      environment variables, wait for a service, or wire up tooling.
+
+  # ── Where logic lives ───────────────────────────────────────────────────
+
+  - id: no-logic-in-frontend
+    title: The frontend is UI only — no business logic
+    severity: error
+    include: ['apps/front/**/*.ts', 'apps/front/**/*.tsx']
+    exclude: ['**/*.test.ts', '**/*.test.tsx']
+    description: |
+      Business rules live in the Directus extension bundle, because a rule
+      that only exists in the frontend is bypassed the moment a colleague
+      edits the record in the Directus admin UI.
+
+      A violation is frontend code that contains: an LLM prompt, a call to
+      Claude, a domain calculation (pricing, scoring, quotas, state machines),
+      validation that protects data integrity rather than guiding the user, or
+      a write assembled from derived values the server should have computed.
+
+      Not a violation: presentation logic — formatting, sorting, filtering for
+      display, form UX validation that also exists server-side, client-side
+      state, and derived values used only for rendering.
+
+  - id: thin-route-handlers
+    title: Next route handlers are proxies, nothing else
+    severity: error
+    include: ['apps/front/src/app/api/**/*.ts']
+    description: |
+      A route handler validates its input, calls `proxyToDirectus`, and
+      returns the response. It is a door, not a place to put code.
+
+      A violation is a handler that builds a prompt, calls a model, performs a
+      calculation, assembles a write payload by hand, applies a business rule,
+      or talks to a database directly.
+
+      Not a violation: input validation (id format, required fields),
+      returning a 4xx for a malformed request, setting or clearing session
+      cookies, and mapping a Directus error onto an HTTP status.
+
+  - id: no-server-secrets-in-frontend
+    title: The frontend holds no API key and no service token
+    severity: error
+    include: ['apps/front/**/*.ts', 'apps/front/**/*.tsx', 'apps/front/**/*.js']
+    description: |
+      The browser acts as the signed-in user through httpOnly session cookies;
+      every Directus request is proxied with that user's access token. There
+      is deliberately no admin or service token in this app.
+
+      A violation is: reading or referencing `ANTHROPIC_API_KEY`, a Directus
+      static/admin token, or any other credential in `apps/front`; adding a
+      `NEXT_PUBLIC_*` variable that holds a secret or a token; or storing a
+      token in `localStorage`, `sessionStorage` or a non-httpOnly cookie.
+
+      Not a violation: `NEXT_PUBLIC_*` for genuinely public values (a public
+      URL, a feature flag), and `DIRECTUS_URL` read in server-only code.
+
+  - id: server-only-modules
+    title: Server-only modules are marked and never imported by client code
+    severity: error
+    include: ['apps/front/src/**/*.ts', 'apps/front/src/**/*.tsx']
+    exclude: ['**/*.test.ts', '**/*.test.tsx']
+    description: |
+      `*.server.ts` files start with `import 'server-only'`. That import is
+      what keeps tokens and secrets out of the browser bundle.
+
+      A violation is a `*.server.ts` file without the `import 'server-only'`
+      line, or a file marked `'use client'` importing one.
+
+      Not a violation: a server component or route handler importing a
+      `*.server.ts` module — that is exactly what they are for.
+
+  # ── Directus extension bundle ───────────────────────────────────────────
+
+  - id: endpoint-authorization
+    title: Every custom endpoint decides explicitly who may call it
+    severity: error
+    include: ['apps/directus/extensions/**/endpoints/**/*.ts']
+    exclude: ['**/*.test.ts']
+    description: |
+      Directus mounts custom endpoints **before** its permission layer, so
+      they are public by default. This is the most common security bug in a
+      Directus extension.
+
+      A violation is a route handler that reads or writes data without a
+      visible authorization step: no authentication check on the request, no
+      `accountability`-scoped service, and no explicit comment saying the
+      route is intentionally public.
+
+      Not a violation: a handler that checks the caller first (e.g. rejecting
+      an unauthenticated request with a `ForbiddenError`), a handler that
+      passes `req.accountability` into every service it uses so Directus
+      enforces permissions, or a route documented in code as deliberately
+      public.
+
+  - id: items-service-over-raw-sql
+    title: Read and write through ItemsService, not raw knex
+    severity: warning
+    include: ['apps/directus/extensions/**/*.ts']
+    exclude: ['**/*.test.ts']
+    description: |
+      Services run hooks, validation and permissions; raw database access
+      skips all three. Pass `accountability` so the caller's permissions
+      apply.
+
+      A violation is using the raw `database` / knex instance to insert,
+      update or delete items in a collection, or to read items that a service
+      could read; or constructing an `ItemsService` without `accountability`
+      while acting on behalf of a request, with no comment saying why it must
+      act as the system.
+
+      Not a violation: knex for reporting-style queries (aggregations, joins
+      across collections, bulk reads for a scheduled job), and a deliberate
+      system-level service with a comment explaining it.
+
+  - id: readone-forbidden-not-null
+    title: Handle a missing item as ForbiddenError, not null, and answer 403
+    severity: error
+    include: ['apps/directus/extensions/**/*.ts']
+    exclude: ['**/*.test.ts']
+    description: |
+      `ItemsService.readOne` never returns `null`. It throws `ForbiddenError`
+      for an item that is missing *or* not readable by the caller, and for a
+      malformed key. The ambiguity is deliberate: two different answers would
+      let a caller probe which ids exist.
+
+      A violation is a `null` / `undefined` check on a `readOne` result (dead
+      code), or catching the Directus `Forbidden` error and answering 404.
+
+      Not a violation: matching with `isDirectusError(error, ErrorCode.Forbidden)`
+      and returning 403, re-wrapping it to give the user a German message, and
+      letting other errors fall through to a logged 500.
+
+  - id: narrow-error-handling
+    title: Wrap only what can genuinely fail, and never leak provider errors
+    severity: warning
+    include: ['apps/directus/extensions/**/*.ts']
+    exclude: ['**/*.test.ts']
+    description: |
+      A single `try` around a whole handler turns every bad request into the
+      same 5xx. The caller's mistakes get their own 4xx; the generic 5xx is
+      for real faults.
+
+      A violation is a `try` block wrapping an entire handler body and mapping
+      everything to one status, or returning a raw provider/model error
+      message to the browser (it can contain the prompt or internal details).
+
+      Not a violation: a narrow `try` around the single call that can fail, a
+      dedicated error class per failure mode, and logging the cause
+      server-side while returning a sanitised message.
+
+  - id: scheduled-work-via-flows
+    title: Scheduled work is a Directus Flow with a Schedule trigger
+    severity: error
+    include: ['apps/**/*.ts', 'apps/**/*.mts']
+    exclude: ['**/*.test.ts', '**/*.test.tsx']
+    description: |
+      Recurring work is a Flow with a Schedule (cron) trigger calling a custom
+      operation from the extension bundle, committed via `schema:dump`. There
+      is no system cron, no scheduler container.
+
+      A violation is application code that schedules its own recurring work:
+      `setInterval`, a self-rescheduling `setTimeout`, `node-cron`,
+      `node-schedule`, `agenda`, or a long-running loop started at boot.
+
+      Not a violation: a one-shot `setTimeout` for a retry or debounce, test
+      timers, and an operation handler that is itself invoked by a Flow.
+
+  - id: bounded-scheduled-operations
+    title: Flow operations are bounded and idempotent
+    severity: warning
+    include: ['apps/directus/extensions/**/operations/**/*.ts']
+    exclude: ['**/*.test.ts']
+    description: |
+      A scheduled run can overlap a previous one, and an unbounded run is how
+      a nightly job turns into a surprise API bill.
+
+      A violation is an operation handler that processes an unbounded result
+      set — a read with no `limit`, or a loop over every matching item — or
+      that aborts the whole run when a single item fails, or that would
+      redo completed work when it runs twice.
+
+      Not a violation: a configurable `limit` option with a sane default, a
+      filter that only picks up unprocessed items, and skipping a bad item
+      while logging it.
+
+  - id: fast-hooks
+    title: Hooks stay fast — no slow work in the request path
+    severity: warning
+    include: ['apps/directus/extensions/**/hooks/**/*.ts']
+    exclude: ['**/*.test.ts']
+    description: |
+      Hooks block the write they fire on. Anything slow belongs in a Flow
+      operation instead.
+
+      A violation is a hook that calls the Claude API, makes an outbound HTTP
+      request, or runs a long batch of database work before returning.
+
+      Not a violation: normalising or validating the payload, reading a small
+      amount of related data, and enqueuing work by writing a flag or status
+      the scheduled Flow picks up later.
+
+  - id: invalidate-derived-data
+    title: LLM-derived data is a cache and must be invalidated at the source
+    severity: warning
+    include: ['apps/directus/extensions/**/hooks/**/*.ts']
+    exclude: ['**/*.test.ts']
+    description: |
+      Anything derived by a model describes the record it was generated from.
+      A stale summary must never outlive the text it describes.
+
+      A violation is a filter hook that lets a change to a source field
+      through while leaving the derived fields (summary, tags, embeddings,
+      classifications) untouched.
+
+      Not a violation: clearing or flagging the derived fields when the source
+      changes, and leaving them alone when the update does not touch a source
+      field.
+
+  - id: env-through-helper
+    title: Environment variables are read through the shared env helper
+    severity: warning
+    include: ['apps/directus/extensions/**/*.ts']
+    exclude: ['**/shared/env.ts', '**/*.test.ts']
+    description: |
+      `shared/env.ts` (`requireEnv`) is the single reader, so a missing
+      variable fails with a message that names it instead of a downstream
+      `undefined`.
+
+      A violation is `process.env.SOMETHING` accessed directly in an endpoint,
+      hook, operation or other handler.
+
+      Not a violation: `shared/env.ts` itself, tests, and build or config
+      files.
+
+  # ── Working with the model ──────────────────────────────────────────────
+
+  - id: validate-model-output
+    title: Validate a model answer before persisting it
+    severity: error
+    include: ['apps/directus/extensions/**/*.ts']
+    exclude: ['**/*.test.ts']
+    description: |
+      `completeJson<T>`'s type parameter is a promise, not a proof. The shape
+      is whatever the model returned.
+
+      A violation is writing a model answer into a collection, or reading
+      fields off it, without a validation step that checks the shape first;
+      or catching `ClaudeTruncatedError` and using the partial answer anyway.
+
+      Not a violation: passing the answer through a parser/validator that
+      throws on an unexpected shape, and letting a truncation error propagate
+      so the run fails loudly.
+
+  - id: structured-answer-fields
+    title: Store each part of a model answer in its own field
+    severity: warning
+    include: ['apps/directus/extensions/**/*.ts']
+    exclude: ['**/*.test.ts']
+    description: |
+      Packing structured output into one text column forces the frontend to
+      parse it back apart — the same format written twice in two packages,
+      and they drift.
+
+      A violation is concatenating several parts of a validated answer into a
+      single column (e.g. `summary + "\n\n" + tags.join(' ')`), or a frontend
+      that splits a stored string back into parts.
+
+      Not a violation: one field per part — a `cast-csv` column for a list, a
+      `cast-json` column for anything nested — mapped by one shared pure
+      function so the endpoint and the Flow operation cannot diverge.
+
+  - id: prompts-in-own-module
+    title: Prompts live in their own module next to the handler
+    severity: warning
+    include: ['apps/directus/extensions/**/*.ts']
+    exclude: ['**/prompt.ts', '**/prompts.ts', '**/*.test.ts']
+    description: |
+      Prompt building and answer validation must be unit-testable without a
+      network call, so they live in a `prompt.ts` beside the handler.
+
+      A violation is a multi-line system prompt or prompt template written
+      inline in an endpoint, hook or operation handler.
+
+      Not a violation: a short interpolation of already-built prompt pieces at
+      the call site, and prompt text inside a dedicated prompt module.
+
+  # ── Data model and migrations ───────────────────────────────────────────
+
+  - id: schema-sync-owns-the-data-model
+    title: The data model changes through schema sync, never a migration
+    severity: error
+    include: ['apps/directus/migrations/**']
+    description: |
+      `apps/directus/schema/` (directus-sync) is the single source of truth for
+      the data model — collections, fields, relations, roles, policies,
+      permissions, presets, dashboards and Flows. They are built in the Directus
+      admin UI and committed with `npm run schema:dump`. Migrations exist for row
+      data only, and are a last resort even there.
+
+      A violation is a migration that changes structure: `schema.createTable`,
+      `schema.dropTable`, an `alterTable` that adds, drops or retypes a column,
+      a new foreign key, or an insert into `directus_collections`,
+      `directus_fields` or `directus_relations`. Such a change belongs in the
+      admin UI plus a `schema:dump`; owning a collection in both places also
+      breaks a fresh boot, because `schema:load` then tries to create what the
+      migration already created.
+
+      Not a violation: `INSERT`/`UPDATE`/`DELETE` on application rows
+      (backfills, repairs, recomputing a derived column), and an index or
+      constraint Directus does not manage with a comment saying why.
+
+  - id: migrations-reversible-mts
+    title: Migrations are `.mts` and export both up and down
+    severity: error
+    include: ['apps/directus/migrations/**']
+    description: |
+      Migrations are written as `.mts` and compiled to `.mjs` on every run —
+      Directus' runner only loads `.js`/`.mjs`/`.cjs` and silently ignores
+      `.ts`. Each one must be reversible so a bad deploy can be rolled back,
+      and must assume it runs against a database that already has data.
+
+      A violation is a migration file with a `.ts` or `.js` extension, or one
+      that exports `up` with a missing or empty `down`.
+
+      Not a violation: a `down` that deliberately throws with a comment
+      explaining why the change cannot be reversed.
+
+  - id: env-var-three-files
+    title: A new environment variable is added in all three places
+    severity: warning
+    include: ['apps/directus/.env.example', '.env.example', 'docker-compose.yml', 'docker-compose.yaml']
+    description: |
+      A variable must exist in `apps/directus/.env.example`, the root
+      `.env.example`, and the `docker-compose.yml` service that consumes it.
+      Missing one means it works locally and breaks in Docker, or the reverse.
+
+      A violation is a variable introduced in one of these files with no
+      counterpart in the others.
+
+      Not a violation: variables that are genuinely Docker-only (container
+      wiring such as service hostnames) or genuinely local-only, where the
+      surrounding file already makes that clear.
+
+  - id: no-committed-env-files
+    title: No `.env` file and no real credentials committed
+    severity: error
+    include: ['**/.env', '**/.env.*']
+    exclude: ['**/.env.example', '**/.env.*.example']
+    description: |
+      Only `*.example` files belong in the repository. The root `.env`
+      configures Docker; `apps/directus/.env` and `apps/front/.env.local`
+      configure local development, and none of them are committed.
+
+      A violation is any committed `.env` file, or a real key, password, token
+      or connection string with credentials appearing in an example file or in
+      source.
+
+      Not a violation: obvious placeholders in `*.example` files
+      (`changeme`, `your-key-here`, empty values), and clearly fake values in
+      test fixtures.
+
+  # ── Frontend conventions ────────────────────────────────────────────────
+
+  - id: graphql-documents-in-module
+    title: GraphQL documents live in src/graphql, never inline in a component
+    severity: warning
+    include: ['apps/front/src/**/*.tsx', 'apps/front/src/**/*.ts']
+    exclude: ['apps/front/src/graphql/**', '**/*.test.ts', '**/*.test.tsx']
+    description: |
+      Queries and mutations are defined in `src/graphql/*.ts`, one file per
+      collection, and imported where they are used.
+
+      A violation is a `gql` template literal defined inside a component,
+      hook, or route handler.
+
+      Not a violation: documents defined in `src/graphql/`, generated code,
+      and fixtures inside tests.
+
+  - id: apollo-client-side-only
+    title: Apollo queries never run during server rendering
+    severity: error
+    include: ['apps/front/src/**/*.tsx']
+    exclude: ['**/*.test.tsx']
+    description: |
+      Apollo points at the relative URL `/api/graphql`, which has no meaning
+      on the server. Data-fetching components must sit below a gate that
+      starts in a loading state in the browser.
+
+      A violation is a component that calls `useQuery` / `useMutation` (or
+      `client.query`) without a `'use client'` directive, or a server
+      component that renders a data-fetching component without such a gate.
+
+      Not a violation: `'use client'` components using the hooks, and server
+      components that only render layout around them.
+
+  - id: mui-only-styling
+    title: MUI is the only styling system, and the theme is the place for defaults
+    severity: warning
+    include: ['apps/front/src/**/*.tsx', 'apps/front/src/**/*.ts', 'apps/front/src/**/*.css']
+    exclude: ['**/*.test.tsx']
+    description: |
+      One styling system: MUI, with `src/lib/theme.ts` holding colours, radius,
+      typography and component defaults.
+
+      A violation is introducing a second styling system — Tailwind classes,
+      CSS modules, styled-components, a global stylesheet with component
+      styles — or repeating theme-level values (a brand colour, a border
+      radius, a font size) across `sx` props instead of putting them in the
+      theme.
+
+      Not a violation: `sx` for one-off layout on a single component, and the
+      global reset/`@font-face` stylesheet.
+
+  - id: german-ui-labels
+    title: UI labels are German, code and comments English
+    severity: warning
+    include: ['apps/front/src/**/*.tsx', 'apps/directus/extensions/**/*.ts']
+    exclude: ['**/*.test.ts', '**/*.test.tsx']
+    description: |
+      Everything a user reads is German — including error messages that reach
+      the browser. Identifiers, comments and log messages are English.
+
+      A violation is an English string rendered in the UI (a label, button
+      text, empty state, validation message) or an English message in an error
+      that is returned to the browser; or German identifiers, comments or
+      server-side log messages.
+
+      Not a violation: technical strings that are not user-visible (route
+      names, GraphQL field names, test descriptions, `aria` values that mirror
+      a German label), and log output.
+
+  # ── Testing ─────────────────────────────────────────────────────────────
+
+  - id: test-new-logic
+    title: New logic ships with a test
+    severity: warning
+    include: ['apps/front/src/lib/**/*.ts', 'apps/directus/extensions/**/*.ts']
+    exclude: ['**/*.test.ts', '**/*.test.tsx', '**/index.ts', '**/types/**']
+    description: |
+      Rules live in pure functions next to the wiring, and those functions are
+      tested — Vitest in the extension bundle, Jest + Testing Library in the
+      frontend.
+
+      A violation is a new module exporting a non-trivial pure function — a
+      calculation, a validator, a parser, a mapping from a model answer to
+      columns — with no accompanying `*.test.ts` file.
+
+      Not a violation: thin glue, framework plumbing, type-only modules,
+      re-exports, and purely cosmetic code.

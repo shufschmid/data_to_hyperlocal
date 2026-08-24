@@ -9,9 +9,9 @@ Working instructions for agents and developers: [CLAUDE.md](CLAUDE.md).
 ## First run
 
 ```bash
-npm run setup            # .env from .env.example, install, build bundle + migrations
+npm run setup            # .env from .env.example, install, build the extension bundle
 npm run db:start         # Postgres 16 in Docker
-npm run directus:init    # bootstrap + migrate + apply schema — fresh database only
+npm run directus:init    # bootstrap + apply schema + data migrations — fresh database only
 npm run dev              # Postgres + Directus
 ```
 
@@ -38,28 +38,30 @@ npm run schema:diff      # what a push would change
 npm run schema:load      # schema/ → a running Directus
 ```
 
-Changes that must happen without a human in the admin UI (bootstrap, backfills,
-repairs) are TypeScript migrations in `migrations/*.mts`:
+`schema/` is the single source of truth for the model: collections, fields,
+relations, roles, permissions and Flows are built in the admin UI and committed
+with `schema:dump` — never in a migration. Migrations (`migrations/*.mts`) exist
+only for row data and for indexes Directus does not manage:
 
 ```bash
 npm run database:migrate   # compiles *.mts → *.mjs, then runs directus database migrate:latest
 ```
 
-Each collection is owned by **either** `schema/` **or** a migration — never both.
-[CLAUDE.md](CLAUDE.md) explains which to pick.
+They run **after** the schema push on boot, so they may assume the model exists
+but never create it. [CLAUDE.md](CLAUDE.md) has the rules.
 
 ## Tests and checks
 
 ```bash
 npm test           # vitest, in extensions/app
-npm run typecheck  # migrations + bundle
-npm run build      # compile migrations and every extension bundle
+npm run typecheck  # extension bundle (+ migrations, if the project has any)
+npm run build      # compile every extension bundle (and any migrations)
 ```
 
 ## Deployment
 
-The `Dockerfile` builds an image that runs migrations, bootstraps or migrates the
-database, starts Directus and applies the committed schema — see
+The `Dockerfile` builds an image that bootstraps the database, starts Directus,
+applies the committed schema and then runs the data migrations — see
 `docker/entrypoint.sh`. It is deployed together with the frontend by the root
 `docker-compose.yml`. Images are published by the workflows in the repository's
 `.github/workflows/`.

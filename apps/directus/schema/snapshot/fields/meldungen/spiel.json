@@ -1,26 +1,26 @@
 {
   "collection": "meldungen",
-  "field": "lauf",
+  "field": "spiel",
   "type": "uuid",
   "meta": {
     "collection": "meldungen",
     "conditions": null,
     "display": "related-values",
     "display_options": {
-      "template": "{{ periode }}"
+      "template": "{{ heim }} – {{ gast }}"
     },
-    "field": "lauf",
+    "field": "spiel",
     "group": null,
     "hidden": false,
     "interface": "select-dropdown-m2o",
-    "note": null,
+    "note": "Gesetzt, wenn die Meldung ein Spielbericht ist. Dann ist \"Lauf\" leer.",
     "options": {
-      "template": "{{ periode }}"
+      "template": "{{ heim }} – {{ gast }}"
     },
     "readonly": true,
-    "required": true,
+    "required": false,
     "searchable": true,
-    "sort": 2,
+    "sort": 3,
     "special": [
       "m2o"
     ],
@@ -30,7 +30,7 @@
     "width": "half"
   },
   "schema": {
-    "name": "lauf",
+    "name": "spiel",
     "table": "meldungen",
     "data_type": "uuid",
     "default_value": null,
@@ -44,7 +44,7 @@
     "is_generated": false,
     "generation_expression": null,
     "has_auto_increment": false,
-    "foreign_key_table": "laeufe",
+    "foreign_key_table": "spiele",
     "foreign_key_column": "id"
   }
 }
