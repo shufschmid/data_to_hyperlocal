@@ -1,0 +1,106 @@
+name: Code review
+
+# Reviews the codebase against the architectural rules in
+# .github/code-review-rules.yml — the rules the CLAUDE.md files state in prose.
+# Findings appear as inline annotations, as a comment on the pull request, and
+# in the job summary. This complements verify.yml: that one checks that the code
+# works, this one checks that it is built the way this repo is meant to be built.
+#
+# Needs a GEMINI_API_KEY secret on the repository or the organisation
+# (https://aistudio.google.com/apikey).
+#
+# The whole tree is reviewed on every run, not just the diff, so this runs on
+# pull requests and on every push to main. While you tune the rules, set
+# `fail-on: never` below to get the report without blocking merges.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  review:
+    name: Architecture rules
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: wepublish/gha-review@v1
+        id: review
+        # Keep going so the report is uploaded and posted even when a rule is
+        # violated; the last step turns the outcome back into a failure.
+        continue-on-error: true
+        with:
+          gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
+          fail-on: error
+          exclude: |
+            apps/directus/schema/**
+            apps/directus/extensions/.registry/**
+            apps/directus/migrations/*.mjs
+            apps/front/src/graphql/generated/**
+            **/*.dump
+            **/*.liquid
+          project-context: |
+            A monorepo of two independently installed and deployed apps — not an
+            npm workspace, so each app has its own package.json and lockfile.
+
+            apps/directus is a Directus 11 backend on Postgres 16. It owns the
+            data model and ALL server-side logic; there is no separate API
+            service. Logic ships as one extension bundle at
+            apps/directus/extensions/app, with endpoints/, hooks/, operations/
+            and shared/ (claude.ts, env.ts, http.ts). Scheduled work is a
+            Directus Flow with a cron trigger calling an operation. The data
+            model is version-controlled in apps/directus/schema (directus-sync):
+            it is always built in the admin UI and committed with
+            `npm run schema:dump`. apps/directus/migrations/*.mts is a last-resort
+            escape hatch for row data and never changes structure.
+
+            apps/front is Next 16 (App Router), React 19, MUI 9, Apollo Client 4,
+            and is UI only. The browser holds no token: it gets two httpOnly
+            session cookies, and every request to Directus goes through a route
+            handler under src/app/api that proxies with the signed-in user's
+            access token.
+
+            Every LLM call goes to the Claude API through
+            apps/directus/extensions/app/src/shared/claude.ts. The
+            ANTHROPIC_API_KEY lives in the backend only.
+
+            UI labels are German — including error messages that reach the
+            browser. Code, comments and logs are English. TypeScript everywhere,
+            strict mode with noUncheckedIndexedAccess. Prettier and tsc are the
+            style and type gate; there is no ESLint.
+
+            The application is «Die Redaktion»: it watches public data sources
+            (data.bl.ch, the statistics office's agenda, statistik.bl.ch,
+            sports result pages) and drafts one article per municipality when a
+            dataset with per-municipality figures arrives. Reference features:
+            endpoints/redaktion, operations/quellen-pruefen, hooks/meldung-status.
+            Every figure in a draft is checked against the data it came from;
+            prompts live next to their checks (redaktion/prompt.ts,
+            redaktion/spielbericht.ts).
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: code-review-report
+          path: code-review-report.md
+          if-no-files-found: ignore
+
+      - name: Comment on the pull request
+        if: always() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          REPORT: ${{ steps.review.outputs.report-markdown }}
+        run: |
+          if [ -n "$REPORT" ]; then
+            gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body "$REPORT"
+          fi
+
+      - name: Fail on violations
+        if: steps.review.outputs.passed != 'true'
+        run: exit 1

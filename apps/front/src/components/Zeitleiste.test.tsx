@@ -43,7 +43,6 @@ function zeige(
 ) {
   const props = {
     ergebnis: zeitleiste(quellen(eingabe)),
-    onMeldungenAnsehen: jest.fn(),
     onAuftrag: jest.fn(),
     onVerwerfen: jest.fn(),
     onMehr: jest.fn(),
@@ -78,15 +77,95 @@ describe('Zeitleiste', () => {
     expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'))
   })
 
-  it('fuehrt zu den Meldungen, wenn es den Lauf schon gibt', async () => {
-    const { onMeldungenAnsehen } = zeige({
-      datensaetze: [datensatz],
-      laeufe: [{ id: 'lauf-1', datensatz: { id: 'ds-firmen' } }]
-    })
+  // Die Berichte stehen jetzt unter ihrem Eintrag. Der Umweg ueber einen
+  // eigenen Reiter ist weg, und mit ihm der Knopf, der dorthin sprang.
+  it('zeigt die Berichte unter dem Eintrag, statt woandershin zu fuehren', () => {
+    zeige(
+      {
+        datensaetze: [datensatz],
+        laeufe: [{ id: 'lauf-1', datensatz: { id: 'ds-firmen' } }]
+      },
+      {
+        berichteZuLauf: new Map([
+          [
+            'lauf-1',
+            [
+              {
+                id: 'm1',
+                titel: 'Ein Titel',
+                lead: null,
+                text: null,
+                status: 'entwurf',
+                verarbeitung: 'idle',
+                zeit_warnungen: null,
+                fehler: null,
+                publiziert_am: null,
+                date_created: null,
+                gemeinde: null,
+                lauf: { id: 'lauf-1' },
+                spiel: null
+              },
+              {
+                id: 'm2',
+                titel: 'Noch einer',
+                lead: null,
+                text: null,
+                status: 'entwurf',
+                verarbeitung: 'idle',
+                zeit_warnungen: null,
+                fehler: null,
+                publiziert_am: null,
+                date_created: null,
+                gemeinde: null,
+                lauf: { id: 'lauf-1' },
+                spiel: null
+              }
+            ] as never
+          ]
+        ])
+      }
+    )
 
-    await userEvent.click(screen.getByRole('button', { name: 'Meldungen ansehen' }))
+    expect(screen.queryByRole('button', { name: 'Meldungen ansehen' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /2 Berichte/ })).toBeInTheDocument()
+  })
 
-    expect(onMeldungenAnsehen).toHaveBeenCalledWith('lauf-1')
+  it('klappt die Berichte erst auf Klick auf', async () => {
+    zeige(
+      {
+        datensaetze: [datensatz],
+        laeufe: [{ id: 'lauf-1', datensatz: { id: 'ds-firmen' } }]
+      },
+      {
+        berichteZuLauf: new Map([
+          [
+            'lauf-1',
+            [
+              {
+                id: 'm1',
+                titel: 'Ein Titel',
+                lead: null,
+                text: null,
+                status: 'entwurf',
+                verarbeitung: 'idle',
+                zeit_warnungen: null,
+                fehler: null,
+                publiziert_am: null,
+                date_created: null,
+                gemeinde: null,
+                lauf: { id: 'lauf-1' },
+                spiel: null
+              }
+            ] as never
+          ]
+        ])
+      }
+    )
+
+    // Zugeklappt, weil ein Lauf sieben Meldungen hat.
+    expect(screen.queryByText('Ein Titel')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /1 Bericht/ }))
+    expect(screen.getByText('Ein Titel')).toBeInTheDocument()
   })
 
   it('oeffnet den Auftrag mit dem Datensatz der Zeile', async () => {

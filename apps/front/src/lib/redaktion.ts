@@ -96,35 +96,133 @@ export function absaetze(text: string | null): string[] {
     .filter((a) => a !== '')
 }
 
-export interface BezirkGruppe<T> {
-  bezirk: string
-  gemeinden: T[]
+/**
+ * Filters the municipality list for the workspace, alphabetically.
+ *
+ * The district accordions this replaces hid more than they organised: a
+ * municipality outside the five Basel-Landschaft districts — Riehen is the first
+ * — arrived as its own collapsed one-item group and was easy to miss entirely.
+ * A flat list with a search box has no such corner to hide in, and `nurAktive`
+ * answers the question actually asked most often, which is "what is switched on
+ * right now".
+ *
+ * Matching is case- and accent-insensitive so that typing "munchenstein" or
+ * "zurzach" finds the place without the editor hunting for the umlaut, and the
+ * BFS number is searchable because that is the identity the data carries.
+ */
+export function filterGemeinden<
+  T extends { name: string; bezirk: string; bfs_nummer: number; aktiv: boolean }
+>(gemeinden: readonly T[], suche: string, nurAktive: boolean): T[] {
+  const begriff = normalisiere(suche.trim())
+
+  return gemeinden
+    .filter((g) => !nurAktive || g.aktiv)
+    .filter(
+      (g) =>
+        begriff === '' ||
+        normalisiere(g.name).includes(begriff) ||
+        normalisiere(g.bezirk).includes(begriff) ||
+        String(g.bfs_nummer).includes(begriff)
+    )
+    .sort((a, b) => a.name.localeCompare(b.name, 'de-CH'))
+}
+
+function normalisiere(text: string): string {
+  // NFD splits "ü" into "u" plus a combining mark; dropping every mark then
+  // leaves the bare letter. `\p{M}` rather than a literal character range —
+  // combining characters are invisible in a diff and break silently.
+  return text.toLocaleLowerCase('de-CH').normalize('NFD').replace(/\p{M}/gu, '')
+}
+
+export interface SpielGruppen<T> {
+  vergangen: T[]
+  kommend: T[]
 }
 
 /**
- * Groups municipalities by district, districts in alphabetical order.
+ * Splits matches into what has happened and what is still to come.
  *
- * 86 switches in one flat list is not a control, it is a wall. The districts are
- * the natural grouping — they are how the canton is organised and how an editor
- * thinks about coverage.
+ * The boundary is the clock, not the presence of a score: a match can be over
+ * and still have no result on the source page, and calling that "kommend"
+ * would quietly hide the very fixture an editor is waiting for. Past matches
+ * run newest first, coming ones soonest first — both are read from the middle
+ * outwards, which is where the reader's attention actually is.
  */
-export function nachBezirk<T extends { bezirk: string; name: string }>(
-  gemeinden: readonly T[]
-): BezirkGruppe<T>[] {
-  const gruppen = new Map<string, T[]>()
+export function teileSpiele<T extends { datum: string }>(
+  spiele: readonly T[],
+  jetzt: Date = new Date()
+): SpielGruppen<T> {
+  const grenze = jetzt.getTime()
+  const vergangen: T[] = []
+  const kommend: T[] = []
 
-  for (const g of gemeinden) {
-    const bisher = gruppen.get(g.bezirk)
-    if (bisher === undefined) gruppen.set(g.bezirk, [g])
-    else bisher.push(g)
+  for (const spiel of spiele) {
+    const zeit = new Date(spiel.datum).getTime()
+    if (Number.isNaN(zeit)) continue
+    if (zeit <= grenze) vergangen.push(spiel)
+    else kommend.push(spiel)
   }
 
-  return [...gruppen.entries()]
-    .map(([bezirk, liste]) => ({
-      bezirk,
-      gemeinden: [...liste].sort((a, b) => a.name.localeCompare(b.name, 'de-CH'))
-    }))
-    .sort((a, b) => a.bezirk.localeCompare(b.bezirk, 'de-CH'))
+  vergangen.sort((a, b) => new Date(b.datum).getTime() - new Date(a.datum).getTime())
+  kommend.sort((a, b) => new Date(a.datum).getTime() - new Date(b.datum).getTime())
+  return { vergangen, kommend }
+}
+
+/**
+ * Date and kick-off time, Swiss style: `21.08.2026, 20:00`.
+ *
+ * A fixture without its time is half an announcement — the reader needs to know
+ * whether it is an afternoon or an evening match. Rendered in the viewer's
+ * timezone from the stored instant, so it stays right across the October
+ * changeover.
+ */
+export function formatiereZeitpunkt(wert: string | null): string {
+  if (wert === null) return '—'
+  const datum = new Date(wert)
+  if (Number.isNaN(datum.getTime())) return '—'
+  return datum.toLocaleString('de-CH', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+/** `3:1`, or an em dash while the source has not published a full result. */
+export function resultat(toreHeim: number | null, toreGast: number | null): string {
+  if (toreHeim === null || toreGast === null) return '–'
+  return `${toreHeim}:${toreGast}`
+}
+
+/**
+ * Buckets clubs by municipality id.
+ *
+ * "Aushängeschild" first, then alphabetically: the newsroom's own split, and it
+ * is also the reading order — a Nationalliga result carries regional weight, a
+ * village derby carries local weight, and the flagship is what a reader
+ * recognises the place by.
+ */
+export function vereineNachGemeinde<
+  T extends { name: string; bedeutung: string; gemeinde: { id: string } | null }
+>(vereine: readonly T[]): Map<string, T[]> {
+  const nach = new Map<string, T[]>()
+
+  for (const verein of vereine) {
+    if (verein.gemeinde === null) continue
+    const bisher = nach.get(verein.gemeinde.id)
+    if (bisher === undefined) nach.set(verein.gemeinde.id, [verein])
+    else bisher.push(verein)
+  }
+
+  for (const liste of nach.values()) {
+    liste.sort((a, b) => {
+      if (a.bedeutung !== b.bedeutung) return a.bedeutung === 'aushaengeschild' ? -1 : 1
+      return a.name.localeCompare(b.name, 'de-CH')
+    })
+  }
+
+  return nach
 }
 
 export interface AgendaQuartal<T = AnkuendigungFelder> {
@@ -346,4 +444,106 @@ export function zeitleiste(quellen: ZeitleistenQuellen, hoechstens = 40): Zeitle
     ohneDatum,
     weitere: Math.max(datiert.length - Math.max(hoechstens, 0), 0)
   }
+}
+
+// ---------------------------------------------------------------------------
+// Meldungen, zweimal anders sortiert.
+//
+// Dieselbe Menge traegt jetzt zwei Ansichten: die Zeitleiste zeigt sie unter
+// ihrem Datensatz-Lauf, der Gemeinde-Blog mischt Statistik und Sport
+// chronologisch. Beides sind reine Funktionen, damit die Reihenfolge pruefbar
+// ist, ohne eine Komponente zu rendern.
+
+/** Buendelt Meldungen nach ihrem Lauf. Sportberichte haben keinen und fallen raus. */
+export function meldungenNachLauf<T extends { lauf: { id: string } | null }>(
+  meldungen: readonly T[]
+): Map<string, T[]> {
+  const nach = new Map<string, T[]>()
+  for (const meldung of meldungen) {
+    if (meldung.lauf === null) continue
+    const bisher = nach.get(meldung.lauf.id)
+    if (bisher === undefined) nach.set(meldung.lauf.id, [meldung])
+    else bisher.push(meldung)
+  }
+  return nach
+}
+
+/**
+ * Wann eine Meldung im Blog steht.
+ *
+ * Publikationsdatum, solange es eines gibt — das ist der Moment, in dem der
+ * Beitrag oeffentlich wurde. Ein Entwurf hat keines und wird nach seiner
+ * Entstehung einsortiert, damit er nicht ans Ende der Liste faellt.
+ */
+export function blogDatum(meldung: {
+  publiziert_am: string | null
+  date_created: string | null
+}): string | null {
+  return meldung.publiziert_am ?? meldung.date_created
+}
+
+export interface GemeindeBlog<T> {
+  gemeinde: { id: string; name: string }
+  beitraege: T[]
+}
+
+/**
+ * Ein Blog je Gemeinde, neueste zuerst.
+ *
+ * Herkunftsblind mit Absicht: ob ein Beitrag aus einer Statistik oder aus einem
+ * Spiel entstand, ist eine Frage der Produktion, nicht der Lektuere. Weitere
+ * Quellen reihen sich spaeter ohne Aenderung hier ein.
+ */
+export function blogNachGemeinde<
+  T extends {
+    publiziert_am: string | null
+    date_created: string | null
+    gemeinde: { id: string; name: string } | null
+  }
+>(meldungen: readonly T[]): GemeindeBlog<T>[] {
+  const nach = new Map<string, GemeindeBlog<T>>()
+
+  for (const meldung of meldungen) {
+    if (meldung.gemeinde === null) continue
+    const vorhanden = nach.get(meldung.gemeinde.id)
+    if (vorhanden === undefined) {
+      nach.set(meldung.gemeinde.id, {
+        gemeinde: { id: meldung.gemeinde.id, name: meldung.gemeinde.name },
+        beitraege: [meldung]
+      })
+    } else {
+      vorhanden.beitraege.push(meldung)
+    }
+  }
+
+  for (const blog of nach.values()) {
+    blog.beitraege.sort((a, b) => {
+      const da = blogDatum(a)
+      const db = blogDatum(b)
+      if (da === null) return 1
+      if (db === null) return -1
+      return new Date(db).getTime() - new Date(da).getTime()
+    })
+  }
+
+  return [...nach.values()].sort((a, b) => a.gemeinde.name.localeCompare(b.gemeinde.name, 'de-CH'))
+}
+
+/**
+ * Der URL-Name einer Gemeinde: `?gemeinde=muenchenstein`.
+ *
+ * Ein Slug statt der UUID, weil die Adresse von Hand tippbar und zwischen
+ * Installationen stabil sein soll — die UUID ist beides nicht. Umlaute werden
+ * ausgeschrieben (ue statt u), wie es Schweizer Ortsnamen in URLs halten.
+ */
+export function gemeindeSlug(name: string): string {
+  return name
+    .toLocaleLowerCase('de-CH')
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
 }

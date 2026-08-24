@@ -5,6 +5,14 @@ import { completeJson } from '../../shared/claude'
 import { isAuthenticated, type ApiRequest } from '../../shared/http'
 import { drain, eroeffneLaeufe, type DrainKontext } from '../../redaktion/drain'
 import {
+  buildSpielberichtPrompt,
+  buildSpielberichtRevision,
+  parseSpielbericht,
+  SPIELBERICHT_SYSTEM_PROMPT,
+  zahlWarnungen,
+  zeitWarnungen
+} from '../../redaktion/spielbericht'
+import {
   buildWissenPrompt,
   parseWissen,
   WISSEN_SCHEMA,
@@ -38,6 +46,24 @@ import type { Datensatz, Lauf, Meldung } from '../../types/schema'
 // out loud who may call it. That is the most common security hole in a Directus
 // extension.
 
+interface SpielZeile {
+  id: string
+  datum: string
+  heim: string
+  gast: string
+  tore_heim: number | null
+  tore_gast: number | null
+  wettbewerb: string
+  ort: string | null
+  gemeinde: { id: string; name: string }
+  verein: {
+    id: string
+    name: string
+    liga: string | null
+    notiz: string | null
+  }
+}
+
 const NichtAngemeldet = createError('FORBIDDEN', 'Anmeldung erforderlich.', 401)
 const UngueltigeId = createError('INVALID_ID', 'Ungueltige Id.', 400)
 const NichtGefunden = createError(
@@ -51,6 +77,13 @@ const LeereAnweisung = createError(
   400
 )
 const NichtsZuTun = createError('NOTHING_TO_DO', 'Es gibt nichts zu tun.', 400)
+// Provider errors never reach the browser verbatim — they can carry the
+// prompt. The detail lands in meldungen.fehler for the admin instead.
+const UeberarbeitungFehlgeschlagen = createError(
+  'REVISION_FAILED',
+  'Die Ueberarbeitung ist fehlgeschlagen. Details stehen an der Meldung im Feld Fehler.',
+  502
+)
 const UngueltigeEntscheidung = createError(
   'INVALID_DECISION',
   'Die Entscheidung muss "ja" oder "nein" sein.',
@@ -475,7 +508,15 @@ export default defineEndpoint(
           })
           const chat = new ItemsService('chat_nachrichten', { schema })
 
-          await meldungen.readOne(id, { fields: ['id'] })
+          const meldung = (await meldungen.readOne(id, {
+            fields: ['id', 'spiel', 'titel', 'lead', 'text']
+          })) as {
+            id: string
+            spiel: string | null
+            titel: string | null
+            lead: string | null
+            text: string | null
+          }
 
           const position = await naechstePosition(chat, {
             meldung: { _eq: id }
@@ -486,6 +527,42 @@ export default defineEndpoint(
             inhalt: anweisung,
             position
           })
+
+          // A match report is revised right here, not queued: the queue is the
+          // statistics drain, and it loads per-run material a match report does
+          // not have (`lauf` is null — `ladeLaufMaterial(null)` would throw).
+          // One model call over facts already held; nothing to schedule.
+          if (meldung.spiel !== null) {
+            await meldungen.updateOne(id, { verarbeitung: 'laeuft', anweisung })
+            try {
+              const warnungen = await ueberarbeiteSpielbericht(
+                meldung,
+                meldung.spiel,
+                anweisung
+              )
+              await chat.createOne({
+                meldung: id,
+                rolle: 'assistant',
+                inhalt:
+                  warnungen.length === 0
+                    ? 'Neu formuliert.'
+                    : `Neu formuliert — mit Hinweisen: ${warnungen.join(' · ')}`,
+                position: position + 1
+              })
+              merkeWissenSport(anweisung, id)
+              return res.json({ data: { meldung: id, warnungen } })
+            } catch (fehler) {
+              await meldungen.updateOne(id, {
+                verarbeitung: 'idle',
+                fehler: fehlerText(fehler)
+              })
+              logger.error(
+                fehler,
+                'redaktion: Spielbericht-Ueberarbeitung fehlgeschlagen'
+              )
+              throw new UeberarbeitungFehlgeschlagen()
+            }
+          }
 
           await meldungen.updateOne(id, {
             anweisung,
@@ -609,6 +686,52 @@ export default defineEndpoint(
     // not be added. The counter-checker has no account; the token is the whole
     // credential. Equally, a signed-in session grants nothing extra here.
 
+    // --- the public blog ------------------------------------------------------
+    //
+    // Also deliberately public: published articles are, by definition, meant to
+    // be read without an account — the Dorfkönig already consumes them.
+    //
+    // The safety argument is the narrowness of the projection, not the caller:
+    // the filter is hard-wired to `status = publiziert`, and the field list
+    // names only what a reader may see. No drafts, no `fehler`, no `anweisung`,
+    // no chat, no approval tokens — none of those columns are even mentioned.
+    // The service runs as the system on purpose, because an anonymous caller
+    // has no accountability to act under.
+    router.get(
+      '/blog',
+      async (_req: ApiRequest, res: Response, next: NextFunction) => {
+        try {
+          const schema = await getSchema()
+          const meldungen = new ItemsService('meldungen', { schema })
+
+          const beitraege = (await meldungen.readByQuery({
+            filter: { status: { _eq: 'publiziert' } },
+            fields: [
+              'id',
+              'titel',
+              'lead',
+              'text',
+              'publiziert_am',
+              'gemeinde.name',
+              'spiel.sportart',
+              'spiel.heim',
+              'spiel.gast',
+              'spiel.datum'
+            ],
+            sort: ['-publiziert_am'],
+            // Bounded: a public route must not become an unbounded dump. The
+            // newest 200 are more than any municipal blog page needs.
+            limit: 200
+          })) as unknown[]
+
+          return res.json({ data: beitraege })
+        } catch (error) {
+          logger.error(error, 'redaktion: Blog konnte nicht gelesen werden')
+          return next(error)
+        }
+      }
+    )
+
     router.get(
       '/freigabe/:token',
       async (req: ApiRequest, res: Response, next: NextFunction) => {
@@ -684,6 +807,162 @@ export default defineEndpoint(
           })
         } catch (error) {
           return next(error)
+        }
+      }
+    )
+
+    // Match reports for every result that has none yet.
+    //
+    // Written straight through rather than queued: a report needs one model call
+    // over facts we already hold, so there is nothing to schedule. It also keeps
+    // the statistics queue out of it — `drain` only ever picks up rows it marked
+    // `geplant` itself, and these are stored finished.
+    router.post(
+      '/spielberichte',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        const schema = await getSchema()
+        const spieleService = new ItemsService('spiele', {
+          schema,
+          accountability: req.accountability
+        })
+        const meldungenService = new ItemsService('meldungen', {
+          schema,
+          accountability: req.accountability
+        })
+
+        const hoechstens = 10
+
+        try {
+          const beschrieben = (await meldungenService.readByQuery({
+            filter: { spiel: { _nnull: true } },
+            fields: ['spiel'],
+            limit: -1
+          })) as Array<{ spiel: string }>
+          const schonBeschrieben = new Set(beschrieben.map((m) => m.spiel))
+
+          const mitResultat = (await spieleService.readByQuery({
+            filter: { tore_heim: { _nnull: true } },
+            fields: [
+              'id',
+              'datum',
+              'heim',
+              'gast',
+              'tore_heim',
+              'tore_gast',
+              'wettbewerb',
+              'ort',
+              // Ask for the ids explicitly: requesting `gemeinde` alongside
+              // `gemeinde.name` yields an object carrying only the name, and the
+              // write then fails validation on a field that looks present.
+              'gemeinde.id',
+              'gemeinde.name',
+              'verein.id',
+              'verein.name',
+              'verein.liga',
+              'verein.notiz'
+            ],
+            sort: ['-datum'],
+            limit: -1
+          })) as SpielZeile[]
+
+          const offen = mitResultat
+            .filter((spiel) => !schonBeschrieben.has(spiel.id))
+            .slice(0, hoechstens)
+
+          if (offen.length === 0) return next(new NichtsZuTun())
+
+          let erzeugt = 0
+          const fehlgeschlagen: string[] = []
+
+          for (const spiel of offen) {
+            try {
+              // The club's own earlier results — the memory this project keeps.
+              const frueher = mitResultat
+                .filter(
+                  (a) =>
+                    a.verein.id === spiel.verein.id &&
+                    a.id !== spiel.id &&
+                    a.datum < spiel.datum
+                )
+                .slice(0, 5)
+                .map((a) => ({
+                  datum: a.datum,
+                  heim: a.heim,
+                  gast: a.gast,
+                  toreHeim: a.tore_heim as number,
+                  toreGast: a.tore_gast as number
+                }))
+
+              const fakten = {
+                heim: spiel.heim,
+                gast: spiel.gast,
+                toreHeim: spiel.tore_heim as number,
+                toreGast: spiel.tore_gast as number,
+                wettbewerb: spiel.wettbewerb,
+                datum: spiel.datum,
+                ort: spiel.ort,
+                verein: spiel.verein.name,
+                gemeinde: spiel.gemeinde.name,
+                liga: spiel.verein.liga,
+                notiz: spiel.verein.notiz,
+                frueher
+              }
+
+              const antwort = await completeJson<unknown>({
+                system: SPIELBERICHT_SYSTEM_PROMPT,
+                prompt: buildSpielberichtPrompt(fakten),
+                maxTokens: 1200
+              })
+              const bericht = parseSpielbericht(antwort)
+
+              const warnungen = [
+                ...zeitWarnungen(
+                  `${bericht.titel} ${bericht.lead} ${bericht.text}`
+                ),
+                ...zahlWarnungen(
+                  `${bericht.titel} ${bericht.lead} ${bericht.text}`,
+                  fakten
+                )
+              ]
+
+              await meldungenService.createOne({
+                spiel: spiel.id,
+                gemeinde: spiel.gemeinde.id,
+                titel: bericht.titel,
+                lead: bericht.lead,
+                text: bericht.text,
+                status: 'entwurf',
+                verarbeitung: 'idle',
+                zeit_warnungen: warnungen.length > 0 ? warnungen : null,
+                // Provenance, so the figures in the article can be checked
+                // against what was handed over.
+                datengrundlage: {
+                  quelle: 'matchcenter',
+                  heim: spiel.heim,
+                  gast: spiel.gast,
+                  tore_heim: spiel.tore_heim,
+                  tore_gast: spiel.tore_gast,
+                  wettbewerb: spiel.wettbewerb,
+                  datum: spiel.datum
+                }
+              })
+              erzeugt += 1
+            } catch (fehler) {
+              // One bad match must not cost the others their report.
+              logger.warn(
+                fehler,
+                `redaktion: Spielbericht fuer ${spiel.heim} – ${spiel.gast} fehlgeschlagen`
+              )
+              fehlgeschlagen.push(`${spiel.heim} – ${spiel.gast}`)
+            }
+          }
+
+          res.json({ data: { erzeugt, offen: offen.length, fehlgeschlagen } })
+        } catch (error) {
+          logger.error(error, 'redaktion: Spielberichte fehlgeschlagen')
+          next(error)
         }
       }
     )
@@ -878,6 +1157,181 @@ export default defineEndpoint(
       })) as { position: number }[]
 
       return (letzte[0]?.position ?? -1) + 1
+    }
+
+    function fehlerText(fehler: unknown): string {
+      return fehler instanceof Error ? fehler.message : String(fehler)
+    }
+
+    /**
+     * Rewrites one match report from its stored facts plus the instruction.
+     *
+     * The facts are re-read from `spiele` rather than taken from the article:
+     * the article is what is being corrected, so it cannot be its own source.
+     * Returns the check warnings so the chat can show them.
+     */
+    async function ueberarbeiteSpielbericht(
+      meldung: {
+        id: string
+        titel: string | null
+        lead: string | null
+        text: string | null
+      },
+      spielId: string,
+      anweisung: string
+    ): Promise<string[]> {
+      const schema = await getSchema()
+      const spiele = new ItemsService('spiele', { schema })
+      const meldungen = new ItemsService('meldungen', { schema })
+
+      const spiel = (await spiele.readOne(spielId, {
+        fields: [
+          'id',
+          'datum',
+          'heim',
+          'gast',
+          'tore_heim',
+          'tore_gast',
+          'wettbewerb',
+          'ort',
+          'gemeinde.name',
+          'verein.id',
+          'verein.name',
+          'verein.liga',
+          'verein.notiz'
+        ]
+      })) as {
+        id: string
+        datum: string
+        heim: string
+        gast: string
+        tore_heim: number | null
+        tore_gast: number | null
+        wettbewerb: string
+        ort: string | null
+        gemeinde: { name: string }
+        verein: {
+          id: string
+          name: string
+          liga: string | null
+          notiz: string | null
+        }
+      }
+
+      if (spiel.tore_heim === null || spiel.tore_gast === null) {
+        throw new NichtsZuTun()
+      }
+
+      const frueherRoh = (await spiele.readByQuery({
+        filter: {
+          verein: { _eq: spiel.verein.id },
+          tore_heim: { _nnull: true },
+          datum: { _lt: spiel.datum }
+        },
+        fields: ['datum', 'heim', 'gast', 'tore_heim', 'tore_gast'],
+        sort: ['-datum'],
+        limit: 5
+      })) as Array<{
+        datum: string
+        heim: string
+        gast: string
+        tore_heim: number
+        tore_gast: number
+      }>
+
+      const fakten = {
+        heim: spiel.heim,
+        gast: spiel.gast,
+        toreHeim: spiel.tore_heim,
+        toreGast: spiel.tore_gast,
+        wettbewerb: spiel.wettbewerb,
+        datum: spiel.datum,
+        ort: spiel.ort,
+        verein: spiel.verein.name,
+        gemeinde: spiel.gemeinde.name,
+        liga: spiel.verein.liga,
+        notiz: spiel.verein.notiz,
+        frueher: frueherRoh.map((f) => ({
+          datum: f.datum,
+          heim: f.heim,
+          gast: f.gast,
+          toreHeim: f.tore_heim,
+          toreGast: f.tore_gast
+        }))
+      }
+
+      const antwort = await completeJson<unknown>({
+        system: SPIELBERICHT_SYSTEM_PROMPT,
+        prompt: buildSpielberichtRevision(fakten, meldung, anweisung),
+        maxTokens: 1200
+      })
+      const bericht = parseSpielbericht(antwort)
+
+      const alles = `${bericht.titel} ${bericht.lead} ${bericht.text}`
+      const hinweise = [
+        ...zeitWarnungen(alles),
+        ...zahlWarnungen(alles, fakten)
+      ]
+
+      await meldungen.updateOne(meldung.id, {
+        titel: bericht.titel,
+        lead: bericht.lead,
+        text: bericht.text,
+        zeit_warnungen: hinweise.length > 0 ? hinweise : null,
+        verarbeitung: 'idle',
+        anweisung: null,
+        fehler: null
+      })
+
+      return hinweise
+    }
+
+    /**
+     * The sport twin of `merkeWissen` below: same classification, but a match
+     * report has no dataset and its sources are not rows in `quellen` — so a
+     * rule that survives is stored globally, never scoped to a dataset that
+     * does not exist.
+     */
+    function merkeWissenSport(anweisung: string, meldungId: string): void {
+      void (async () => {
+        try {
+          const schema = await getSchema()
+          const antwort = await completeJson<unknown>({
+            system: WISSEN_SYSTEM_PROMPT,
+            prompt: buildWissenPrompt(
+              anweisung,
+              'Spielbericht (Sportresultate)'
+            ),
+            maxTokens: 600,
+            thinking: 'disabled',
+            effort: 'low',
+            schema: WISSEN_SCHEMA
+          })
+          const urteil = parseWissen(antwort)
+          const felder = wissenFelder(
+            {
+              ...urteil,
+              geltungsbereich: urteil.dauerhaft
+                ? 'global'
+                : urteil.geltungsbereich
+            },
+            { datensatzId: '', quelleId: null }
+          )
+          if (felder === null) return
+
+          await new ItemsService('redaktionswissen', { schema }).createOne(
+            felder
+          )
+          logger.info(
+            `redaktion: neue Regel gemerkt (Sport) — ${String(felder['regel'])}`
+          )
+        } catch (fehler) {
+          logger.warn(
+            fehler,
+            `redaktion: Sport-Anweisung zu Meldung ${meldungId} konnte nicht bewertet werden`
+          )
+        }
+      })()
     }
 
     /**

@@ -68,12 +68,22 @@ them is wrong even if it works.
    Redis, no queue broker, no external cron host, no side-car. Outbound dependencies
    are enumerated below and adding one is a deliberate decision, not a commit.
 
-   | Host                | Why                                                        | Adapter            |
-   | ------------------- | ---------------------------------------------------------- | ------------------ |
-   | `api.anthropic.com` | every LLM call                                             | `shared/claude.ts` |
-   | `data.bl.ch`        | open-data catalogue and records (no auth, documented API)  | `shared/ods/`      |
-   | `www.baselland.ch`  | the publication agenda — announcements the API cannot give | `shared/agenda/`   |
-   | `statistik.bl.ch`   | tables the open-data portal does not carry                 | `shared/statbl/`   |
+   | Host                    | Why                                                        | Adapter            |
+   | ----------------------- | ---------------------------------------------------------- | ------------------ |
+   | `api.anthropic.com`     | every LLM call                                             | `shared/claude.ts` |
+   | `data.bl.ch`            | open-data catalogue and records (no auth, documented API)  | `shared/ods/`      |
+   | `www.baselland.ch`      | the publication agenda — announcements the API cannot give | `shared/agenda/`   |
+   | `statistik.bl.ch`       | tables the open-data portal does not carry                 | `shared/statbl/`   |
+   | `crawler.wepublish.dev` | renders sport pages that refuse a plain request            | `shared/crawler/`  |
+
+   The crawler is the one host we do not own the other end of, and it exists for
+   a measured reason: the football association's Match Center answers `curl`
+   with 403 and builds its tables in the browser, and Swiss Volley's Game Center
+   streams its fixtures over RSC — its raw HTML holds the club name and nothing
+   else. The service runs a real browser and returns Markdown. We identify
+   ourselves, read only pages an editor registered against a club, and read each
+   once a day. `CRAWLER_KEY` empty means the sport features stay quiet; nothing
+   else notices.
 
    The portal is also _watched_, but only where it has to be. An inventory walks
    it once (`operations/portal-inventur`) and asks three questions per page: is
@@ -97,8 +107,31 @@ them is wrong even if it works.
    run, and if all of them are turned away it says so on the source so a person
    can enter the entry by hand.
 
-   The workspace has four tabs: **Läufe · Datenquellen · Gelerntes · Gemeinden**.
-   „Datenquellen" is one chronological list fed by all three watchers — the
+   The spacing is the part that matters, and it was measured. The challenge is a
+   window, not a verdict: a cold process gets challenged once and is served
+   normally four seconds later, but a bad patch outlasts that. Three attempts at
+   a flat four seconds covered eight seconds of wall clock — which is how the
+   06:00 run could report a bot check for a page that answered by hand all
+   morning. The pause now doubles (4s, 8s, 16s, 32s) over five attempts, so a run
+   spans a minute at a _lower_ request rate than before. That fixed it; the
+   source has read all 44 announcements since.
+
+   The workspace has five tabs: **Läufe · statistik.bl · Sportresultate ·
+   Gelerntes · Gemeinden**. „Sportresultate" is the second feed and works the
+   same way as the first: a source that publishes on its own schedule, watched
+   daily. What differs is the shape — a statistic arrives once a year for every
+   municipality at once, a match arrives every weekend for one club. Filterable
+   by Gemeinde and Sportart, split into played and upcoming by the clock rather
+   than by whether a score exists, because a finished match whose result the
+   source has not published yet is exactly the one an editor is waiting for.
+   „Gemeinden" is a flat, searchable list — not grouped by district. The
+   districts were dropped because they hid what they organised: Riehen, the
+   first municipality outside the five Basel-Landschaft districts, arrived as
+   its own collapsed one-item accordion and was simply overlooked. Each active
+   municipality also lists its `vereine`, Aushängeschild before Breitensport,
+   read-only for now.
+   „statistik.bl" — until this change called „Datenquellen" — is one
+   chronological list fed by all three watchers — the
    agenda, the watched portal branches, and changes in the data.bl.ch catalogue.
    The third feed is the one that is easy to forget and carries the most: only 9
    of 188 datasets have an agenda entry, so without it most articles would have
@@ -136,20 +169,28 @@ them is wrong even if it works.
    [Trigger docs](https://directus.com/docs/guides/flows/triggers). No system cron,
    no `setInterval` in a hook, no scheduler container. The Flow calls a custom
    operation from the bundle; the Flow itself is committed via `schema:dump`.
+9. **The data model is synced, never migrated.** Collections, fields, relations,
+   roles, permissions and Flows are built in the Directus admin UI and committed with
+   `npm run schema:dump` (directus-sync → `apps/directus/schema/`). A migration must
+   never create or alter structure; `apps/directus/migrations/` is a last resort for
+   row data and for indexes Directus does not manage — see
+   [apps/directus/CLAUDE.md](apps/directus/CLAUDE.md).
 
 ## Where does this feature go?
 
 | The change is…                                | Goes to                                                                                                   |
 | --------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| a new collection or field                     | Directus admin UI, then `npm run schema:dump` — [apps/directus](apps/directus/)                           |
+| a new collection, field, relation or role     | Directus admin UI, then `npm run schema:dump` — [apps/directus](apps/directus/)                           |
 | a calculation, validation or business rule    | extension bundle (endpoint or hook)                                                                       |
 | anything that calls Claude                    | extension bundle, via `shared/claude.ts`                                                                  |
 | something that must run nightly/hourly        | Flow with a Schedule trigger + a custom operation in the bundle                                           |
 | a screen, a form, a list, a chart             | [apps/front](apps/front/) — MUI components, Apollo for data                                               |
 | a new query the UI needs                      | `apps/front/src/graphql/*.ts`                                                                             |
 | a new rule about what an article may say      | the prompt in `redaktion/prompt.ts` **and** a check next to it — a prompt is a request, a check is a rule |
-| a table on statistik.bl.ch the newsroom wants | paste its URL in the workspace — „Datenquellen" → „Auftrag …" — it becomes an ordinary dataset            |
-| a one-off data repair or backfill             | `apps/directus/migrations/*.mts`                                                                          |
+| a table on statistik.bl.ch the newsroom wants | paste its URL in the workspace — „statistik.bl" → „Auftrag …" — it becomes an ordinary dataset            |
+| a club whose results the newsroom wants       | a row in `vereine` with its `ergebnis_url`, then a connector for that `quelle`                            |
+| a new rule about what a match report may say  | `redaktion/spielbericht.ts` — the prompt **and** the check next to it                                     |
+| a one-off data repair or backfill             | rows only: a one-shot Flow, else `apps/directus/migrations/*.mts` as a last resort                        |
 | an agenda entry the crawler could not fetch   | the banner in the workspace → „Eintrag von Hand erfassen"                                                 |
 | a new environment variable                    | `apps/directus/.env.example` **and** root `.env.example` **and** docker-compose.yml                       |
 
@@ -207,7 +248,7 @@ built bundle, and without the watcher your changes are never picked up.
 ```
 Flow "Portal inventarisieren"  (0 */2 * * *)
   └─ operations/portal-inventur   walks statistik.bl.ch once, page by page
-       ├─ Gemeindetabelle?  → against our own 86 names, no model
+       ├─ Gemeindetabelle?  → against our own 87 names, no model
        ├─ in data.bl.ch?    ┐ 1× Sonnet, both catalogues in the cached prefix
        └─ in der Agenda?    ┘ yes to either → never polled
 
@@ -238,7 +279,72 @@ Flow "Meldungen erzeugen"  (*/2)   endpoints/redaktion  (immediately)
                                  cached system prompt, checked afterwards
 
 hooks/meldung-status   guards every status change, on every write path
+
+Flow "Sportresultate holen"  (0 30 6 * * *)
+  └─ operations/sportresultate-holen   dispatches on vereine.quelle
+       ├─ fvnws        1 request for ALL football clubs (the "what's on" page)
+       │                 ├─ istInteressant()  drops Nachwuchs, Senioren, Test-
+       │                 │                    spiele — 39 on one club page, 4
+       │                 │                    worth reporting
+       │                 └─ ordneVereinZu()   against our own vereine, no model
+       ├─ swissvolley  1 request PER TEAM (vereine.ergebnis_url)
+       ├─ handball     1 request PER TEAM — the friendliest source: every row
+       │                 prints a real ISO instant, so no month names and no
+       │                 timezone arithmetic. But an unplayed fixture shows
+       │                 "0 - 0", so a score is only read once the match is past.
+       └─ everything else — skipped, and the sports are named in the log
 ```
+
+A result becomes an article through `POST /redaktion/spielberichte` — the
+"Meldungen erzeugen" button in the Sportresultate tab. It writes one Meldung per
+result that has none yet, straight through rather than queued: one model call
+over facts already held, so there is nothing to schedule. That also keeps the
+statistics queue out of it, since `drain` only picks up rows it marked `geplant`
+itself.
+
+Match reports are ordinary `meldungen` — same review, chat, counter-check and
+publishing. They carry `spiel` instead of `lauf`, which is why `lauf` is nullable
+and the old `unique(lauf, gemeinde)` is now two partial indexes.
+
+The prompt is handed the outcome, not just the two numbers: working out who won
+means knowing which side the club played on, and that is arithmetic the model
+must not do. Afterwards every figure in the text is checked against what was
+handed over — a stray "Rang 7" is flagged, because a table position is exactly
+the kind of number that quietly turns out wrong.
+
+**Three sports have connectors: football, volleyball, handball.** Basketball,
+chess, Schwingen, swimming, American football and curling are recorded as clubs
+but no source is read for them, so the tab is legitimately right about football
+and empty about basketball at the same time. The run reports the gap in
+`ohneKonnektor` rather than looking complete.
+
+Why the others are not built, so nobody repeats the search:
+
+- **Swimming** — `swimrankings.net` and `swiss-swimming.ch` both refuse us; the
+  crawler gets 0 bytes even through Playwright. No reachable source.
+- **American football** — `safv.ch` responds but publishes no results page.
+- **Curling** — the entry is a facility hosting several clubs, not a team.
+- **Chess** — `swisschess.ch/…/smm` is a _news feed_ about the championship. It
+  names Riehen constantly in prose but carries no fixture table and no link to
+  one. Needs a different URL, not a parser.
+- **Basketball** — `basketplan.ch` is the best source of the lot: plain `curl`
+  works, it is server-rendered, and `POST /exportGames.do` yields Excel and iCal
+  from `federationId` + `leagueHoldingId` + a date range. Missing is only which
+  league BC Arlesheim plays in.
+
+`spiele.spielnummer` is "the identity at the source", not always a number:
+football uses the SFV's Spielnummer, volleyball has none, so the connector
+composes `sv-<team>-<heim>-vs-<gast>`. Keyed on the pairing rather than the date
+so a postponement updates the fixture instead of cloning it — and the column is
+160 wide, because 32 silently swallowed every volleyball insert inside the
+per-row error handler.
+
+**The club page is not a result source.** `matchcenter.…/default.aspx?v=<id>`
+is the right way to _find_ a club and it does show scores, but it names only the
+club's own team — an away row reads "FC Pratteln C1 · 4 · 2" with nothing to say
+whether Pratteln won 4:2 or lost 2:4. The "what's on" page names both teams in
+playing order and puts the venue at the first-named team's ground, verified by
+joining the two on `Spielnummer`. Read results from there, or not at all.
 
 **Four things a change here must not break:**
 
@@ -276,6 +382,15 @@ hooks/meldung-status   guards every status change, on every write path
 - `redaktionswissen` — durable rules distilled from the editor's chat by a small
   classification call. Scoped to a dataset, a source or globally, and visible in
   the workspace so a wrong one can be switched off.
+- `vereine` — which clubs speak for a municipality, and why. `bedeutung` splits
+  them the way the newsroom does: `aushaengeschild` carries regional reach,
+  `breitensport` is the village itself, and that changes how a result is framed.
+  `notiz` holds the editor's own reasoning and belongs in the **user turn** of an
+  article prompt, never in the cached system prefix — it is per-municipality, and
+  interpolating it there would break the byte-identical guarantee. `liga` is a
+  snapshot that goes stale every season. Clubs proposed by a connector arrive
+  with `zuordnung_geprueft = false`, the same confirm-once pattern as
+  `ankuendigungen`.
 
 Both are bounded on purpose: the rules feed the cached prompt prefix, and an
 unbounded memory would grow it without limit.

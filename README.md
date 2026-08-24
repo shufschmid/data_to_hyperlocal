@@ -40,8 +40,9 @@ cp .env.example .env      # then put your ANTHROPIC_API_KEY in .env
 docker compose up --build
 ```
 
-First boot takes a few minutes: it builds both images, creates the database, runs the
-migrations, applies the versioned schema and creates the admin user.
+First boot takes a few minutes: it builds both images, creates the database, applies
+the versioned schema from `apps/directus/schema/`, seeds the reference data and
+creates the admin user.
 
 - **Frontend:** http://localhost:3000 — sign in with the admin below
 - **Directus admin:** http://localhost:8055 — `admin@wepublish.ch` / `admin123`
@@ -80,7 +81,7 @@ Docker is what deploys; for day-to-day work run the apps directly for fast reloa
 npm install                        # root: pre-commit tooling only
 
 cd apps/directus
-npm run setup                      # .env from example, install, build bundle + migrations
+npm run setup                      # .env from example, install, build the extension bundle
 npm run db:start                   # Postgres in Docker
 npm run directus:init              # ONE TIME on a fresh database
 ```
@@ -112,13 +113,14 @@ npm run lint             # prettier --write across the tree
 cd apps/directus
 npm run schema:dump      # after ANY model change in the admin UI — then commit schema/
 npm run schema:diff      # what a push would change
-npm run build            # compile migrations + extension bundle
+npm run build            # compile the extension bundle (and any migrations)
 npm run db:reset         # DESTRUCTIVE: drops the dev database
 ```
 
 The single most important habit: **after changing the data model in the Directus admin
 UI, run `npm run schema:dump` and commit `apps/directus/schema/`.** Otherwise the
-change exists only on your machine.
+change exists only on your machine. The model always travels this way — never in a
+migration.
 
 ---
 

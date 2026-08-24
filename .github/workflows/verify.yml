@@ -12,7 +12,7 @@ on:
 
 jobs:
   backend:
-    name: Backend (Directus extensions + migrations)
+    name: Backend (Directus extension bundle)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,8 +23,9 @@ jobs:
           cache-dependency-path: apps/directus/package-lock.json
       - run: npm ci --no-audit --no-fund
         working-directory: apps/directus
-      # Compiles the migrations and every extension bundle. A bundle that does not
-      # build means Directus would refuse to start.
+      # Compiles every extension bundle (and any migrations, of which a healthy
+      # project has none). A bundle that does not build means Directus would
+      # refuse to start.
       - run: npm run build
         working-directory: apps/directus
       - run: npm run typecheck

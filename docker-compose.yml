@@ -60,6 +60,9 @@ services:
       # Kontakt im User-Agent der Agenda-Abfrage. Die Anwendung gibt sich dort
       # ehrlich zu erkennen, statt einen Browser vorzutaeuschen.
       AGENDA_KONTAKT: ${AGENDA_KONTAKT:-it@bajour.ch}
+      CRAWLER_URL: ${CRAWLER_URL:-https://crawler.wepublish.dev}
+      CRAWLER_KEY: ${CRAWLER_KEY:-}
+      CRAWLER_TIMEOUT_MS: ${CRAWLER_TIMEOUT_MS:-90000}
 
       EXTENSIONS_PATH: ./extensions
       # Auto-reload watches the filesystem; pointless in an immutable image.

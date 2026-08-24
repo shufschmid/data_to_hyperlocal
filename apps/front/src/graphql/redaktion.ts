@@ -177,6 +177,76 @@ export const MELDUNGEN_QUERY = gql`
   }
 `
 
+// Alle Meldungen auf einmal — Statistik wie Sport.
+//
+// Loest die zwei frueheren Abfragen ab (eine pro Lauf, eine fuer Spielberichte).
+// Der Grund ist die neue Aufteilung: die Zeitleiste zeigt die Berichte unter
+// ihrem Eintrag, und der Gemeinde-Blog mischt beide Herkuenfte chronologisch.
+// Beides braucht denselben Bestand, nur anders gruppiert — zwei Abfragen dafuer
+// waeren zwei Wahrheiten.
+//
+// `lauf` und `spiel` sind beide nullbar und schliessen einander aus: eine
+// Meldung gehoert entweder zu einem Datensatz-Lauf oder zu einer Begegnung.
+export interface AlleMeldungFelder {
+  id: string
+  titel: string | null
+  lead: string | null
+  text: string | null
+  status: string
+  verarbeitung: string
+  zeit_warnungen: string[] | null
+  fehler: string | null
+  publiziert_am: string | null
+  date_created: string | null
+  gemeinde: { id: string; name: string; bezirk: string } | null
+  lauf: { id: string } | null
+  spiel: {
+    id: string
+    heim: string
+    gast: string
+    datum: string
+    sportart: string
+    wettbewerb: string
+  } | null
+}
+
+export interface AlleMeldungenErgebnis {
+  meldungen: AlleMeldungFelder[]
+}
+
+export const ALLE_MELDUNGEN_QUERY = gql`
+  query AlleMeldungen {
+    meldungen(sort: ["-date_created"], limit: -1) {
+      id
+      titel
+      lead
+      text
+      status
+      verarbeitung
+      zeit_warnungen
+      fehler
+      publiziert_am
+      date_created
+      gemeinde {
+        id
+        name
+        bezirk
+      }
+      lauf {
+        id
+      }
+      spiel {
+        id
+        heim
+        gast
+        datum
+        sportart
+        wettbewerb
+      }
+    }
+  }
+`
+
 export interface ChatNachricht {
   id: string
   rolle: string
@@ -329,6 +399,104 @@ export const GEMEINDEN_QUERY = gql`
       bezirk
       bfs_nummer
       aktiv
+    }
+  }
+`
+
+// The clubs a municipality is known for. Read-only in the workspace: adding and
+// editing happens in the Directus admin until the football connector exists,
+// because a proposed club needs a confirm/reject affordance rather than a blank
+// form, and building the form twice would be waste.
+export interface VereinFelder {
+  id: string
+  name: string
+  sportart: string
+  /** `aushaengeschild` — regional reach — or `breitensport`, the village itself. */
+  bedeutung: string
+  /** A snapshot: placements change every season. Never authoritative on its own. */
+  liga: string | null
+  spielort: string | null
+  /** False while the club is only a proposal from a source. */
+  zuordnung_geprueft: boolean
+  aktiv: boolean
+  gemeinde: { id: string } | null
+}
+
+export interface VereineErgebnis {
+  vereine: VereinFelder[]
+}
+
+// Fetched flat and grouped in the browser rather than nested under `gemeinden`:
+// the relation is a plain m2o on `vereine`, so Directus exposes no reverse field
+// to nest through.
+export const VEREINE_QUERY = gql`
+  query Vereine {
+    vereine(sort: ["name"], limit: -1) {
+      id
+      name
+      sportart
+      bedeutung
+      liga
+      spielort
+      zuordnung_geprueft
+      aktiv
+      gemeinde {
+        id
+      }
+    }
+  }
+`
+
+// Matches — played and still to come. Written by the connector, read-only here.
+//
+// `gemeinde` and `sportart` are stored on the row rather than reached through
+// `verein`, so the two filters the workspace offers are plain field reads.
+export interface SpielFelder {
+  id: string
+  spielnummer: string
+  datum: string
+  heim: string
+  gast: string
+  /** Both null until the source shows a complete result. */
+  tore_heim: number | null
+  tore_gast: number | null
+  wettbewerb: string
+  ort: string | null
+  status: string | null
+  sportart: string
+  gemeinde: { id: string; name: string } | null
+  verein: { id: string; name: string } | null
+}
+
+export interface SpieleErgebnis {
+  spiele: SpielFelder[]
+}
+
+// Newest first: a newsroom looks at what just happened before what is coming.
+// The split into past and future is made in the browser against the current
+// clock, so it stays right without a refetch.
+export const SPIELE_QUERY = gql`
+  query Spiele {
+    spiele(sort: ["-datum"], limit: -1) {
+      id
+      spielnummer
+      datum
+      heim
+      gast
+      tore_heim
+      tore_gast
+      wettbewerb
+      ort
+      status
+      sportart
+      gemeinde {
+        id
+        name
+      }
+      verein {
+        id
+        name
+      }
     }
   }
 `

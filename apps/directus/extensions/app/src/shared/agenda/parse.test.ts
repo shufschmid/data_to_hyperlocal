@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { agendaSchluessel, decodeEntities, parseAgenda } from './parse'
+import {
+  agendaSchluessel,
+  decodeEntities,
+  parseAgenda,
+  parseAgendaMarkdown
+} from './parse'
 
 // Markup copied verbatim from the real agenda page, trimmed to the parts that
 // matter. Keeping it literal is the point: if the office changes their layout,
@@ -216,5 +221,77 @@ describe('agendaSchluessel', () => {
     }
 
     expect(agendaSchluessel(a)).not.toBe(agendaSchluessel(b))
+  })
+})
+
+// Wortwoertlich aus der Crawler-Antwort vom 20.08.2026.
+const MARKDOWN = `
+# Agenda 2026
+
+## Publikationen und Datenaktualisierungen
+
+**1. Quartal: Januar–März**26.01.2026
+
+[Sozialmedizinische Institutionen 2024](https://statistik.bl.ch/web_portal/14_4)
+
+**03.02.2026**
+
+[Bildungskosten 2024](https://statistik.bl.ch/web_portal/15_5_1)
+
+11.02.2026
+
+[Wasserstatistik 2024](https://statistik.bl.ch/web_portal/2_3)
+
+**3. Quartal: Juli–September**
+
+[Bodennutzung 2025](https://statistik.bl.ch/web_portal/7_1)
+`
+
+describe('parseAgendaMarkdown', () => {
+  const eintraege = parseAgendaMarkdown(MARKDOWN)
+
+  it('liest jeden Eintrag', () => {
+    expect(eintraege).toHaveLength(4)
+  })
+
+  // Das erste Datum eines Quartals klebt an der Ueberschrift.
+  it('trennt das erste Datum von der Quartalsueberschrift', () => {
+    expect(eintraege[0]).toMatchObject({
+      titel: 'Sozialmedizinische Institutionen 2024',
+      datum: '2026-01-26',
+      quartal: '1. Quartal: Januar–März',
+      status: 'publiziert'
+    })
+  })
+
+  it('vertraegt ein fett gesetztes Datum', () => {
+    expect(eintraege[1]?.datum).toBe('2026-02-03')
+  })
+
+  it('nimmt den Link als absolute Adresse mit', () => {
+    expect(eintraege[2]?.link).toBe('https://statistik.bl.ch/web_portal/2_3')
+  })
+
+  // Ohne Datum ist die Statistik nur fuers Quartal angekuendigt.
+  it('meldet einen Eintrag ohne Datum als geplant', () => {
+    expect(eintraege[3]).toMatchObject({
+      titel: 'Bodennutzung 2025',
+      datum: null,
+      quartal: '3. Quartal: Juli–September',
+      status: 'geplant'
+    })
+  })
+
+  // Sonst bekaeme jeder folgende Titel denselben Tag.
+  it('gibt ein Datum nur einem Eintrag', () => {
+    const doppelt = parseAgendaMarkdown(
+      '11.02.2026\n\n[A](https://x/1)\n\n[B](https://x/2)'
+    )
+    expect(doppelt[0]?.datum).toBe('2026-02-11')
+    expect(doppelt[1]?.datum).toBeNull()
+  })
+
+  it('vertraegt eine leere Seite', () => {
+    expect(parseAgendaMarkdown('')).toEqual([])
   })
 })

@@ -1,0 +1,25 @@
+{
+  "collection": "vereine",
+  "field": "gemeinde",
+  "related_collection": "gemeinden",
+  "meta": {
+    "junction_field": null,
+    "many_collection": "vereine",
+    "many_field": "gemeinde",
+    "one_allowed_collections": null,
+    "one_collection": "gemeinden",
+    "one_collection_field": null,
+    "one_deselect_action": "nullify",
+    "one_field": null,
+    "sort_field": null
+  },
+  "schema": {
+    "table": "vereine",
+    "column": "gemeinde",
+    "foreign_key_table": "gemeinden",
+    "foreign_key_column": "id",
+    "constraint_name": "vereine_gemeinde_foreign",
+    "on_update": "NO ACTION",
+    "on_delete": "RESTRICT"
+  }
+}

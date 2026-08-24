@@ -1,0 +1,55 @@
+{
+  "collection": "vereine",
+  "field": "bedeutung",
+  "type": "string",
+  "meta": {
+    "collection": "vereine",
+    "conditions": null,
+    "display": "labels",
+    "display_options": null,
+    "field": "bedeutung",
+    "group": null,
+    "hidden": false,
+    "interface": "select-dropdown",
+    "note": "Aushaengeschild = ueberregionale Ausstrahlung. Breitensport = das Dorf selbst.",
+    "options": {
+      "choices": [
+        {
+          "text": "Aushängeschild",
+          "value": "aushaengeschild"
+        },
+        {
+          "text": "Breitensport",
+          "value": "breitensport"
+        }
+      ]
+    },
+    "readonly": false,
+    "required": true,
+    "searchable": true,
+    "sort": 5,
+    "special": null,
+    "translations": null,
+    "validation": null,
+    "validation_message": null,
+    "width": "half"
+  },
+  "schema": {
+    "name": "bedeutung",
+    "table": "vereine",
+    "data_type": "character varying",
+    "default_value": "breitensport",
+    "max_length": 20,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "is_nullable": false,
+    "is_unique": false,
+    "is_indexed": false,
+    "is_primary_key": false,
+    "is_generated": false,
+    "generation_expression": null,
+    "has_auto_increment": false,
+    "foreign_key_table": null,
+    "foreign_key_column": null
+  }
+}

@@ -12,10 +12,12 @@ echo "→ Compiling TypeScript migrations (*.mts → *.mjs)"
 npm run build:migrations
 
 # `bootstrap` installs Directus on an empty database (tables + first admin) and
-# otherwise just applies pending migrations — including everything in
-# ./migrations. This is the one command that covers both first boot and redeploy.
-echo "→ Bootstrapping Directus (install on empty DB, migrate otherwise)"
-npx directus bootstrap
+# runs Directus' own migrations. The project's migrations in ./migrations are
+# deliberately kept OUT of this step (MIGRATIONS_PATH points at a directory that
+# does not exist): they carry row data and unmanaged indexes for tables that on
+# a fresh database only exist after the schema push below — so they run last.
+echo "→ Bootstrapping Directus (install on empty DB, core migrations only)"
+MIGRATIONS_PATH=./migrations/keine npx directus bootstrap
 
 echo "→ Starting Directus"
 npx directus start &
@@ -44,6 +46,12 @@ else
   DIRECTUS_ADMIN_EMAIL="${ADMIN_EMAIL}" \
   DIRECTUS_ADMIN_PASSWORD="${ADMIN_PASSWORD}" \
     npm run schema:load
+
+  # Data migrations (row seeds, indexes Directus does not manage) run after the
+  # push: they may assume the model exists, never create it. Skipped together
+  # with the sync so RUN_SCHEMA_SYNC=false really touches nothing.
+  echo "→ Applying data migrations"
+  npx directus database migrate:latest
 fi
 
 echo "→ Ready. Directus is in the foreground."

@@ -8,12 +8,14 @@ import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
+import type { AlleMeldungFelder } from '@/graphql/redaktion'
 import {
   formatiereDatum,
   nachQuartal,
   type ZeitleistenEintrag,
   type ZeitleistenErgebnis
 } from '@/lib/redaktion'
+import { LaufBerichte } from './LaufBerichte'
 
 // Woher unser Material kommt — in einer Liste, nach Datum.
 //
@@ -39,7 +41,14 @@ const HERKUNFT: Record<
 export interface ZeitleisteProps {
   ergebnis: ZeitleistenErgebnis
   laeuft?: boolean
-  onMeldungenAnsehen: (laufId: string) => void
+  /** Die Berichte je Lauf. Sie stehen jetzt unter ihrem Eintrag statt in einem eigenen Reiter. */
+  berichteZuLauf?: Map<string, AlleMeldungFelder[]>
+  /** Status je Lauf, fuer die Fortschrittszeile ueber den Berichten. */
+  laufStatus?: Map<string, string>
+  onStapelChat?: (laufId: string, anweisung: string) => Promise<void>
+  onStapelAktion?: (laufId: string, aktion: 'pruefung' | 'publizieren') => Promise<void>
+  onChat?: (id: string, anweisung: string) => Promise<void>
+  onAktion?: (id: string, aktion: 'publizieren' | 'pruefung' | 'verwerfen') => Promise<void>
   onAuftrag: (eintrag: ZeitleistenEintrag) => void
   /** „Vergiss es" — dauerhaft, die tägliche Prüfung holt es nicht zurück. */
   onVerwerfen: (eintrag: ZeitleistenEintrag) => void
@@ -49,11 +58,26 @@ export interface ZeitleisteProps {
 export function Zeitleiste({
   ergebnis,
   laeuft = false,
-  onMeldungenAnsehen,
+  berichteZuLauf,
+  laufStatus,
+  onStapelChat,
+  onStapelAktion,
+  onChat,
+  onAktion,
   onAuftrag,
   onVerwerfen,
   onMehr
 }: ZeitleisteProps) {
+  // Einmal gebuendelt statt in jeder Zeile: `Zeile` bekommt nur, was sie
+  // betrifft, und die Signatur bleibt lesbar.
+  const berichte = {
+    zuLauf: berichteZuLauf,
+    status: laufStatus,
+    onStapelChat,
+    onStapelAktion,
+    onChat,
+    onAktion
+  }
   const quartale = nachQuartal(ergebnis.ohneDatum)
 
   return (
@@ -65,7 +89,7 @@ export function Zeitleiste({
               key={eintrag.id}
               eintrag={eintrag}
               laeuft={laeuft}
-              onMeldungenAnsehen={onMeldungenAnsehen}
+              berichte={berichte}
               onAuftrag={onAuftrag}
               onVerwerfen={onVerwerfen}
             />
@@ -98,7 +122,7 @@ export function Zeitleiste({
                       key={eintrag.id}
                       eintrag={eintrag}
                       laeuft={laeuft}
-                      onMeldungenAnsehen={onMeldungenAnsehen}
+                      berichte={berichte}
                       onAuftrag={onAuftrag}
                       onVerwerfen={onVerwerfen}
                     />
@@ -113,15 +137,24 @@ export function Zeitleiste({
   )
 }
 
+interface BerichteBuendel {
+  zuLauf?: Map<string, AlleMeldungFelder[]>
+  status?: Map<string, string>
+  onStapelChat?: (laufId: string, anweisung: string) => Promise<void>
+  onStapelAktion?: (laufId: string, aktion: 'pruefung' | 'publizieren') => Promise<void>
+  onChat?: (id: string, anweisung: string) => Promise<void>
+  onAktion?: (id: string, aktion: 'publizieren' | 'pruefung' | 'verwerfen') => Promise<void>
+}
+
 interface ZeileProps {
   eintrag: ZeitleistenEintrag
   laeuft: boolean
-  onMeldungenAnsehen: (laufId: string) => void
+  berichte: BerichteBuendel
   onAuftrag: (eintrag: ZeitleistenEintrag) => void
   onVerwerfen: (eintrag: ZeitleistenEintrag) => void
 }
 
-function Zeile({ eintrag, laeuft, onMeldungenAnsehen, onAuftrag, onVerwerfen }: ZeileProps) {
+function Zeile({ eintrag, laeuft, berichte, onAuftrag, onVerwerfen }: ZeileProps) {
   const herkunft = HERKUNFT[eintrag.herkunft]
 
   return (
@@ -164,13 +197,7 @@ function Zeile({ eintrag, laeuft, onMeldungenAnsehen, onAuftrag, onVerwerfen }: 
 
         <Box sx={{ flexGrow: 1 }} />
 
-        <Aktion
-          eintrag={eintrag}
-          laeuft={laeuft}
-          onMeldungenAnsehen={onMeldungenAnsehen}
-          onAuftrag={onAuftrag}
-          onVerwerfen={onVerwerfen}
-        />
+        <Aktion eintrag={eintrag} laeuft={laeuft} onAuftrag={onAuftrag} />
 
         {eintrag.datensatzId !== null && (
           <Tooltip title="Dauerhaft aussortieren. Auch neue Zahlen holen ihn nicht zurück.">
@@ -182,6 +209,28 @@ function Zeile({ eintrag, laeuft, onMeldungenAnsehen, onAuftrag, onVerwerfen }: 
           </Tooltip>
         )}
       </Stack>
+
+      {eintrag.laufId !== null && berichte.zuLauf !== undefined && (
+        <Box sx={{ gridColumn: '1 / -1', minWidth: 0 }}>
+          <LaufBerichte
+            meldungen={berichte.zuLauf.get(eintrag.laufId) ?? []}
+            laufStatus={berichte.status?.get(eintrag.laufId) ?? null}
+            laeuft={laeuft}
+            onStapelChat={async (anweisung) => {
+              await berichte.onStapelChat?.(eintrag.laufId as string, anweisung)
+            }}
+            onStapelAktion={async (aktion) => {
+              await berichte.onStapelAktion?.(eintrag.laufId as string, aktion)
+            }}
+            onChat={async (id, anweisung) => {
+              await berichte.onChat?.(id, anweisung)
+            }}
+            onAktion={async (id, was) => {
+              await berichte.onAktion?.(id, was)
+            }}
+          />
+        </Box>
+      )}
 
       {/* Was der Katalog über den Datensatz sagt — damit sich das „vergiss es"
           auf etwas stützt und nicht auf den Titel allein. */}
@@ -222,16 +271,12 @@ function rhythmusText(rhythmus: string): string {
   return RHYTHMUS[rhythmus.toLowerCase()] ?? rhythmus
 }
 
-function Aktion({ eintrag, laeuft, onMeldungenAnsehen, onAuftrag }: ZeileProps) {
-  const laufId = eintrag.laufId
-
-  if (laufId !== null) {
-    return (
-      <Button size="small" variant="text" onClick={() => onMeldungenAnsehen(laufId)}>
-        Meldungen ansehen
-      </Button>
-    )
-  }
+function Aktion({ eintrag, laeuft, onAuftrag }: Pick<ZeileProps, 'eintrag' | 'laeuft' | 'onAuftrag'>) {
+  // Ein Eintrag mit Lauf braucht hier keinen Knopf mehr: seine Berichte stehen
+  // direkt darunter und sagen selbst, wie viele es sind. Frueher sprang von
+  // hier ein „Meldungen ansehen" in einen eigenen Reiter — den Umweg gibt es
+  // nicht mehr.
+  if (eintrag.laufId !== null) return null
 
   // Eine Portalzeile ist eine Meldung über den Zweig, nicht über eine Tabelle —
   // welche sich geändert hat, steht unter „alle Zweige anzeigen".
