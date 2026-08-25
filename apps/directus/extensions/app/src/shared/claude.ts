@@ -35,8 +35,22 @@ export function getClaude(): Anthropic {
   return cached
 }
 
+/**
+ * Above this budget the request streams under the hood.
+ *
+ * The SDK refuses a plain request whose `max_tokens` implies a run longer than
+ * about ten minutes ("Streaming is required for operations that may take
+ * longer…"), and a year's waste calendar legitimately needs such a budget —
+ * the cap carries the model's thinking as well as the answer.
+ * `finalMessage()` accumulates the stream into the same `Anthropic.Message` a
+ * plain create returns, so callers cannot tell the difference.
+ */
+const STREAMEN_AB_TOKENS = 8192
+
 export const sendToClaude: MessageSender = (body) =>
-  getClaude().messages.create(body)
+  body.max_tokens >= STREAMEN_AB_TOKENS
+    ? getClaude().messages.stream(body).finalMessage()
+    : getClaude().messages.create(body)
 
 /** How much the model may deliberate. Defaults to `high` when unset. */
 export type ClaudeEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max'

@@ -3,7 +3,7 @@
   "info": {
     "title": "Dynamic API Specification",
     "description": "This is a dynamically generated API specification for all endpoints existing on the current project.",
-    "version": "ad591301743b8aac08719768583d3a6d8d0c6a16"
+    "version": "6726255c9ed3cb7909818d152136ff4187ffec25"
   },
   "servers": [
     {
@@ -9844,6 +9844,395 @@
         ]
       }
     },
+    "/items/entsorgungsdokumente": {
+      "post": {
+        "summary": "Create an Item",
+        "description": "Create a new entsorgungsdokumente item.",
+        "tags": [
+          "Items",
+          "ItemsEntsorgungsdokumente"
+        ],
+        "operationId": "createItemsEntsorgungsdokumente",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Meta"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsEntsorgungsdokumente"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsEntsorgungsdokumente"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsEntsorgungsdokumente"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "get": {
+        "summary": "List Items",
+        "description": "List the entsorgungsdokumente items.",
+        "tags": [
+          "Items",
+          "ItemsEntsorgungsdokumente"
+        ],
+        "operationId": "readItemsEntsorgungsdokumente",
+        "security": [
+          {
+            "Auth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "$ref": "#/components/schemas/ItemsEntsorgungsdokumente"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/x-metadata"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update Multiple Items",
+        "description": "Update multiple entsorgungsdokumente items at the same time.",
+        "tags": [
+          "Items",
+          "ItemsEntsorgungsdokumente"
+        ],
+        "operationId": "updateItemsEntsorgungsdokumente",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsEntsorgungsdokumente"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsEntsorgungsdokumente"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsEntsorgungsdokumente"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Multiple Items",
+        "description": "Delete multiple existing entsorgungsdokumente items.",
+        "tags": [
+          "Items",
+          "ItemsEntsorgungsdokumente"
+        ],
+        "operationId": "deleteItemsEntsorgungsdokumente",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/items/entsorgungsdokumente/{id}": {
+      "get": {
+        "summary": "Retrieve an Item",
+        "description": "Retrieve a single entsorgungsdokumente item by unique identifier.",
+        "tags": [
+          "Items",
+          "ItemsEntsorgungsdokumente"
+        ],
+        "operationId": "readSingleItemsEntsorgungsdokumente",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Version"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsEntsorgungsdokumente"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update an Item",
+        "description": "Update an existing entsorgungsdokumente item.",
+        "tags": [
+          "Items",
+          "ItemsEntsorgungsdokumente"
+        ],
+        "operationId": "updateSingleItemsEntsorgungsdokumente",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "$ref": "#/components/schemas/ItemsEntsorgungsdokumente"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsEntsorgungsdokumente"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete an Item",
+        "description": "Delete an existing entsorgungsdokumente item.",
+        "tags": [
+          "Items",
+          "ItemsEntsorgungsdokumente"
+        ],
+        "operationId": "deleteSingleItemsEntsorgungsdokumente",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
     "/items/portal_bereiche": {
       "post": {
         "summary": "Create an Item",
@@ -12177,6 +12566,784 @@
           }
         ]
       }
+    },
+    "/items/entsorgungskalender": {
+      "post": {
+        "summary": "Create an Item",
+        "description": "Create a new entsorgungskalender item.",
+        "tags": [
+          "Items",
+          "ItemsEntsorgungskalender"
+        ],
+        "operationId": "createItemsEntsorgungskalender",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Meta"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsEntsorgungskalender"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsEntsorgungskalender"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsEntsorgungskalender"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "get": {
+        "summary": "List Items",
+        "description": "List the entsorgungskalender items.",
+        "tags": [
+          "Items",
+          "ItemsEntsorgungskalender"
+        ],
+        "operationId": "readItemsEntsorgungskalender",
+        "security": [
+          {
+            "Auth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "$ref": "#/components/schemas/ItemsEntsorgungskalender"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/x-metadata"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update Multiple Items",
+        "description": "Update multiple entsorgungskalender items at the same time.",
+        "tags": [
+          "Items",
+          "ItemsEntsorgungskalender"
+        ],
+        "operationId": "updateItemsEntsorgungskalender",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsEntsorgungskalender"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsEntsorgungskalender"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsEntsorgungskalender"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Multiple Items",
+        "description": "Delete multiple existing entsorgungskalender items.",
+        "tags": [
+          "Items",
+          "ItemsEntsorgungskalender"
+        ],
+        "operationId": "deleteItemsEntsorgungskalender",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/items/entsorgungskalender/{id}": {
+      "get": {
+        "summary": "Retrieve an Item",
+        "description": "Retrieve a single entsorgungskalender item by unique identifier.",
+        "tags": [
+          "Items",
+          "ItemsEntsorgungskalender"
+        ],
+        "operationId": "readSingleItemsEntsorgungskalender",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Version"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsEntsorgungskalender"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update an Item",
+        "description": "Update an existing entsorgungskalender item.",
+        "tags": [
+          "Items",
+          "ItemsEntsorgungskalender"
+        ],
+        "operationId": "updateSingleItemsEntsorgungskalender",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "$ref": "#/components/schemas/ItemsEntsorgungskalender"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsEntsorgungskalender"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete an Item",
+        "description": "Delete an existing entsorgungskalender item.",
+        "tags": [
+          "Items",
+          "ItemsEntsorgungskalender"
+        ],
+        "operationId": "deleteSingleItemsEntsorgungskalender",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "/items/entsorgungstermine": {
+      "post": {
+        "summary": "Create an Item",
+        "description": "Create a new entsorgungstermine item.",
+        "tags": [
+          "Items",
+          "ItemsEntsorgungstermine"
+        ],
+        "operationId": "createItemsEntsorgungstermine",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Meta"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsEntsorgungstermine"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsEntsorgungstermine"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsEntsorgungstermine"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "get": {
+        "summary": "List Items",
+        "description": "List the entsorgungstermine items.",
+        "tags": [
+          "Items",
+          "ItemsEntsorgungstermine"
+        ],
+        "operationId": "readItemsEntsorgungstermine",
+        "security": [
+          {
+            "Auth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "$ref": "#/components/schemas/ItemsEntsorgungstermine"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/x-metadata"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update Multiple Items",
+        "description": "Update multiple entsorgungstermine items at the same time.",
+        "tags": [
+          "Items",
+          "ItemsEntsorgungstermine"
+        ],
+        "operationId": "updateItemsEntsorgungstermine",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsEntsorgungstermine"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsEntsorgungstermine"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsEntsorgungstermine"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Multiple Items",
+        "description": "Delete multiple existing entsorgungstermine items.",
+        "tags": [
+          "Items",
+          "ItemsEntsorgungstermine"
+        ],
+        "operationId": "deleteItemsEntsorgungstermine",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/items/entsorgungstermine/{id}": {
+      "get": {
+        "summary": "Retrieve an Item",
+        "description": "Retrieve a single entsorgungstermine item by unique identifier.",
+        "tags": [
+          "Items",
+          "ItemsEntsorgungstermine"
+        ],
+        "operationId": "readSingleItemsEntsorgungstermine",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Version"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsEntsorgungstermine"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update an Item",
+        "description": "Update an existing entsorgungstermine item.",
+        "tags": [
+          "Items",
+          "ItemsEntsorgungstermine"
+        ],
+        "operationId": "updateSingleItemsEntsorgungstermine",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "$ref": "#/components/schemas/ItemsEntsorgungstermine"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsEntsorgungstermine"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete an Item",
+        "description": "Delete an existing entsorgungstermine item.",
+        "tags": [
+          "Items",
+          "ItemsEntsorgungstermine"
+        ],
+        "operationId": "deleteSingleItemsEntsorgungstermine",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ]
+      }
     }
   },
   "tags": [
@@ -12333,6 +13500,11 @@
       "description": "Dauerhafte Regeln aus der Redaktionsarbeit. Fliessen in jede weitere Generierung ein."
     },
     {
+      "name": "ItemsEntsorgungsdokumente",
+      "x-collection": "entsorgungsdokumente",
+      "description": "Ein PDF eines Abfuhrkalenders. Gemeinden wie Riehen drucken je Zone ein eigenes Dokument."
+    },
+    {
       "name": "ItemsPortalBereiche",
       "x-collection": "portal_bereiche",
       "description": "Zweige des Statistikportals. \"Letzte Aenderung\" wird pro Zweig publiziert, nicht pro Tabelle."
@@ -12360,6 +13532,16 @@
       "name": "ItemsSpiele",
       "x-collection": "spiele",
       "description": "Resultate und kommende Begegnungen der erfassten Vereine. Wird vom Konnektor geschrieben."
+    },
+    {
+      "name": "ItemsEntsorgungskalender",
+      "x-collection": "entsorgungskalender",
+      "description": "Der gedruckte Abfuhrkalender einer Gemeinde fuer ein Jahr. Quelle der Entsorgungserinnerungen."
+    },
+    {
+      "name": "ItemsEntsorgungstermine",
+      "x-collection": "entsorgungstermine",
+      "description": "Ein aussergewoehnlicher Abfuhrtermin. Regelmaessige Abfuhren stehen nur im Merkblatt."
     }
   ],
   "components": {
@@ -14460,7 +15642,7 @@
             "format": "uuid"
           },
           "lauf": {
-            "nullable": false,
+            "nullable": true,
             "oneOf": [
               {
                 "type": "string",
@@ -14575,11 +15757,29 @@
             "nullable": true,
             "type": "string",
             "format": "timestamp"
+          },
+          "spiel": {
+            "nullable": true,
+            "description": "Gesetzt, wenn die Meldung ein Spielbericht ist. Dann ist \"Lauf\" leer.",
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsSpiele"
+              }
+            ]
+          },
+          "erscheint_am": {
+            "nullable": true,
+            "description": "Nur bei Entsorgungserinnerungen: der Newsletter-Tag. Publiziert wird am Vortag.",
+            "type": "string",
+            "format": "date"
           }
         },
         "x-collection": "meldungen",
         "required": [
-          "lauf",
           "gemeinde"
         ]
       },
@@ -14825,6 +16025,84 @@
         "x-collection": "redaktionswissen",
         "required": [
           "regel"
+        ]
+      },
+      "ItemsEntsorgungsdokumente": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "nullable": false,
+            "type": "string",
+            "format": "uuid"
+          },
+          "kalender": {
+            "nullable": false,
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsEntsorgungskalender"
+              }
+            ]
+          },
+          "zone": {
+            "nullable": true,
+            "description": "Fuer welche Zone dieses PDF gilt (\"Zone 1\"). Leer, wenn ein Dokument die ganze Gemeinde abdeckt.",
+            "type": "string"
+          },
+          "status": {
+            "nullable": false,
+            "type": "string"
+          },
+          "pdf": {
+            "nullable": true,
+            "description": "Das gedruckte PDF. Massgeblich — der Online-Kalender ist es nicht.",
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/Files"
+              }
+            ]
+          },
+          "quelle_url": {
+            "nullable": true,
+            "description": "Woher das PDF stammt. Steht als Link in den Erinnerungen dieser Zone.",
+            "type": "string"
+          },
+          "zusatz": {
+            "nullable": true,
+            "description": "Hinweis zur Zone, den jede Erinnerung nennt — etwa dass sie auch Bettingen umfasst. Von der Redaktion erfasst, nie vom Modell hergeleitet.",
+            "type": "string"
+          },
+          "extraktion": {
+            "nullable": true,
+            "description": "Rohergebnis der Auslesung, zum Nachvollziehen."
+          },
+          "fehler": {
+            "nullable": true,
+            "description": "Warum das Auslesen scheiterte.",
+            "type": "string"
+          },
+          "date_created": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "date_updated": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          }
+        },
+        "x-collection": "entsorgungsdokumente",
+        "required": [
+          "id",
+          "kalender"
         ]
       },
       "ItemsPortalBereiche": {
@@ -15333,6 +16611,188 @@
           "heim",
           "gast",
           "wettbewerb"
+        ]
+      },
+      "ItemsEntsorgungskalender": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "nullable": false,
+            "type": "string",
+            "format": "uuid"
+          },
+          "gemeinde": {
+            "nullable": false,
+            "description": "Fuer welche Gemeinde dieser Kalender gilt.",
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsGemeinden"
+              }
+            ]
+          },
+          "jahr": {
+            "nullable": false,
+            "description": "Kalenderjahr, wie es auf dem PDF steht.",
+            "type": "integer"
+          },
+          "status": {
+            "nullable": false,
+            "description": "Hochgeladen → ausgelesen → geprueft. Erst danach entstehen Meldungen.",
+            "type": "string"
+          },
+          "merkblatt": {
+            "nullable": true,
+            "description": "Was der Kalender regelmaessig abfuehrt — erzeugt bewusst keine Erinnerungen.",
+            "type": "string"
+          },
+          "date_created": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "date_updated": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "dokumente": {
+            "nullable": true,
+            "description": "Die PDFs dieses Kalenders — eines pro Zone, oder ein einzelnes fuer die ganze Gemeinde.",
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "$ref": "#/components/schemas/ItemsEntsorgungsdokumente"
+                }
+              ]
+            }
+          }
+        },
+        "x-collection": "entsorgungskalender",
+        "required": [
+          "id",
+          "gemeinde",
+          "jahr"
+        ]
+      },
+      "ItemsEntsorgungstermine": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "nullable": false,
+            "type": "string",
+            "format": "uuid"
+          },
+          "kalender": {
+            "nullable": false,
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsEntsorgungskalender"
+              }
+            ]
+          },
+          "kategorie": {
+            "nullable": false,
+            "description": "Wie der Kalender die Abfuhr nennt, zum Beispiel \"Papier, Karton\".",
+            "type": "string"
+          },
+          "zone": {
+            "nullable": true,
+            "description": "Gebiet der Gemeinde, etwa \"Westplateau\". Leer, wenn die Gemeinde keine Zonen kennt.",
+            "type": "string"
+          },
+          "datum": {
+            "nullable": false,
+            "description": "Tag der Abfuhr.",
+            "type": "string",
+            "format": "date"
+          },
+          "anmeldeschluss": {
+            "nullable": true,
+            "description": "Wenn gesetzt, richtet sich der Erscheinungstag danach statt nach dem Abfuhrtag.",
+            "type": "string",
+            "format": "date"
+          },
+          "bereitstellung": {
+            "nullable": true,
+            "description": "Wann und wie das Material bereitstehen muss.",
+            "type": "string"
+          },
+          "anmeldung": {
+            "nullable": true,
+            "description": "Anmelderegel samt Telefon oder Formular.",
+            "type": "string"
+          },
+          "warnung": {
+            "nullable": true,
+            "description": "Wochentag im PDF passt nicht zum Datum — von Hand pruefen.",
+            "type": "string"
+          },
+          "geprueft": {
+            "nullable": false,
+            "description": "Von der Redaktion bestaetigt. Nur bestaetigte Termine erzeugen Meldungen.",
+            "type": "boolean"
+          },
+          "meldung": {
+            "nullable": true,
+            "description": "Die Erinnerung, in der dieser Termin vorkommt. Mehrere Termine koennen sich eine teilen.",
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsMeldungen"
+              }
+            ]
+          },
+          "date_created": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "date_updated": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "anmeldeschluss_zeit": {
+            "nullable": true,
+            "description": "Uhrzeit der Anmeldefrist. Liegt sie nach 10 Uhr, erscheint die Erinnerung am Fristtag selbst — der Newsletter ist bis dahin gelesen.",
+            "type": "string"
+          },
+          "dokument": {
+            "nullable": true,
+            "description": "Aus welchem PDF dieser Termin stammt. Scope der Re-Extraktion.",
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsEntsorgungsdokumente"
+              }
+            ]
+          }
+        },
+        "x-collection": "entsorgungstermine",
+        "required": [
+          "id",
+          "kalender",
+          "kategorie",
+          "datum"
         ]
       }
     },

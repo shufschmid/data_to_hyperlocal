@@ -109,7 +109,11 @@ export interface Datensatz {
 }
 
 export type LaufStatus =
-  'geplant' | 'briefing' | 'schreibt' | 'bereit' | 'fehler'
+  | 'geplant'
+  | 'briefing'
+  | 'schreibt'
+  | 'bereit'
+  | 'fehler'
 
 export interface Lauf {
   id: string
@@ -132,16 +136,40 @@ export interface Lauf {
 }
 
 export type MeldungStatus =
-  'entwurf' | 'in_pruefung' | 'freigegeben' | 'publiziert' | 'verworfen'
+  | 'entwurf'
+  | 'in_pruefung'
+  | 'freigegeben'
+  | 'publiziert'
+  | 'verworfen'
 
 /** Queue state, deliberately separate from the editorial `status`. */
 export type MeldungVerarbeitung = 'idle' | 'geplant' | 'laeuft' | 'fehler'
 
 export type Entscheidung = 'ja' | 'nein' | 'unklar'
 
+/**
+ * An article, whatever it was written from.
+ *
+ * Three kinds share this collection, and exactly one of the three parent fields
+ * is set on any row: `lauf` for a statistics article, `spiel` for a match
+ * report, `erscheint_am` for a waste-collection reminder. Giving each its own
+ * collection would have meant building the review, chat, counter-check and
+ * publishing machinery three times, so they join the existing one — at the cost
+ * of three partial unique indexes instead of one plain constraint.
+ */
 export interface Meldung {
   id: string
-  lauf: string
+  /** Set for statistics articles. Null for match reports and reminders. */
+  lauf: string | null
+  /** Set for match reports. Null otherwise. */
+  spiel: string | null
+  /**
+   * The newsletter day a reminder appears on. Set only for waste-collection
+   * reminders, and what the scheduled publisher matches on: a reminder is
+   * published the evening before this date, because the Dorfkönig assembles the
+   * newsletter then.
+   */
+  erscheint_am: string | null
   gemeinde: string
 
   titel: string | null
@@ -284,6 +312,148 @@ export interface Redaktionswissen {
   date_updated: string | null
 }
 
+/** Which source a club's results are read from — picks the connector. */
+export type VereinsQuelle =
+  | 'manuell'
+  | 'fvnws'
+  | 'swissvolley'
+  | 'handball'
+  | 'basketplan'
+
+/** Whether a club carries regional reach or speaks for the village. */
+export type VereinsBedeutung = 'aushaengeschild' | 'breitensport'
+
+export interface Verein {
+  id: string
+  name: string
+  gemeinde: string
+  sportart: string
+  bedeutung: VereinsBedeutung
+  /** A snapshot that goes stale every season — never a fact in an article. */
+  liga: string | null
+  spielort: string | null
+  /**
+   * The newsroom's own reasoning about the club. Belongs in the user turn of a
+   * prompt, never in the cached system prefix — it is per-municipality.
+   */
+  notiz: string | null
+  quelle: VereinsQuelle
+  externe_id: string | null
+  ergebnis_url: string | null
+  /** Clubs proposed by a connector arrive false — confirm once, like agenda entries. */
+  zuordnung_geprueft: boolean
+  aktiv: boolean
+  date_created: string | null
+  date_updated: string | null
+}
+
+export interface Spiel {
+  id: string
+  /**
+   * The identity at the source, not always a number: football uses the
+   * association's Spielnummer, volleyball has none and the connector composes
+   * one from the pairing.
+   */
+  spielnummer: string
+  verein: string | null
+  gemeinde: string | null
+  sportart: string
+  /** ISO instant of kick-off. */
+  datum: string
+  heim: string
+  gast: string
+  tore_heim: number | null
+  tore_gast: number | null
+  wettbewerb: string
+  ort: string | null
+  status: string | null
+  quelle_url: string | null
+  date_created: string | null
+  date_updated: string | null
+}
+
+export type KalenderStatus =
+  | 'hochgeladen'
+  | 'extrahiert'
+  | 'geprueft'
+  | 'fehler'
+
+/**
+ * The printed waste calendar of one municipality for one year.
+ *
+ * The PDF is the source of record: municipalities proof-read what goes into the
+ * letterbox more carefully than what goes on the website, and the printed grid
+ * states weekday and day-of-month for every collection — two independent claims
+ * about the same day, which is what lets us check the reading.
+ *
+ * The PDFs themselves hang below as `entsorgungsdokumente`: municipalities like
+ * Riehen print one document per collection zone, so a calendar owns several.
+ */
+export interface Entsorgungskalender {
+  id: string
+  gemeinde: string
+  jahr: number
+  status: KalenderStatus
+  /** The regular collections, kept as a note — they deliberately produce no reminders. */
+  merkblatt: string | null
+  date_created: string | null
+  date_updated: string | null
+}
+
+export type DokumentStatus = 'hochgeladen' | 'extrahiert' | 'fehler'
+
+/** One PDF of a calendar — for Riehen, one per zone. */
+export interface Entsorgungsdokument {
+  id: string
+  kalender: string
+  /** The zone this PDF covers ("Zone 1"). Null when one document covers the whole municipality. */
+  zone: string | null
+  status: DokumentStatus
+  /** Directus Files id of the PDF itself. */
+  pdf: string | null
+  quelle_url: string | null
+  /**
+   * The editor's note about the zone — "Umfasst auch die Gemeinde Bettingen
+   * (BS)." Stated in every reminder of this zone, never inferred by a model.
+   */
+  zusatz: string | null
+  extraktion: Record<string, unknown> | null
+  fehler: string | null
+  date_created: string | null
+  date_updated: string | null
+}
+
+/**
+ * One exceptional collection date.
+ *
+ * A weekly Hauskehricht never becomes a row here: residents know their fixed
+ * weekday, and reminding them every week would teach them to ignore the ones
+ * that matter.
+ */
+export interface Entsorgungstermin {
+  id: string
+  kalender: string
+  /** Which PDF this date came from — the scope of a re-extraction. */
+  dokument: string | null
+  kategorie: string
+  /** Binningen's plateaus and their like. Null where the municipality has no zones. */
+  zone: string | null
+  datum: string
+  /** When set, the reminder is timed to this instead of to `datum`. */
+  anmeldeschluss: string | null
+  /** `HH:MM` — after 10:00 the deadline day's own edition still reaches readers. */
+  anmeldeschluss_zeit: string | null
+  bereitstellung: string | null
+  anmeldung: string | null
+  /** Weekday in the PDF disagrees with the date — for a human, not for the code. */
+  warnung: string | null
+  geprueft: boolean
+  /** The reminder this date appears in. Several dates can share one. */
+  meldung: string | null
+  date_created: string | null
+  date_updated: string | null
+}
+
 export interface Schema {
   gemeinden: Gemeinde[]
   quellen: Quelle[]
@@ -293,4 +463,11 @@ export interface Schema {
   meldungen: Meldung[]
   chat_nachrichten: ChatNachricht[]
   redaktionswissen: Redaktionswissen[]
+  portal_bereiche: PortalBereich[]
+  portal_seiten: PortalSeite[]
+  vereine: Verein[]
+  spiele: Spiel[]
+  entsorgungskalender: Entsorgungskalender[]
+  entsorgungsdokumente: Entsorgungsdokument[]
+  entsorgungstermine: Entsorgungstermin[]
 }

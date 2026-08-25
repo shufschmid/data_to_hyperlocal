@@ -292,12 +292,15 @@ type Subscription {
   chat_nachrichten_mutated(event: EventEnum): chat_nachrichten_mutated
   laeufe_mutated(event: EventEnum): laeufe_mutated
   redaktionswissen_mutated(event: EventEnum): redaktionswissen_mutated
+  entsorgungsdokumente_mutated(event: EventEnum): entsorgungsdokumente_mutated
   portal_bereiche_mutated(event: EventEnum): portal_bereiche_mutated
   portal_seiten_mutated(event: EventEnum): portal_seiten_mutated
   datensaetze_mutated(event: EventEnum): datensaetze_mutated
   directus_sync_id_map_mutated(event: EventEnum): directus_sync_id_map_mutated
   vereine_mutated(event: EventEnum): vereine_mutated
   spiele_mutated(event: EventEnum): spiele_mutated
+  entsorgungskalender_mutated(event: EventEnum): entsorgungskalender_mutated
+  entsorgungstermine_mutated(event: EventEnum): entsorgungstermine_mutated
 }
 
 """The `Boolean` scalar type represents `true` or `false`."""
@@ -1913,6 +1916,125 @@ type directus_versions_mutated {
   data: directus_versions
 }
 
+type entsorgungsdokumente {
+  id: ID!
+  kalender(filter: entsorgungskalender_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): entsorgungskalender
+
+  """
+  Fuer welche Zone dieses PDF gilt ("Zone 1"). Leer, wenn ein Dokument die ganze Gemeinde abdeckt.
+  """
+  zone: String
+  status: String
+  pdf(filter: directus_files_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): directus_files
+
+  """Woher das PDF stammt. Steht als Link in den Erinnerungen dieser Zone."""
+  quelle_url: String
+
+  """
+  Hinweis zur Zone, den jede Erinnerung nennt — etwa dass sie auch Bettingen umfasst. Von der Redaktion erfasst, nie vom Modell hergeleitet.
+  """
+  zusatz: String
+
+  """Rohergebnis der Auslesung, zum Nachvollziehen."""
+  extraktion: JSON
+  extraktion_func: count_functions
+
+  """Warum das Auslesen scheiterte."""
+  fehler: String
+  date_created: Date
+  date_created_func: datetime_functions
+  date_updated: Date
+  date_updated_func: datetime_functions
+}
+
+type entsorgungsdokumente_mutated {
+  key: ID!
+  event: EventEnum
+  data: entsorgungsdokumente
+}
+
+type entsorgungskalender {
+  id: ID!
+  gemeinde(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): gemeinden
+
+  """Kalenderjahr, wie es auf dem PDF steht."""
+  jahr: Int!
+
+  """Hochgeladen → ausgelesen → geprueft. Erst danach entstehen Meldungen."""
+  status: String
+
+  """
+  Was der Kalender regelmaessig abfuehrt — erzeugt bewusst keine Erinnerungen.
+  """
+  merkblatt: String
+  date_created: Date
+  date_created_func: datetime_functions
+  date_updated: Date
+  date_updated_func: datetime_functions
+  dokumente(filter: entsorgungsdokumente_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [entsorgungsdokumente]
+  dokumente_func: count_functions
+}
+
+type entsorgungskalender_mutated {
+  key: ID!
+  event: EventEnum
+  data: entsorgungskalender
+}
+
+type entsorgungstermine {
+  id: ID!
+  kalender(filter: entsorgungskalender_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): entsorgungskalender
+
+  """Wie der Kalender die Abfuhr nennt, zum Beispiel "Papier, Karton"."""
+  kategorie: String!
+
+  """
+  Gebiet der Gemeinde, etwa "Westplateau". Leer, wenn die Gemeinde keine Zonen kennt.
+  """
+  zone: String
+
+  """Tag der Abfuhr."""
+  datum: Date!
+  datum_func: date_functions
+
+  """
+  Wenn gesetzt, richtet sich der Erscheinungstag danach statt nach dem Abfuhrtag.
+  """
+  anmeldeschluss: Date
+  anmeldeschluss_func: date_functions
+
+  """Wann und wie das Material bereitstehen muss."""
+  bereitstellung: String
+
+  """Anmelderegel samt Telefon oder Formular."""
+  anmeldung: String
+
+  """Wochentag im PDF passt nicht zum Datum — von Hand pruefen."""
+  warnung: String
+
+  """
+  Von der Redaktion bestaetigt. Nur bestaetigte Termine erzeugen Meldungen.
+  """
+  geprueft: Boolean!
+  meldung(filter: meldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): meldungen
+  date_created: Date
+  date_created_func: datetime_functions
+  date_updated: Date
+  date_updated_func: datetime_functions
+
+  """
+  Uhrzeit der Anmeldefrist. Liegt sie nach 10 Uhr, erscheint die Erinnerung am Fristtag selbst — der Newsletter ist bis dahin gelesen.
+  """
+  anmeldeschluss_zeit: String
+  dokument(filter: entsorgungsdokumente_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): entsorgungsdokumente
+}
+
+type entsorgungstermine_mutated {
+  key: ID!
+  event: EventEnum
+  data: entsorgungstermine
+}
+
 type gemeinden {
   id: ID!
 
@@ -2028,6 +2150,13 @@ type meldungen {
   date_created_func: datetime_functions
   date_updated: Date
   date_updated_func: datetime_functions
+  spiel(filter: spiele_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): spiele
+
+  """
+  Nur bei Entsorgungserinnerungen: der Newsletter-Tag. Publiziert wird am Vortag.
+  """
+  erscheint_am: Date
+  erscheint_am_func: date_functions
 }
 
 type meldungen_mutated {
@@ -3431,6 +3560,63 @@ input directus_versions_filter {
   _or: [directus_versions_filter]
 }
 
+input entsorgungsdokumente_filter {
+  id: id_filter_operators
+  kalender: entsorgungskalender_filter
+  zone: string_filter_operators
+  status: string_filter_operators
+  pdf: directus_files_filter
+  quelle_url: string_filter_operators
+  zusatz: string_filter_operators
+  extraktion: string_filter_operators
+  extraktion_func: count_function_filter_operators
+  fehler: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  _and: [entsorgungsdokumente_filter]
+  _or: [entsorgungsdokumente_filter]
+}
+
+""""""
+input entsorgungsdokumente_quantifier_filter {
+  id: id_filter_operators
+  kalender: entsorgungskalender_filter
+  zone: string_filter_operators
+  status: string_filter_operators
+  pdf: directus_files_filter
+  quelle_url: string_filter_operators
+  zusatz: string_filter_operators
+  extraktion: string_filter_operators
+  extraktion_func: count_function_filter_operators
+  fehler: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  _and: [entsorgungsdokumente_filter]
+  _or: [entsorgungsdokumente_filter]
+  _some: entsorgungsdokumente_filter
+  _none: entsorgungsdokumente_filter
+}
+
+input entsorgungskalender_filter {
+  id: id_filter_operators
+  gemeinde: gemeinden_filter
+  jahr: number_filter_operators
+  status: string_filter_operators
+  merkblatt: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  dokumente: entsorgungsdokumente_quantifier_filter
+  dokumente_func: count_function_filter_operators
+  _and: [entsorgungskalender_filter]
+  _or: [entsorgungskalender_filter]
+}
+
 input gemeinden_filter {
   id: id_filter_operators
   bfs_nummer: number_filter_operators
@@ -3525,6 +3711,9 @@ input meldungen_filter {
   date_created_func: datetime_function_filter_operators
   date_updated: date_filter_operators
   date_updated_func: datetime_function_filter_operators
+  spiel: spiele_filter
+  erscheint_am: date_filter_operators
+  erscheint_am_func: date_function_filter_operators
   _and: [meldungen_filter]
   _or: [meldungen_filter]
 }
@@ -3581,6 +3770,30 @@ input quellen_filter {
   date_updated_func: datetime_function_filter_operators
   _and: [quellen_filter]
   _or: [quellen_filter]
+}
+
+input spiele_filter {
+  id: id_filter_operators
+  spielnummer: string_filter_operators
+  verein: vereine_filter
+  gemeinde: gemeinden_filter
+  sportart: string_filter_operators
+  datum: date_filter_operators
+  datum_func: datetime_function_filter_operators
+  heim: string_filter_operators
+  gast: string_filter_operators
+  tore_heim: number_filter_operators
+  tore_gast: number_filter_operators
+  wettbewerb: string_filter_operators
+  ort: string_filter_operators
+  status: string_filter_operators
+  quelle_url: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  _and: [spiele_filter]
+  _or: [spiele_filter]
 }
 
 input string_filter_operators {

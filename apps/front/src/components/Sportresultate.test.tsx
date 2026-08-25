@@ -38,6 +38,7 @@ function bericht(spielId: string) {
     zeit_warnungen: null,
     fehler: null,
     publiziert_am: null,
+    erscheint_am: null,
     date_created: null,
     gemeinde: { id: 'g1', name: 'Pratteln', bezirk: 'Liestal' },
     lauf: null,

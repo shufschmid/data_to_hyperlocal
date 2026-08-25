@@ -1,5 +1,19 @@
 [
   {
+    "name": "Entsorgung publizieren",
+    "icon": "schedule_send",
+    "color": null,
+    "description": "Publiziert freigegebene Entsorgungserinnerungen am Vortag ihres Erscheinungstags. Kein Modellaufruf.",
+    "status": "active",
+    "trigger": "schedule",
+    "accountability": "all",
+    "options": {
+      "cron": "0 5 * * *"
+    },
+    "operation": "48f75170-0df9-496d-8a36-0ee38281a811",
+    "_syncId": "26f86364-b542-4514-b6b0-37fedc68e29a"
+  },
+  {
     "name": "Meldungen erzeugen",
     "icon": "edit_note",
     "color": null,

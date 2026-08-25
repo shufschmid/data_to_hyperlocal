@@ -27,6 +27,10 @@ type Query {
   redaktionswissen_by_id(id: ID!, version: String): redaktionswissen
   redaktionswissen_aggregated(groupBy: [String], filter: redaktionswissen_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [redaktionswissen_aggregated!]!
   redaktionswissen_by_version(version: String!, id: ID!): version_redaktionswissen
+  entsorgungsdokumente(filter: entsorgungsdokumente_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [entsorgungsdokumente!]!
+  entsorgungsdokumente_by_id(id: ID!, version: String): entsorgungsdokumente
+  entsorgungsdokumente_aggregated(groupBy: [String], filter: entsorgungsdokumente_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [entsorgungsdokumente_aggregated!]!
+  entsorgungsdokumente_by_version(version: String!, id: ID!): version_entsorgungsdokumente
   portal_bereiche(filter: portal_bereiche_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [portal_bereiche!]!
   portal_bereiche_by_id(id: ID!, version: String): portal_bereiche
   portal_bereiche_aggregated(groupBy: [String], filter: portal_bereiche_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [portal_bereiche_aggregated!]!
@@ -51,6 +55,14 @@ type Query {
   spiele_by_id(id: ID!, version: String): spiele
   spiele_aggregated(groupBy: [String], filter: spiele_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [spiele_aggregated!]!
   spiele_by_version(version: String!, id: ID!): version_spiele
+  entsorgungskalender(filter: entsorgungskalender_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [entsorgungskalender!]!
+  entsorgungskalender_by_id(id: ID!, version: String): entsorgungskalender
+  entsorgungskalender_aggregated(groupBy: [String], filter: entsorgungskalender_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [entsorgungskalender_aggregated!]!
+  entsorgungskalender_by_version(version: String!, id: ID!): version_entsorgungskalender
+  entsorgungstermine(filter: entsorgungstermine_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [entsorgungstermine!]!
+  entsorgungstermine_by_id(id: ID!, version: String): entsorgungstermine
+  entsorgungstermine_aggregated(groupBy: [String], filter: entsorgungstermine_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [entsorgungstermine_aggregated!]!
+  entsorgungstermine_by_version(version: String!, id: ID!): version_entsorgungstermine
 }
 
 type Mutation {
@@ -68,6 +80,8 @@ type Mutation {
   create_laeufe_item(data: create_laeufe_input!): laeufe
   create_redaktionswissen_items(filter: redaktionswissen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_redaktionswissen_input!]): [redaktionswissen!]!
   create_redaktionswissen_item(data: create_redaktionswissen_input!): redaktionswissen
+  create_entsorgungsdokumente_items(filter: entsorgungsdokumente_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_entsorgungsdokumente_input!]): [entsorgungsdokumente!]!
+  create_entsorgungsdokumente_item(data: create_entsorgungsdokumente_input!): entsorgungsdokumente
   create_portal_bereiche_items(filter: portal_bereiche_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_portal_bereiche_input!]): [portal_bereiche!]!
   create_portal_bereiche_item(data: create_portal_bereiche_input!): portal_bereiche
   create_portal_seiten_items(filter: portal_seiten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_portal_seiten_input!]): [portal_seiten!]!
@@ -80,6 +94,10 @@ type Mutation {
   create_vereine_item(data: create_vereine_input!): vereine
   create_spiele_items(filter: spiele_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_spiele_input!]): [spiele!]!
   create_spiele_item(data: create_spiele_input!): spiele
+  create_entsorgungskalender_items(filter: entsorgungskalender_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_entsorgungskalender_input!]): [entsorgungskalender!]!
+  create_entsorgungskalender_item(data: create_entsorgungskalender_input!): entsorgungskalender
+  create_entsorgungstermine_items(filter: entsorgungstermine_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_entsorgungstermine_input!]): [entsorgungstermine!]!
+  create_entsorgungstermine_item(data: create_entsorgungstermine_input!): entsorgungstermine
   update_quellen_items(filter: quellen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_quellen_input!): [quellen!]!
   update_quellen_batch(filter: quellen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_quellen_input!]): [quellen!]!
   update_quellen_item(id: ID!, data: update_quellen_input!): quellen
@@ -101,6 +119,9 @@ type Mutation {
   update_redaktionswissen_items(filter: redaktionswissen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_redaktionswissen_input!): [redaktionswissen!]!
   update_redaktionswissen_batch(filter: redaktionswissen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_redaktionswissen_input!]): [redaktionswissen!]!
   update_redaktionswissen_item(id: ID!, data: update_redaktionswissen_input!): redaktionswissen
+  update_entsorgungsdokumente_items(filter: entsorgungsdokumente_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_entsorgungsdokumente_input!): [entsorgungsdokumente!]!
+  update_entsorgungsdokumente_batch(filter: entsorgungsdokumente_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_entsorgungsdokumente_input!]): [entsorgungsdokumente!]!
+  update_entsorgungsdokumente_item(id: ID!, data: update_entsorgungsdokumente_input!): entsorgungsdokumente
   update_portal_bereiche_items(filter: portal_bereiche_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_portal_bereiche_input!): [portal_bereiche!]!
   update_portal_bereiche_batch(filter: portal_bereiche_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_portal_bereiche_input!]): [portal_bereiche!]!
   update_portal_bereiche_item(id: ID!, data: update_portal_bereiche_input!): portal_bereiche
@@ -119,6 +140,12 @@ type Mutation {
   update_spiele_items(filter: spiele_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_spiele_input!): [spiele!]!
   update_spiele_batch(filter: spiele_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_spiele_input!]): [spiele!]!
   update_spiele_item(id: ID!, data: update_spiele_input!): spiele
+  update_entsorgungskalender_items(filter: entsorgungskalender_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_entsorgungskalender_input!): [entsorgungskalender!]!
+  update_entsorgungskalender_batch(filter: entsorgungskalender_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_entsorgungskalender_input!]): [entsorgungskalender!]!
+  update_entsorgungskalender_item(id: ID!, data: update_entsorgungskalender_input!): entsorgungskalender
+  update_entsorgungstermine_items(filter: entsorgungstermine_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_entsorgungstermine_input!): [entsorgungstermine!]!
+  update_entsorgungstermine_batch(filter: entsorgungstermine_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_entsorgungstermine_input!]): [entsorgungstermine!]!
+  update_entsorgungstermine_item(id: ID!, data: update_entsorgungstermine_input!): entsorgungstermine
   delete_quellen_items(ids: [ID]!): delete_many
   delete_quellen_item(id: ID!): delete_one
   delete_ankuendigungen_items(ids: [ID]!): delete_many
@@ -133,6 +160,8 @@ type Mutation {
   delete_laeufe_item(id: ID!): delete_one
   delete_redaktionswissen_items(ids: [ID]!): delete_many
   delete_redaktionswissen_item(id: ID!): delete_one
+  delete_entsorgungsdokumente_items(ids: [ID]!): delete_many
+  delete_entsorgungsdokumente_item(id: ID!): delete_one
   delete_portal_bereiche_items(ids: [ID]!): delete_many
   delete_portal_bereiche_item(id: ID!): delete_one
   delete_portal_seiten_items(ids: [ID]!): delete_many
@@ -145,6 +174,10 @@ type Mutation {
   delete_vereine_item(id: ID!): delete_one
   delete_spiele_items(ids: [ID]!): delete_many
   delete_spiele_item(id: ID!): delete_one
+  delete_entsorgungskalender_items(ids: [ID]!): delete_many
+  delete_entsorgungskalender_item(id: ID!): delete_one
+  delete_entsorgungstermine_items(ids: [ID]!): delete_many
+  delete_entsorgungstermine_item(id: ID!): delete_one
 }
 
 type Subscription {
@@ -178,12 +211,15 @@ type Subscription {
   chat_nachrichten_mutated(event: EventEnum): chat_nachrichten_mutated
   laeufe_mutated(event: EventEnum): laeufe_mutated
   redaktionswissen_mutated(event: EventEnum): redaktionswissen_mutated
+  entsorgungsdokumente_mutated(event: EventEnum): entsorgungsdokumente_mutated
   portal_bereiche_mutated(event: EventEnum): portal_bereiche_mutated
   portal_seiten_mutated(event: EventEnum): portal_seiten_mutated
   datensaetze_mutated(event: EventEnum): datensaetze_mutated
   directus_sync_id_map_mutated(event: EventEnum): directus_sync_id_map_mutated
   vereine_mutated(event: EventEnum): vereine_mutated
   spiele_mutated(event: EventEnum): spiele_mutated
+  entsorgungskalender_mutated(event: EventEnum): entsorgungskalender_mutated
+  entsorgungstermine_mutated(event: EventEnum): entsorgungstermine_mutated
 }
 
 """The `Boolean` scalar type represents `true` or `false`."""
@@ -1228,6 +1264,262 @@ type directus_versions_mutated {
   data: directus_versions
 }
 
+type entsorgungsdokumente {
+  id: ID!
+  kalender(filter: entsorgungskalender_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): entsorgungskalender
+
+  """
+  Fuer welche Zone dieses PDF gilt ("Zone 1"). Leer, wenn ein Dokument die ganze Gemeinde abdeckt.
+  """
+  zone: String
+  status: String
+  pdf(filter: directus_files_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): directus_files
+
+  """Woher das PDF stammt. Steht als Link in den Erinnerungen dieser Zone."""
+  quelle_url: String
+
+  """
+  Hinweis zur Zone, den jede Erinnerung nennt — etwa dass sie auch Bettingen umfasst. Von der Redaktion erfasst, nie vom Modell hergeleitet.
+  """
+  zusatz: String
+
+  """Rohergebnis der Auslesung, zum Nachvollziehen."""
+  extraktion: JSON
+  extraktion_func: count_functions
+
+  """Warum das Auslesen scheiterte."""
+  fehler: String
+  date_created: Date
+  date_created_func: datetime_functions
+  date_updated: Date
+  date_updated_func: datetime_functions
+}
+
+type entsorgungsdokumente_aggregated {
+  group: JSON
+  countAll: Int
+  count: entsorgungsdokumente_aggregated_count
+  countDistinct: entsorgungsdokumente_aggregated_count
+}
+
+type entsorgungsdokumente_aggregated_count {
+  id: Int
+  kalender: Int
+
+  """
+  Fuer welche Zone dieses PDF gilt ("Zone 1"). Leer, wenn ein Dokument die ganze Gemeinde abdeckt.
+  """
+  zone: Int
+  status: Int
+
+  """Das gedruckte PDF. Massgeblich — der Online-Kalender ist es nicht."""
+  pdf: Int
+
+  """Woher das PDF stammt. Steht als Link in den Erinnerungen dieser Zone."""
+  quelle_url: Int
+
+  """
+  Hinweis zur Zone, den jede Erinnerung nennt — etwa dass sie auch Bettingen umfasst. Von der Redaktion erfasst, nie vom Modell hergeleitet.
+  """
+  zusatz: Int
+
+  """Rohergebnis der Auslesung, zum Nachvollziehen."""
+  extraktion: Int
+
+  """Warum das Auslesen scheiterte."""
+  fehler: Int
+  date_created: Int
+  date_updated: Int
+}
+
+type entsorgungsdokumente_mutated {
+  key: ID!
+  event: EventEnum
+  data: entsorgungsdokumente
+}
+
+type entsorgungskalender {
+  id: ID!
+  gemeinde(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): gemeinden
+
+  """Kalenderjahr, wie es auf dem PDF steht."""
+  jahr: Int!
+
+  """Hochgeladen → ausgelesen → geprueft. Erst danach entstehen Meldungen."""
+  status: String
+
+  """
+  Was der Kalender regelmaessig abfuehrt — erzeugt bewusst keine Erinnerungen.
+  """
+  merkblatt: String
+  date_created: Date
+  date_created_func: datetime_functions
+  date_updated: Date
+  date_updated_func: datetime_functions
+  dokumente(filter: entsorgungsdokumente_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [entsorgungsdokumente]
+  dokumente_func: count_functions
+}
+
+type entsorgungskalender_aggregated {
+  group: JSON
+  countAll: Int
+  count: entsorgungskalender_aggregated_count
+  countDistinct: entsorgungskalender_aggregated_count
+  avg: entsorgungskalender_aggregated_fields
+  sum: entsorgungskalender_aggregated_fields
+  avgDistinct: entsorgungskalender_aggregated_fields
+  sumDistinct: entsorgungskalender_aggregated_fields
+  min: entsorgungskalender_aggregated_fields
+  max: entsorgungskalender_aggregated_fields
+}
+
+type entsorgungskalender_aggregated_count {
+  id: Int
+
+  """Fuer welche Gemeinde dieser Kalender gilt."""
+  gemeinde: Int
+
+  """Kalenderjahr, wie es auf dem PDF steht."""
+  jahr: Int
+
+  """Hochgeladen → ausgelesen → geprueft. Erst danach entstehen Meldungen."""
+  status: Int
+
+  """
+  Was der Kalender regelmaessig abfuehrt — erzeugt bewusst keine Erinnerungen.
+  """
+  merkblatt: Int
+  date_created: Int
+  date_updated: Int
+
+  """
+  Die PDFs dieses Kalenders — eines pro Zone, oder ein einzelnes fuer die ganze Gemeinde.
+  """
+  dokumente: Int
+}
+
+type entsorgungskalender_aggregated_fields {
+  """Kalenderjahr, wie es auf dem PDF steht."""
+  jahr: Float
+}
+
+type entsorgungskalender_mutated {
+  key: ID!
+  event: EventEnum
+  data: entsorgungskalender
+}
+
+type entsorgungstermine {
+  id: ID!
+  kalender(filter: entsorgungskalender_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): entsorgungskalender
+
+  """Wie der Kalender die Abfuhr nennt, zum Beispiel "Papier, Karton"."""
+  kategorie: String!
+
+  """
+  Gebiet der Gemeinde, etwa "Westplateau". Leer, wenn die Gemeinde keine Zonen kennt.
+  """
+  zone: String
+
+  """Tag der Abfuhr."""
+  datum: Date!
+  datum_func: date_functions
+
+  """
+  Wenn gesetzt, richtet sich der Erscheinungstag danach statt nach dem Abfuhrtag.
+  """
+  anmeldeschluss: Date
+  anmeldeschluss_func: date_functions
+
+  """Wann und wie das Material bereitstehen muss."""
+  bereitstellung: String
+
+  """Anmelderegel samt Telefon oder Formular."""
+  anmeldung: String
+
+  """Wochentag im PDF passt nicht zum Datum — von Hand pruefen."""
+  warnung: String
+
+  """
+  Von der Redaktion bestaetigt. Nur bestaetigte Termine erzeugen Meldungen.
+  """
+  geprueft: Boolean!
+  meldung(filter: meldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): meldungen
+  date_created: Date
+  date_created_func: datetime_functions
+  date_updated: Date
+  date_updated_func: datetime_functions
+
+  """
+  Uhrzeit der Anmeldefrist. Liegt sie nach 10 Uhr, erscheint die Erinnerung am Fristtag selbst — der Newsletter ist bis dahin gelesen.
+  """
+  anmeldeschluss_zeit: String
+  dokument(filter: entsorgungsdokumente_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): entsorgungsdokumente
+}
+
+type entsorgungstermine_aggregated {
+  group: JSON
+  countAll: Int
+  count: entsorgungstermine_aggregated_count
+  countDistinct: entsorgungstermine_aggregated_count
+}
+
+type entsorgungstermine_aggregated_count {
+  id: Int
+  kalender: Int
+
+  """Wie der Kalender die Abfuhr nennt, zum Beispiel "Papier, Karton"."""
+  kategorie: Int
+
+  """
+  Gebiet der Gemeinde, etwa "Westplateau". Leer, wenn die Gemeinde keine Zonen kennt.
+  """
+  zone: Int
+
+  """Tag der Abfuhr."""
+  datum: Int
+
+  """
+  Wenn gesetzt, richtet sich der Erscheinungstag danach statt nach dem Abfuhrtag.
+  """
+  anmeldeschluss: Int
+
+  """Wann und wie das Material bereitstehen muss."""
+  bereitstellung: Int
+
+  """Anmelderegel samt Telefon oder Formular."""
+  anmeldung: Int
+
+  """Wochentag im PDF passt nicht zum Datum — von Hand pruefen."""
+  warnung: Int
+
+  """
+  Von der Redaktion bestaetigt. Nur bestaetigte Termine erzeugen Meldungen.
+  """
+  geprueft: Int
+
+  """
+  Die Erinnerung, in der dieser Termin vorkommt. Mehrere Termine koennen sich eine teilen.
+  """
+  meldung: Int
+  date_created: Int
+  date_updated: Int
+
+  """
+  Uhrzeit der Anmeldefrist. Liegt sie nach 10 Uhr, erscheint die Erinnerung am Fristtag selbst — der Newsletter ist bis dahin gelesen.
+  """
+  anmeldeschluss_zeit: Int
+
+  """Aus welchem PDF dieser Termin stammt. Scope der Re-Extraktion."""
+  dokument: Int
+}
+
+type entsorgungstermine_mutated {
+  key: ID!
+  event: EventEnum
+  data: entsorgungstermine
+}
+
 type gemeinden {
   id: ID!
 
@@ -1425,6 +1717,13 @@ type meldungen {
   date_created_func: datetime_functions
   date_updated: Date
   date_updated_func: datetime_functions
+  spiel(filter: spiele_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): spiele
+
+  """
+  Nur bei Entsorgungserinnerungen: der Newsletter-Tag. Publiziert wird am Vortag.
+  """
+  erscheint_am: Date
+  erscheint_am_func: date_functions
 }
 
 type meldungen_aggregated {
@@ -1485,6 +1784,14 @@ type meldungen_aggregated_count {
   publiziert_am: Int
   date_created: Int
   date_updated: Int
+
+  """Gesetzt, wenn die Meldung ein Spielbericht ist. Dann ist "Lauf" leer."""
+  spiel: Int
+
+  """
+  Nur bei Entsorgungserinnerungen: der Newsletter-Tag. Publiziert wird am Vortag.
+  """
+  erscheint_am: Int
 }
 
 type meldungen_aggregated_fields {
@@ -2090,6 +2397,100 @@ type version_directus_sync_id_map {
 }
 
 """"""
+type version_entsorgungsdokumente {
+  id: ID
+  kalender: JSON
+
+  """
+  Fuer welche Zone dieses PDF gilt ("Zone 1"). Leer, wenn ein Dokument die ganze Gemeinde abdeckt.
+  """
+  zone: String
+  status: String
+  pdf: JSON
+
+  """Woher das PDF stammt. Steht als Link in den Erinnerungen dieser Zone."""
+  quelle_url: String
+
+  """
+  Hinweis zur Zone, den jede Erinnerung nennt — etwa dass sie auch Bettingen umfasst. Von der Redaktion erfasst, nie vom Modell hergeleitet.
+  """
+  zusatz: String
+
+  """Rohergebnis der Auslesung, zum Nachvollziehen."""
+  extraktion: JSON
+
+  """Warum das Auslesen scheiterte."""
+  fehler: String
+  date_created: Date
+  date_updated: Date
+}
+
+""""""
+type version_entsorgungskalender {
+  id: ID
+  gemeinde: JSON
+
+  """Kalenderjahr, wie es auf dem PDF steht."""
+  jahr: Int
+
+  """Hochgeladen → ausgelesen → geprueft. Erst danach entstehen Meldungen."""
+  status: String
+
+  """
+  Was der Kalender regelmaessig abfuehrt — erzeugt bewusst keine Erinnerungen.
+  """
+  merkblatt: String
+  date_created: Date
+  date_updated: Date
+  dokumente: JSON
+}
+
+""""""
+type version_entsorgungstermine {
+  id: ID
+  kalender: JSON
+
+  """Wie der Kalender die Abfuhr nennt, zum Beispiel "Papier, Karton"."""
+  kategorie: String
+
+  """
+  Gebiet der Gemeinde, etwa "Westplateau". Leer, wenn die Gemeinde keine Zonen kennt.
+  """
+  zone: String
+
+  """Tag der Abfuhr."""
+  datum: Date
+
+  """
+  Wenn gesetzt, richtet sich der Erscheinungstag danach statt nach dem Abfuhrtag.
+  """
+  anmeldeschluss: Date
+
+  """Wann und wie das Material bereitstehen muss."""
+  bereitstellung: String
+
+  """Anmelderegel samt Telefon oder Formular."""
+  anmeldung: String
+
+  """Wochentag im PDF passt nicht zum Datum — von Hand pruefen."""
+  warnung: String
+
+  """
+  Von der Redaktion bestaetigt. Nur bestaetigte Termine erzeugen Meldungen.
+  """
+  geprueft: Boolean
+  meldung: JSON
+  date_created: Date
+  date_updated: Date
+
+  """
+  Uhrzeit der Anmeldefrist. Liegt sie nach 10 Uhr, erscheint die Erinnerung am Fristtag selbst — der Newsletter ist bis dahin gelesen.
+  """
+  anmeldeschluss_zeit: String
+  dokument: JSON
+}
+
+""""""
 type version_gemeinden {
   id: ID
 
@@ -2182,6 +2583,12 @@ type version_meldungen {
   publiziert_am: Date
   date_created: Date
   date_updated: Date
+  spiel: JSON
+
+  """
+  Nur bei Entsorgungserinnerungen: der Newsletter-Tag. Publiziert wird am Vortag.
+  """
+  erscheint_am: Date
 }
 
 """"""
@@ -2538,12 +2945,215 @@ input create_datensaetze_input {
   zeilen: Int
 }
 
+input create_directus_access_input {
+  id: ID
+  role: create_directus_roles_input
+  user: create_directus_users_input
+  policy: create_directus_policies_input
+  sort: Int
+}
+
+input create_directus_files_input {
+  id: ID
+  storage: String!
+  filename_disk: String
+  filename_download: String!
+  title: String
+  type: String
+  folder: create_directus_folders_input
+  uploaded_by: create_directus_users_input
+  created_on: Date
+  modified_by: create_directus_users_input
+  modified_on: Date
+  charset: String
+  filesize: GraphQLBigInt
+  width: Int
+  height: Int
+  duration: Int
+  embed: String
+  description: String
+  location: String
+  tags: JSON
+  metadata: JSON
+  focal_point_x: Int
+  focal_point_y: Int
+  tus_id: String
+  tus_data: JSON
+  uploaded_on: Date
+}
+
+input create_directus_folders_input {
+  id: ID
+  name: String!
+  parent: create_directus_folders_input
+}
+
+input create_directus_permissions_input {
+  id: ID
+  collection: String!
+  action: String!
+  permissions: JSON
+  validation: JSON
+  presets: JSON
+  fields: [String]
+  policy: create_directus_policies_input
+}
+
+input create_directus_policies_input {
+  id: ID
+  name: String!
+  icon: String
+  description: String
+  ip_access: [String]
+
+  """$t:field_options.directus_policies.enforce_tfa"""
+  enforce_tfa: Boolean!
+  admin_access: Boolean!
+  app_access: Boolean!
+  permissions: [create_directus_permissions_input]
+  users: [create_directus_access_input]
+  roles: [create_directus_access_input]
+}
+
+input create_directus_roles_input {
+  id: ID
+  name: String!
+  icon: String
+  description: String
+  parent: create_directus_roles_input
+  children: [create_directus_roles_input]
+  policies: [create_directus_access_input]
+  users: [create_directus_users_input]
+}
+
 input create_directus_sync_id_map_input {
   id: ID
   table: String!
   sync_id: String!
   local_id: String!
   created_at: Date
+}
+
+input create_directus_users_input {
+  id: ID
+  first_name: String
+  last_name: String
+  email: String
+  password: Hash
+  location: String
+  title: String
+  description: String
+  tags: JSON
+  avatar: create_directus_files_input
+  language: String
+  tfa_secret: Hash
+  status: String
+  role: create_directus_roles_input
+  token: Hash
+  last_access: Date
+  last_page: String
+  provider: String
+  external_identifier: String
+  auth_data: JSON
+  email_notifications: Boolean
+  appearance: String
+  theme_dark: String
+  theme_light: String
+  theme_light_overrides: JSON
+  theme_dark_overrides: JSON
+  text_direction: String
+  policies: [create_directus_access_input]
+}
+
+input create_entsorgungsdokumente_input {
+  id: ID
+  kalender: create_entsorgungskalender_input
+
+  """
+  Fuer welche Zone dieses PDF gilt ("Zone 1"). Leer, wenn ein Dokument die ganze Gemeinde abdeckt.
+  """
+  zone: String
+  status: String
+  pdf: create_directus_files_input
+
+  """Woher das PDF stammt. Steht als Link in den Erinnerungen dieser Zone."""
+  quelle_url: String
+
+  """
+  Hinweis zur Zone, den jede Erinnerung nennt — etwa dass sie auch Bettingen umfasst. Von der Redaktion erfasst, nie vom Modell hergeleitet.
+  """
+  zusatz: String
+
+  """Rohergebnis der Auslesung, zum Nachvollziehen."""
+  extraktion: JSON
+
+  """Warum das Auslesen scheiterte."""
+  fehler: String
+  date_created: Date
+  date_updated: Date
+}
+
+input create_entsorgungskalender_input {
+  id: ID
+  gemeinde: create_gemeinden_input
+
+  """Kalenderjahr, wie es auf dem PDF steht."""
+  jahr: Int!
+
+  """Hochgeladen → ausgelesen → geprueft. Erst danach entstehen Meldungen."""
+  status: String
+
+  """
+  Was der Kalender regelmaessig abfuehrt — erzeugt bewusst keine Erinnerungen.
+  """
+  merkblatt: String
+  date_created: Date
+  date_updated: Date
+  dokumente: [create_entsorgungsdokumente_input]
+}
+
+input create_entsorgungstermine_input {
+  id: ID
+  kalender: create_entsorgungskalender_input
+
+  """Wie der Kalender die Abfuhr nennt, zum Beispiel "Papier, Karton"."""
+  kategorie: String!
+
+  """
+  Gebiet der Gemeinde, etwa "Westplateau". Leer, wenn die Gemeinde keine Zonen kennt.
+  """
+  zone: String
+
+  """Tag der Abfuhr."""
+  datum: Date!
+
+  """
+  Wenn gesetzt, richtet sich der Erscheinungstag danach statt nach dem Abfuhrtag.
+  """
+  anmeldeschluss: Date
+
+  """Wann und wie das Material bereitstehen muss."""
+  bereitstellung: String
+
+  """Anmelderegel samt Telefon oder Formular."""
+  anmeldung: String
+
+  """Wochentag im PDF passt nicht zum Datum — von Hand pruefen."""
+  warnung: String
+
+  """
+  Von der Redaktion bestaetigt. Nur bestaetigte Termine erzeugen Meldungen.
+  """
+  geprueft: Boolean!
+  meldung: create_meldungen_input
+  date_created: Date
+  date_updated: Date
+
+  """
+  Uhrzeit der Anmeldefrist. Liegt sie nach 10 Uhr, erscheint die Erinnerung am Fristtag selbst — der Newsletter ist bis dahin gelesen.
+  """
+  anmeldeschluss_zeit: String
+  dokument: create_entsorgungsdokumente_input
 }
 
 input create_gemeinden_input {
@@ -2636,6 +3246,12 @@ input create_meldungen_input {
   publiziert_am: Date
   date_created: Date
   date_updated: Date
+  spiel: create_spiele_input
+
+  """
+  Nur bei Entsorgungserinnerungen: der Newsletter-Tag. Publiziert wird am Vortag.
+  """
+  erscheint_am: Date
 }
 
 input create_portal_bereiche_input {
@@ -3404,6 +4020,87 @@ input directus_versions_filter {
   _or: [directus_versions_filter]
 }
 
+input entsorgungsdokumente_filter {
+  id: id_filter_operators
+  kalender: entsorgungskalender_filter
+  zone: string_filter_operators
+  status: string_filter_operators
+  pdf: directus_files_filter
+  quelle_url: string_filter_operators
+  zusatz: string_filter_operators
+  extraktion: string_filter_operators
+  extraktion_func: count_function_filter_operators
+  fehler: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  _and: [entsorgungsdokumente_filter]
+  _or: [entsorgungsdokumente_filter]
+}
+
+""""""
+input entsorgungsdokumente_quantifier_filter {
+  id: id_filter_operators
+  kalender: entsorgungskalender_filter
+  zone: string_filter_operators
+  status: string_filter_operators
+  pdf: directus_files_filter
+  quelle_url: string_filter_operators
+  zusatz: string_filter_operators
+  extraktion: string_filter_operators
+  extraktion_func: count_function_filter_operators
+  fehler: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  _and: [entsorgungsdokumente_filter]
+  _or: [entsorgungsdokumente_filter]
+  _some: entsorgungsdokumente_filter
+  _none: entsorgungsdokumente_filter
+}
+
+input entsorgungskalender_filter {
+  id: id_filter_operators
+  gemeinde: gemeinden_filter
+  jahr: number_filter_operators
+  status: string_filter_operators
+  merkblatt: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  dokumente: entsorgungsdokumente_quantifier_filter
+  dokumente_func: count_function_filter_operators
+  _and: [entsorgungskalender_filter]
+  _or: [entsorgungskalender_filter]
+}
+
+input entsorgungstermine_filter {
+  id: id_filter_operators
+  kalender: entsorgungskalender_filter
+  kategorie: string_filter_operators
+  zone: string_filter_operators
+  datum: date_filter_operators
+  datum_func: date_function_filter_operators
+  anmeldeschluss: date_filter_operators
+  anmeldeschluss_func: date_function_filter_operators
+  bereitstellung: string_filter_operators
+  anmeldung: string_filter_operators
+  warnung: string_filter_operators
+  geprueft: boolean_filter_operators
+  meldung: meldungen_filter
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  anmeldeschluss_zeit: string_filter_operators
+  dokument: entsorgungsdokumente_filter
+  _and: [entsorgungstermine_filter]
+  _or: [entsorgungstermine_filter]
+}
+
 input gemeinden_filter {
   id: id_filter_operators
   bfs_nummer: number_filter_operators
@@ -3498,6 +4195,9 @@ input meldungen_filter {
   date_created_func: datetime_function_filter_operators
   date_updated: date_filter_operators
   date_updated_func: datetime_function_filter_operators
+  spiel: spiele_filter
+  erscheint_am: date_filter_operators
+  erscheint_am_func: date_function_filter_operators
   _and: [meldungen_filter]
   _or: [meldungen_filter]
 }
@@ -3760,12 +4460,215 @@ input update_datensaetze_input {
   zeilen: Int
 }
 
+input update_directus_access_input {
+  id: ID
+  role: update_directus_roles_input
+  user: update_directus_users_input
+  policy: update_directus_policies_input
+  sort: Int
+}
+
+input update_directus_files_input {
+  id: ID
+  storage: String
+  filename_disk: String
+  filename_download: String
+  title: String
+  type: String
+  folder: update_directus_folders_input
+  uploaded_by: update_directus_users_input
+  created_on: Date
+  modified_by: update_directus_users_input
+  modified_on: Date
+  charset: String
+  filesize: GraphQLBigInt
+  width: Int
+  height: Int
+  duration: Int
+  embed: String
+  description: String
+  location: String
+  tags: JSON
+  metadata: JSON
+  focal_point_x: Int
+  focal_point_y: Int
+  tus_id: String
+  tus_data: JSON
+  uploaded_on: Date
+}
+
+input update_directus_folders_input {
+  id: ID
+  name: String
+  parent: update_directus_folders_input
+}
+
+input update_directus_permissions_input {
+  id: ID
+  collection: String
+  action: String
+  permissions: JSON
+  validation: JSON
+  presets: JSON
+  fields: [String]
+  policy: update_directus_policies_input
+}
+
+input update_directus_policies_input {
+  id: ID
+  name: String
+  icon: String
+  description: String
+  ip_access: [String]
+
+  """$t:field_options.directus_policies.enforce_tfa"""
+  enforce_tfa: Boolean
+  admin_access: Boolean
+  app_access: Boolean
+  permissions: [update_directus_permissions_input]
+  users: [update_directus_access_input]
+  roles: [update_directus_access_input]
+}
+
+input update_directus_roles_input {
+  id: ID
+  name: String
+  icon: String
+  description: String
+  parent: update_directus_roles_input
+  children: [update_directus_roles_input]
+  policies: [update_directus_access_input]
+  users: [update_directus_users_input]
+}
+
 input update_directus_sync_id_map_input {
   id: ID
   table: String
   sync_id: String
   local_id: String
   created_at: Date
+}
+
+input update_directus_users_input {
+  id: ID
+  first_name: String
+  last_name: String
+  email: String
+  password: Hash
+  location: String
+  title: String
+  description: String
+  tags: JSON
+  avatar: update_directus_files_input
+  language: String
+  tfa_secret: Hash
+  status: String
+  role: update_directus_roles_input
+  token: Hash
+  last_access: Date
+  last_page: String
+  provider: String
+  external_identifier: String
+  auth_data: JSON
+  email_notifications: Boolean
+  appearance: String
+  theme_dark: String
+  theme_light: String
+  theme_light_overrides: JSON
+  theme_dark_overrides: JSON
+  text_direction: String
+  policies: [update_directus_access_input]
+}
+
+input update_entsorgungsdokumente_input {
+  id: ID
+  kalender: update_entsorgungskalender_input
+
+  """
+  Fuer welche Zone dieses PDF gilt ("Zone 1"). Leer, wenn ein Dokument die ganze Gemeinde abdeckt.
+  """
+  zone: String
+  status: String
+  pdf: update_directus_files_input
+
+  """Woher das PDF stammt. Steht als Link in den Erinnerungen dieser Zone."""
+  quelle_url: String
+
+  """
+  Hinweis zur Zone, den jede Erinnerung nennt — etwa dass sie auch Bettingen umfasst. Von der Redaktion erfasst, nie vom Modell hergeleitet.
+  """
+  zusatz: String
+
+  """Rohergebnis der Auslesung, zum Nachvollziehen."""
+  extraktion: JSON
+
+  """Warum das Auslesen scheiterte."""
+  fehler: String
+  date_created: Date
+  date_updated: Date
+}
+
+input update_entsorgungskalender_input {
+  id: ID
+  gemeinde: update_gemeinden_input
+
+  """Kalenderjahr, wie es auf dem PDF steht."""
+  jahr: Int
+
+  """Hochgeladen → ausgelesen → geprueft. Erst danach entstehen Meldungen."""
+  status: String
+
+  """
+  Was der Kalender regelmaessig abfuehrt — erzeugt bewusst keine Erinnerungen.
+  """
+  merkblatt: String
+  date_created: Date
+  date_updated: Date
+  dokumente: [update_entsorgungsdokumente_input]
+}
+
+input update_entsorgungstermine_input {
+  id: ID
+  kalender: update_entsorgungskalender_input
+
+  """Wie der Kalender die Abfuhr nennt, zum Beispiel "Papier, Karton"."""
+  kategorie: String
+
+  """
+  Gebiet der Gemeinde, etwa "Westplateau". Leer, wenn die Gemeinde keine Zonen kennt.
+  """
+  zone: String
+
+  """Tag der Abfuhr."""
+  datum: Date
+
+  """
+  Wenn gesetzt, richtet sich der Erscheinungstag danach statt nach dem Abfuhrtag.
+  """
+  anmeldeschluss: Date
+
+  """Wann und wie das Material bereitstehen muss."""
+  bereitstellung: String
+
+  """Anmelderegel samt Telefon oder Formular."""
+  anmeldung: String
+
+  """Wochentag im PDF passt nicht zum Datum — von Hand pruefen."""
+  warnung: String
+
+  """
+  Von der Redaktion bestaetigt. Nur bestaetigte Termine erzeugen Meldungen.
+  """
+  geprueft: Boolean
+  meldung: update_meldungen_input
+  date_created: Date
+  date_updated: Date
+
+  """
+  Uhrzeit der Anmeldefrist. Liegt sie nach 10 Uhr, erscheint die Erinnerung am Fristtag selbst — der Newsletter ist bis dahin gelesen.
+  """
+  anmeldeschluss_zeit: String
+  dokument: update_entsorgungsdokumente_input
 }
 
 input update_gemeinden_input {
@@ -3858,6 +4761,12 @@ input update_meldungen_input {
   publiziert_am: Date
   date_created: Date
   date_updated: Date
+  spiel: update_spiele_input
+
+  """
+  Nur bei Entsorgungserinnerungen: der Newsletter-Tag. Publiziert wird am Vortag.
+  """
+  erscheint_am: Date
 }
 
 input update_portal_bereiche_input {

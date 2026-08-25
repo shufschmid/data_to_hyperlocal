@@ -1,0 +1,28 @@
+{
+  "collection": "entsorgungsdokumente",
+  "meta": {
+    "accountability": "all",
+    "archive_app_filter": true,
+    "archive_field": null,
+    "archive_value": null,
+    "collapse": "open",
+    "collection": "entsorgungsdokumente",
+    "color": null,
+    "display_template": "{{kalender.gemeinde.name}} {{kalender.jahr}} — {{zone}}",
+    "group": null,
+    "hidden": false,
+    "icon": "picture_as_pdf",
+    "item_duplication_fields": null,
+    "note": "Ein PDF eines Abfuhrkalenders. Gemeinden wie Riehen drucken je Zone ein eigenes Dokument.",
+    "preview_url": null,
+    "singleton": false,
+    "sort": null,
+    "sort_field": null,
+    "translations": null,
+    "unarchive_value": null,
+    "versioning": false
+  },
+  "schema": {
+    "name": "entsorgungsdokumente"
+  }
+}

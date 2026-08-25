@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@apollo/client/react'
 import Accordion from '@mui/material/Accordion'
 import AccordionDetails from '@mui/material/AccordionDetails'
@@ -25,6 +25,10 @@ import {
   VEREINE_QUERY,
   SPIELE_QUERY,
   ALLE_MELDUNGEN_QUERY,
+  ENTSORGUNGSKALENDER_QUERY,
+  ENTSORGUNGSTERMINE_QUERY,
+  type EntsorgungskalenderErgebnis,
+  type EntsorgungstermineErgebnis,
   LAEUFE_QUERY,
   PORTAL_BEOBACHTEN_MUTATION,
   PORTAL_QUERY,
@@ -51,6 +55,8 @@ import { Zeitleiste } from './Zeitleiste'
 import { AuftragDialog, type AuftragZiel } from './AuftragDialog'
 import { GemeindenAuswahl } from './GemeindenAuswahl'
 import { Sportresultate } from './Sportresultate'
+import { Entsorgung } from './Entsorgung'
+import { EntsorgungHinweis } from './EntsorgungHinweis'
 import { GemeindeBlogs } from './GemeindeBlogs'
 import { AgendaErfassen } from './AgendaErfassen'
 import { PortalUebersicht } from './PortalUebersicht'
@@ -107,7 +113,8 @@ function schreibeGemeindeInUrl(slug: string | null): void {
 export function RedaktionPanel() {
   const [blogGemeinde, setBlogGemeinde] = useState<string | null>(gemeindeAusUrl)
   // Mit ?gemeinde=… startet die Ansicht im Blog — das ist der Sinn des Links.
-  const [reiter, setReiter] = useState(blogGemeinde === null ? 0 : 2)
+  const [reiter, setReiter] = useState(blogGemeinde === null ? 0 : 3)
+  const [kalenderWahl, setKalenderWahl] = useState<string | null>(null)
   const [fehler, setFehler] = useState<string | null>(null)
   const [sendet, setSendet] = useState(false)
 
@@ -135,6 +142,32 @@ export function RedaktionPanel() {
   const alleMeldungen = useQuery<AlleMeldungenErgebnis>(ALLE_MELDUNGEN_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY
   })
+  const kalender = useQuery<EntsorgungskalenderErgebnis>(ENTSORGUNGSKALENDER_QUERY, {
+    fetchPolicy: LIVE_FETCH_POLICY
+  })
+  // Per selected calendar, not all of them: a hundred dates times eighty-seven
+  // municipalities is a table nobody looks at whole.
+  const termine = useQuery<EntsorgungstermineErgebnis>(ENTSORGUNGSTERMINE_QUERY, {
+    fetchPolicy: LIVE_FETCH_POLICY,
+    variables: { kalender: kalenderWahl ?? '' },
+    skip: kalenderWahl === null
+  })
+  // The PDF extraction runs detached on the server and takes minutes. While a
+  // calendar reports 'liest', poll so the editor sees it finish; the termine
+  // only change at the very end, so one refetch on the falling edge is enough.
+  const wirdAusgelesen = (kalender.data?.entsorgungskalender ?? []).some(
+    (eintrag) => eintrag.status === 'liest'
+  )
+  const { startPolling, stopPolling } = kalender
+  const termineNeuLaden = termine.refetch
+  const warAusgelesen = useRef(false)
+  useEffect(() => {
+    if (warAusgelesen.current && !wirdAusgelesen) void termineNeuLaden()
+    warAusgelesen.current = wirdAusgelesen
+    if (!wirdAusgelesen) return
+    startPolling(10_000)
+    return () => stopPolling()
+  }, [wirdAusgelesen, startPolling, stopPolling, termineNeuLaden])
   const [setzeAktiv] = useMutation<GemeindeAktivErgebnis>(GEMEINDE_AKTIV_MUTATION)
 
   // Loaded with the tab, not on demand: 181 rows is one small query, and a
@@ -338,9 +371,16 @@ export function RedaktionPanel() {
 
       <QuellenHinweis quellen={quellen.data?.quellen ?? []} onErfassen={() => setReiter(0)} />
 
+      <EntsorgungHinweis
+        gemeinden={gemeinden.data?.gemeinden ?? []}
+        kalender={kalender.data?.entsorgungskalender ?? []}
+        onErfassen={() => setReiter(2)}
+      />
+
       <Tabs value={reiter} onChange={(_, v: number) => setReiter(v)}>
         <Tab label="statistik.bl" />
         <Tab label="Sportresultate" />
+        <Tab label="Entsorgung" />
         <Tab label="Blog" />
         <Tab label="Gelerntes" />
         <Tab label="Gemeinden" />
@@ -507,6 +547,54 @@ export function RedaktionPanel() {
       {reiter === 2 && (
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
+            Der gedruckte Abfuhrkalender einer Gemeinde, einmal im Jahr erfasst. Daraus entstehen Erinnerungen
+            an die aussergewöhnlichen Termine — Papier, Häckseldienst, Altmetall, Sonderabfälle. Die
+            wöchentliche Kehrichtabfuhr bleibt bewusst aussen vor. Jede Erinnerung wird für ihren
+            Newsletter-Tag geschrieben und am Vortag publiziert.
+          </Typography>
+          <Entsorgung
+            gemeinden={gemeinden.data?.gemeinden ?? []}
+            kalender={kalender.data?.entsorgungskalender ?? []}
+            termine={termine.data?.entsorgungstermine ?? []}
+            meldungen={meldungenAlle}
+            gewaehlt={kalenderWahl}
+            onWaehlen={setKalenderWahl}
+            laeuft={sendet}
+            onAnlegen={async (eingabe) => {
+              await fuehreAus('entsorgung/kalender', eingabe)
+              await kalender.refetch()
+            }}
+            onAuslesen={async (id) => {
+              await fuehreAus(`entsorgung/kalender/${id}/extrahieren`)
+              await Promise.all([kalender.refetch(), termine.refetch()])
+            }}
+            onBestaetigen={async (id, ids) => {
+              await fuehreAus(
+                `entsorgung/kalender/${id}/pruefen`,
+                ids === undefined ? undefined : { termine: ids }
+              )
+              await Promise.all([kalender.refetch(), termine.refetch()])
+            }}
+            onMeldungen={async (id) => {
+              await fuehreAus(`entsorgung/kalender/${id}/meldungen`)
+              await termine.refetch()
+            }}
+            onFreigeben={async (id) => {
+              await fuehreAus(`entsorgung/kalender/${id}/freigeben`)
+            }}
+            onChat={async (id, anweisung) => {
+              await fuehreAus(`meldungen/${id}/chat`, { anweisung })
+            }}
+            onAktion={async (id, was) => {
+              await fuehreAus(`meldungen/${id}/${was}`)
+            }}
+          />
+        </Stack>
+      )}
+
+      {reiter === 3 && (
+        <Stack spacing={2}>
+          <Typography variant="body2" color="text.secondary">
             Alles, was für eine Gemeinde geschrieben wurde — neuste zuerst, gleich ob aus einer Statistik oder
             aus einem Spiel entstanden. Woher ein Beitrag kommt, ist eine Frage der Produktion; gelesen wird
             er als einer.
@@ -523,7 +611,7 @@ export function RedaktionPanel() {
         </Stack>
       )}
 
-      {reiter === 3 && (
+      {reiter === 4 && (
         <Stack spacing={1}>
           <Typography variant="body2" color="text.secondary">
             Regeln, die aus deinen Anweisungen gelernt wurden. Sie fliessen in jede weitere Meldung ein — auch
@@ -541,7 +629,7 @@ export function RedaktionPanel() {
         </Stack>
       )}
 
-      {reiter === 4 && (
+      {reiter === 5 && (
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
             Für welche Gemeinden ein Lauf Meldungen schreibt. Gilt ab dem nächsten Lauf; bereits erzeugte

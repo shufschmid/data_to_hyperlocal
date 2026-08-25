@@ -1,7 +1,7 @@
 import { createError } from '@directus/errors'
 import { defineEndpoint } from '@directus/extensions-sdk'
 import type { NextFunction, Response } from 'express'
-import { completeJson } from '../../shared/claude'
+import { completeChatJson, completeJson } from '../../shared/claude'
 import { isAuthenticated, type ApiRequest } from '../../shared/http'
 import { drain, eroeffneLaeufe, type DrainKontext } from '../../redaktion/drain'
 import {
@@ -27,6 +27,32 @@ import {
   freigabeLink,
   hashToken
 } from '../../redaktion/token'
+import {
+  buildExtraktionMessages,
+  diffTermine,
+  EXTRAKTION_SCHEMA,
+  EXTRAKTION_SYSTEM_PROMPT,
+  merkblattGesamt,
+  parseExtraktion,
+  wochentagWarnung,
+  type ExtrahierterTermin,
+  type GespeicherterTermin
+} from '../../redaktion/entsorgung'
+import {
+  baueFakten,
+  buildErinnerungPrompt,
+  buildErinnerungRevision,
+  datengrundlageErinnerung,
+  ERINNERUNG_SYSTEM_PROMPT,
+  erinnerungKorrekturHinweis,
+  parseErinnerung,
+  planeErinnerungen,
+  zahlWarnungenErinnerung,
+  zeitPruefungErinnerung,
+  type ErinnerungsFakten,
+  type PlanTermin
+} from '../../redaktion/erinnerung'
+import { heuteIso } from '../../redaktion/feiertage'
 import { agendaSchluessel } from '../../shared/agenda'
 import { ladeTabelle, StatblFehler, tabellenId } from '../../shared/statbl'
 import { tabellenFelder } from '../../shared/statbl/parse'
@@ -116,7 +142,51 @@ const KeineTabellenQuelle = createError(
   500
 )
 
+const KeinePdf = createError(
+  'NO_PDF',
+  'Erfassen Sie den Abfuhrkalender als Link oder als Datei.',
+  400
+)
+const PdfNichtLadbar = createError(
+  'PDF_UNREADABLE',
+  'Das PDF konnte unter dieser Adresse nicht geladen werden.',
+  502
+)
+const PdfZuGross = createError(
+  'PDF_TOO_LARGE',
+  'Das PDF ist zu gross. Erfassen Sie es als Link statt als Datei.',
+  413
+)
+const UngueltigesJahr = createError(
+  'INVALID_YEAR',
+  'Das Kalenderjahr fehlt oder ist unplausibel.',
+  400
+)
+const NochNichtGeprueft = createError(
+  'NOT_CONFIRMED',
+  'Bestaetigen Sie zuerst die Termine des Kalenders.',
+  409
+)
+const KeinPdfAmKalender = createError(
+  'NO_PDF_STORED',
+  'Zu diesem Kalender ist kein PDF hinterlegt.',
+  400
+)
+const ExtraktionLaeuftBereits = createError(
+  'EXTRACTION_RUNNING',
+  'Dieser Kalender wird gerade ausgelesen.',
+  409
+)
+
+/** 15 MB is what Directus accepts as a payload; the base64 form is a third bigger. */
+const PDF_MAX_BYTES = 10 * 1024 * 1024
+
 const UUID = /^[0-9a-f-]{36}$/i
+
+// One extraction per calendar at a time. The run is detached from the request —
+// reading a dense year grid with Opus outlives any proxy timeout — so the brake
+// has to live in the process, not in the connection.
+const laufendeExtraktionen = new Set<string>()
 
 export default defineEndpoint(
   (router, { services, database, getSchema, logger }) => {
@@ -509,10 +579,11 @@ export default defineEndpoint(
           const chat = new ItemsService('chat_nachrichten', { schema })
 
           const meldung = (await meldungen.readOne(id, {
-            fields: ['id', 'spiel', 'titel', 'lead', 'text']
+            fields: ['id', 'spiel', 'erscheint_am', 'titel', 'lead', 'text']
           })) as {
             id: string
             spiel: string | null
+            erscheint_am: string | null
             titel: string | null
             lead: string | null
             text: string | null
@@ -564,6 +635,35 @@ export default defineEndpoint(
             }
           }
 
+          // A reminder is revised here too, and for the same reason: it has no
+          // run either, so the statistics queue cannot carry it.
+          if (meldung.erscheint_am !== null) {
+            await meldungen.updateOne(id, { verarbeitung: 'laeuft', anweisung })
+            try {
+              const warnungen = await ueberarbeiteErinnerung(meldung, anweisung)
+              await chat.createOne({
+                meldung: id,
+                rolle: 'assistant',
+                inhalt:
+                  warnungen.length === 0
+                    ? 'Neu formuliert.'
+                    : `Neu formuliert — mit Hinweisen: ${warnungen.join(' · ')}`,
+                position: position + 1
+              })
+              return res.json({ data: { meldung: id, warnungen } })
+            } catch (fehler) {
+              await meldungen.updateOne(id, {
+                verarbeitung: 'idle',
+                fehler: fehlerText(fehler)
+              })
+              logger.error(
+                fehler,
+                'redaktion: Erinnerungs-Ueberarbeitung fehlgeschlagen'
+              )
+              throw new UeberarbeitungFehlgeschlagen()
+            }
+          }
+
           await meldungen.updateOne(id, {
             anweisung,
             verarbeitung: 'geplant',
@@ -593,7 +693,7 @@ export default defineEndpoint(
     // reads the same as a rejection from the admin UI.
 
     router.post(
-      '/meldungen/:id/:aktion(publizieren|pruefung|verwerfen)',
+      '/meldungen/:id/:aktion(publizieren|pruefung|verwerfen|freigeben)',
       async (req: ApiRequest, res: Response, next: NextFunction) => {
         if (!isAuthenticated(req)) return next(new NichtAngemeldet())
 
@@ -967,6 +1067,681 @@ export default defineEndpoint(
       }
     )
 
+    // --- Entsorgung: the printed calendar, and the year of reminders it holds ---
+    //
+    // Four steps, each its own route because each is a decision an editor makes:
+    // register the PDF, read it, confirm what was read, write the year. Nothing
+    // here is scheduled — reading a calendar costs a model call and happens once
+    // a year per municipality, so a person asks for it. Only the publishing of
+    // finished reminders runs on a cron.
+
+    router.post(
+      '/entsorgung/kalender',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        try {
+          const body = req.body as
+            | {
+                gemeinde?: unknown
+                jahr?: unknown
+                url?: unknown
+                datei?: { name?: unknown; base64?: unknown }
+                zone?: unknown
+                zusatz?: unknown
+              }
+            | undefined
+
+          const gemeinde = pruefeId(body?.gemeinde)
+          const jahr = Number(body?.jahr)
+          if (!Number.isInteger(jahr) || jahr < 2000 || jahr > 2100) {
+            throw new UngueltigesJahr()
+          }
+
+          const url = typeof body?.url === 'string' ? body.url.trim() : ''
+          const base64 =
+            typeof body?.datei?.base64 === 'string' ? body.datei.base64 : ''
+          if (url === '' && base64 === '') throw new KeinePdf()
+
+          // Municipalities like Riehen print one PDF per zone. The zone is a
+          // label the editor reads off the cover — it scopes this document and
+          // every date read from it.
+          const zone =
+            typeof body?.zone === 'string' && body.zone.trim() !== ''
+              ? body.zone.trim()
+              : null
+          const zusatz =
+            typeof body?.zusatz === 'string' && body.zusatz.trim() !== ''
+              ? body.zusatz.trim()
+              : null
+
+          const schema = await getSchema()
+          const kalenderService = new ItemsService('entsorgungskalender', {
+            schema,
+            accountability: req.accountability
+          })
+          const dokumenteService = new ItemsService('entsorgungsdokumente', {
+            schema,
+            accountability: req.accountability
+          })
+
+          const inhalt =
+            base64 === '' ? await ladePdfVonUrl(url) : dekodierePdf(base64)
+
+          const gemeindeName = await leseGemeindeName(schema, gemeinde)
+          const dateiId = await legePdfAb(
+            schema,
+            req,
+            inhalt,
+            `Abfuhrkalender ${gemeindeName} ${jahr}${zone === null ? '' : ` ${zone}`}.pdf`
+          )
+
+          // One calendar per municipality and year; the documents hang below
+          // it. Registering a second zone joins the existing calendar instead
+          // of competing with it.
+          const [bestehend] = (await kalenderService.readByQuery({
+            filter: { gemeinde: { _eq: gemeinde }, jahr: { _eq: jahr } },
+            fields: ['id'],
+            limit: 1
+          })) as Array<{ id: string }>
+
+          const kalenderId =
+            bestehend?.id ??
+            ((await kalenderService.createOne({
+              gemeinde,
+              jahr,
+              status: 'hochgeladen'
+            })) as string)
+
+          // A corrected PDF updates the zone's document, never opens a second
+          // one. The termine stay untouched until someone asks for a fresh
+          // reading.
+          const [vorhandenesDokument] = (await dokumenteService.readByQuery({
+            filter: {
+              kalender: { _eq: kalenderId },
+              zone: zone === null ? { _null: true } : { _eq: zone }
+            },
+            fields: ['id'],
+            limit: 1
+          })) as Array<{ id: string }>
+
+          const dokumentFelder = {
+            pdf: dateiId,
+            quelle_url: url === '' ? null : url,
+            ...(zusatz === null ? {} : { zusatz }),
+            status: 'hochgeladen',
+            fehler: null
+          }
+
+          let dokumentId: string
+          if (vorhandenesDokument !== undefined) {
+            await dokumenteService.updateOne(
+              vorhandenesDokument.id,
+              dokumentFelder
+            )
+            dokumentId = vorhandenesDokument.id
+          } else {
+            dokumentId = (await dokumenteService.createOne({
+              kalender: kalenderId,
+              zone,
+              ...dokumentFelder
+            })) as string
+          }
+
+          // A new or re-uploaded document means the calendar as a whole is no
+          // longer read out.
+          await kalenderService.updateOne(kalenderId, { status: 'hochgeladen' })
+
+          return res.json({
+            data: {
+              kalender: kalenderId,
+              dokument: dokumentId,
+              aktualisiert: vorhandenesDokument !== undefined
+            }
+          })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    router.post(
+      '/entsorgung/kalender/:id/extrahieren',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        const schema = await getSchema()
+        const kalenderService = new ItemsService('entsorgungskalender', {
+          schema,
+          accountability: req.accountability
+        })
+        const termineService = new ItemsService('entsorgungstermine', {
+          schema,
+          accountability: req.accountability
+        })
+
+        const dokumenteService = new ItemsService('entsorgungsdokumente', {
+          schema,
+          accountability: req.accountability
+        })
+
+        let id: string
+        try {
+          id = pruefeId(req.params['id'])
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+
+        let kalender: { id: string; jahr: number; gemeinde: { name: string } }
+        let dokumente: Array<{
+          id: string
+          zone: string | null
+          pdf: string | null
+        }>
+        try {
+          kalender = (await kalenderService.readOne(id, {
+            fields: ['id', 'jahr', 'gemeinde.name']
+          })) as typeof kalender
+
+          dokumente = (await dokumenteService.readByQuery({
+            filter: { kalender: { _eq: id } },
+            fields: ['id', 'zone', 'pdf'],
+            sort: ['zone'],
+            limit: -1
+          })) as typeof dokumente
+
+          if (
+            dokumente.length === 0 ||
+            dokumente.every((d) => d.pdf === null)
+          ) {
+            throw new KeinPdfAmKalender()
+          }
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+
+        if (laufendeExtraktionen.has(id)) {
+          return next(new ExtraktionLaeuftBereits())
+        }
+        laufendeExtraktionen.add(id)
+
+        // The run has left the request, so its progress lives on the records:
+        // every document with a PDF turns 'liest' now and 'extrahiert' or
+        // 'fehler' as it finishes. The caller polls exactly these statuses.
+        try {
+          await kalenderService.updateOne(id, { status: 'liest' })
+          for (const dokument of dokumente) {
+            if (dokument.pdf === null) continue
+            await dokumenteService.updateOne(dokument.id, {
+              status: 'liest',
+              fehler: null
+            })
+          }
+        } catch (error) {
+          laufendeExtraktionen.delete(id)
+          return next(uebersetze(error))
+        }
+
+        const auslesen = async (): Promise<void> => {
+          // One Opus call per document. Per-document try/catch, so a broken
+          // Zone-1 PDF never costs Zone 2 its year — municipalities like
+          // Riehen print one calendar per zone, and each stands on its own.
+          const ergebnis = {
+            termine: 0,
+            neu: 0,
+            aktualisiert: 0,
+            geloescht: 0,
+            invalidiert: 0,
+            warnungen: 0,
+            regelmaessig: 0,
+            hinweise: [] as string[],
+            fehlgeschlagen: [] as string[]
+          }
+          const abschnitte: Array<{
+            zone: string | null
+            extraktion: ReturnType<typeof parseExtraktion>
+          }> = []
+
+          for (const dokument of dokumente) {
+            const zonenName = dokument.zone ?? 'ganze Gemeinde'
+            if (dokument.pdf === null) {
+              ergebnis.fehlgeschlagen.push(`${zonenName}: kein PDF hinterlegt`)
+              continue
+            }
+
+            try {
+              const pdfBase64 = (await lesePdf(schema, dokument.pdf)).toString(
+                'base64'
+              )
+
+              // The answer is one row per collection with its dates as an
+              // array — the calendar's own shape — so a whole year fits in a
+              // few thousand tokens. That matters beyond cost: a non-streaming
+              // request with a very large budget is refused outright by the
+              // SDK, and truncation here would be a half year that still
+              // parses, which is exactly the silent failure this project
+              // refuses.
+              const antwort = await completeChatJson<unknown>({
+                system: EXTRAKTION_SYSTEM_PROMPT,
+                messages: buildExtraktionMessages(
+                  pdfBase64,
+                  kalender.gemeinde.name,
+                  kalender.jahr,
+                  dokument.zone
+                ),
+                model: 'claude-opus-5',
+                // The budget carries the model's thinking as well as the
+                // answer, and a dense year grid takes far more deliberation
+                // than a tidy number table: Aesch (365 day cells, three
+                // weekly zones) blew through 16k and 32k before finishing.
+                // Budgets this size stream under the hood — see
+                // `sendToClaude` — so the SDK's long-request refusal does not
+                // apply, and the run is detached from the request, so the
+                // minutes it takes hold no connection open.
+                maxTokens: 64000,
+                schema: EXTRAKTION_SCHEMA
+              })
+
+              const extraktion = parseExtraktion(
+                antwort,
+                kalender.jahr,
+                dokument.zone
+              )
+              abschnitte.push({ zone: dokument.zone, extraktion })
+
+              // Re-extraction is scoped to this document's own termine: the
+              // other zones' dates came from other PDFs and are not up for
+              // debate here.
+              const bestehende = (await termineService.readByQuery({
+                filter: { dokument: { _eq: dokument.id } },
+                fields: [
+                  'id',
+                  'kategorie',
+                  'zone',
+                  'datum',
+                  'bereitstellung',
+                  'anmeldung',
+                  'anmeldeschluss',
+                  'anmeldeschluss_zeit',
+                  'geprueft',
+                  'meldung'
+                ],
+                limit: -1
+              })) as GespeicherterTermin[]
+
+              const diff = diffTermine(bestehende, extraktion.termine)
+
+              for (const termin of diff.anlegen) {
+                await termineService.createOne({
+                  kalender: id,
+                  dokument: dokument.id,
+                  ...terminFelder(termin),
+                  geprueft: false
+                })
+              }
+              for (const eintrag of diff.aktualisieren) {
+                await termineService.updateOne(eintrag.id, {
+                  ...terminFelder(eintrag.termin),
+                  geprueft: false,
+                  meldung: null
+                })
+              }
+              for (const termin of diff.loeschen) {
+                await termineService.deleteOne(termin.id)
+              }
+              for (const meldungId of diff.invalidiereMeldungen) {
+                await invalidiereErinnerung(schema, meldungId)
+              }
+
+              await dokumenteService.updateOne(dokument.id, {
+                status: 'extrahiert',
+                extraktion: extraktion as unknown as Record<string, unknown>,
+                fehler: null
+              })
+
+              ergebnis.termine += extraktion.termine.length
+              ergebnis.neu += diff.anlegen.length
+              ergebnis.aktualisiert += diff.aktualisieren.length
+              ergebnis.geloescht += diff.loeschen.length
+              ergebnis.invalidiert += diff.invalidiereMeldungen.length
+              ergebnis.warnungen += extraktion.termine.filter(
+                (termin) => wochentagWarnung(termin) !== null
+              ).length
+              ergebnis.regelmaessig += extraktion.regelmaessig.length
+              ergebnis.hinweise.push(
+                ...extraktion.hinweise.map((hinweis) =>
+                  dokument.zone === null ? hinweis : `${zonenName}: ${hinweis}`
+                )
+              )
+            } catch (fehler) {
+              // The reason lands at the document, where a person can see which
+              // of the PDFs would not read.
+              logger.error(
+                fehler,
+                `redaktion: Abfuhrkalender-Dokument ${zonenName} auslesen fehlgeschlagen`
+              )
+              ergebnis.fehlgeschlagen.push(zonenName)
+              try {
+                await dokumenteService.updateOne(dokument.id, {
+                  status: 'fehler',
+                  fehler: fehlerText(fehler)
+                })
+              } catch (schreibfehler) {
+                logger.warn(
+                  schreibfehler,
+                  'redaktion: Fehler am Dokument nicht notiert'
+                )
+              }
+            }
+          }
+
+          await kalenderService.updateOne(id, {
+            status:
+              ergebnis.fehlgeschlagen.length > 0 ? 'fehler' : 'extrahiert',
+            merkblatt: merkblattGesamt(abschnitte)
+          })
+
+          logger.info(ergebnis, 'redaktion: Abfuhrkalender ausgelesen')
+        }
+
+        // Detached on purpose: reading a dense year grid with Opus takes
+        // minutes, longer than any HTTP or proxy timeout is willing to hold a
+        // connection open. Nothing here can reach this catch through normal
+        // failure — per-document errors land on the document — so it only
+        // guards the bookkeeping around the loop.
+        void auslesen()
+          .catch(async (fehler) => {
+            logger.error(
+              fehler,
+              'redaktion: Abfuhrkalender auslesen fehlgeschlagen'
+            )
+            try {
+              await kalenderService.updateOne(id, { status: 'fehler' })
+            } catch (schreibfehler) {
+              logger.warn(
+                schreibfehler,
+                'redaktion: Fehler am Kalender nicht notiert'
+              )
+            }
+          })
+          .finally(() => {
+            laufendeExtraktionen.delete(id)
+          })
+
+        return res.status(202).json({
+          data: {
+            gestartet: dokumente.filter((d) => d.pdf !== null).length
+          }
+        })
+      }
+    )
+
+    router.post(
+      '/entsorgung/kalender/:id/pruefen',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const body = req.body as { termine?: unknown } | undefined
+          const schema = await getSchema()
+
+          const kalenderService = new ItemsService('entsorgungskalender', {
+            schema,
+            accountability: req.accountability
+          })
+          const termineService = new ItemsService('entsorgungstermine', {
+            schema,
+            accountability: req.accountability
+          })
+
+          const gewaehlt = Array.isArray(body?.termine)
+            ? body.termine.filter(
+                (wert): wert is string =>
+                  typeof wert === 'string' && UUID.test(wert)
+              )
+            : null
+
+          const offen = (await termineService.readByQuery({
+            filter: {
+              kalender: { _eq: id },
+              geprueft: { _eq: false },
+              ...(gewaehlt === null ? {} : { id: { _in: gewaehlt } })
+            },
+            fields: ['id'],
+            limit: -1
+          })) as Array<{ id: string }>
+
+          for (const termin of offen) {
+            await termineService.updateOne(termin.id, { geprueft: true })
+          }
+
+          // The calendar counts as confirmed once nothing is left unconfirmed —
+          // that is what unlocks writing the year.
+          const [nochOffen] = (await termineService.readByQuery({
+            filter: { kalender: { _eq: id }, geprueft: { _eq: false } },
+            fields: ['id'],
+            limit: 1
+          })) as Array<{ id: string }>
+
+          if (nochOffen === undefined) {
+            await kalenderService.updateOne(id, { status: 'geprueft' })
+          }
+
+          return res.json({
+            data: {
+              bestaetigt: offen.length,
+              vollstaendig: nochOffen === undefined
+            }
+          })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    router.post(
+      '/entsorgung/kalender/:id/meldungen',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        const schema = await getSchema()
+        const kalenderService = new ItemsService('entsorgungskalender', {
+          schema,
+          accountability: req.accountability
+        })
+        const termineService = new ItemsService('entsorgungstermine', {
+          schema,
+          accountability: req.accountability
+        })
+        const meldungenService = new ItemsService('meldungen', {
+          schema,
+          accountability: req.accountability
+        })
+
+        try {
+          const id = pruefeId(req.params['id'])
+
+          const kalender = (await kalenderService.readOne(id, {
+            fields: ['id', 'jahr', 'status', 'gemeinde.id', 'gemeinde.name']
+          })) as {
+            id: string
+            jahr: number
+            status: string
+            gemeinde: { id: string; name: string }
+          }
+
+          if (kalender.status !== 'geprueft') throw new NochNichtGeprueft()
+
+          // The source link and the zone note travel with each Termin's own
+          // document — for Riehen that is the zone's PDF, the one the reader
+          // actually needs.
+          const alle = (await termineService.readByQuery({
+            filter: { kalender: { _eq: id }, geprueft: { _eq: true } },
+            fields: [
+              'id',
+              'kategorie',
+              'zone',
+              'datum',
+              'bereitstellung',
+              'anmeldung',
+              'anmeldeschluss',
+              'anmeldeschluss_zeit',
+              'dokument.quelle_url',
+              'dokument.zusatz'
+            ],
+            sort: ['datum'],
+            limit: -1
+          })) as Array<
+            PlanTermin & {
+              dokument: {
+                quelle_url: string | null
+                zusatz: string | null
+              } | null
+            }
+          >
+          for (const termin of alle) {
+            termin.quelle_url = termin.dokument?.quelle_url ?? null
+            termin.zusatz = termin.dokument?.zusatz ?? null
+          }
+
+          const plan = planeErinnerungen(alle, heuteIso())
+          if (plan.gruppen.length === 0 && plan.verpasst.length === 0) {
+            return next(new NichtsZuTun())
+          }
+
+          // Erscheinungstage that already carry a reminder are skipped, so a
+          // second run fills gaps instead of colliding with the partial unique.
+          const vorhanden = (await meldungenService.readByQuery({
+            filter: {
+              gemeinde: { _eq: kalender.gemeinde.id },
+              erscheint_am: { _nnull: true },
+              status: { _neq: 'verworfen' }
+            },
+            fields: ['erscheint_am'],
+            limit: -1
+          })) as Array<{ erscheint_am: string }>
+          const belegt = new Set(vorhanden.map((m) => m.erscheint_am))
+
+          let erzeugt = 0
+          let uebersprungen = 0
+          const fehlgeschlagen: string[] = []
+
+          for (const gruppe of plan.gruppen) {
+            if (belegt.has(gruppe.erscheintAm)) {
+              uebersprungen += 1
+              continue
+            }
+
+            try {
+              const fakten = baueFakten(
+                gruppe,
+                alle,
+                kalender.gemeinde.name,
+                kalender.jahr
+              )
+              const { erinnerung, warnungen } = await schreibeErinnerung(fakten)
+
+              const meldungId = (await meldungenService.createOne({
+                gemeinde: kalender.gemeinde.id,
+                erscheint_am: gruppe.erscheintAm,
+                titel: erinnerung.titel,
+                lead: erinnerung.lead,
+                text: erinnerung.text,
+                status: 'entwurf',
+                // Stored finished: the statistics queue only ever picks up rows
+                // it marked `geplant` itself.
+                verarbeitung: 'idle',
+                zeit_warnungen: warnungen.length > 0 ? warnungen : null,
+                datengrundlage: datengrundlageErinnerung(fakten)
+              })) as string
+
+              for (const termin of gruppe.termine) {
+                await termineService.updateOne(termin.id, {
+                  meldung: meldungId
+                })
+              }
+              erzeugt += 1
+            } catch (fehler) {
+              // One bad edition must not cost the rest of the year.
+              logger.warn(
+                fehler,
+                `redaktion: Erinnerung fuer ${kalender.gemeinde.name} am ${gruppe.erscheintAm} fehlgeschlagen`
+              )
+              fehlgeschlagen.push(gruppe.erscheintAm)
+            }
+          }
+
+          return res.json({
+            data: {
+              erzeugt,
+              uebersprungen,
+              // Named, not swallowed: a calendar uploaded in March has lost
+              // January and February, and the editor should learn that here.
+              verpasst: plan.verpasst.length,
+              fehlgeschlagen
+            }
+          })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    router.post(
+      '/entsorgung/kalender/:id/freigeben',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const schema = await getSchema()
+
+          const termineService = new ItemsService('entsorgungstermine', {
+            schema,
+            accountability: req.accountability
+          })
+          const meldungenService = new ItemsService('meldungen', {
+            schema,
+            accountability: req.accountability
+          })
+
+          const termine = (await termineService.readByQuery({
+            filter: { kalender: { _eq: id }, meldung: { _nnull: true } },
+            fields: ['meldung'],
+            limit: -1
+          })) as Array<{ meldung: string }>
+
+          const ids = [...new Set(termine.map((termin) => termin.meldung))]
+          if (ids.length === 0) return next(new NichtsZuTun())
+
+          const entwuerfe = (await meldungenService.readByQuery({
+            filter: { id: { _in: ids }, status: { _eq: 'entwurf' } },
+            fields: ['id'],
+            limit: -1
+          })) as Array<{ id: string }>
+
+          let erledigt = 0
+          const abgelehnt: string[] = []
+
+          for (const meldung of entwuerfe) {
+            try {
+              await meldungenService.updateOne(meldung.id, {
+                status: 'freigegeben'
+              })
+              erledigt += 1
+            } catch (fehler) {
+              abgelehnt.push(fehlerText(fehler))
+            }
+          }
+
+          return res.json({ data: { erledigt, abgelehnt } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
     router.post(
       '/freigabe',
       async (req: ApiRequest, res: Response, next: NextFunction) => {
@@ -1286,6 +2061,368 @@ export default defineEndpoint(
       return hinweise
     }
 
+    /** The Termin fields a reading of the calendar writes. */
+    function terminFelder(termin: ExtrahierterTermin): Record<string, unknown> {
+      return {
+        kategorie: termin.kategorie,
+        zone: termin.zone,
+        datum: termin.datum,
+        bereitstellung: termin.bereitstellung,
+        anmeldung: termin.anmeldung,
+        anmeldeschluss: termin.anmeldeschluss,
+        anmeldeschluss_zeit: termin.anmeldeschluss_zeit,
+        warnung: wochentagWarnung(termin)
+      }
+    }
+
+    /**
+     * Fetches a PDF the editor pasted the address of.
+     *
+     * Only ever an address a person typed — the same rule as `shared/statbl`.
+     * Nothing on a municipal website is discovered, followed or crawled; 87
+     * municipalities means 87 unrelated websites, and guessing at them is how a
+     * newsroom tool turns into a nuisance.
+     */
+    async function ladePdfVonUrl(url: string): Promise<Buffer> {
+      let antwort: Awaited<ReturnType<typeof fetch>>
+      try {
+        antwort = await fetch(url, {
+          headers: {
+            'User-Agent': `Die Redaktion (${optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch')})`
+          },
+          signal: AbortSignal.timeout(30_000)
+        })
+      } catch {
+        throw new PdfNichtLadbar()
+      }
+
+      if (!antwort.ok) throw new PdfNichtLadbar()
+
+      const art = antwort.headers.get('content-type') ?? ''
+      if (!art.includes('pdf') && !art.includes('octet-stream')) {
+        throw new PdfNichtLadbar()
+      }
+
+      const inhalt = Buffer.from(await antwort.arrayBuffer())
+      if (inhalt.length === 0) throw new PdfNichtLadbar()
+      if (inhalt.length > PDF_MAX_BYTES) throw new PdfZuGross()
+      return inhalt
+    }
+
+    function dekodierePdf(base64: string): Buffer {
+      const roh = base64.includes(',')
+        ? base64.slice(base64.indexOf(',') + 1)
+        : base64
+      const inhalt = Buffer.from(roh, 'base64')
+      if (inhalt.length === 0) throw new KeinePdf()
+      if (inhalt.length > PDF_MAX_BYTES) throw new PdfZuGross()
+      // A PDF starts with %PDF- — cheaper than trusting the browser's MIME guess.
+      if (inhalt.subarray(0, 5).toString('latin1') !== '%PDF-') {
+        throw new PdfNichtLadbar()
+      }
+      return inhalt
+    }
+
+    async function leseGemeindeName(
+      schema: unknown,
+      gemeinde: string
+    ): Promise<string> {
+      const gemeinden = new ItemsService('gemeinden', {
+        schema: schema as never
+      })
+      const zeile = (await gemeinden.readOne(gemeinde, {
+        fields: ['name']
+      })) as { name: string }
+      return zeile.name
+    }
+
+    /**
+     * Puts the PDF into Directus Files — the only place this application may
+     * keep a binary. Nothing is ever written to the filesystem.
+     */
+    async function legePdfAb(
+      schema: unknown,
+      req: ApiRequest,
+      inhalt: Buffer,
+      titel: string
+    ): Promise<string> {
+      const { FilesService } = services as unknown as {
+        FilesService: new (optionen: unknown) => {
+          uploadOne: (
+            strom: unknown,
+            daten: Record<string, unknown>
+          ) => Promise<string>
+        }
+      }
+      const files = new FilesService({
+        schema,
+        accountability: req.accountability
+      })
+
+      const { Readable } = await import('node:stream')
+      return files.uploadOne(Readable.from(inhalt), {
+        title: titel,
+        filename_download: `${titel.replace(/[^\w. -]/g, '')}`,
+        type: 'application/pdf',
+        storage: 'local'
+      })
+    }
+
+    async function lesePdf(schema: unknown, dateiId: string): Promise<Buffer> {
+      const { AssetsService } = services as unknown as {
+        AssetsService: new (optionen: unknown) => {
+          getAsset: (
+            id: string,
+            transformation: unknown
+          ) => Promise<{ stream: AsyncIterable<Uint8Array> }>
+        }
+      }
+      const assets = new AssetsService({ schema })
+      const { stream } = await assets.getAsset(dateiId, {
+        transformationParams: {}
+      })
+
+      const teile: Uint8Array[] = []
+      for await (const teil of stream) teile.push(teil)
+      return Buffer.concat(teile)
+    }
+
+    /**
+     * Writes one reminder, and holds it to the facts it was handed.
+     *
+     * The retry exists because the rule the model breaks most often here is the
+     * one the newsletter depends on: writing "morgen" instead of the date. One
+     * correction naming the offending word is enough in practice; whatever
+     * survives it is stored as a flagged draft, never silently.
+     */
+    async function schreibeErinnerung(fakten: ErinnerungsFakten): Promise<{
+      erinnerung: ReturnType<typeof parseErinnerung>
+      warnungen: string[]
+    }> {
+      const schreibe = async (prompt: string) =>
+        parseErinnerung(
+          await completeChatJson<unknown>({
+            system: ERINNERUNG_SYSTEM_PROMPT,
+            messages: [{ role: 'user', content: prompt }],
+            // The budget carries thinking too, and 1200 was observed to be a
+            // near-miss on a merged edition. The text itself stays short; the
+            // headroom is for the thinking, not for longer prose.
+            maxTokens: 2000
+          })
+        )
+
+      let erinnerung = await schreibe(buildErinnerungPrompt(fakten))
+      let alles = `${erinnerung.titel} ${erinnerung.lead} ${erinnerung.text}`
+      let zeit = zeitPruefungErinnerung(alles, fakten.jahr)
+
+      if (!zeit.bestanden) {
+        const korrektur = erinnerungKorrekturHinweis(zeit, fakten.jahr)
+        erinnerung = await schreibe(
+          `${buildErinnerungPrompt(fakten)}\n\n${korrektur}`
+        )
+        alles = `${erinnerung.titel} ${erinnerung.lead} ${erinnerung.text}`
+        zeit = zeitPruefungErinnerung(alles, fakten.jahr)
+      }
+
+      const warnungen = [
+        ...zeit.hart.map((wort) => `Relativer Zeitbezug: "${wort}"`),
+        ...(zeit.jahrFehlt
+          ? [`Die Jahreszahl ${fakten.jahr} fehlt im Text.`]
+          : []),
+        ...zahlWarnungenErinnerung(alles, fakten)
+      ]
+
+      return { erinnerung, warnungen }
+    }
+
+    /**
+     * A reminder whose facts no longer hold.
+     *
+     * An article is a cache of what it was written from, so a corrected date
+     * makes it wrong rather than outdated. A draft is discarded and written
+     * again; something already published is only flagged — un-publishing behind
+     * an editor's back is not this system's call to make.
+     */
+    async function invalidiereErinnerung(
+      schema: unknown,
+      meldungId: string
+    ): Promise<void> {
+      const meldungen = new ItemsService('meldungen', {
+        schema: schema as never
+      })
+      const termine = new ItemsService('entsorgungstermine', {
+        schema: schema as never
+      })
+
+      try {
+        const meldung = (await meldungen.readOne(meldungId, {
+          fields: ['id', 'status']
+        })) as { id: string; status: string }
+
+        if (meldung.status === 'publiziert') {
+          await meldungen.updateOne(meldungId, {
+            fehler:
+              'Ein Termin dieser Erinnerung wurde nachtraeglich geaendert. Bitte den publizierten Text pruefen.'
+          })
+          logger.warn(
+            `redaktion: publizierte Erinnerung ${meldungId} beruht auf einem geaenderten Termin`
+          )
+          return
+        }
+
+        await meldungen.updateOne(meldungId, { status: 'verworfen' })
+
+        // A merged reminder speaks for several dates; all of them lose their
+        // link, or the next generation would think they were still covered.
+        const geschwister = (await termine.readByQuery({
+          filter: { meldung: { _eq: meldungId } },
+          fields: ['id'],
+          limit: -1
+        })) as Array<{ id: string }>
+        for (const termin of geschwister) {
+          await termine.updateOne(termin.id, { meldung: null })
+        }
+      } catch (fehler) {
+        logger.warn(
+          fehler,
+          `redaktion: Erinnerung ${meldungId} konnte nicht verworfen werden`
+        )
+      }
+    }
+
+    /**
+     * Revising a reminder: the facts are read again from the Termine, never
+     * from the article itself.
+     */
+    async function ueberarbeiteErinnerung(
+      meldung: {
+        id: string
+        titel: string | null
+        lead: string | null
+        text: string | null
+      },
+      anweisung: string
+    ): Promise<string[]> {
+      const schema = await getSchema()
+      const meldungen = new ItemsService('meldungen', { schema })
+      const termineService = new ItemsService('entsorgungstermine', { schema })
+
+      const meineTermine = (await termineService.readByQuery({
+        filter: { meldung: { _eq: meldung.id } },
+        fields: [
+          'id',
+          'kategorie',
+          'zone',
+          'datum',
+          'bereitstellung',
+          'anmeldung',
+          'anmeldeschluss',
+          'anmeldeschluss_zeit',
+          'dokument.quelle_url',
+          'dokument.zusatz',
+          'kalender.id',
+          'kalender.jahr',
+          'kalender.gemeinde.name'
+        ],
+        sort: ['datum'],
+        limit: -1
+      })) as Array<
+        PlanTermin & {
+          dokument: { quelle_url: string | null; zusatz: string | null } | null
+          kalender: {
+            id: string
+            jahr: number
+            gemeinde: { name: string }
+          }
+        }
+      >
+
+      const erste = meineTermine[0]
+      if (erste === undefined) {
+        throw new Error('Zu dieser Erinnerung gibt es keine Termine mehr.')
+      }
+
+      // The cross-zone reference is looked up against the whole calendar, not
+      // just this reminder's dates.
+      const alle = (await termineService.readByQuery({
+        filter: {
+          kalender: { _eq: erste.kalender.id },
+          geprueft: { _eq: true }
+        },
+        fields: [
+          'id',
+          'kategorie',
+          'zone',
+          'datum',
+          'bereitstellung',
+          'anmeldung',
+          'anmeldeschluss',
+          'anmeldeschluss_zeit'
+        ],
+        sort: ['datum'],
+        limit: -1
+      })) as PlanTermin[]
+
+      const meldungZeile = (await meldungen.readOne(meldung.id, {
+        fields: ['erscheint_am']
+      })) as { erscheint_am: string }
+
+      const fakten = baueFakten(
+        {
+          erscheintAm: meldungZeile.erscheint_am,
+          termine: meineTermine.map((termin) => ({
+            id: termin.id,
+            kategorie: termin.kategorie,
+            zone: termin.zone,
+            datum: termin.datum,
+            bereitstellung: termin.bereitstellung,
+            anmeldung: termin.anmeldung,
+            anmeldeschluss: termin.anmeldeschluss,
+            anmeldeschluss_zeit: termin.anmeldeschluss_zeit,
+            quelle_url: termin.dokument?.quelle_url ?? null,
+            zusatz: termin.dokument?.zusatz ?? null
+          }))
+        },
+        alle,
+        erste.kalender.gemeinde.name,
+        erste.kalender.jahr
+      )
+
+      const antwort = await completeChatJson<unknown>({
+        system: ERINNERUNG_SYSTEM_PROMPT,
+        messages: [
+          {
+            role: 'user',
+            content: buildErinnerungRevision(fakten, meldung, anweisung)
+          }
+        ],
+        maxTokens: 2000
+      })
+      const erinnerung = parseErinnerung(antwort)
+
+      const alles = `${erinnerung.titel} ${erinnerung.lead} ${erinnerung.text}`
+      const zeit = zeitPruefungErinnerung(alles, fakten.jahr)
+      const hinweise = [
+        ...zeit.hart.map((wort) => `Relativer Zeitbezug: "${wort}"`),
+        ...(zeit.jahrFehlt
+          ? [`Die Jahreszahl ${fakten.jahr} fehlt im Text.`]
+          : []),
+        ...zahlWarnungenErinnerung(alles, fakten)
+      ]
+
+      await meldungen.updateOne(meldung.id, {
+        titel: erinnerung.titel,
+        lead: erinnerung.lead,
+        text: erinnerung.text,
+        zeit_warnungen: hinweise.length > 0 ? hinweise : null,
+        verarbeitung: 'idle',
+        anweisung: null,
+        fehler: null
+      })
+
+      return hinweise
+    }
+
     /**
      * The sport twin of `merkeWissen` below: same classification, but a match
      * report has no dataset and its sources are not rows in `quellen` — so a
@@ -1379,12 +2516,17 @@ export default defineEndpoint(
 
 function zielStatus(
   aktion: unknown
-): 'publiziert' | 'in_pruefung' | 'verworfen' {
+): 'publiziert' | 'in_pruefung' | 'freigegeben' | 'verworfen' {
   switch (aktion) {
     case 'publizieren':
       return 'publiziert'
     case 'pruefung':
       return 'in_pruefung'
+    // Approving without publishing: a waste-collection reminder is finished
+    // weeks before its newsletter day, and the scheduled publisher takes it
+    // from `freigegeben` on the eve of that day.
+    case 'freigeben':
+      return 'freigegeben'
     default:
       return 'verworfen'
   }

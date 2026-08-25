@@ -197,6 +197,8 @@ export interface AlleMeldungFelder {
   zeit_warnungen: string[] | null
   fehler: string | null
   publiziert_am: string | null
+  /** Only set on waste-collection reminders: the newsletter day they belong to. */
+  erscheint_am: string | null
   date_created: string | null
   gemeinde: { id: string; name: string; bezirk: string } | null
   lauf: { id: string } | null
@@ -226,6 +228,7 @@ export const ALLE_MELDUNGEN_QUERY = gql`
       zeit_warnungen
       fehler
       publiziert_am
+      erscheint_am
       date_created
       gemeinde {
         id
@@ -685,6 +688,108 @@ export const WISSEN_QUERY = gql`
       geltungsbereich
       herkunft
       aktiv
+    }
+  }
+`
+
+// --- Entsorgung ------------------------------------------------------------
+//
+// The printed waste calendar of a municipality, and the exceptional collection
+// dates read out of it. Both are small collections — one row per municipality
+// and year, a hundred or so dates below each — so both are fetched whole and
+// grouped in the browser, like the timeline.
+
+export interface EntsorgungsdokumentFelder {
+  id: string
+  zone: string | null
+  zusatz: string | null
+  status: string
+  quelle_url: string | null
+  fehler: string | null
+  pdf: { id: string } | null
+}
+
+export interface EntsorgungskalenderFelder {
+  id: string
+  jahr: number
+  status: string
+  merkblatt: string | null
+  gemeinde: { id: string; name: string } | null
+  /** One per zone — the Riehen case — or a single one for the whole municipality. */
+  dokumente: EntsorgungsdokumentFelder[]
+}
+
+export interface EntsorgungskalenderErgebnis {
+  entsorgungskalender: EntsorgungskalenderFelder[]
+}
+
+export const ENTSORGUNGSKALENDER_QUERY = gql`
+  query Entsorgungskalender {
+    entsorgungskalender(sort: ["-jahr", "gemeinde.name"], limit: -1) {
+      id
+      jahr
+      status
+      merkblatt
+      gemeinde {
+        id
+        name
+      }
+      dokumente {
+        id
+        zone
+        zusatz
+        status
+        quelle_url
+        fehler
+        pdf {
+          id
+        }
+      }
+    }
+  }
+`
+
+export interface EntsorgungsterminFelder {
+  id: string
+  kategorie: string
+  zone: string | null
+  datum: string
+  anmeldeschluss: string | null
+  anmeldeschluss_zeit: string | null
+  bereitstellung: string | null
+  anmeldung: string | null
+  warnung: string | null
+  geprueft: boolean
+  meldung: { id: string } | null
+}
+
+export interface EntsorgungstermineErgebnis {
+  entsorgungstermine: EntsorgungsterminFelder[]
+}
+
+// The relation filter needs the nested `{ id: { _eq: ... } }` shape and an `ID!`
+// variable — a plain uuid or `GraphQLStringOrFloat` is rejected. Both traps are
+// documented at the top of this file.
+export const ENTSORGUNGSTERMINE_QUERY = gql`
+  query Entsorgungstermine($kalender: ID!) {
+    entsorgungstermine(
+      filter: { kalender: { id: { _eq: $kalender } } }
+      sort: ["datum", "kategorie"]
+      limit: -1
+    ) {
+      id
+      kategorie
+      zone
+      datum
+      anmeldeschluss
+      anmeldeschluss_zeit
+      bereitstellung
+      anmeldung
+      warnung
+      geprueft
+      meldung {
+        id
+      }
     }
   }
 `
