@@ -96,6 +96,16 @@ export default defineHook(({ filter }, { services }) => {
     ) {
       ergebnis = { ...ergebnis, publiziert_am: new Date().toISOString() }
     }
+    // Approving directly is a real path since the waste-collection reminders:
+    // they are approved weeks ahead and published by the scheduled run, which
+    // refuses to publish an approval with no timestamp behind it. Until then
+    // only the counter-check answer set this, so the gap was unreachable.
+    if (
+      ergebnis['status'] === 'freigegeben' &&
+      ergebnis['freigegeben_am'] === undefined
+    ) {
+      ergebnis = { ...ergebnis, freigegeben_am: new Date().toISOString() }
+    }
 
     return ergebnis
   })

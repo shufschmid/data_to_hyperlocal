@@ -542,11 +542,14 @@ async function verarbeiteMeldungen(
   const { ItemsService } = services
   const meldungenService = new ItemsService('meldungen', { schema })
 
+  // `lauf` is nullable on the collection — a match report and a waste-collection
+  // reminder both live in `meldungen` without one — but the claim below filters
+  // them out, so everything this loop sees does have a run.
   const offene = await beanspruche<
     Pick<
       Meldung,
-      'id' | 'lauf' | 'gemeinde' | 'anweisung' | 'versuche' | 'datengrundlage'
-    >
+      'id' | 'gemeinde' | 'anweisung' | 'versuche' | 'datengrundlage'
+    > & { lauf: string }
   >(
     database,
     'meldungen',

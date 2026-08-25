@@ -1,0 +1,30 @@
+{
+  "collection": "entsorgungskalender",
+  "field": "dokumente",
+  "type": "alias",
+  "meta": {
+    "collection": "entsorgungskalender",
+    "conditions": null,
+    "display": null,
+    "display_options": null,
+    "field": "dokumente",
+    "group": null,
+    "hidden": false,
+    "interface": "list-o2m",
+    "note": "Die PDFs dieses Kalenders — eines pro Zone, oder ein einzelnes fuer die ganze Gemeinde.",
+    "options": {
+      "template": "{{zone}} — {{status}}"
+    },
+    "readonly": false,
+    "required": false,
+    "searchable": true,
+    "sort": 5,
+    "special": [
+      "o2m"
+    ],
+    "translations": null,
+    "validation": null,
+    "validation_message": null,
+    "width": "full"
+  }
+}

@@ -11,7 +11,7 @@ import Typography from '@mui/material/Typography'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import type { AlleMeldungFelder, MeldungFelder } from '@/graphql/redaktion'
 import { fortschritt, laufStatusText } from '@/lib/redaktion'
-import { MeldungKarte } from './MeldungKarte'
+import { MeldungKarte, type MeldungAktion } from './MeldungKarte'
 
 // Die Berichte zu einem Datensatz, direkt unter seinem Eintrag.
 //
@@ -32,7 +32,7 @@ export interface LaufBerichteProps {
   onStapelChat: (anweisung: string) => Promise<void>
   onStapelAktion: (aktion: 'pruefung' | 'publizieren') => Promise<void>
   onChat: (id: string, anweisung: string) => Promise<void>
-  onAktion: (id: string, aktion: 'publizieren' | 'pruefung' | 'verwerfen') => Promise<void>
+  onAktion: (id: string, aktion: MeldungAktion) => Promise<void>
 }
 
 export function LaufBerichte({

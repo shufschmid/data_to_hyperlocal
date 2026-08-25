@@ -31,6 +31,20 @@
     "_syncId": "53e7cdc8-a297-45b9-a7af-6422b1dd215a"
   },
   {
+    "name": "Publizieren",
+    "key": "publizieren",
+    "type": "entsorgung-publizieren",
+    "position_x": 19,
+    "position_y": 1,
+    "options": {
+      "hoechstens": 50
+    },
+    "resolve": null,
+    "reject": null,
+    "flow": "26f86364-b542-4514-b6b0-37fedc68e29a",
+    "_syncId": "48f75170-0df9-496d-8a36-0ee38281a811"
+  },
+  {
     "name": "Quellen pruefen",
     "key": "quellen_pruefen",
     "type": "quellen-pruefen",

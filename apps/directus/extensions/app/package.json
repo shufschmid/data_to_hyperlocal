@@ -46,6 +46,14 @@
       },
       {
         "type": "operation",
+        "name": "entsorgung-publizieren",
+        "source": {
+          "app": "src/operations/entsorgung-publizieren/app.ts",
+          "api": "src/operations/entsorgung-publizieren/api.ts"
+        }
+      },
+      {
+        "type": "operation",
         "name": "redaktion-abarbeiten",
         "source": {
           "app": "src/operations/redaktion-abarbeiten/app.ts",
@@ -66,6 +74,11 @@
         "type": "hook",
         "name": "ankuendigung-schluessel",
         "source": "src/hooks/ankuendigung-schluessel/index.ts"
+      },
+      {
+        "type": "hook",
+        "name": "entsorgung-termin",
+        "source": "src/hooks/entsorgung-termin/index.ts"
       }
     ],
     "host": "^11.0.0"

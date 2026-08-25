@@ -12,18 +12,36 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import type { MeldungFelder } from '@/graphql/redaktion'
 import { absaetze, statusFarbe, statusText, warnungen } from '@/lib/redaktion'
+import { langesDatum } from '@/lib/entsorgung'
 
 // One article. Presentational: props in, callbacks out, so it can be tested
 // without a network or a router.
 
+export type MeldungAktion = 'publizieren' | 'pruefung' | 'verwerfen' | 'freigeben'
+
 export interface MeldungKarteProps {
   meldung: MeldungFelder
   onChat: (id: string, anweisung: string) => Promise<void>
-  onAktion: (id: string, aktion: 'publizieren' | 'pruefung' | 'verwerfen') => Promise<void>
+  onAktion: (id: string, aktion: MeldungAktion) => Promise<void>
   laeuft?: boolean
+  /**
+   * The newsletter day of a waste-collection reminder.
+   *
+   * When set, the card approves instead of publishing: the reminder is written
+   * weeks ahead and has to go out on one specific day, so the scheduled run
+   * publishes it the evening before. Publishing it by hand now would put "am
+   * Freitag ist Papierabfuhr" in front of readers in September.
+   */
+  erscheintAm?: string | null
 }
 
-export function MeldungKarte({ meldung, onChat, onAktion, laeuft = false }: MeldungKarteProps) {
+export function MeldungKarte({
+  meldung,
+  onChat,
+  onAktion,
+  laeuft = false,
+  erscheintAm = null
+}: MeldungKarteProps) {
   const [anweisung, setAnweisung] = useState('')
   const [offen, setOffen] = useState(false)
   const [sendet, setSendet] = useState(false)
@@ -97,14 +115,25 @@ export function MeldungKarte({ meldung, onChat, onAktion, laeuft = false }: Meld
           >
             Gegenlesen lassen
           </Button>
-          <Button
-            size="small"
-            variant="contained"
-            onClick={() => void onAktion(meldung.id, 'publizieren')}
-            disabled={beschaeftigt || meldung.titel === null}
-          >
-            Publizieren
-          </Button>
+          {erscheintAm === null ? (
+            <Button
+              size="small"
+              variant="contained"
+              onClick={() => void onAktion(meldung.id, 'publizieren')}
+              disabled={beschaeftigt || meldung.titel === null}
+            >
+              Publizieren
+            </Button>
+          ) : (
+            <Button
+              size="small"
+              variant="contained"
+              onClick={() => void onAktion(meldung.id, 'freigeben')}
+              disabled={beschaeftigt || meldung.titel === null}
+            >
+              Freigeben
+            </Button>
+          )}
           <Button
             size="small"
             color="inherit"
@@ -114,6 +143,12 @@ export function MeldungKarte({ meldung, onChat, onAktion, laeuft = false }: Meld
             Verwerfen
           </Button>
         </Stack>
+
+        {erscheintAm !== null && (
+          <Typography variant="caption" color="text.secondary">
+            Erscheint am {langesDatum(erscheintAm)} · wird am Vortag automatisch publiziert
+          </Typography>
+        )}
 
         {offen && (
           <Stack spacing={1}>

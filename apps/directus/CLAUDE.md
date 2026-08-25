@@ -80,7 +80,8 @@ and dump. (This repo carried its model in migrations until August 2026; they are
 deleted, their net state lives in `schema/`, and `directus_migrations` still lists
 them on old databases — that is harmless.)
 
-What a migration is still for — all of it in `20260824A-stammdaten.mts`:
+What a migration is still for — `20260824A-stammdaten.mts` (seeds and indexes)
+and `20260824B-entsorgung-indizes.mts` (indexes only):
 
 - **Row data a fresh install needs without a human clicking**: the 87 municipalities,
   the three watched sources, the newsroom's registered clubs. Insert-only and
@@ -163,6 +164,10 @@ GraphQL, other extensions), which makes it the right place for invariants.
 - Anything derived by an LLM is a cache: invalidate it in a hook when its source
   changes, so a stale summary can never outlive the text it describes. Example:
   `src/hooks/meldung-status/` — it guards the editorial state machine on every write path.
+  `src/hooks/entsorgung-termin/` is the same principle applied to a derived
+  article: correcting a collection date — including in the admin UI, which no
+  endpoint sees — un-confirms the date and discards the reminder written from
+  it, because an article is a cache of the facts it was written from.
 
 ### Operation — a step a Flow can call. **This is how scheduled work is done.**
 
@@ -197,6 +202,16 @@ const answer = await completeJson<unknown>({
 const validated = parseSummary(answer) // never trust the shape
 ```
 
+- **A PDF goes in through `completeChat`/`completeChatJson`**, as a `document`
+  content block in the user turn — `completeText`/`completeJson` take a plain
+  string and cannot carry one. `redaktion/entsorgung.ts` builds that message.
+  Still keep the answer small — the waste calendar is read as one row per
+  collection with its dates, not as a flat list of a hundred dates. Requests
+  with `maxTokens` ≥ 8192 stream under the hood (`sendToClaude`), because the
+  SDK refuses a plain request that large; callers see no difference. A call
+  that big takes minutes, so its endpoint must not hold the HTTP connection
+  open — the calendar extraction answers 202 and runs detached, with progress
+  on the records (`status: 'liest'`) and a per-process single-flight set.
 - `completeText` / `completeJson` throw `ClaudeTruncatedError` when the model hit
   `max_tokens`. A truncated answer looks valid to the caller and truncated JSON is
   the classic silent failure — never "recover" by using a partial answer.

@@ -1,0 +1,25 @@
+{
+  "collection": "entsorgungsdokumente",
+  "field": "kalender",
+  "related_collection": "entsorgungskalender",
+  "meta": {
+    "junction_field": null,
+    "many_collection": "entsorgungsdokumente",
+    "many_field": "kalender",
+    "one_allowed_collections": null,
+    "one_collection": "entsorgungskalender",
+    "one_collection_field": null,
+    "one_deselect_action": "nullify",
+    "one_field": "dokumente",
+    "sort_field": null
+  },
+  "schema": {
+    "table": "entsorgungsdokumente",
+    "column": "kalender",
+    "foreign_key_table": "entsorgungskalender",
+    "foreign_key_column": "id",
+    "constraint_name": "entsorgungsdokumente_kalender_foreign",
+    "on_update": "NO ACTION",
+    "on_delete": "CASCADE"
+  }
+}

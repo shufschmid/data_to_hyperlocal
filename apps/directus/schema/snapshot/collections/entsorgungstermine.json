@@ -1,0 +1,28 @@
+{
+  "collection": "entsorgungstermine",
+  "meta": {
+    "accountability": "all",
+    "archive_app_filter": true,
+    "archive_field": null,
+    "archive_value": null,
+    "collapse": "open",
+    "collection": "entsorgungstermine",
+    "color": null,
+    "display_template": "{{datum}} — {{kategorie}}",
+    "group": null,
+    "hidden": false,
+    "icon": "event",
+    "item_duplication_fields": null,
+    "note": "Ein aussergewoehnlicher Abfuhrtermin. Regelmaessige Abfuhren stehen nur im Merkblatt.",
+    "preview_url": null,
+    "singleton": false,
+    "sort": null,
+    "sort_field": "datum",
+    "translations": null,
+    "unarchive_value": null,
+    "versioning": false
+  },
+  "schema": {
+    "name": "entsorgungstermine"
+  }
+}

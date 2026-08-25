@@ -12,7 +12,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import type { AlleMeldungFelder, MeldungFelder, SpielFelder } from '@/graphql/redaktion'
 import { formatiereZeitpunkt, resultat, statusText, teileSpiele } from '@/lib/redaktion'
-import { MeldungKarte } from './MeldungKarte'
+import { MeldungKarte, type MeldungAktion } from './MeldungKarte'
 
 // Results and fixtures of the clubs the newsroom follows.
 //
@@ -35,7 +35,7 @@ export interface SportresultateProps {
   /** Writes a report for every result that has none yet. */
   onMeldungenErzeugen?: () => Promise<void>
   onChat?: (id: string, anweisung: string) => Promise<void>
-  onAktion?: (id: string, aktion: 'publizieren' | 'pruefung' | 'verwerfen') => Promise<void>
+  onAktion?: (id: string, aktion: MeldungAktion) => Promise<void>
   laeuft?: boolean
 }
 
@@ -196,7 +196,7 @@ function SpielListe({
   berichte: Map<string, AlleMeldungFelder>
   laeuft: boolean
   onChat?: (id: string, anweisung: string) => Promise<void>
-  onAktion?: (id: string, aktion: 'publizieren' | 'pruefung' | 'verwerfen') => Promise<void>
+  onAktion?: (id: string, aktion: MeldungAktion) => Promise<void>
 }) {
   return (
     <Stack spacing={1}>
@@ -242,7 +242,7 @@ function SpielZeile({
   bericht: AlleMeldungFelder | null
   laeuft: boolean
   onChat?: (id: string, anweisung: string) => Promise<void>
-  onAktion?: (id: string, aktion: 'publizieren' | 'pruefung' | 'verwerfen') => Promise<void>
+  onAktion?: (id: string, aktion: MeldungAktion) => Promise<void>
 }) {
   const [zeigeBericht, setZeigeBericht] = useState(false)
   const offen = spiel.tore_heim === null || spiel.tore_gast === null

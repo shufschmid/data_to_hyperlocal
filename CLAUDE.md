@@ -116,14 +116,19 @@ them is wrong even if it works.
    spans a minute at a _lower_ request rate than before. That fixed it; the
    source has read all 44 announcements since.
 
-   The workspace has five tabs: **Läufe · statistik.bl · Sportresultate ·
-   Gelerntes · Gemeinden**. „Sportresultate" is the second feed and works the
-   same way as the first: a source that publishes on its own schedule, watched
+   The workspace has six tabs: **statistik.bl · Sportresultate · Entsorgung ·
+   Blog · Gelerntes · Gemeinden**. „Sportresultate" is the second feed and works
+   the same way as the first: a source that publishes on its own schedule, watched
    daily. What differs is the shape — a statistic arrives once a year for every
    municipality at once, a match arrives every weekend for one club. Filterable
    by Gemeinde and Sportart, split into played and upcoming by the clock rather
    than by whether a score exists, because a finished match whose result the
    source has not published yet is exactly the one an editor is waiting for.
+   „Entsorgung" is the third feed and the only one nobody watches: the printed
+   Abfuhrkalender is registered once a year per municipality, read in one pass,
+   and produces the whole year's reminders in advance. Its unit of work is one
+   calendar — pick it, read it, confirm its dates, write its year — so the tab
+   shows one at a time rather than a directory of eighty-seven.
    „Gemeinden" is a flat, searchable list — not grouped by district. The
    districts were dropped because they hid what they organised: Riehen, the
    first municipality outside the five Basel-Landschaft districts, arrived as
@@ -178,21 +183,23 @@ them is wrong even if it works.
 
 ## Where does this feature go?
 
-| The change is…                                | Goes to                                                                                                   |
-| --------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| a new collection, field, relation or role     | Directus admin UI, then `npm run schema:dump` — [apps/directus](apps/directus/)                           |
-| a calculation, validation or business rule    | extension bundle (endpoint or hook)                                                                       |
-| anything that calls Claude                    | extension bundle, via `shared/claude.ts`                                                                  |
-| something that must run nightly/hourly        | Flow with a Schedule trigger + a custom operation in the bundle                                           |
-| a screen, a form, a list, a chart             | [apps/front](apps/front/) — MUI components, Apollo for data                                               |
-| a new query the UI needs                      | `apps/front/src/graphql/*.ts`                                                                             |
-| a new rule about what an article may say      | the prompt in `redaktion/prompt.ts` **and** a check next to it — a prompt is a request, a check is a rule |
-| a table on statistik.bl.ch the newsroom wants | paste its URL in the workspace — „statistik.bl" → „Auftrag …" — it becomes an ordinary dataset            |
-| a club whose results the newsroom wants       | a row in `vereine` with its `ergebnis_url`, then a connector for that `quelle`                            |
-| a new rule about what a match report may say  | `redaktion/spielbericht.ts` — the prompt **and** the check next to it                                     |
-| a one-off data repair or backfill             | rows only: a one-shot Flow, else `apps/directus/migrations/*.mts` as a last resort                        |
-| an agenda entry the crawler could not fetch   | the banner in the workspace → „Eintrag von Hand erfassen"                                                 |
-| a new environment variable                    | `apps/directus/.env.example` **and** root `.env.example` **and** docker-compose.yml                       |
+| The change is…                                | Goes to                                                                                                                                                      |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| a new collection, field, relation or role     | Directus admin UI, then `npm run schema:dump` — [apps/directus](apps/directus/)                                                                              |
+| a calculation, validation or business rule    | extension bundle (endpoint or hook)                                                                                                                          |
+| anything that calls Claude                    | extension bundle, via `shared/claude.ts`                                                                                                                     |
+| something that must run nightly/hourly        | Flow with a Schedule trigger + a custom operation in the bundle                                                                                              |
+| a screen, a form, a list, a chart             | [apps/front](apps/front/) — MUI components, Apollo for data                                                                                                  |
+| a new query the UI needs                      | `apps/front/src/graphql/*.ts`                                                                                                                                |
+| a new rule about what an article may say      | the prompt in `redaktion/prompt.ts` **and** a check next to it — a prompt is a request, a check is a rule                                                    |
+| a table on statistik.bl.ch the newsroom wants | paste its URL in the workspace — „statistik.bl" → „Auftrag …" — it becomes an ordinary dataset                                                               |
+| a club whose results the newsroom wants       | a row in `vereine` with its `ergebnis_url`, then a connector for that `quelle`                                                                               |
+| a new rule about what a match report may say  | `redaktion/spielbericht.ts` — the prompt **and** the check next to it                                                                                        |
+| an Abfuhrkalender the newsroom wants          | paste the PDF's address in the workspace — „Entsorgung" → „Abfuhrkalender erfassen"; one PDF per zone (Riehen) registers zone by zone into the same calendar |
+| a new rule about what a reminder may say      | `redaktion/erinnerung.ts` — the prompt **and** the check next to it                                                                                          |
+| a one-off data repair or backfill             | rows only: a one-shot Flow, else `apps/directus/migrations/*.mts` as a last resort                                                                           |
+| an agenda entry the crawler could not fetch   | the banner in the workspace → „Eintrag von Hand erfassen"                                                                                                    |
+| a new environment variable                    | `apps/directus/.env.example` **and** root `.env.example` **and** docker-compose.yml                                                                          |
 
 A change that spans both apps starts in `apps/directus` — data model first, then the
 GraphQL documents in the frontend.
@@ -293,6 +300,37 @@ Flow "Sportresultate holen"  (0 30 6 * * *)
        │                 timezone arithmetic. But an unplayed fixture shows
        │                 "0 - 0", so a score is only read once the match is past.
        └─ everything else — skipped, and the sports are named in the log
+
+editor registers an Abfuhrkalender (PDF address or file)  ── endpoints/redaktion
+  one calendar per municipality+year, one or more DOCUMENTS below it —
+  Riehen prints a separate PDF per zone, so its calendar owns two, each with
+  its zone label and an editor-written note ("umfasst auch Bettingen") that
+  every reminder of that zone states as a fact
+  └─ POST /entsorgung/kalender/:id/extrahieren   answers 202, runs detached
+       (a dense year grid takes Opus 8–10 minutes — longer than any proxy
+       holds a connection; progress lives on the records as status 'liest',
+       the workspace polls). Loops the documents,
+       1× Opus per document, PDF as a document block → one row per collection
+       with its dates (the calendar's own shape), never a flat list of dates
+       ├─ weekday-vs-date check   the PDF prints both; a mismatch is flagged
+       ├─ deadlines computed      "Montag vor dem Termin" → the actual date
+       ├─ regular collections     kept as a note, never as Termine — but their
+       │                          HOLIDAY EXCEPTIONS are ("Mittwoch statt
+       │                          Freitag" before Christmas is the most useful
+       │                          reminder of all)
+       └─ per-zone documents      the zone is forced in code; a broken Zone-1
+                                  PDF never costs Zone 2 its year
+  └─ POST /entsorgung/kalender/:id/meldungen   after the editor confirmed
+       └─ planeErinnerungen()   anchor = Anmeldeschluss ?? Datum
+            → erscheint_am = last newsletter day before it (Mon–Fri, no BS
+              holiday); dates sharing a day become ONE Meldung
+            → N× Sonnet, one per newsletter day, over handed facts
+
+Flow "Entsorgung publizieren"  (0 5 * * *)
+  └─ operations/entsorgung-publizieren   no model call, no outbound request
+       ├─ freigegeben ∧ erscheint_am = TOMORROW → publiziert
+       │    (the Dorfkönig builds the newsletter the evening before)
+       └─ freigegeben ∧ erscheint_am < today → noted as verpasst, NOT published
 ```
 
 A result becomes an article through `POST /redaktion/spielberichte` — the
@@ -304,7 +342,20 @@ itself.
 
 Match reports are ordinary `meldungen` — same review, chat, counter-check and
 publishing. They carry `spiel` instead of `lauf`, which is why `lauf` is nullable
-and the old `unique(lauf, gemeinde)` is now two partial indexes.
+and the old `unique(lauf, gemeinde)` is now two partial indexes. Waste-collection
+reminders are the third kind and carry neither: they are identified by
+`erscheint_am`, and their partial unique `(gemeinde, erscheint_am)` is the merge
+rule enforced by the database — two reminders in one edition read as noise, so
+several collection dates that fall on one newsletter day become one article.
+
+**Reminders are written absolute and never say "morgen".** „Am Freitag (12. Juni 2026) ist Papierabfuhr" is the required form: the Dorfkönig turns it into
+"morgen" when it composes the edition, which is why the text is still true in the
+archive years later — the five-year rule holding without an exception carved for
+it. Two more things the code decides rather than the model: the reminder is timed
+to the **registration deadline** where there is one (a Häckseldienst tour booked
+by Monday 11.30 is useless as a Tuesday reminder, so it appears the Friday
+before), and the other zone's next date is looked up and handed over, never
+inferred.
 
 The prompt is handed the outcome, not just the two numbers: working out who won
 means knowing which side the club played on, and that is arithmetic the model
@@ -391,6 +442,10 @@ joining the two on `Spielnummer`. Read results from there, or not at all.
   snapshot that goes stale every season. Clubs proposed by a connector arrive
   with `zuordnung_geprueft = false`, the same confirm-once pattern as
   `ankuendigungen`.
+- `entsorgungskalender.extraktion` + `merkblatt` — what the PDF said and what was
+  deliberately discarded as a regular collection. The second half is the one that
+  matters later: without it, a category the model dropped by mistake is
+  indistinguishable from one the calendar never had.
 
 Both are bounded on purpose: the rules feed the cached prompt prefix, and an
 unbounded memory would grow it without limit.
