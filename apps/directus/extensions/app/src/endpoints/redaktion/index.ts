@@ -53,6 +53,8 @@ import {
   type PlanTermin
 } from '../../redaktion/erinnerung'
 import { heuteIso } from '../../redaktion/feiertage'
+import quellenPruefen from '../../operations/quellen-pruefen/api'
+import sportresultateHolen from '../../operations/sportresultate-holen/api'
 import { agendaSchluessel } from '../../shared/agenda'
 import { ladeTabelle, StatblFehler, tabellenId } from '../../shared/statbl'
 import { tabellenFelder } from '../../shared/statbl/parse'
@@ -177,6 +179,11 @@ const ExtraktionLaeuftBereits = createError(
   'Dieser Kalender wird gerade ausgelesen.',
   409
 )
+const QuellenLaufLaeuftBereits = createError(
+  'SOURCES_RUN_RUNNING',
+  'Ein Quellen-Lauf ist bereits unterwegs.',
+  409
+)
 
 /** 15 MB is what Directus accepts as a payload; the base64 form is a third bigger. */
 const PDF_MAX_BYTES = 10 * 1024 * 1024
@@ -215,6 +222,104 @@ export default defineEndpoint(
       if (typeof wert !== 'string' || !UUID.test(wert)) throw new UngueltigeId()
       return wert
     }
+
+    // --- the "run every scrape now" button -----------------------------------
+    //
+    // The workspace's Gemeinden tab can start the two scheduled scrapes by hand:
+    // the source check (portal, statbl, data.bl.ch catalogue, agenda) and the
+    // sport results. Waste calendars are deliberately absent — those are
+    // registered one PDF at a time by an editor.
+    //
+    // The endpoint calls the very same operation handlers the two Flows run,
+    // with the same options the committed Flows carry, so a button press and a
+    // nightly run are indistinguishable in behaviour. Like the Flows it runs as
+    // the system: the results land in collections the editor reads through
+    // their own permissions anyway.
+    //
+    // Detached and single-flight, like the calendar extraction: a full pass
+    // takes minutes (the agenda alone backs off for up to a minute), and the
+    // status lives in the process because it describes the process.
+
+    interface QuellenLaufStatus {
+      laeuft: boolean
+      gestartet_um: string | null
+      beendet_um: string | null
+      quellen: Record<string, unknown> | null
+      sport: Record<string, unknown> | null
+      fehler: string | null
+    }
+
+    const quellenLauf: QuellenLaufStatus = {
+      laeuft: false,
+      gestartet_um: null,
+      beendet_um: null,
+      quellen: null,
+      sport: null,
+      fehler: null
+    }
+
+    router.get(
+      '/quellen/lauf',
+      (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        return res.json({ data: quellenLauf })
+      }
+    )
+
+    router.post(
+      '/quellen/lauf',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        if (quellenLauf.laeuft) return next(new QuellenLaufLaeuftBereits())
+
+        quellenLauf.laeuft = true
+        quellenLauf.gestartet_um = new Date().toISOString()
+        quellenLauf.beendet_um = null
+        quellenLauf.quellen = null
+        quellenLauf.sport = null
+        quellenLauf.fehler = null
+
+        // The operation handlers only read these four fields of the Flow
+        // context; the cast keeps the SDK's full context type out of here.
+        const kontext = { services, getSchema, logger, database } as Parameters<
+          typeof quellenPruefen.handler
+        >[1]
+
+        const ausfuehren = async (): Promise<void> => {
+          // The same options as the committed Flows (see
+          // schema/collections/operations.json) — the button is the nightly
+          // run, just now.
+          quellenLauf.quellen = (await quellenPruefen.handler(
+            {
+              seiten: 2,
+              bewertungen: 10,
+              zuordnungen: 10,
+              tabellen: 5,
+              gemeindepruefungen: 25
+            },
+            kontext
+          )) as Record<string, unknown>
+
+          quellenLauf.sport = (await sportresultateHolen.handler(
+            { hoechstens: 200 },
+            kontext as Parameters<typeof sportresultateHolen.handler>[1]
+          )) as Record<string, unknown>
+        }
+
+        void ausfuehren()
+          .catch((fehler: unknown) => {
+            logger.error(fehler, 'redaktion: Quellen-Lauf fehlgeschlagen')
+            quellenLauf.fehler =
+              fehler instanceof Error ? fehler.message : String(fehler)
+          })
+          .finally(() => {
+            quellenLauf.laeuft = false
+            quellenLauf.beendet_um = new Date().toISOString()
+          })
+
+        return res.status(202).json({ data: { gestartet: true } })
+      }
+    )
 
     // --- an agenda entry, typed in by hand -----------------------------------
     //

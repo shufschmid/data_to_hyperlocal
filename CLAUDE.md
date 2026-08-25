@@ -287,6 +287,13 @@ Flow "Meldungen erzeugen"  (*/2)   endpoints/redaktion  (immediately)
 
 hooks/meldung-status   guards every status change, on every write path
 
+Both scheduled scrapes can also be started by hand: the button in the
+„Gemeinden" tab (POST /redaktion/quellen/lauf, 202 + detached, single-flight,
+GET for the status) runs the same two operation handlers with the committed
+Flows' options — a button press and a nightly run are indistinguishable.
+Waste calendars are deliberately absent: those are registered one PDF at a
+time by an editor.
+
 Flow "Sportresultate holen"  (0 30 6 * * *)
   └─ operations/sportresultate-holen   dispatches on vereine.quelle
        ├─ fvnws        1 request for ALL football clubs (the "what's on" page)

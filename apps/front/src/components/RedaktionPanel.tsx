@@ -50,7 +50,8 @@ import {
   type QuellenErgebnis,
   type WissenErgebnis
 } from '@/graphql/redaktion'
-import { blogNachGemeinde, meldungenNachLauf, zeitleiste } from '@/lib/redaktion'
+import { blogNachGemeinde, meldungenNachLauf, zeitleiste, type QuellenLaufStatus } from '@/lib/redaktion'
+import { QuellenLauf } from './QuellenLauf'
 import { Zeitleiste } from './Zeitleiste'
 import { AuftragDialog, type AuftragZiel } from './AuftragDialog'
 import { GemeindenAuswahl } from './GemeindenAuswahl'
@@ -193,6 +194,47 @@ export function RedaktionPanel() {
   const allesNeuLaden = useCallback(async () => {
     await Promise.all([laeufe.refetch(), alleMeldungen.refetch(), datensaetze.refetch()])
   }, [laeufe, alleMeldungen, datensaetze])
+
+  // The hand-started scrape run: state lives in the extension's process, this
+  // only mirrors it. Polled while a run is under way; when it finishes, the
+  // affected tabs are refetched once.
+  const [quellenLaufStatus, setQuellenLaufStatus] = useState<QuellenLaufStatus | null>(null)
+  const ladeQuellenLauf = useCallback(async () => {
+    try {
+      const antwort = await fetch('/api/redaktion/quellen/lauf')
+      if (!antwort.ok) return
+      const inhalt = (await antwort.json()) as { data?: QuellenLaufStatus }
+      setQuellenLaufStatus(inhalt.data ?? null)
+    } catch {
+      // Die Anzeige ist Komfort; ein verpasster Abruf wird beim naechsten Poll
+      // nachgeholt.
+    }
+  }, [])
+  useEffect(() => {
+    void ladeQuellenLauf()
+  }, [ladeQuellenLauf])
+  const quellenRefetch = quellen.refetch
+  const datensaetzeRefetch = datensaetze.refetch
+  const ankuendigungenRefetch = ankuendigungen.refetch
+  const spieleRefetch = spiele.refetch
+  const warUnterwegs = useRef(false)
+  useEffect(() => {
+    const unterwegs = quellenLaufStatus?.laeuft === true
+    if (warUnterwegs.current && !unterwegs) {
+      void Promise.all([quellenRefetch(), datensaetzeRefetch(), ankuendigungenRefetch(), spieleRefetch()])
+    }
+    warUnterwegs.current = unterwegs
+    if (!unterwegs) return
+    const intervall = setInterval(() => void ladeQuellenLauf(), 10_000)
+    return () => clearInterval(intervall)
+  }, [
+    quellenLaufStatus?.laeuft,
+    ladeQuellenLauf,
+    quellenRefetch,
+    datensaetzeRefetch,
+    ankuendigungenRefetch,
+    spieleRefetch
+  ])
 
   async function fuehreAus(pfad: string, body?: unknown) {
     setSendet(true)
@@ -635,6 +677,14 @@ export function RedaktionPanel() {
             Für welche Gemeinden ein Lauf Meldungen schreibt. Gilt ab dem nächsten Lauf; bereits erzeugte
             Meldungen bleiben, wie sie sind.
           </Typography>
+          <QuellenLauf
+            status={quellenLaufStatus}
+            laeuft={sendet}
+            onStarten={async () => {
+              await fuehreAus('quellen/lauf')
+              await ladeQuellenLauf()
+            }}
+          />
           {gemeinden.loading && <CircularProgress />}
           <GemeindenAuswahl
             gemeinden={gemeinden.data?.gemeinden ?? []}
