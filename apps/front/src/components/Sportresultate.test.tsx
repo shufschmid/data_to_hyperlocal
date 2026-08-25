@@ -42,6 +42,8 @@ function bericht(spielId: string) {
     date_created: null,
     gemeinde: { id: 'g1', name: 'Pratteln', bezirk: 'Liestal' },
     lauf: null,
+    kandidat: null,
+    perle: null,
     spiel: {
       id: spielId,
       heim: 'FC A',

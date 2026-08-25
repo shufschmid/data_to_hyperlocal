@@ -16,7 +16,11 @@ const ERLAUBT: RegExp[] = [
   /^meldungen\/[0-9a-f-]{36}\/(chat|publizieren|pruefung|verwerfen|freigeben)$/i,
   /^entsorgung\/kalender$/i,
   /^entsorgung\/kalender\/[0-9a-f-]{36}\/(extrahieren|pruefen|meldungen|freigeben)$/i,
-  /^quellen\/lauf$/i
+  /^quellen\/lauf$/i,
+  /^wochenblaetter$/i,
+  /^wochenblaetter\/pruefen$/i,
+  /^ausgaben\/[0-9a-f-]{36}\/inventar$/i,
+  /^kandidaten\/[0-9a-f-]{36}\/(meldung|ablehnen)$/i
 ]
 
 // The one read this proxy carries: the state of a hand-started scrape run.

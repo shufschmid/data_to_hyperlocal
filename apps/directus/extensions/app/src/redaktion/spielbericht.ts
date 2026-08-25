@@ -196,12 +196,16 @@ const RELATIV = [
  *
  * Reported rather than rewritten: the editor decides whether "am Samstag" is
  * worth a revision, exactly as with the statistics articles.
+ *
+ * Matched at word boundaries, not as substrings: "morgendlichen" contains
+ * "morgen" and is a perfectly durable word — the press-review walkthrough
+ * flagged exactly that.
  */
 export function zeitWarnungen(text: string): string[] {
   const klein = text.toLowerCase()
-  return RELATIV.filter((wort) => klein.includes(wort)).map(
-    (wort) => `Relativer Zeitbezug: "${wort}"`
-  )
+  return RELATIV.filter((wort) =>
+    new RegExp(`(?<!\\p{L})${wort}(?!\\p{L})`, 'u').test(klein)
+  ).map((wort) => `Relativer Zeitbezug: "${wort}"`)
 }
 
 /**

@@ -170,6 +170,14 @@ export interface Meldung {
    * newsletter then.
    */
   erscheint_am: string | null
+  /** Set for press-review articles from a Wochenblatt candidate. Null otherwise. */
+  kandidat: string | null
+  /**
+   * Decided at publish time, only for press-review articles: a Perle is the
+   * curious local story that also interests the city of Basel. Unpublished
+   * means no Perle, always.
+   */
+  perle: boolean | null
   gemeinde: string
 
   titel: string | null
@@ -454,6 +462,99 @@ export interface Entsorgungstermin {
   date_updated: string | null
 }
 
+/** The weekly paper of one municipality and where its PDF archive lives. */
+export interface Wochenblatt {
+  id: string
+  gemeinde: string
+  /** As printed on the masthead — this exact name appears in every attribution. */
+  name: string
+  /** The public issue archive. Only this page is ever read; URLs are never guessed. */
+  archiv_url: string
+  /** Which parser reads the archive — the next paper with a different layout gets its own value. */
+  konnektor: 'wordpress-archiv'
+  aktiv: boolean
+  letzte_pruefung: string | null
+  letzter_fehler: string | null
+  date_created: string | null
+  date_updated: string | null
+}
+
+export type AusgabeStatus = 'neu' | 'liest' | 'inventarisiert' | 'fehler'
+
+/** One issue: the PDF, its text layer, and the inventory of exclusive pieces. */
+export interface Wochenblattausgabe {
+  id: string
+  wochenblatt: string
+  /** Canonical identity ("kw34-2026"), slug suffixes normalized away — the idempotency key. */
+  schluessel: string
+  slug: string | null
+  /** As the paper prints it — "34" or "30/31". Part of every attribution. */
+  nummer: string | null
+  datum: string | null
+  seite_url: string | null
+  /** The resolved PDF address. With `#page=N` a Meldung links straight to the piece. */
+  pdf_url: string | null
+  pdf: string | null
+  seiten: number | null
+  status: AusgabeStatus
+  /** The PDF's text layer — the corpus the verbatim-overlap check runs against. */
+  volltext: string | null
+  inventar: Record<string, unknown> | null
+  fehler: string | null
+  date_created: string | null
+  date_updated: string | null
+}
+
+export type KandidatTyp =
+  | 'interview'
+  | 'reportage'
+  | 'portraet'
+  | 'hintergrund'
+  | 'vereinsleben'
+  | 'veranstaltung'
+  | 'service'
+  | 'erfolgsmeldung'
+  | 'fotoverweis'
+
+export type KandidatEntscheid = 'offen' | 'uebernommen' | 'abgelehnt'
+
+export type Ablehnungsgrund =
+  | 'nicht_relevant'
+  | 'doublette'
+  | 'veraltet'
+  | 'falsche_gemeinde'
+  | 'andere'
+
+/**
+ * One exclusive piece of an issue, as the inventory proposed it.
+ *
+ * The editor's decision on it — taken over, or rejected with a reason — is the
+ * learning signal: recent decisions ride into the next inventory's user turn
+ * as examples, so the proposals grow towards the newsroom's taste.
+ */
+export interface Wochenblattkandidat {
+  id: string
+  ausgabe: string
+  /** As printed in the paper. */
+  titel: string
+  seite: number | null
+  typ: KandidatTyp
+  /** Teased on the front page — what sits there is often the most interesting. */
+  frontseite: boolean
+  warum_exklusiv: string | null
+  /** Bare facts from the piece — the ONLY source the drafting call ever sees. */
+  zusammenfassung: string | null
+  /** Curious AND of supra-local interest — could amuse the city of Basel too. */
+  perle_vorschlag: boolean
+  perle_begruendung: string | null
+  entscheid: KandidatEntscheid
+  /** The learning signal: flows into the next inventory's digest. */
+  ablehnungsgrund: Ablehnungsgrund | null
+  ablehnungskommentar: string | null
+  date_created: string | null
+  date_updated: string | null
+}
+
 export interface Schema {
   gemeinden: Gemeinde[]
   quellen: Quelle[]
@@ -470,4 +571,7 @@ export interface Schema {
   entsorgungskalender: Entsorgungskalender[]
   entsorgungsdokumente: Entsorgungsdokument[]
   entsorgungstermine: Entsorgungstermin[]
+  wochenblaetter: Wochenblatt[]
+  wochenblattausgaben: Wochenblattausgabe[]
+  wochenblattkandidaten: Wochenblattkandidat[]
 }

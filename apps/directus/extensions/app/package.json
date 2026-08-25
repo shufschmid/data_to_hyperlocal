@@ -54,6 +54,14 @@
       },
       {
         "type": "operation",
+        "name": "wochenblatt-pruefen",
+        "source": {
+          "app": "src/operations/wochenblatt-pruefen/app.ts",
+          "api": "src/operations/wochenblatt-pruefen/api.ts"
+        }
+      },
+      {
+        "type": "operation",
         "name": "redaktion-abarbeiten",
         "source": {
           "app": "src/operations/redaktion-abarbeiten/app.ts",
@@ -95,7 +103,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",
-    "@directus/errors": "^2.1.0"
+    "@directus/errors": "^2.1.0",
+    "unpdf": "^1.8.1"
   },
   "devDependencies": {
     "@directus/extensions-sdk": "17.1.4",

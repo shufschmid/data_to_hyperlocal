@@ -210,6 +210,10 @@ export interface AlleMeldungFelder {
     sportart: string
     wettbewerb: string
   } | null
+  /** Only set on press-review articles: the Wochenblatt candidate behind them. */
+  kandidat: { id: string } | null
+  /** Decided at publish time on press reviews: interesting for the city too. */
+  perle: boolean | null
 }
 
 export interface AlleMeldungenErgebnis {
@@ -246,6 +250,10 @@ export const ALLE_MELDUNGEN_QUERY = gql`
         sportart
         wettbewerb
       }
+      kandidat {
+        id
+      }
+      perle
     }
   }
 `
@@ -789,6 +797,94 @@ export const ENTSORGUNGSTERMINE_QUERY = gql`
       geprueft
       meldung {
         id
+      }
+    }
+  }
+`
+
+// --- Presseschau: Wochenblaetter, Ausgaben, Kandidaten ----------------------
+
+export interface KandidatFelder {
+  id: string
+  titel: string
+  seite: number | null
+  typ: string
+  frontseite: boolean
+  warum_exklusiv: string | null
+  zusammenfassung: string | null
+  perle_vorschlag: boolean
+  perle_begruendung: string | null
+  entscheid: string
+  ablehnungsgrund: string | null
+  ablehnungskommentar: string | null
+}
+
+export interface AusgabeFelder {
+  id: string
+  schluessel: string
+  nummer: string | null
+  datum: string | null
+  seite_url: string | null
+  pdf_url: string | null
+  seiten: number | null
+  status: string
+  fehler: string | null
+  kandidaten: KandidatFelder[]
+}
+
+export interface WochenblattFelder {
+  id: string
+  name: string
+  archiv_url: string
+  aktiv: boolean
+  letzte_pruefung: string | null
+  letzter_fehler: string | null
+  gemeinde: { id: string; name: string } | null
+  /** Die neuesten Ausgaben zuerst; die Ansicht zeigt die erste. */
+  ausgaben: AusgabeFelder[]
+}
+
+export interface WochenblaetterErgebnis {
+  wochenblaetter: WochenblattFelder[]
+}
+
+export const WOCHENBLAETTER_QUERY = gql`
+  query Wochenblaetter {
+    wochenblaetter(sort: ["gemeinde.name"], limit: -1) {
+      id
+      name
+      archiv_url
+      aktiv
+      letzte_pruefung
+      letzter_fehler
+      gemeinde {
+        id
+        name
+      }
+      ausgaben(sort: ["-datum"], limit: 3) {
+        id
+        schluessel
+        nummer
+        datum
+        seite_url
+        pdf_url
+        seiten
+        status
+        fehler
+        kandidaten(sort: ["seite"], limit: -1) {
+          id
+          titel
+          seite
+          typ
+          frontseite
+          warum_exklusiv
+          zusammenfassung
+          perle_vorschlag
+          perle_begruendung
+          entscheid
+          ablehnungsgrund
+          ablehnungskommentar
+        }
       }
     }
   }

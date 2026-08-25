@@ -53,8 +53,27 @@ import {
   type PlanTermin
 } from '../../redaktion/erinnerung'
 import { heuteIso } from '../../redaktion/feiertage'
+import {
+  attributionsWarnung,
+  buildInventarMessages,
+  buildPresseschauPrompt,
+  buildPresseschauRevision,
+  INVENTAR_SCHEMA,
+  INVENTAR_SYSTEM_PROMPT,
+  lernDigest,
+  mitQuelle,
+  parseInventar,
+  parsePresseschau,
+  PRESSESCHAU_SYSTEM_PROMPT,
+  ueberlappungsWarnungen,
+  zahlWarnungenPresseschau,
+  type LernEintrag,
+  type PresseschauFakten
+} from '../../redaktion/presseschau'
+import { fetchArchiv } from '../../shared/wochenblatt'
 import quellenPruefen from '../../operations/quellen-pruefen/api'
 import sportresultateHolen from '../../operations/sportresultate-holen/api'
+import wochenblattPruefen from '../../operations/wochenblatt-pruefen/api'
 import { agendaSchluessel } from '../../shared/agenda'
 import { ladeTabelle, StatblFehler, tabellenId } from '../../shared/statbl'
 import { tabellenFelder } from '../../shared/statbl/parse'
@@ -183,6 +202,41 @@ const QuellenLaufLaeuftBereits = createError(
   'SOURCES_RUN_RUNNING',
   'Ein Quellen-Lauf ist bereits unterwegs.',
   409
+)
+const UngueltigesWochenblatt = createError(
+  'INVALID_PAPER',
+  'Gemeinde, Name und Archiv-Adresse sind erforderlich.',
+  400
+)
+const ArchivNichtLesbar = createError(
+  'ARCHIVE_UNREADABLE',
+  'Das Archiv konnte nicht gelesen werden. Bitte die Adresse pruefen.',
+  400
+)
+const WochenblattLaufLaeuftBereits = createError(
+  'PAPER_RUN_RUNNING',
+  'Ein Wochenblatt-Lauf ist bereits unterwegs.',
+  409
+)
+const InventarLaeuftBereits = createError(
+  'INVENTORY_RUNNING',
+  'Diese Ausgabe wird gerade inventarisiert.',
+  409
+)
+const KeinPdfAnAusgabe = createError(
+  'NO_ISSUE_PDF',
+  'Zu dieser Ausgabe ist kein PDF hinterlegt.',
+  400
+)
+const KandidatSchonUebernommen = createError(
+  'CANDIDATE_TAKEN',
+  'Zu diesem Kandidaten gibt es schon eine Meldung.',
+  409
+)
+const UngueltigerAblehnungsgrund = createError(
+  'INVALID_REASON',
+  'Unbekannter Ablehnungsgrund.',
+  400
 )
 
 /** 15 MB is what Directus accepts as a payload; the base64 form is a third bigger. */
@@ -318,6 +372,410 @@ export default defineEndpoint(
           })
 
         return res.status(202).json({ data: { gestartet: true } })
+      }
+    )
+
+    // --- the press review: weekly papers, issues, candidates ------------------
+    //
+    // Registration and the manual check share one detached runner — the very
+    // operation handler the 09:00 Flow runs, so a button press and the
+    // scheduled morning are indistinguishable. Meldungen are written only per
+    // picked candidate, one Sonnet call each, straight through like the match
+    // reports.
+
+    let wochenblattLaufAktiv = false
+    const laufendeInventare = new Set<string>()
+
+    function starteWochenblattLauf(): boolean {
+      if (wochenblattLaufAktiv) return false
+      wochenblattLaufAktiv = true
+
+      const kontext = { services, getSchema, logger, database } as Parameters<
+        typeof wochenblattPruefen.handler
+      >[1]
+      void Promise.resolve(
+        wochenblattPruefen.handler({ blaetter: 10 }, kontext)
+      )
+        .then((ergebnis: unknown) =>
+          logger.info(ergebnis, 'redaktion: Wochenblatt-Lauf beendet')
+        )
+        .catch((fehler: unknown) =>
+          logger.error(fehler, 'redaktion: Wochenblatt-Lauf fehlgeschlagen')
+        )
+        .finally(() => {
+          wochenblattLaufAktiv = false
+        })
+      return true
+    }
+
+    router.post(
+      '/wochenblaetter',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        const koerper = (req.body ?? {}) as {
+          gemeinde?: unknown
+          name?: unknown
+          archiv_url?: unknown
+        }
+        const name = typeof koerper.name === 'string' ? koerper.name.trim() : ''
+        const archivUrl =
+          typeof koerper.archiv_url === 'string'
+            ? koerper.archiv_url.trim()
+            : ''
+        if (
+          typeof koerper.gemeinde !== 'string' ||
+          !UUID.test(koerper.gemeinde) ||
+          name === '' ||
+          !/^https?:\/\//.test(archivUrl)
+        ) {
+          return next(new UngueltigesWochenblatt())
+        }
+
+        // Read the archive BEFORE writing anything: a mistyped address should
+        // fail the form, not become a row that errors every morning at nine.
+        try {
+          await fetchArchiv(archivUrl, {
+            kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch')
+          })
+        } catch (fehler) {
+          logger.warn(
+            fehler,
+            'redaktion: Wochenblatt-Archiv beim Registrieren nicht lesbar'
+          )
+          return next(new ArchivNichtLesbar())
+        }
+
+        try {
+          const blaetter = new ItemsService('wochenblaetter', {
+            schema: await getSchema(),
+            accountability: req.accountability
+          })
+          const id = (await blaetter.createOne({
+            gemeinde: koerper.gemeinde,
+            name,
+            archiv_url: archivUrl,
+            konnektor: 'wordpress-archiv',
+            aktiv: true
+          })) as string
+
+          // The newest issue is processed right away — that was the deal:
+          // current one in, backlog ignored forever.
+          starteWochenblattLauf()
+
+          return res.status(202).json({ data: { wochenblatt: id } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    router.post(
+      '/wochenblaetter/pruefen',
+      (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        if (!starteWochenblattLauf()) {
+          return next(new WochenblattLaufLaeuftBereits())
+        }
+        return res.status(202).json({ data: { gestartet: true } })
+      }
+    )
+
+    router.post(
+      '/ausgaben/:id/inventar',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        let id: string
+        try {
+          id = pruefeId(req.params['id'])
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+
+        const schema = await getSchema()
+        const ausgaben = new ItemsService('wochenblattausgaben', {
+          schema,
+          accountability: req.accountability
+        })
+
+        let ausgabe: {
+          id: string
+          nummer: string | null
+          schluessel: string
+          datum: string | null
+          seiten: number | null
+          pdf: string | null
+          wochenblatt: { id: string; name: string; gemeinde: { name: string } }
+        }
+        try {
+          ausgabe = (await ausgaben.readOne(id, {
+            fields: [
+              'id',
+              'nummer',
+              'schluessel',
+              'datum',
+              'seiten',
+              'pdf',
+              'wochenblatt.id',
+              'wochenblatt.name',
+              'wochenblatt.gemeinde.name'
+            ]
+          })) as typeof ausgabe
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+        if (ausgabe.pdf === null) return next(new KeinPdfAnAusgabe())
+        if (laufendeInventare.has(id)) return next(new InventarLaeuftBereits())
+        laufendeInventare.add(id)
+
+        try {
+          await ausgaben.updateOne(id, { status: 'liest', fehler: null })
+        } catch (error) {
+          laufendeInventare.delete(id)
+          return next(uebersetze(error))
+        }
+
+        // Detached like the calendar extraction: an Opus read of a whole
+        // issue takes minutes, and the caller polls the status instead.
+        const inventarisieren = async (): Promise<void> => {
+          const system = new ItemsService('wochenblattausgaben', { schema })
+          const kandidatenService = new ItemsService('wochenblattkandidaten', {
+            schema
+          })
+          const meldungenService = new ItemsService('meldungen', { schema })
+
+          try {
+            const pdfDaten = await lesePdf(schema, ausgabe.pdf as string)
+            const digest = lernDigest(
+              await ladeLernEintraege(schema, ausgabe.wochenblatt.id)
+            )
+
+            const antwort = await completeChatJson<unknown>({
+              system: INVENTAR_SYSTEM_PROMPT,
+              messages: buildInventarMessages(
+                pdfDaten.toString('base64'),
+                {
+                  name: ausgabe.wochenblatt.name,
+                  gemeinde: ausgabe.wochenblatt.gemeinde.name,
+                  nummer: ausgabe.nummer,
+                  datum: ausgabe.datum
+                },
+                digest
+              ),
+              model: 'claude-opus-5',
+              maxTokens: 16000,
+              schema: INVENTAR_SCHEMA
+            })
+            const inventar = parseInventar(antwort, ausgabe.seiten)
+
+            // Diff instead of replace: a candidate the editor already decided
+            // on, or one that became a Meldung, is not up for debate again.
+            const bestehende = (await kandidatenService.readByQuery({
+              filter: { ausgabe: { _eq: id } },
+              fields: ['id', 'titel', 'seite', 'entscheid'],
+              limit: -1
+            })) as Array<{
+              id: string
+              titel: string
+              seite: number | null
+              entscheid: string
+            }>
+            const verknuepfte = (await meldungenService.readByQuery({
+              filter: { kandidat: { _in: bestehende.map((k) => k.id) } },
+              fields: ['kandidat'],
+              limit: -1
+            })) as Array<{ kandidat: string }>
+            const mitMeldung = new Set(verknuepfte.map((m) => m.kandidat))
+
+            const schluessel = (titel: string, seite: number | null): string =>
+              `${titel.toLowerCase()}|${seite ?? ''}`
+            const neuNachSchluessel = new Map(
+              inventar.kandidaten.map((k) => [schluessel(k.titel, k.seite), k])
+            )
+
+            for (const alt of bestehende) {
+              const neu = neuNachSchluessel.get(
+                schluessel(alt.titel, alt.seite)
+              )
+              if (neu !== undefined) {
+                neuNachSchluessel.delete(schluessel(alt.titel, alt.seite))
+                await kandidatenService.updateOne(alt.id, {
+                  typ: neu.typ,
+                  frontseite: neu.frontseite,
+                  warum_exklusiv: neu.warum_exklusiv,
+                  zusammenfassung: neu.zusammenfassung,
+                  perle_vorschlag: neu.perle_vorschlag,
+                  perle_begruendung: neu.perle_begruendung
+                })
+              } else if (alt.entscheid === 'offen' && !mitMeldung.has(alt.id)) {
+                await kandidatenService.deleteOne(alt.id)
+              }
+            }
+            for (const neu of neuNachSchluessel.values()) {
+              await kandidatenService.createOne({
+                ausgabe: id,
+                titel: neu.titel,
+                seite: neu.seite,
+                typ: neu.typ,
+                frontseite: neu.frontseite,
+                warum_exklusiv: neu.warum_exklusiv,
+                zusammenfassung: neu.zusammenfassung,
+                perle_vorschlag: neu.perle_vorschlag,
+                perle_begruendung: neu.perle_begruendung,
+                entscheid: 'offen'
+              })
+            }
+
+            await system.updateOne(id, {
+              status: 'inventarisiert',
+              inventar: inventar as unknown as Record<string, unknown>,
+              fehler: null
+            })
+          } catch (fehler) {
+            logger.error(fehler, 'redaktion: Ausgaben-Inventar fehlgeschlagen')
+            try {
+              await system.updateOne(id, {
+                status: 'fehler',
+                fehler: fehlerText(fehler)
+              })
+            } catch (schreibfehler) {
+              logger.warn(
+                schreibfehler,
+                'redaktion: Inventar-Fehler nicht notiert'
+              )
+            }
+          }
+        }
+
+        void inventarisieren().finally(() => {
+          laufendeInventare.delete(id)
+        })
+
+        return res.status(202).json({ data: { gestartet: true } })
+      }
+    )
+
+    router.post(
+      '/kandidaten/:id/meldung',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const schema = await getSchema()
+          const kandidatenService = new ItemsService('wochenblattkandidaten', {
+            schema,
+            accountability: req.accountability
+          })
+          const meldungenService = new ItemsService('meldungen', {
+            schema,
+            accountability: req.accountability
+          })
+
+          const geladen = await ladePresseschauFakten(schema, id)
+
+          const vorhandene = (await meldungenService.readByQuery({
+            filter: {
+              kandidat: { _eq: id },
+              status: { _neq: 'verworfen' }
+            },
+            fields: ['id'],
+            limit: 1
+          })) as { id: string }[]
+          if (vorhandene.length > 0) return next(new KandidatSchonUebernommen())
+
+          const { bericht, warnungen } = await schreibePresseschau(
+            geladen.fakten,
+            geladen.volltext
+          )
+
+          const meldungId = (await meldungenService.createOne({
+            kandidat: id,
+            gemeinde: geladen.gemeindeId,
+            titel: bericht.titel,
+            lead: bericht.lead,
+            text: mitQuelle(bericht.text, geladen.fakten),
+            status: 'entwurf',
+            verarbeitung: 'idle',
+            zeit_warnungen: warnungen.length > 0 ? warnungen : null,
+            datengrundlage: {
+              quelle: 'wochenblatt',
+              blatt: geladen.fakten.blatt,
+              nummer: geladen.fakten.nummer,
+              datum: geladen.fakten.datum,
+              seite: geladen.fakten.seite,
+              beitrag: geladen.fakten.titel,
+              pdf_url: geladen.fakten.pdfUrl
+            }
+          })) as string
+
+          await kandidatenService.updateOne(id, { entscheid: 'uebernommen' })
+
+          return res.json({ data: { meldung: meldungId, warnungen } })
+        } catch (error) {
+          const status = (error as { status?: unknown }).status
+          if (
+            status === 403 ||
+            status === 404 ||
+            status === 400 ||
+            status === 409
+          ) {
+            return next(uebersetze(error))
+          }
+          logger.error(error, 'redaktion: Presseschau-Meldung fehlgeschlagen')
+          return next(new UeberarbeitungFehlgeschlagen())
+        }
+      }
+    )
+
+    router.post(
+      '/kandidaten/:id/ablehnen',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        const GRUENDE = [
+          'nicht_relevant',
+          'doublette',
+          'veraltet',
+          'falsche_gemeinde',
+          'andere'
+        ]
+        const koerper = (req.body ?? {}) as {
+          grund?: unknown
+          kommentar?: unknown
+        }
+        if (
+          typeof koerper.grund !== 'string' ||
+          !GRUENDE.includes(koerper.grund)
+        ) {
+          return next(new UngueltigerAblehnungsgrund())
+        }
+        const kommentar =
+          typeof koerper.kommentar === 'string' &&
+          koerper.kommentar.trim() !== ''
+            ? koerper.kommentar.trim()
+            : null
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const kandidatenService = new ItemsService('wochenblattkandidaten', {
+            schema: await getSchema(),
+            accountability: req.accountability
+          })
+
+          // This is the learning signal: reason and comment ride into the
+          // next inventory's digest as a negative example.
+          await kandidatenService.updateOne(id, {
+            entscheid: 'abgelehnt',
+            ablehnungsgrund: koerper.grund,
+            ablehnungskommentar: kommentar
+          })
+
+          return res.json({ data: { kandidat: id, entscheid: 'abgelehnt' } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
       }
     )
 
@@ -684,11 +1142,20 @@ export default defineEndpoint(
           const chat = new ItemsService('chat_nachrichten', { schema })
 
           const meldung = (await meldungen.readOne(id, {
-            fields: ['id', 'spiel', 'erscheint_am', 'titel', 'lead', 'text']
+            fields: [
+              'id',
+              'spiel',
+              'erscheint_am',
+              'kandidat',
+              'titel',
+              'lead',
+              'text'
+            ]
           })) as {
             id: string
             spiel: string | null
             erscheint_am: string | null
+            kandidat: string | null
             titel: string | null
             lead: string | null
             text: string | null
@@ -735,6 +1202,40 @@ export default defineEndpoint(
               logger.error(
                 fehler,
                 'redaktion: Spielbericht-Ueberarbeitung fehlgeschlagen'
+              )
+              throw new UeberarbeitungFehlgeschlagen()
+            }
+          }
+
+          // A press review is revised here too — it has no run, so the
+          // statistics queue cannot carry it. The source line is re-appended
+          // by code after every revision; the model never owns it.
+          if (meldung.kandidat !== null) {
+            await meldungen.updateOne(id, { verarbeitung: 'laeuft', anweisung })
+            try {
+              const warnungen = await ueberarbeitePresseschau(
+                meldung,
+                meldung.kandidat,
+                anweisung
+              )
+              await chat.createOne({
+                meldung: id,
+                rolle: 'assistant',
+                inhalt:
+                  warnungen.length === 0
+                    ? 'Neu formuliert.'
+                    : `Neu formuliert — mit Hinweisen: ${warnungen.join(' · ')}`,
+                position: position + 1
+              })
+              return res.json({ data: { meldung: id, warnungen } })
+            } catch (fehler) {
+              await meldungen.updateOne(id, {
+                verarbeitung: 'idle',
+                fehler: fehlerText(fehler)
+              })
+              logger.error(
+                fehler,
+                'redaktion: Presseschau-Ueberarbeitung fehlgeschlagen'
               )
               throw new UeberarbeitungFehlgeschlagen()
             }
@@ -816,7 +1317,21 @@ export default defineEndpoint(
           const zustellung =
             ziel === 'in_pruefung' ? await mintFreigabe(meldungen, id) : null
 
-          await meldungen.updateOne(id, { status: ziel })
+          // Publishing a press review is also the Perle decision: "als Perle
+          // publizieren" or plain publishing. Explicitly false when unsaid —
+          // an unpublished or silently published piece is never a Perle.
+          let perleFelder: Record<string, unknown> = {}
+          if (ziel === 'publiziert') {
+            const zeile = (await meldungen.readOne(id, {
+              fields: ['kandidat']
+            })) as { kandidat: string | null }
+            if (zeile.kandidat !== null) {
+              const koerper = (req.body ?? {}) as { perle?: unknown }
+              perleFelder = { perle: koerper.perle === true }
+            }
+          }
+
+          await meldungen.updateOne(id, { status: ziel, ...perleFelder })
 
           return res.json({
             data: {
@@ -2050,6 +2565,254 @@ export default defineEndpoint(
      * the article is what is being corrected, so it cannot be its own source.
      * Returns the check warnings so the chat can show them.
      */
+    interface GeladenePresseschau {
+      fakten: PresseschauFakten
+      gemeindeId: string
+      volltext: string | null
+    }
+
+    /** Candidate, issue and paper in one read — the facts a press review runs on. */
+    async function ladePresseschauFakten(
+      schema: Awaited<ReturnType<typeof getSchema>>,
+      kandidatId: string
+    ): Promise<GeladenePresseschau> {
+      const kandidaten = new ItemsService('wochenblattkandidaten', { schema })
+
+      const kandidat = (await kandidaten.readOne(kandidatId, {
+        fields: [
+          'id',
+          'titel',
+          'seite',
+          'typ',
+          'frontseite',
+          'zusammenfassung',
+          'ausgabe.nummer',
+          'ausgabe.schluessel',
+          'ausgabe.datum',
+          'ausgabe.pdf_url',
+          'ausgabe.volltext',
+          'ausgabe.wochenblatt.name',
+          'ausgabe.wochenblatt.gemeinde.id',
+          'ausgabe.wochenblatt.gemeinde.name'
+        ]
+      })) as {
+        id: string
+        titel: string
+        seite: number | null
+        typ: PresseschauFakten['typ']
+        frontseite: boolean
+        zusammenfassung: string | null
+        ausgabe: {
+          nummer: string | null
+          schluessel: string
+          datum: string | null
+          pdf_url: string | null
+          volltext: string | null
+          wochenblatt: { name: string; gemeinde: { id: string; name: string } }
+        }
+      }
+
+      if (
+        kandidat.zusammenfassung === null ||
+        kandidat.zusammenfassung.trim() === ''
+      ) {
+        // Without the fact summary there is nothing to write FROM — and
+        // writing from the model's memory of the PDF is exactly what the
+        // one-source rule forbids.
+        throw new NichtsZuTun()
+      }
+
+      return {
+        gemeindeId: kandidat.ausgabe.wochenblatt.gemeinde.id,
+        volltext: kandidat.ausgabe.volltext,
+        fakten: {
+          blatt: kandidat.ausgabe.wochenblatt.name,
+          nummer: kandidat.ausgabe.nummer ?? kandidat.ausgabe.schluessel,
+          datum: kandidat.ausgabe.datum,
+          gemeinde: kandidat.ausgabe.wochenblatt.gemeinde.name,
+          titel: kandidat.titel,
+          seite: kandidat.seite,
+          typ: kandidat.typ,
+          frontseite: kandidat.frontseite,
+          zusammenfassung: kandidat.zusammenfassung,
+          pdfUrl: kandidat.ausgabe.pdf_url
+        }
+      }
+    }
+
+    /**
+     * One write with the checks that make it a press review: attribution
+     * proven (with one correction retry — a press review without its source
+     * is not a press review), digits held to the handed facts, and the text
+     * slid over the issue's own words. The overlap check runs BEFORE the
+     * source line is appended — the URL's digits are nobody's claim.
+     */
+    async function presseschauMitChecks(
+      fakten: PresseschauFakten,
+      volltext: string | null,
+      prompt: string
+    ): Promise<{
+      bericht: { titel: string; lead: string; text: string }
+      warnungen: string[]
+    }> {
+      let bericht = parsePresseschau(
+        await completeJson<unknown>({
+          system: PRESSESCHAU_SYSTEM_PROMPT,
+          prompt,
+          maxTokens: 1500
+        })
+      )
+
+      let attribution = attributionsWarnung(
+        `${bericht.lead} ${bericht.text}`,
+        fakten
+      )
+      if (attribution !== null) {
+        bericht = parsePresseschau(
+          await completeJson<unknown>({
+            system: PRESSESCHAU_SYSTEM_PROMPT,
+            prompt: buildPresseschauRevision(
+              fakten,
+              bericht,
+              `Nenne die Quelle im Fliesstext: "${fakten.blatt} (Nr. ${fakten.nummer})".`
+            ),
+            maxTokens: 1500
+          })
+        )
+        attribution = attributionsWarnung(
+          `${bericht.lead} ${bericht.text}`,
+          fakten
+        )
+      }
+
+      const alles = `${bericht.titel} ${bericht.lead} ${bericht.text}`
+      const warnungen = [
+        ...zeitWarnungen(alles),
+        ...zahlWarnungenPresseschau(alles, fakten),
+        ...(attribution === null ? [] : [attribution]),
+        ...(volltext !== null && volltext.trim().length >= 50
+          ? ueberlappungsWarnungen(alles, volltext)
+          : ['Volltext der Ausgabe fehlt — Ueberlappungs-Check uebersprungen.'])
+      ]
+
+      return { bericht, warnungen }
+    }
+
+    async function schreibePresseschau(
+      fakten: PresseschauFakten,
+      volltext: string | null
+    ): Promise<{
+      bericht: { titel: string; lead: string; text: string }
+      warnungen: string[]
+    }> {
+      return presseschauMitChecks(
+        fakten,
+        volltext,
+        buildPresseschauPrompt(fakten)
+      )
+    }
+
+    async function ueberarbeitePresseschau(
+      meldung: {
+        id: string
+        titel: string | null
+        lead: string | null
+        text: string | null
+      },
+      kandidatId: string,
+      anweisung: string
+    ): Promise<string[]> {
+      const schema = await getSchema()
+      const meldungen = new ItemsService('meldungen', { schema })
+
+      const geladen = await ladePresseschauFakten(schema, kandidatId)
+      const { bericht, warnungen } = await presseschauMitChecks(
+        geladen.fakten,
+        geladen.volltext,
+        buildPresseschauRevision(geladen.fakten, meldung, anweisung)
+      )
+
+      await meldungen.updateOne(meldung.id, {
+        titel: bericht.titel,
+        lead: bericht.lead,
+        text: mitQuelle(bericht.text, geladen.fakten),
+        zeit_warnungen: warnungen.length > 0 ? warnungen : null,
+        verarbeitung: 'idle',
+        anweisung: null,
+        fehler: null
+      })
+
+      return warnungen
+    }
+
+    /**
+     * The learning half of the press review, endpoint-side: the same digest
+     * the 09:00 operation builds, for the re-inventory button.
+     */
+    async function ladeLernEintraege(
+      schema: Awaited<ReturnType<typeof getSchema>>,
+      blattId: string
+    ): Promise<LernEintrag[]> {
+      const kandidatenService = new ItemsService('wochenblattkandidaten', {
+        schema
+      })
+      const meldungenService = new ItemsService('meldungen', { schema })
+
+      const kandidaten = (await kandidatenService.readByQuery({
+        filter: {
+          entscheid: { _neq: 'offen' },
+          ausgabe: { wochenblatt: { _eq: blattId } }
+        },
+        sort: ['-date_updated'],
+        fields: [
+          'id',
+          'titel',
+          'typ',
+          'entscheid',
+          'ablehnungsgrund',
+          'ablehnungskommentar',
+          'perle_vorschlag'
+        ],
+        limit: 20
+      })) as Array<{
+        id: string
+        titel: string
+        typ: LernEintrag['typ']
+        entscheid: LernEintrag['entscheid']
+        ablehnungsgrund: LernEintrag['ablehnungsgrund']
+        ablehnungskommentar: string | null
+        perle_vorschlag: boolean
+      }>
+      if (kandidaten.length === 0) return []
+
+      const meldungen = (await meldungenService.readByQuery({
+        filter: { kandidat: { _in: kandidaten.map((k) => k.id) } },
+        fields: ['kandidat', 'status', 'perle'],
+        limit: -1
+      })) as Array<{
+        kandidat: string
+        status: string
+        perle: boolean | null
+      }>
+      const nachKandidat = new Map(meldungen.map((m) => [m.kandidat, m]))
+
+      return kandidaten.map((k) => {
+        const meldung = nachKandidat.get(k.id)
+        return {
+          titel: k.titel,
+          typ: k.typ,
+          entscheid: k.entscheid,
+          ablehnungsgrund: k.ablehnungsgrund,
+          ablehnungskommentar: k.ablehnungskommentar,
+          perleVorschlag: k.perle_vorschlag,
+          perleBestaetigt:
+            meldung !== undefined && meldung.status === 'publiziert'
+              ? meldung.perle === true
+              : null
+        }
+      })
+    }
+
     async function ueberarbeiteSpielbericht(
       meldung: {
         id: string

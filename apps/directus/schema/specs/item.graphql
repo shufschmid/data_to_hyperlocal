@@ -63,6 +63,18 @@ type Query {
   entsorgungstermine_by_id(id: ID!, version: String): entsorgungstermine
   entsorgungstermine_aggregated(groupBy: [String], filter: entsorgungstermine_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [entsorgungstermine_aggregated!]!
   entsorgungstermine_by_version(version: String!, id: ID!): version_entsorgungstermine
+  wochenblaetter(filter: wochenblaetter_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [wochenblaetter!]!
+  wochenblaetter_by_id(id: ID!, version: String): wochenblaetter
+  wochenblaetter_aggregated(groupBy: [String], filter: wochenblaetter_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [wochenblaetter_aggregated!]!
+  wochenblaetter_by_version(version: String!, id: ID!): version_wochenblaetter
+  wochenblattkandidaten(filter: wochenblattkandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [wochenblattkandidaten!]!
+  wochenblattkandidaten_by_id(id: ID!, version: String): wochenblattkandidaten
+  wochenblattkandidaten_aggregated(groupBy: [String], filter: wochenblattkandidaten_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [wochenblattkandidaten_aggregated!]!
+  wochenblattkandidaten_by_version(version: String!, id: ID!): version_wochenblattkandidaten
+  wochenblattausgaben(filter: wochenblattausgaben_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [wochenblattausgaben!]!
+  wochenblattausgaben_by_id(id: ID!, version: String): wochenblattausgaben
+  wochenblattausgaben_aggregated(groupBy: [String], filter: wochenblattausgaben_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [wochenblattausgaben_aggregated!]!
+  wochenblattausgaben_by_version(version: String!, id: ID!): version_wochenblattausgaben
 }
 
 type Mutation {
@@ -98,6 +110,12 @@ type Mutation {
   create_entsorgungskalender_item(data: create_entsorgungskalender_input!): entsorgungskalender
   create_entsorgungstermine_items(filter: entsorgungstermine_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_entsorgungstermine_input!]): [entsorgungstermine!]!
   create_entsorgungstermine_item(data: create_entsorgungstermine_input!): entsorgungstermine
+  create_wochenblaetter_items(filter: wochenblaetter_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_wochenblaetter_input!]): [wochenblaetter!]!
+  create_wochenblaetter_item(data: create_wochenblaetter_input!): wochenblaetter
+  create_wochenblattkandidaten_items(filter: wochenblattkandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_wochenblattkandidaten_input!]): [wochenblattkandidaten!]!
+  create_wochenblattkandidaten_item(data: create_wochenblattkandidaten_input!): wochenblattkandidaten
+  create_wochenblattausgaben_items(filter: wochenblattausgaben_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_wochenblattausgaben_input!]): [wochenblattausgaben!]!
+  create_wochenblattausgaben_item(data: create_wochenblattausgaben_input!): wochenblattausgaben
   update_quellen_items(filter: quellen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_quellen_input!): [quellen!]!
   update_quellen_batch(filter: quellen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_quellen_input!]): [quellen!]!
   update_quellen_item(id: ID!, data: update_quellen_input!): quellen
@@ -146,6 +164,15 @@ type Mutation {
   update_entsorgungstermine_items(filter: entsorgungstermine_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_entsorgungstermine_input!): [entsorgungstermine!]!
   update_entsorgungstermine_batch(filter: entsorgungstermine_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_entsorgungstermine_input!]): [entsorgungstermine!]!
   update_entsorgungstermine_item(id: ID!, data: update_entsorgungstermine_input!): entsorgungstermine
+  update_wochenblaetter_items(filter: wochenblaetter_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_wochenblaetter_input!): [wochenblaetter!]!
+  update_wochenblaetter_batch(filter: wochenblaetter_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_wochenblaetter_input!]): [wochenblaetter!]!
+  update_wochenblaetter_item(id: ID!, data: update_wochenblaetter_input!): wochenblaetter
+  update_wochenblattkandidaten_items(filter: wochenblattkandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_wochenblattkandidaten_input!): [wochenblattkandidaten!]!
+  update_wochenblattkandidaten_batch(filter: wochenblattkandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_wochenblattkandidaten_input!]): [wochenblattkandidaten!]!
+  update_wochenblattkandidaten_item(id: ID!, data: update_wochenblattkandidaten_input!): wochenblattkandidaten
+  update_wochenblattausgaben_items(filter: wochenblattausgaben_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_wochenblattausgaben_input!): [wochenblattausgaben!]!
+  update_wochenblattausgaben_batch(filter: wochenblattausgaben_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_wochenblattausgaben_input!]): [wochenblattausgaben!]!
+  update_wochenblattausgaben_item(id: ID!, data: update_wochenblattausgaben_input!): wochenblattausgaben
   delete_quellen_items(ids: [ID]!): delete_many
   delete_quellen_item(id: ID!): delete_one
   delete_ankuendigungen_items(ids: [ID]!): delete_many
@@ -178,6 +205,12 @@ type Mutation {
   delete_entsorgungskalender_item(id: ID!): delete_one
   delete_entsorgungstermine_items(ids: [ID]!): delete_many
   delete_entsorgungstermine_item(id: ID!): delete_one
+  delete_wochenblaetter_items(ids: [ID]!): delete_many
+  delete_wochenblaetter_item(id: ID!): delete_one
+  delete_wochenblattkandidaten_items(ids: [ID]!): delete_many
+  delete_wochenblattkandidaten_item(id: ID!): delete_one
+  delete_wochenblattausgaben_items(ids: [ID]!): delete_many
+  delete_wochenblattausgaben_item(id: ID!): delete_one
 }
 
 type Subscription {
@@ -220,6 +253,9 @@ type Subscription {
   spiele_mutated(event: EventEnum): spiele_mutated
   entsorgungskalender_mutated(event: EventEnum): entsorgungskalender_mutated
   entsorgungstermine_mutated(event: EventEnum): entsorgungstermine_mutated
+  wochenblaetter_mutated(event: EventEnum): wochenblaetter_mutated
+  wochenblattkandidaten_mutated(event: EventEnum): wochenblattkandidaten_mutated
+  wochenblattausgaben_mutated(event: EventEnum): wochenblattausgaben_mutated
 }
 
 """The `Boolean` scalar type represents `true` or `false`."""
@@ -1724,6 +1760,12 @@ type meldungen {
   """
   erscheint_am: Date
   erscheint_am_func: date_functions
+  kandidat(filter: wochenblattkandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): wochenblattkandidaten
+
+  """
+  Beim Publizieren entschieden: eine Perle interessiert auch die Stadt Basel. Nicht publiziert heisst keine Perle.
+  """
+  perle: Boolean
 }
 
 type meldungen_aggregated {
@@ -1792,6 +1834,16 @@ type meldungen_aggregated_count {
   Nur bei Entsorgungserinnerungen: der Newsletter-Tag. Publiziert wird am Vortag.
   """
   erscheint_am: Int
+
+  """
+  Gesetzt, wenn diese Meldung eine Presseschau aus einem Wochenblatt-Beitrag ist.
+  """
+  kandidat: Int
+
+  """
+  Beim Publizieren entschieden: eine Perle interessiert auch die Stadt Basel. Nicht publiziert heisst keine Perle.
+  """
+  perle: Int
 }
 
 type meldungen_aggregated_fields {
@@ -2589,6 +2641,12 @@ type version_meldungen {
   Nur bei Entsorgungserinnerungen: der Newsletter-Tag. Publiziert wird am Vortag.
   """
   erscheint_am: Date
+  kandidat: JSON
+
+  """
+  Beim Publizieren entschieden: eine Perle interessiert auch die Stadt Basel. Nicht publiziert heisst keine Perle.
+  """
+  perle: Boolean
 }
 
 """"""
@@ -2758,6 +2816,391 @@ type version_vereine {
   aktiv: Boolean
   date_created: Date
   date_updated: Date
+}
+
+""""""
+type version_wochenblaetter {
+  id: ID
+  gemeinde: JSON
+
+  """Wie das Blatt heisst — steht so in der Attribution jeder Meldung."""
+  name: String
+
+  """
+  Das oeffentliche Ausgaben-Archiv. Nur diese Seite wird gelesen — URLs werden nie geraten.
+  """
+  archiv_url: String
+
+  """
+  Wie das Archiv gelesen wird. Das naechste Blatt mit anderem Aufbau bekommt seinen eigenen Wert.
+  """
+  konnektor: String
+  aktiv: Boolean
+  letzte_pruefung: Date
+
+  """
+  Warum der letzte Abruf scheiterte — sichtbar im Workspace, damit Abwesenheit nie Stille ist.
+  """
+  letzter_fehler: String
+  date_created: Date
+  date_updated: Date
+  ausgaben: JSON
+}
+
+""""""
+type version_wochenblattausgaben {
+  id: ID
+  wochenblatt: JSON
+
+  """
+  Kanonische Identitaet ("kw34-2026"), aus dem Slug normalisiert. Macht den Tageslauf idempotent.
+  """
+  schluessel: String
+  slug: String
+
+  """
+  Wie das Blatt sie druckt — "34" oder "30/31". Steht in der Attribution.
+  """
+  nummer: String
+  datum: Date
+
+  """Die Ausgabenseite im Archiv."""
+  seite_url: String
+
+  """
+  Die aufgeloeste PDF-Adresse. Mit #page=N verlinken Meldungen direkt auf die Beitragsseite.
+  """
+  pdf_url: String
+  pdf: JSON
+  seiten: Int
+  status: String
+
+  """
+  Textlayer des PDFs — Korpus fuer den Ueberlappungs-Check der Meldungen.
+  """
+  volltext: String
+
+  """Rohergebnis des Inventars, zum Nachvollziehen."""
+  inventar: JSON
+
+  """Warum das Inventar scheiterte."""
+  fehler: String
+  date_created: Date
+  date_updated: Date
+  kandidaten: JSON
+}
+
+""""""
+type version_wochenblattkandidaten {
+  id: ID
+  ausgabe: JSON
+
+  """Wie im Blatt gedruckt."""
+  titel: String
+  seite: Int
+  typ: String
+
+  """
+  Auf der Frontseite angerissen — was dort steht, ist oft am interessantesten.
+  """
+  frontseite: Boolean
+  warum_exklusiv: String
+
+  """
+  Nackte Fakten aus dem Beitrag — die einzige Quelle der spaeteren Meldung.
+  """
+  zusammenfassung: String
+
+  """Kurios UND ueberoertlich — koennte auch die Stadt Basel interessieren."""
+  perle_vorschlag: Boolean
+  perle_begruendung: String
+  entscheid: String
+
+  """
+  Das Lernsignal: der Grund fliesst in den Digest des naechsten Inventars.
+  """
+  ablehnungsgrund: String
+  ablehnungskommentar: String
+  date_created: Date
+  date_updated: Date
+}
+
+type wochenblaetter {
+  id: ID!
+  gemeinde(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): gemeinden
+
+  """Wie das Blatt heisst — steht so in der Attribution jeder Meldung."""
+  name: String!
+
+  """
+  Das oeffentliche Ausgaben-Archiv. Nur diese Seite wird gelesen — URLs werden nie geraten.
+  """
+  archiv_url: String!
+
+  """
+  Wie das Archiv gelesen wird. Das naechste Blatt mit anderem Aufbau bekommt seinen eigenen Wert.
+  """
+  konnektor: String
+  aktiv: Boolean
+  letzte_pruefung: Date
+  letzte_pruefung_func: datetime_functions
+
+  """
+  Warum der letzte Abruf scheiterte — sichtbar im Workspace, damit Abwesenheit nie Stille ist.
+  """
+  letzter_fehler: String
+  date_created: Date
+  date_created_func: datetime_functions
+  date_updated: Date
+  date_updated_func: datetime_functions
+  ausgaben(filter: wochenblattausgaben_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [wochenblattausgaben]
+  ausgaben_func: count_functions
+}
+
+type wochenblaetter_aggregated {
+  group: JSON
+  countAll: Int
+  count: wochenblaetter_aggregated_count
+  countDistinct: wochenblaetter_aggregated_count
+}
+
+type wochenblaetter_aggregated_count {
+  id: Int
+  gemeinde: Int
+
+  """Wie das Blatt heisst — steht so in der Attribution jeder Meldung."""
+  name: Int
+
+  """
+  Das oeffentliche Ausgaben-Archiv. Nur diese Seite wird gelesen — URLs werden nie geraten.
+  """
+  archiv_url: Int
+
+  """
+  Wie das Archiv gelesen wird. Das naechste Blatt mit anderem Aufbau bekommt seinen eigenen Wert.
+  """
+  konnektor: Int
+  aktiv: Int
+  letzte_pruefung: Int
+
+  """
+  Warum der letzte Abruf scheiterte — sichtbar im Workspace, damit Abwesenheit nie Stille ist.
+  """
+  letzter_fehler: Int
+  date_created: Int
+  date_updated: Int
+  ausgaben: Int
+}
+
+type wochenblaetter_mutated {
+  key: ID!
+  event: EventEnum
+  data: wochenblaetter
+}
+
+type wochenblattausgaben {
+  id: ID!
+  wochenblatt(filter: wochenblaetter_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): wochenblaetter
+
+  """
+  Kanonische Identitaet ("kw34-2026"), aus dem Slug normalisiert. Macht den Tageslauf idempotent.
+  """
+  schluessel: String!
+  slug: String
+
+  """
+  Wie das Blatt sie druckt — "34" oder "30/31". Steht in der Attribution.
+  """
+  nummer: String
+  datum: Date
+  datum_func: date_functions
+
+  """Die Ausgabenseite im Archiv."""
+  seite_url: String
+
+  """
+  Die aufgeloeste PDF-Adresse. Mit #page=N verlinken Meldungen direkt auf die Beitragsseite.
+  """
+  pdf_url: String
+  pdf(filter: directus_files_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): directus_files
+  seiten: Int
+  status: String
+
+  """
+  Textlayer des PDFs — Korpus fuer den Ueberlappungs-Check der Meldungen.
+  """
+  volltext: String
+
+  """Rohergebnis des Inventars, zum Nachvollziehen."""
+  inventar: JSON
+  inventar_func: count_functions
+
+  """Warum das Inventar scheiterte."""
+  fehler: String
+  date_created: Date
+  date_created_func: datetime_functions
+  date_updated: Date
+  date_updated_func: datetime_functions
+  kandidaten(filter: wochenblattkandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [wochenblattkandidaten]
+  kandidaten_func: count_functions
+}
+
+type wochenblattausgaben_aggregated {
+  group: JSON
+  countAll: Int
+  count: wochenblattausgaben_aggregated_count
+  countDistinct: wochenblattausgaben_aggregated_count
+  avg: wochenblattausgaben_aggregated_fields
+  sum: wochenblattausgaben_aggregated_fields
+  avgDistinct: wochenblattausgaben_aggregated_fields
+  sumDistinct: wochenblattausgaben_aggregated_fields
+  min: wochenblattausgaben_aggregated_fields
+  max: wochenblattausgaben_aggregated_fields
+}
+
+type wochenblattausgaben_aggregated_count {
+  id: Int
+  wochenblatt: Int
+
+  """
+  Kanonische Identitaet ("kw34-2026"), aus dem Slug normalisiert. Macht den Tageslauf idempotent.
+  """
+  schluessel: Int
+  slug: Int
+
+  """
+  Wie das Blatt sie druckt — "34" oder "30/31". Steht in der Attribution.
+  """
+  nummer: Int
+  datum: Int
+
+  """Die Ausgabenseite im Archiv."""
+  seite_url: Int
+
+  """
+  Die aufgeloeste PDF-Adresse. Mit #page=N verlinken Meldungen direkt auf die Beitragsseite.
+  """
+  pdf_url: Int
+  pdf: Int
+  seiten: Int
+  status: Int
+
+  """
+  Textlayer des PDFs — Korpus fuer den Ueberlappungs-Check der Meldungen.
+  """
+  volltext: Int
+
+  """Rohergebnis des Inventars, zum Nachvollziehen."""
+  inventar: Int
+
+  """Warum das Inventar scheiterte."""
+  fehler: Int
+  date_created: Int
+  date_updated: Int
+  kandidaten: Int
+}
+
+type wochenblattausgaben_aggregated_fields {
+  seiten: Float
+}
+
+type wochenblattausgaben_mutated {
+  key: ID!
+  event: EventEnum
+  data: wochenblattausgaben
+}
+
+type wochenblattkandidaten {
+  id: ID!
+  ausgabe(filter: wochenblattausgaben_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): wochenblattausgaben
+
+  """Wie im Blatt gedruckt."""
+  titel: String!
+  seite: Int
+  typ: String!
+
+  """
+  Auf der Frontseite angerissen — was dort steht, ist oft am interessantesten.
+  """
+  frontseite: Boolean!
+  warum_exklusiv: String
+
+  """
+  Nackte Fakten aus dem Beitrag — die einzige Quelle der spaeteren Meldung.
+  """
+  zusammenfassung: String
+
+  """Kurios UND ueberoertlich — koennte auch die Stadt Basel interessieren."""
+  perle_vorschlag: Boolean!
+  perle_begruendung: String
+  entscheid: String
+
+  """
+  Das Lernsignal: der Grund fliesst in den Digest des naechsten Inventars.
+  """
+  ablehnungsgrund: String
+  ablehnungskommentar: String
+  date_created: Date
+  date_created_func: datetime_functions
+  date_updated: Date
+  date_updated_func: datetime_functions
+}
+
+type wochenblattkandidaten_aggregated {
+  group: JSON
+  countAll: Int
+  count: wochenblattkandidaten_aggregated_count
+  countDistinct: wochenblattkandidaten_aggregated_count
+  avg: wochenblattkandidaten_aggregated_fields
+  sum: wochenblattkandidaten_aggregated_fields
+  avgDistinct: wochenblattkandidaten_aggregated_fields
+  sumDistinct: wochenblattkandidaten_aggregated_fields
+  min: wochenblattkandidaten_aggregated_fields
+  max: wochenblattkandidaten_aggregated_fields
+}
+
+type wochenblattkandidaten_aggregated_count {
+  id: Int
+  ausgabe: Int
+
+  """Wie im Blatt gedruckt."""
+  titel: Int
+  seite: Int
+  typ: Int
+
+  """
+  Auf der Frontseite angerissen — was dort steht, ist oft am interessantesten.
+  """
+  frontseite: Int
+  warum_exklusiv: Int
+
+  """
+  Nackte Fakten aus dem Beitrag — die einzige Quelle der spaeteren Meldung.
+  """
+  zusammenfassung: Int
+
+  """Kurios UND ueberoertlich — koennte auch die Stadt Basel interessieren."""
+  perle_vorschlag: Int
+  perle_begruendung: Int
+  entscheid: Int
+
+  """
+  Das Lernsignal: der Grund fliesst in den Digest des naechsten Inventars.
+  """
+  ablehnungsgrund: Int
+  ablehnungskommentar: Int
+  date_created: Int
+  date_updated: Int
+}
+
+type wochenblattkandidaten_aggregated_fields {
+  seite: Float
+}
+
+type wochenblattkandidaten_mutated {
+  key: ID!
+  event: EventEnum
+  data: wochenblattkandidaten
 }
 
 input ankuendigungen_filter {
@@ -3252,6 +3695,12 @@ input create_meldungen_input {
   Nur bei Entsorgungserinnerungen: der Newsletter-Tag. Publiziert wird am Vortag.
   """
   erscheint_am: Date
+  kandidat: create_wochenblattkandidaten_input
+
+  """
+  Beim Publizieren entschieden: eine Perle interessiert auch die Stadt Basel. Nicht publiziert heisst keine Perle.
+  """
+  perle: Boolean
 }
 
 input create_portal_bereiche_input {
@@ -3413,6 +3862,110 @@ input create_vereine_input {
   """Solange nicht gesetzt, ist der Verein ein Vorschlag der Quelle."""
   zuordnung_geprueft: Boolean!
   aktiv: Boolean
+  date_created: Date
+  date_updated: Date
+}
+
+input create_wochenblaetter_input {
+  id: ID
+  gemeinde: create_gemeinden_input
+
+  """Wie das Blatt heisst — steht so in der Attribution jeder Meldung."""
+  name: String!
+
+  """
+  Das oeffentliche Ausgaben-Archiv. Nur diese Seite wird gelesen — URLs werden nie geraten.
+  """
+  archiv_url: String!
+
+  """
+  Wie das Archiv gelesen wird. Das naechste Blatt mit anderem Aufbau bekommt seinen eigenen Wert.
+  """
+  konnektor: String
+  aktiv: Boolean
+  letzte_pruefung: Date
+
+  """
+  Warum der letzte Abruf scheiterte — sichtbar im Workspace, damit Abwesenheit nie Stille ist.
+  """
+  letzter_fehler: String
+  date_created: Date
+  date_updated: Date
+  ausgaben: [create_wochenblattausgaben_input]
+}
+
+input create_wochenblattausgaben_input {
+  id: ID
+  wochenblatt: create_wochenblaetter_input
+
+  """
+  Kanonische Identitaet ("kw34-2026"), aus dem Slug normalisiert. Macht den Tageslauf idempotent.
+  """
+  schluessel: String!
+  slug: String
+
+  """
+  Wie das Blatt sie druckt — "34" oder "30/31". Steht in der Attribution.
+  """
+  nummer: String
+  datum: Date
+
+  """Die Ausgabenseite im Archiv."""
+  seite_url: String
+
+  """
+  Die aufgeloeste PDF-Adresse. Mit #page=N verlinken Meldungen direkt auf die Beitragsseite.
+  """
+  pdf_url: String
+  pdf: create_directus_files_input
+  seiten: Int
+  status: String
+
+  """
+  Textlayer des PDFs — Korpus fuer den Ueberlappungs-Check der Meldungen.
+  """
+  volltext: String
+
+  """Rohergebnis des Inventars, zum Nachvollziehen."""
+  inventar: JSON
+
+  """Warum das Inventar scheiterte."""
+  fehler: String
+  date_created: Date
+  date_updated: Date
+  kandidaten: [create_wochenblattkandidaten_input]
+}
+
+input create_wochenblattkandidaten_input {
+  id: ID
+  ausgabe: create_wochenblattausgaben_input
+
+  """Wie im Blatt gedruckt."""
+  titel: String!
+  seite: Int
+  typ: String!
+
+  """
+  Auf der Frontseite angerissen — was dort steht, ist oft am interessantesten.
+  """
+  frontseite: Boolean!
+  warum_exklusiv: String
+
+  """
+  Nackte Fakten aus dem Beitrag — die einzige Quelle der spaeteren Meldung.
+  """
+  zusammenfassung: String
+
+  """Kurios UND ueberoertlich — koennte auch die Stadt Basel interessieren."""
+  perle_vorschlag: Boolean!
+  perle_begruendung: String
+  entscheid: String
+
+  """
+  Das Lernsignal: der Grund fliesst in den Digest des naechsten Inventars.
+  """
+  ablehnungsgrund: String
+  ablehnungskommentar: String
   date_created: Date
   date_updated: Date
 }
@@ -4198,6 +4751,8 @@ input meldungen_filter {
   spiel: spiele_filter
   erscheint_am: date_filter_operators
   erscheint_am_func: date_function_filter_operators
+  kandidat: wochenblattkandidaten_filter
+  perle: boolean_filter_operators
   _and: [meldungen_filter]
   _or: [meldungen_filter]
 }
@@ -4767,6 +5322,12 @@ input update_meldungen_input {
   Nur bei Entsorgungserinnerungen: der Newsletter-Tag. Publiziert wird am Vortag.
   """
   erscheint_am: Date
+  kandidat: update_wochenblattkandidaten_input
+
+  """
+  Beim Publizieren entschieden: eine Perle interessiert auch die Stadt Basel. Nicht publiziert heisst keine Perle.
+  """
+  perle: Boolean
 }
 
 input update_portal_bereiche_input {
@@ -4932,6 +5493,110 @@ input update_vereine_input {
   date_updated: Date
 }
 
+input update_wochenblaetter_input {
+  id: ID
+  gemeinde: update_gemeinden_input
+
+  """Wie das Blatt heisst — steht so in der Attribution jeder Meldung."""
+  name: String
+
+  """
+  Das oeffentliche Ausgaben-Archiv. Nur diese Seite wird gelesen — URLs werden nie geraten.
+  """
+  archiv_url: String
+
+  """
+  Wie das Archiv gelesen wird. Das naechste Blatt mit anderem Aufbau bekommt seinen eigenen Wert.
+  """
+  konnektor: String
+  aktiv: Boolean
+  letzte_pruefung: Date
+
+  """
+  Warum der letzte Abruf scheiterte — sichtbar im Workspace, damit Abwesenheit nie Stille ist.
+  """
+  letzter_fehler: String
+  date_created: Date
+  date_updated: Date
+  ausgaben: [update_wochenblattausgaben_input]
+}
+
+input update_wochenblattausgaben_input {
+  id: ID
+  wochenblatt: update_wochenblaetter_input
+
+  """
+  Kanonische Identitaet ("kw34-2026"), aus dem Slug normalisiert. Macht den Tageslauf idempotent.
+  """
+  schluessel: String
+  slug: String
+
+  """
+  Wie das Blatt sie druckt — "34" oder "30/31". Steht in der Attribution.
+  """
+  nummer: String
+  datum: Date
+
+  """Die Ausgabenseite im Archiv."""
+  seite_url: String
+
+  """
+  Die aufgeloeste PDF-Adresse. Mit #page=N verlinken Meldungen direkt auf die Beitragsseite.
+  """
+  pdf_url: String
+  pdf: update_directus_files_input
+  seiten: Int
+  status: String
+
+  """
+  Textlayer des PDFs — Korpus fuer den Ueberlappungs-Check der Meldungen.
+  """
+  volltext: String
+
+  """Rohergebnis des Inventars, zum Nachvollziehen."""
+  inventar: JSON
+
+  """Warum das Inventar scheiterte."""
+  fehler: String
+  date_created: Date
+  date_updated: Date
+  kandidaten: [update_wochenblattkandidaten_input]
+}
+
+input update_wochenblattkandidaten_input {
+  id: ID
+  ausgabe: update_wochenblattausgaben_input
+
+  """Wie im Blatt gedruckt."""
+  titel: String
+  seite: Int
+  typ: String
+
+  """
+  Auf der Frontseite angerissen — was dort steht, ist oft am interessantesten.
+  """
+  frontseite: Boolean
+  warum_exklusiv: String
+
+  """
+  Nackte Fakten aus dem Beitrag — die einzige Quelle der spaeteren Meldung.
+  """
+  zusammenfassung: String
+
+  """Kurios UND ueberoertlich — koennte auch die Stadt Basel interessieren."""
+  perle_vorschlag: Boolean
+  perle_begruendung: String
+  entscheid: String
+
+  """
+  Das Lernsignal: der Grund fliesst in den Digest des naechsten Inventars.
+  """
+  ablehnungsgrund: String
+  ablehnungskommentar: String
+  date_created: Date
+  date_updated: Date
+}
+
 input vereine_filter {
   id: id_filter_operators
   name: string_filter_operators
@@ -4952,4 +5617,128 @@ input vereine_filter {
   date_updated_func: datetime_function_filter_operators
   _and: [vereine_filter]
   _or: [vereine_filter]
+}
+
+input wochenblaetter_filter {
+  id: id_filter_operators
+  gemeinde: gemeinden_filter
+  name: string_filter_operators
+  archiv_url: string_filter_operators
+  konnektor: string_filter_operators
+  aktiv: boolean_filter_operators
+  letzte_pruefung: date_filter_operators
+  letzte_pruefung_func: datetime_function_filter_operators
+  letzter_fehler: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  ausgaben: wochenblattausgaben_quantifier_filter
+  ausgaben_func: count_function_filter_operators
+  _and: [wochenblaetter_filter]
+  _or: [wochenblaetter_filter]
+}
+
+input wochenblattausgaben_filter {
+  id: id_filter_operators
+  wochenblatt: wochenblaetter_filter
+  schluessel: string_filter_operators
+  slug: string_filter_operators
+  nummer: string_filter_operators
+  datum: date_filter_operators
+  datum_func: date_function_filter_operators
+  seite_url: string_filter_operators
+  pdf_url: string_filter_operators
+  pdf: directus_files_filter
+  seiten: number_filter_operators
+  status: string_filter_operators
+  volltext: string_filter_operators
+  inventar: string_filter_operators
+  inventar_func: count_function_filter_operators
+  fehler: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  kandidaten: wochenblattkandidaten_quantifier_filter
+  kandidaten_func: count_function_filter_operators
+  _and: [wochenblattausgaben_filter]
+  _or: [wochenblattausgaben_filter]
+}
+
+""""""
+input wochenblattausgaben_quantifier_filter {
+  id: id_filter_operators
+  wochenblatt: wochenblaetter_filter
+  schluessel: string_filter_operators
+  slug: string_filter_operators
+  nummer: string_filter_operators
+  datum: date_filter_operators
+  datum_func: date_function_filter_operators
+  seite_url: string_filter_operators
+  pdf_url: string_filter_operators
+  pdf: directus_files_filter
+  seiten: number_filter_operators
+  status: string_filter_operators
+  volltext: string_filter_operators
+  inventar: string_filter_operators
+  inventar_func: count_function_filter_operators
+  fehler: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  kandidaten: wochenblattkandidaten_quantifier_filter
+  kandidaten_func: count_function_filter_operators
+  _and: [wochenblattausgaben_filter]
+  _or: [wochenblattausgaben_filter]
+  _some: wochenblattausgaben_filter
+  _none: wochenblattausgaben_filter
+}
+
+input wochenblattkandidaten_filter {
+  id: id_filter_operators
+  ausgabe: wochenblattausgaben_filter
+  titel: string_filter_operators
+  seite: number_filter_operators
+  typ: string_filter_operators
+  frontseite: boolean_filter_operators
+  warum_exklusiv: string_filter_operators
+  zusammenfassung: string_filter_operators
+  perle_vorschlag: boolean_filter_operators
+  perle_begruendung: string_filter_operators
+  entscheid: string_filter_operators
+  ablehnungsgrund: string_filter_operators
+  ablehnungskommentar: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  _and: [wochenblattkandidaten_filter]
+  _or: [wochenblattkandidaten_filter]
+}
+
+""""""
+input wochenblattkandidaten_quantifier_filter {
+  id: id_filter_operators
+  ausgabe: wochenblattausgaben_filter
+  titel: string_filter_operators
+  seite: number_filter_operators
+  typ: string_filter_operators
+  frontseite: boolean_filter_operators
+  warum_exklusiv: string_filter_operators
+  zusammenfassung: string_filter_operators
+  perle_vorschlag: boolean_filter_operators
+  perle_begruendung: string_filter_operators
+  entscheid: string_filter_operators
+  ablehnungsgrund: string_filter_operators
+  ablehnungskommentar: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  _and: [wochenblattkandidaten_filter]
+  _or: [wochenblattkandidaten_filter]
+  _some: wochenblattkandidaten_filter
+  _none: wochenblattkandidaten_filter
 }

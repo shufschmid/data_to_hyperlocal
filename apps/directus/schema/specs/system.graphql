@@ -301,6 +301,9 @@ type Subscription {
   spiele_mutated(event: EventEnum): spiele_mutated
   entsorgungskalender_mutated(event: EventEnum): entsorgungskalender_mutated
   entsorgungstermine_mutated(event: EventEnum): entsorgungstermine_mutated
+  wochenblaetter_mutated(event: EventEnum): wochenblaetter_mutated
+  wochenblattkandidaten_mutated(event: EventEnum): wochenblattkandidaten_mutated
+  wochenblattausgaben_mutated(event: EventEnum): wochenblattausgaben_mutated
 }
 
 """The `Boolean` scalar type represents `true` or `false`."""
@@ -2157,6 +2160,12 @@ type meldungen {
   """
   erscheint_am: Date
   erscheint_am_func: date_functions
+  kandidat(filter: wochenblattkandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): wochenblattkandidaten
+
+  """
+  Beim Publizieren entschieden: eine Perle interessiert auch die Stadt Basel. Nicht publiziert heisst keine Perle.
+  """
+  perle: Boolean
 }
 
 type meldungen_mutated {
@@ -2418,6 +2427,139 @@ type vereine_mutated {
   key: ID!
   event: EventEnum
   data: vereine
+}
+
+type wochenblaetter {
+  id: ID!
+  gemeinde(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): gemeinden
+
+  """Wie das Blatt heisst — steht so in der Attribution jeder Meldung."""
+  name: String!
+
+  """
+  Das oeffentliche Ausgaben-Archiv. Nur diese Seite wird gelesen — URLs werden nie geraten.
+  """
+  archiv_url: String!
+
+  """
+  Wie das Archiv gelesen wird. Das naechste Blatt mit anderem Aufbau bekommt seinen eigenen Wert.
+  """
+  konnektor: String
+  aktiv: Boolean
+  letzte_pruefung: Date
+  letzte_pruefung_func: datetime_functions
+
+  """
+  Warum der letzte Abruf scheiterte — sichtbar im Workspace, damit Abwesenheit nie Stille ist.
+  """
+  letzter_fehler: String
+  date_created: Date
+  date_created_func: datetime_functions
+  date_updated: Date
+  date_updated_func: datetime_functions
+  ausgaben(filter: wochenblattausgaben_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [wochenblattausgaben]
+  ausgaben_func: count_functions
+}
+
+type wochenblaetter_mutated {
+  key: ID!
+  event: EventEnum
+  data: wochenblaetter
+}
+
+type wochenblattausgaben {
+  id: ID!
+  wochenblatt(filter: wochenblaetter_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): wochenblaetter
+
+  """
+  Kanonische Identitaet ("kw34-2026"), aus dem Slug normalisiert. Macht den Tageslauf idempotent.
+  """
+  schluessel: String!
+  slug: String
+
+  """
+  Wie das Blatt sie druckt — "34" oder "30/31". Steht in der Attribution.
+  """
+  nummer: String
+  datum: Date
+  datum_func: date_functions
+
+  """Die Ausgabenseite im Archiv."""
+  seite_url: String
+
+  """
+  Die aufgeloeste PDF-Adresse. Mit #page=N verlinken Meldungen direkt auf die Beitragsseite.
+  """
+  pdf_url: String
+  pdf(filter: directus_files_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): directus_files
+  seiten: Int
+  status: String
+
+  """
+  Textlayer des PDFs — Korpus fuer den Ueberlappungs-Check der Meldungen.
+  """
+  volltext: String
+
+  """Rohergebnis des Inventars, zum Nachvollziehen."""
+  inventar: JSON
+  inventar_func: count_functions
+
+  """Warum das Inventar scheiterte."""
+  fehler: String
+  date_created: Date
+  date_created_func: datetime_functions
+  date_updated: Date
+  date_updated_func: datetime_functions
+  kandidaten(filter: wochenblattkandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [wochenblattkandidaten]
+  kandidaten_func: count_functions
+}
+
+type wochenblattausgaben_mutated {
+  key: ID!
+  event: EventEnum
+  data: wochenblattausgaben
+}
+
+type wochenblattkandidaten {
+  id: ID!
+  ausgabe(filter: wochenblattausgaben_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): wochenblattausgaben
+
+  """Wie im Blatt gedruckt."""
+  titel: String!
+  seite: Int
+  typ: String!
+
+  """
+  Auf der Frontseite angerissen — was dort steht, ist oft am interessantesten.
+  """
+  frontseite: Boolean!
+  warum_exklusiv: String
+
+  """
+  Nackte Fakten aus dem Beitrag — die einzige Quelle der spaeteren Meldung.
+  """
+  zusammenfassung: String
+
+  """Kurios UND ueberoertlich — koennte auch die Stadt Basel interessieren."""
+  perle_vorschlag: Boolean!
+  perle_begruendung: String
+  entscheid: String
+
+  """
+  Das Lernsignal: der Grund fliesst in den Digest des naechsten Inventars.
+  """
+  ablehnungsgrund: String
+  ablehnungskommentar: String
+  date_created: Date
+  date_created_func: datetime_functions
+  date_updated: Date
+  date_updated_func: datetime_functions
+}
+
+type wochenblattkandidaten_mutated {
+  key: ID!
+  event: EventEnum
+  data: wochenblattkandidaten
 }
 
 type write_directus_collections {
@@ -3714,6 +3856,8 @@ input meldungen_filter {
   spiel: spiele_filter
   erscheint_am: date_filter_operators
   erscheint_am_func: date_function_filter_operators
+  kandidat: wochenblattkandidaten_filter
+  perle: boolean_filter_operators
   _and: [meldungen_filter]
   _or: [meldungen_filter]
 }
@@ -4223,6 +4367,130 @@ input vereine_filter {
   date_updated_func: datetime_function_filter_operators
   _and: [vereine_filter]
   _or: [vereine_filter]
+}
+
+input wochenblaetter_filter {
+  id: id_filter_operators
+  gemeinde: gemeinden_filter
+  name: string_filter_operators
+  archiv_url: string_filter_operators
+  konnektor: string_filter_operators
+  aktiv: boolean_filter_operators
+  letzte_pruefung: date_filter_operators
+  letzte_pruefung_func: datetime_function_filter_operators
+  letzter_fehler: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  ausgaben: wochenblattausgaben_quantifier_filter
+  ausgaben_func: count_function_filter_operators
+  _and: [wochenblaetter_filter]
+  _or: [wochenblaetter_filter]
+}
+
+input wochenblattausgaben_filter {
+  id: id_filter_operators
+  wochenblatt: wochenblaetter_filter
+  schluessel: string_filter_operators
+  slug: string_filter_operators
+  nummer: string_filter_operators
+  datum: date_filter_operators
+  datum_func: date_function_filter_operators
+  seite_url: string_filter_operators
+  pdf_url: string_filter_operators
+  pdf: directus_files_filter
+  seiten: number_filter_operators
+  status: string_filter_operators
+  volltext: string_filter_operators
+  inventar: string_filter_operators
+  inventar_func: count_function_filter_operators
+  fehler: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  kandidaten: wochenblattkandidaten_quantifier_filter
+  kandidaten_func: count_function_filter_operators
+  _and: [wochenblattausgaben_filter]
+  _or: [wochenblattausgaben_filter]
+}
+
+""""""
+input wochenblattausgaben_quantifier_filter {
+  id: id_filter_operators
+  wochenblatt: wochenblaetter_filter
+  schluessel: string_filter_operators
+  slug: string_filter_operators
+  nummer: string_filter_operators
+  datum: date_filter_operators
+  datum_func: date_function_filter_operators
+  seite_url: string_filter_operators
+  pdf_url: string_filter_operators
+  pdf: directus_files_filter
+  seiten: number_filter_operators
+  status: string_filter_operators
+  volltext: string_filter_operators
+  inventar: string_filter_operators
+  inventar_func: count_function_filter_operators
+  fehler: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  kandidaten: wochenblattkandidaten_quantifier_filter
+  kandidaten_func: count_function_filter_operators
+  _and: [wochenblattausgaben_filter]
+  _or: [wochenblattausgaben_filter]
+  _some: wochenblattausgaben_filter
+  _none: wochenblattausgaben_filter
+}
+
+input wochenblattkandidaten_filter {
+  id: id_filter_operators
+  ausgabe: wochenblattausgaben_filter
+  titel: string_filter_operators
+  seite: number_filter_operators
+  typ: string_filter_operators
+  frontseite: boolean_filter_operators
+  warum_exklusiv: string_filter_operators
+  zusammenfassung: string_filter_operators
+  perle_vorschlag: boolean_filter_operators
+  perle_begruendung: string_filter_operators
+  entscheid: string_filter_operators
+  ablehnungsgrund: string_filter_operators
+  ablehnungskommentar: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  _and: [wochenblattkandidaten_filter]
+  _or: [wochenblattkandidaten_filter]
+}
+
+""""""
+input wochenblattkandidaten_quantifier_filter {
+  id: id_filter_operators
+  ausgabe: wochenblattausgaben_filter
+  titel: string_filter_operators
+  seite: number_filter_operators
+  typ: string_filter_operators
+  frontseite: boolean_filter_operators
+  warum_exklusiv: string_filter_operators
+  zusammenfassung: string_filter_operators
+  perle_vorschlag: boolean_filter_operators
+  perle_begruendung: string_filter_operators
+  entscheid: string_filter_operators
+  ablehnungsgrund: string_filter_operators
+  ablehnungskommentar: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  _and: [wochenblattkandidaten_filter]
+  _or: [wochenblattkandidaten_filter]
+  _some: wochenblattkandidaten_filter
+  _none: wochenblattkandidaten_filter
 }
 
 input write_directus_collections_input {

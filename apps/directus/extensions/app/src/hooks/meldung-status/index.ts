@@ -56,13 +56,34 @@ export default defineHook(({ filter }, { services }) => {
         'lead',
         'text',
         'entscheidung',
-        'freigegeben_am'
+        'freigegeben_am',
+        'kandidat'
       ]
-    })) as (MeldungZustand & { id: string })[]
+    })) as (MeldungZustand & { id: string; kandidat: string | null })[]
 
     let ergebnis = daten
 
     for (const aktuell of aktuelle) {
+      // A Perle is a property of a PUBLISHED press review — nothing else. The
+      // rule lives here because an administrator can set the flag in the admin
+      // UI, which no endpoint sees.
+      if (ergebnis['perle'] === true) {
+        const zielStatus =
+          typeof ergebnis['status'] === 'string'
+            ? ergebnis['status']
+            : aktuell.status
+        if (aktuell.kandidat === null) {
+          throw new UebergangError({
+            grund: 'Nur Presseschau-Meldungen koennen Perlen sein.'
+          })
+        }
+        if (zielStatus !== 'publiziert') {
+          throw new UebergangError({
+            grund:
+              'Eine Perle wird beim Publizieren bestimmt — nicht publiziert heisst keine Perle.'
+          })
+        }
+      }
       // An edit to the text invalidates an approval that was given for the
       // old text. Checked before the transition, so the reset is part of the
       // same write rather than a second one that could fail on its own.

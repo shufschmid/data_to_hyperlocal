@@ -27,8 +27,10 @@ import {
   ALLE_MELDUNGEN_QUERY,
   ENTSORGUNGSKALENDER_QUERY,
   ENTSORGUNGSTERMINE_QUERY,
+  WOCHENBLAETTER_QUERY,
   type EntsorgungskalenderErgebnis,
   type EntsorgungstermineErgebnis,
+  type WochenblaetterErgebnis,
   LAEUFE_QUERY,
   PORTAL_BEOBACHTEN_MUTATION,
   PORTAL_QUERY,
@@ -52,6 +54,7 @@ import {
 } from '@/graphql/redaktion'
 import { blogNachGemeinde, meldungenNachLauf, zeitleiste, type QuellenLaufStatus } from '@/lib/redaktion'
 import { QuellenLauf } from './QuellenLauf'
+import { Presseschau } from './Presseschau'
 import { Zeitleiste } from './Zeitleiste'
 import { AuftragDialog, type AuftragZiel } from './AuftragDialog'
 import { GemeindenAuswahl } from './GemeindenAuswahl'
@@ -114,7 +117,7 @@ function schreibeGemeindeInUrl(slug: string | null): void {
 export function RedaktionPanel() {
   const [blogGemeinde, setBlogGemeinde] = useState<string | null>(gemeindeAusUrl)
   // Mit ?gemeinde=… startet die Ansicht im Blog — das ist der Sinn des Links.
-  const [reiter, setReiter] = useState(blogGemeinde === null ? 0 : 3)
+  const [reiter, setReiter] = useState(blogGemeinde === null ? 0 : 4)
   const [kalenderWahl, setKalenderWahl] = useState<string | null>(null)
   const [fehler, setFehler] = useState<string | null>(null)
   const [sendet, setSendet] = useState(false)
@@ -146,6 +149,9 @@ export function RedaktionPanel() {
   const kalender = useQuery<EntsorgungskalenderErgebnis>(ENTSORGUNGSKALENDER_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY
   })
+  const wochenblaetter = useQuery<WochenblaetterErgebnis>(WOCHENBLAETTER_QUERY, {
+    fetchPolicy: LIVE_FETCH_POLICY
+  })
   // Per selected calendar, not all of them: a hundred dates times eighty-seven
   // municipalities is a table nobody looks at whole.
   const termine = useQuery<EntsorgungstermineErgebnis>(ENTSORGUNGSTERMINE_QUERY, {
@@ -169,6 +175,18 @@ export function RedaktionPanel() {
     startPolling(10_000)
     return () => stopPolling()
   }, [wirdAusgelesen, startPolling, stopPolling, termineNeuLaden])
+  // Same story for the press review: fetching and inventorying an issue runs
+  // detached on the server, so the tab polls while any issue reports it.
+  const wirdInventarisiert = (wochenblaetter.data?.wochenblaetter ?? []).some((blatt) =>
+    blatt.ausgaben.some((a) => a.status === 'liest' || a.status === 'neu')
+  )
+  const { startPolling: blattPollingStart, stopPolling: blattPollingStop } = wochenblaetter
+  useEffect(() => {
+    if (!wirdInventarisiert) return
+    blattPollingStart(10_000)
+    return () => blattPollingStop()
+  }, [wirdInventarisiert, blattPollingStart, blattPollingStop])
+
   const [setzeAktiv] = useMutation<GemeindeAktivErgebnis>(GEMEINDE_AKTIV_MUTATION)
 
   // Loaded with the tab, not on demand: 181 rows is one small query, and a
@@ -423,6 +441,7 @@ export function RedaktionPanel() {
         <Tab label="statistik.bl" />
         <Tab label="Sportresultate" />
         <Tab label="Entsorgung" />
+        <Tab label="Presseschau" />
         <Tab label="Blog" />
         <Tab label="Gelerntes" />
         <Tab label="Gemeinden" />
@@ -637,6 +656,55 @@ export function RedaktionPanel() {
       {reiter === 3 && (
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
+            Was die Wochenblätter exklusiv haben. Der 9-Uhr-Lauf inventarisiert jede neue Ausgabe zu
+            Kandidaten; aus übernommenen entsteht eine kurze Meldung mit Verweis aufs Blatt — abgelehnte
+            lernen dem Inventar, was die Redaktion nicht will. Perlen sind kurios genug für die ganze Stadt.
+          </Typography>
+          <Presseschau
+            blaetter={wochenblaetter.data?.wochenblaetter ?? []}
+            gemeinden={gemeinden.data?.gemeinden ?? []}
+            meldungen={meldungenAlle}
+            laedt={wochenblaetter.loading}
+            laeuft={sendet}
+            onAnlegen={async (eingabe) => {
+              await fuehreAus('wochenblaetter', eingabe)
+              await wochenblaetter.refetch()
+            }}
+            onPruefen={async () => {
+              await fuehreAus('wochenblaetter/pruefen')
+              await wochenblaetter.refetch()
+            }}
+            onInventar={async (id) => {
+              await fuehreAus(`ausgaben/${id}/inventar`)
+              await wochenblaetter.refetch()
+            }}
+            onMeldung={async (id) => {
+              await fuehreAus(`kandidaten/${id}/meldung`)
+              await Promise.all([wochenblaetter.refetch(), alleMeldungen.refetch()])
+            }}
+            onAblehnen={async (id, grund, kommentar) => {
+              await fuehreAus(`kandidaten/${id}/ablehnen`, {
+                grund,
+                ...(kommentar === '' ? {} : { kommentar })
+              })
+              await wochenblaetter.refetch()
+            }}
+            onChat={async (id, anweisung) => {
+              await fuehreAus(`meldungen/${id}/chat`, { anweisung })
+            }}
+            onAktion={async (id, was) => {
+              await fuehreAus(`meldungen/${id}/${was}`)
+            }}
+            onPerlePublizieren={async (id, perle) => {
+              await fuehreAus(`meldungen/${id}/publizieren`, { perle })
+            }}
+          />
+        </Stack>
+      )}
+
+      {reiter === 4 && (
+        <Stack spacing={2}>
+          <Typography variant="body2" color="text.secondary">
             Alles, was für eine Gemeinde geschrieben wurde — neuste zuerst, gleich ob aus einer Statistik oder
             aus einem Spiel entstanden. Woher ein Beitrag kommt, ist eine Frage der Produktion; gelesen wird
             er als einer.
@@ -653,7 +721,7 @@ export function RedaktionPanel() {
         </Stack>
       )}
 
-      {reiter === 4 && (
+      {reiter === 5 && (
         <Stack spacing={1}>
           <Typography variant="body2" color="text.secondary">
             Regeln, die aus deinen Anweisungen gelernt wurden. Sie fliessen in jede weitere Meldung ein — auch
@@ -671,7 +739,7 @@ export function RedaktionPanel() {
         </Stack>
       )}
 
-      {reiter === 5 && (
+      {reiter === 6 && (
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
             Für welche Gemeinden ein Lauf Meldungen schreibt. Gilt ab dem nächsten Lauf; bereits erzeugte

@@ -1,0 +1,28 @@
+{
+  "collection": "wochenblaetter",
+  "meta": {
+    "accountability": "all",
+    "archive_app_filter": true,
+    "archive_field": null,
+    "archive_value": null,
+    "collapse": "open",
+    "collection": "wochenblaetter",
+    "color": null,
+    "display_template": "{{name}}",
+    "group": null,
+    "hidden": false,
+    "icon": "newspaper",
+    "item_duplication_fields": null,
+    "note": "Die Wochenzeitung einer Gemeinde und ihr PDF-Archiv. Taeglich um 9 Uhr auf neue Ausgaben geprueft.",
+    "preview_url": null,
+    "singleton": false,
+    "sort": null,
+    "sort_field": null,
+    "translations": null,
+    "unarchive_value": null,
+    "versioning": false
+  },
+  "schema": {
+    "name": "wochenblaetter"
+  }
+}

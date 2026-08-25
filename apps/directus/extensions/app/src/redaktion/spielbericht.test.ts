@@ -124,6 +124,13 @@ describe('zeitWarnungen', () => {
       zeitWarnungen('Am 19. August 2026 trennten sich beide 3:3.')
     ).toEqual([])
   })
+
+  it('meldet keine Woerter, die ein Zeitwort nur enthalten', () => {
+    // "morgendlichen" traegt "morgen" in sich und ist voellig haltbar — der
+    // Presseschau-Durchgang hat genau das faelschlich beanstandet.
+    expect(zeitWarnungen('Beim morgendlichen Ablesen der Geraete.')).toEqual([])
+    expect(zeitWarnungen('Der Verein feierte gestern.').length).toBe(1)
+  })
 })
 
 describe('zahlWarnungen', () => {
