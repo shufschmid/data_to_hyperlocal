@@ -10,7 +10,7 @@
 export interface ArchivEintrag {
   /** The slug as the archive prints it, suffixes and all. */
   slug: string
-  /** Canonical identity: `kw34-2026`, `_v2`/`-2` suffixes normalized away. */
+  /** Canonical identity: `kw34-2026` or `2026-08-21`, slug accidents normalized away. */
   schluessel: string
   /** As the paper prints it — "34", or "30/31" for a double issue. */
   nummer: string | null
@@ -18,7 +18,11 @@ export interface ArchivEintrag {
   datum: string | null
   /** The issue page — in Binningen's archive it 301-redirects straight to the PDF. */
   seiteUrl: string
-  /** First calendar week of the issue, for ordering. */
+  /**
+   * Ordering number within the year: the calendar week for week-keyed papers,
+   * the day of the year for date-keyed ones. Only ever compared within one
+   * paper, so the two scales never meet.
+   */
   kw: number | null
   jahr: number | null
 }
@@ -62,14 +66,47 @@ export function parseDeutschesDatum(text: string): string | null {
 export function normalisiereSchluessel(
   slug: string
 ): { schluessel: string; kw: number; jahr: number } | null {
-  const treffer = /kw(\d{1,2})\D*?(20\d{2})/i.exec(slug)
-  if (treffer === null) return null
+  const woche = /kw(\d{1,2})\D*?(20\d{2})/i.exec(slug)
+  if (woche !== null) {
+    const kw = Number(woche[1])
+    const jahr = Number(woche[2])
+    if (kw < 1 || kw > 53) return null
+    return { schluessel: `kw${String(kw).padStart(2, '0')}-${jahr}`, kw, jahr }
+  }
 
-  const kw = Number(treffer[1])
-  const jahr = Number(treffer[2])
-  if (kw < 1 || kw > 53) return null
+  // Date-keyed papers (lokalzeitungen.ch): the slug carries DD-MM-YYYY, our
+  // stored key is the ISO date. The "week" becomes the day of the year — an
+  // ordering number on the same only-compared-within-one-paper contract.
+  const imSlug = /(\d{2})-(\d{2})-(20\d{2})/.exec(slug)
+  const alsIso = /^(20\d{2})-(\d{2})-(\d{2})$/.exec(slug)
+  let tag: number
+  let monat: number
+  let jahr: number
+  if (imSlug !== null) {
+    tag = Number(imSlug[1])
+    monat = Number(imSlug[2])
+    jahr = Number(imSlug[3])
+  } else if (alsIso !== null) {
+    jahr = Number(alsIso[1])
+    monat = Number(alsIso[2])
+    tag = Number(alsIso[3])
+  } else {
+    return null
+  }
+  const iso = `${jahr}-${String(monat).padStart(2, '0')}-${String(tag).padStart(2, '0')}`
+  const geparst = new Date(`${iso}T00:00:00Z`)
+  if (
+    Number.isNaN(geparst.getTime()) ||
+    geparst.toISOString().slice(0, 10) !== iso
+  ) {
+    return null
+  }
 
-  return { schluessel: `kw${String(kw).padStart(2, '0')}-${jahr}`, kw, jahr }
+  const jahresanfang = Date.UTC(jahr, 0, 1)
+  const tagImJahr =
+    Math.floor((geparst.getTime() - jahresanfang) / 86_400_000) + 1
+
+  return { schluessel: iso, kw: tagImJahr, jahr }
 }
 
 /** Strictly newer, by (year, week) — the cutoff rule for the daily run. */
@@ -96,7 +133,9 @@ export function parseArchiv(html: string, basisUrl: string): ArchivEintrag[] {
   const eintraege: ArchivEintrag[] = []
   const gesehen = new Set<string>()
 
-  const anker = /<a\s[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi
+  // `</a\s*>` rather than `</a>`: HTML formatters split closing tags across
+  // lines, and a fixture that went through one must parse like the live page.
+  const anker = /<a\s[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a\s*>/gi
   let treffer: RegExpExecArray | null
   while ((treffer = anker.exec(html)) !== null) {
     const href = treffer[1] ?? ''
@@ -138,6 +177,93 @@ export function parseArchiv(html: string, basisUrl: string): ArchivEintrag[] {
   }
 
   return eintraege
+}
+
+/**
+ * Every issue link of a lokalzeitungen.ch paper page, in source order.
+ *
+ * That platform's landing page (`/riehener-zeitung/`) links the CURRENT issue
+ * as `/ausgabe/<paper>-DD-MM-YYYY/` — usually exactly one. That is enough for
+ * the daily check: the date is the identity, and anything newer than what we
+ * hold is the day's work.
+ */
+export function parseLokalzeitungen(
+  html: string,
+  basisUrl: string
+): ArchivEintrag[] {
+  const basis = new URL(basisUrl)
+  const eintraege: ArchivEintrag[] = []
+  const gesehen = new Set<string>()
+
+  const anker = /<a\s[^>]*href="([^"]+)"[^>]*>/gi
+  let treffer: RegExpExecArray | null
+  while ((treffer = anker.exec(html)) !== null) {
+    let url: URL
+    try {
+      url = new URL(treffer[1] ?? '', basis)
+    } catch {
+      continue
+    }
+    if (url.host !== basis.host) continue
+
+    const pfad = url.pathname.replace(/^\/|\/$/g, '')
+    if (!pfad.startsWith('ausgabe/')) continue
+    const slug = pfad.slice('ausgabe/'.length)
+    if (slug === '' || slug.includes('/')) continue
+
+    const kanon = normalisiereSchluessel(slug)
+    if (kanon === null) continue
+    if (gesehen.has(slug)) continue
+    gesehen.add(slug)
+
+    eintraege.push({
+      slug,
+      schluessel: kanon.schluessel,
+      // The printed issue number is not on this page; the operation derives it
+      // from the PDF's own filename (RZ-KW34-2026.pdf) once downloaded.
+      nummer: null,
+      datum: kanon.schluessel,
+      seiteUrl: url.toString(),
+      kw: kanon.kw,
+      jahr: kanon.jahr
+    })
+  }
+
+  return eintraege
+}
+
+/**
+ * The paywall-free PDF behind a lokalzeitungen.ch issue page: the title link
+ * points straight at `wp-content/uploads/…pdf`. First same-host PDF link wins.
+ */
+export function findePdfLink(html: string, basisUrl: string): string | null {
+  const basis = new URL(basisUrl)
+  const anker = /<a\s[^>]*href="([^"]+\.pdf)"[^>]*>/gi
+  let treffer: RegExpExecArray | null
+  while ((treffer = anker.exec(html)) !== null) {
+    try {
+      const url = new URL(treffer[1] ?? '', basis)
+      if (url.host === basis.host) return url.toString()
+    } catch {
+      continue
+    }
+  }
+  return null
+}
+
+/**
+ * The printed issue number, read off the PDF's own filename.
+ *
+ * Date-keyed archives never state it, but the paper's file does:
+ * `RZ-KW34-2026.pdf`. Null when the filename says nothing — the attribution
+ * then falls back to the issue date, never to a guess.
+ */
+export function nummerAusDateiname(url: string): string | null {
+  const datei = url.split('/').pop() ?? ''
+  const treffer = /kw\s?-?(\d{1,2})/i.exec(datei)
+  if (treffer === null) return null
+  const kw = Number(treffer[1])
+  return kw >= 1 && kw <= 53 ? String(kw) : null
 }
 
 /**

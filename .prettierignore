@@ -11,3 +11,7 @@ apps/front/.next
 apps/front/next-env.d.ts
 apps/front/src/graphql/generated
 package-lock.json
+# Saved third-party pages the parsers are tested against. Reformatting them
+# tests the formatter's HTML, not the source's — prettier once split "</a>"
+# across two lines and a parser test went hunting for a ghost.
+**/fixtures/*.html

@@ -70,7 +70,10 @@ import {
   type LernEintrag,
   type PresseschauFakten
 } from '../../redaktion/presseschau'
-import { fetchArchiv } from '../../shared/wochenblatt'
+import {
+  fetchAusgabenliste,
+  type WochenblattKonnektor
+} from '../../shared/wochenblatt'
 import quellenPruefen from '../../operations/quellen-pruefen/api'
 import sportresultateHolen from '../../operations/sportresultate-holen/api'
 import wochenblattPruefen from '../../operations/wochenblatt-pruefen/api'
@@ -432,10 +435,18 @@ export default defineEndpoint(
           return next(new UngueltigesWochenblatt())
         }
 
+        // The platform decides the parser: lokalzeitungen.ch pages carry one
+        // "/ausgabe/…-DD-MM-YYYY/" link, everything else is read as a
+        // WordPress archive list. A third platform gets its own value here.
+        const konnektor: WochenblattKonnektor =
+          /(^|\.)lokalzeitungen\.ch$/i.test(new URL(archivUrl).host)
+            ? 'lokalzeitungen'
+            : 'wordpress-archiv'
+
         // Read the archive BEFORE writing anything: a mistyped address should
         // fail the form, not become a row that errors every morning at nine.
         try {
-          await fetchArchiv(archivUrl, {
+          await fetchAusgabenliste(konnektor, archivUrl, {
             kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch')
           })
         } catch (fehler) {
@@ -455,7 +466,7 @@ export default defineEndpoint(
             gemeinde: koerper.gemeinde,
             name,
             archiv_url: archivUrl,
-            konnektor: 'wordpress-archiv',
+            konnektor,
             aktiv: true
           })) as string
 
@@ -564,7 +575,8 @@ export default defineEndpoint(
                 digest
               ),
               model: 'claude-opus-5',
-              maxTokens: 16000,
+              // Same budget as the operation — see the comment there.
+              maxTokens: 32000,
               schema: INVENTAR_SCHEMA
             })
             const inventar = parseInventar(antwort, ausgabe.seiten)

@@ -2,10 +2,13 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
+  findePdfLink,
   istNeuer,
   normalisiereSchluessel,
+  nummerAusDateiname,
   parseArchiv,
   parseDeutschesDatum,
+  parseLokalzeitungen,
   waehleNeueAusgaben,
   type ArchivEintrag
 } from './parse'
@@ -146,5 +149,108 @@ describe('waehleNeueAusgaben', () => {
       ...archiv.slice(3)
     ]
     expect(waehleNeueAusgaben(mitV2, ['kw34-2026'])).toEqual([])
+  })
+})
+
+// The second connector: the Riehener Zeitung on lokalzeitungen.ch, saved
+// 2026-08-26. The landing page links exactly ONE issue (the current one);
+// the issue page links the paywall-free PDF from its title.
+const RZ_START = readFileSync(
+  join(__dirname, 'fixtures', 'riehen-lokalzeitungen-start.html'),
+  'utf8'
+)
+const RZ_AUSGABE = readFileSync(
+  join(__dirname, 'fixtures', 'riehen-lokalzeitungen-ausgabe.html'),
+  'utf8'
+)
+const RZ_BASIS = 'https://www.lokalzeitungen.ch/riehener-zeitung/'
+
+describe('parseLokalzeitungen', () => {
+  it('findet die aktuelle Ausgabe mit Datum als Identitaet', () => {
+    const archiv = parseLokalzeitungen(RZ_START, RZ_BASIS)
+
+    expect(archiv).toHaveLength(1)
+    expect(archiv[0]?.schluessel).toBe('2026-08-21')
+    expect(archiv[0]?.datum).toBe('2026-08-21')
+    expect(archiv[0]?.seiteUrl).toBe(
+      'https://www.lokalzeitungen.ch/ausgabe/riehener-zeitung-21-08-2026/'
+    )
+    // Die gedruckte Nummer steht nicht auf dieser Seite — sie kommt spaeter
+    // aus dem Dateinamen des PDFs.
+    expect(archiv[0]?.nummer).toBeNull()
+  })
+})
+
+describe('findePdfLink', () => {
+  it('findet den paywall-freien Titel-Link aufs PDF', () => {
+    expect(findePdfLink(RZ_AUSGABE, RZ_BASIS)).toBe(
+      'https://www.lokalzeitungen.ch/wp-content/uploads/2026/08/RZ-KW34-2026.pdf'
+    )
+  })
+
+  it('gibt null zurueck, wenn kein PDF verlinkt ist', () => {
+    expect(
+      findePdfLink('<a href="/impressum/">Impressum</a>', RZ_BASIS)
+    ).toBeNull()
+  })
+})
+
+describe('nummerAusDateiname', () => {
+  it('liest die gedruckte Nummer aus dem PDF-Dateinamen', () => {
+    expect(
+      nummerAusDateiname(
+        'https://www.lokalzeitungen.ch/wp-content/uploads/2026/08/RZ-KW34-2026.pdf'
+      )
+    ).toBe('34')
+  })
+
+  it('raet nicht, wenn der Dateiname nichts sagt', () => {
+    expect(
+      nummerAusDateiname('https://example.ch/zeitung-august.pdf')
+    ).toBeNull()
+  })
+})
+
+describe('waehleNeueAusgaben mit Datums-Schluesseln', () => {
+  const eintragRz = (iso: string): ArchivEintrag => {
+    const kanon = normalisiereSchluessel(iso)
+    if (kanon === null) throw new Error('Fixture kaputt')
+    return {
+      slug: `riehener-zeitung-${iso.slice(8)}-${iso.slice(5, 7)}-${iso.slice(0, 4)}`,
+      schluessel: kanon.schluessel,
+      nummer: null,
+      datum: iso,
+      seiteUrl: `https://www.lokalzeitungen.ch/ausgabe/x-${iso}/`,
+      kw: kanon.kw,
+      jahr: kanon.jahr
+    }
+  }
+
+  it('nimmt beim Erstlauf die aktuelle Ausgabe', () => {
+    expect(
+      waehleNeueAusgaben([eintragRz('2026-08-21')], []).map((a) => a.schluessel)
+    ).toEqual(['2026-08-21'])
+  })
+
+  it('erkennt Neueres am Datum und Altes bleibt liegen', () => {
+    expect(
+      waehleNeueAusgaben([eintragRz('2026-08-28')], ['2026-08-21']).map(
+        (a) => a.schluessel
+      )
+    ).toEqual(['2026-08-28'])
+    expect(
+      waehleNeueAusgaben([eintragRz('2026-08-21')], ['2026-08-21'])
+    ).toEqual([])
+    expect(
+      waehleNeueAusgaben([eintragRz('2026-08-14')], ['2026-08-21'])
+    ).toEqual([])
+  })
+
+  it('vergleicht ueber den Jahreswechsel korrekt', () => {
+    expect(
+      waehleNeueAusgaben([eintragRz('2027-01-08')], ['2026-12-18']).map(
+        (a) => a.schluessel
+      )
+    ).toEqual(['2027-01-08'])
   })
 })

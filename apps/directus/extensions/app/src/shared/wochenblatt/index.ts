@@ -7,16 +7,27 @@
 
 import { buildUserAgent } from '../agenda'
 import { extractText, getDocumentProxy } from 'unpdf'
-import { parseArchiv, type ArchivEintrag } from './parse'
+import {
+  findePdfLink,
+  parseArchiv,
+  parseLokalzeitungen,
+  type ArchivEintrag
+} from './parse'
 
 export {
+  findePdfLink,
   istNeuer,
   normalisiereSchluessel,
+  nummerAusDateiname,
   parseArchiv,
   parseDeutschesDatum,
+  parseLokalzeitungen,
   waehleNeueAusgaben,
   type ArchivEintrag
 } from './parse'
+
+/** Which parser reads a paper's archive. The registry row carries the value. */
+export type WochenblattKonnektor = 'wordpress-archiv' | 'lokalzeitungen'
 
 /** Issue PDFs run 5–10 MB; anything past this is not a weekly paper. */
 export const PDF_MAX_BYTES = 15 * 1024 * 1024
@@ -66,6 +77,44 @@ export async function fetchArchiv(
     // parser — say so, instead of quietly reporting "nothing new" forever.
     throw new WochenblattFehler(
       'Keine Ausgaben-Links im Archiv gefunden — hat sich der Seitenaufbau geaendert?',
+      archivUrl
+    )
+  }
+  return eintraege
+}
+
+/**
+ * The issue list behind whatever kind of archive the paper has — the one
+ * dispatch every caller goes through, so registration form, manual button and
+ * 09:00 Flow read a paper identically.
+ */
+export async function fetchAusgabenliste(
+  konnektor: WochenblattKonnektor,
+  archivUrl: string,
+  options: AbrufOptionen
+): Promise<ArchivEintrag[]> {
+  if (konnektor === 'wordpress-archiv') return fetchArchiv(archivUrl, options)
+
+  const fetchImpl = options.fetchImpl ?? fetch
+  const antwort = await fetchImpl(archivUrl, {
+    headers: {
+      'User-Agent': buildUserAgent(options.kontakt),
+      Accept: 'text/html'
+    },
+    redirect: 'follow',
+    signal: AbortSignal.timeout(20_000)
+  })
+  if (!antwort.ok) {
+    throw new WochenblattFehler(
+      `Zeitungsseite antwortete mit ${antwort.status}.`,
+      archivUrl
+    )
+  }
+
+  const eintraege = parseLokalzeitungen(await antwort.text(), archivUrl)
+  if (eintraege.length === 0) {
+    throw new WochenblattFehler(
+      'Kein Ausgaben-Link auf der Zeitungsseite gefunden — hat sich der Seitenaufbau geaendert?',
       archivUrl
     )
   }
@@ -129,6 +178,47 @@ export async function ladeAusgabePdf(
   }
 
   return { pdfUrl: antwort.url || seiteUrl, daten }
+}
+
+/**
+ * The issue PDF behind whatever kind of issue page the paper has.
+ *
+ * lokalzeitungen.ch puts a paywall in front of the reader view but links the
+ * plain PDF from the issue title — so the page is read once, the first
+ * same-host PDF link is followed, and only that free door is ever used.
+ */
+export async function ladeAusgabePdfFuer(
+  konnektor: WochenblattKonnektor,
+  seiteUrl: string,
+  options: AbrufOptionen
+): Promise<GeladenesPdf> {
+  if (konnektor === 'wordpress-archiv') return ladeAusgabePdf(seiteUrl, options)
+
+  const fetchImpl = options.fetchImpl ?? fetch
+  const antwort = await fetchImpl(seiteUrl, {
+    headers: {
+      'User-Agent': buildUserAgent(options.kontakt),
+      Accept: 'text/html'
+    },
+    redirect: 'follow',
+    signal: AbortSignal.timeout(20_000)
+  })
+  if (!antwort.ok) {
+    throw new WochenblattFehler(
+      `Ausgabenseite antwortete mit ${antwort.status}.`,
+      seiteUrl
+    )
+  }
+
+  const pdfUrl = findePdfLink(await antwort.text(), seiteUrl)
+  if (pdfUrl === null) {
+    throw new WochenblattFehler(
+      'Kein PDF-Link auf der Ausgabenseite gefunden — hat sich der Seitenaufbau geaendert?',
+      seiteUrl
+    )
+  }
+
+  return ladeAusgabePdf(pdfUrl, options)
 }
 
 export interface Textlayer {

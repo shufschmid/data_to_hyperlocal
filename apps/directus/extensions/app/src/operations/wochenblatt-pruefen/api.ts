@@ -2,9 +2,11 @@ import { defineOperationApi } from '@directus/extensions-sdk'
 import { completeChatJson } from '../../shared/claude'
 import {
   extrahiereText,
-  fetchArchiv,
-  ladeAusgabePdf,
-  waehleNeueAusgaben
+  fetchAusgabenliste,
+  ladeAusgabePdfFuer,
+  nummerAusDateiname,
+  waehleNeueAusgaben,
+  type WochenblattKonnektor
 } from '../../shared/wochenblatt'
 import {
   buildInventarMessages,
@@ -110,7 +112,10 @@ export default defineOperationApi<Optionen>({
     >
 
     for (const blatt of blaetter) {
-      if (blatt.konnektor !== 'wordpress-archiv') {
+      if (
+        blatt.konnektor !== 'wordpress-archiv' &&
+        blatt.konnektor !== 'lokalzeitungen'
+      ) {
         logger.warn(
           `wochenblatt: Konnektor "${blatt.konnektor}" hat keinen Leser — ${blatt.name} uebersprungen`
         )
@@ -139,10 +144,17 @@ export default defineOperationApi<Optionen>({
 
     async function pruefeBlatt(
       blatt: Pick<Wochenblatt, 'id' | 'name' | 'archiv_url'> & {
+        konnektor: WochenblattKonnektor
         gemeinde: { name: string }
       }
     ): Promise<void> {
-      const archiv = await fetchArchiv(blatt.archiv_url, { kontakt })
+      const archiv = await fetchAusgabenliste(
+        blatt.konnektor,
+        blatt.archiv_url,
+        {
+          kontakt
+        }
+      )
 
       const gespeicherte = (await ausgabenService.readByQuery({
         filter: { wochenblatt: { _eq: blatt.id } },
@@ -158,12 +170,21 @@ export default defineOperationApi<Optionen>({
       for (const eintrag of neue) {
         ergebnis.neueAusgaben += 1
 
-        const pdf = await ladeAusgabePdf(eintrag.seiteUrl, { kontakt })
+        const pdf = await ladeAusgabePdfFuer(
+          blatt.konnektor,
+          eintrag.seiteUrl,
+          {
+            kontakt
+          }
+        )
         const layer = await extrahiereText(pdf.daten)
+        // Date-keyed archives do not state the printed number, but the PDF's
+        // own filename does (RZ-KW34-2026.pdf) — the attribution wants it.
+        const nummer = eintrag.nummer ?? nummerAusDateiname(pdf.pdfUrl)
 
         const { Readable } = await import('node:stream')
         const dateiId = await files.uploadOne(Readable.from(pdf.daten), {
-          title: `${blatt.name} Nr. ${eintrag.nummer ?? eintrag.schluessel}`,
+          title: `${blatt.name} Nr. ${nummer ?? eintrag.schluessel}`,
           filename_download: `${blatt.name.replace(/[^\w. -]/g, '')} ${eintrag.schluessel}.pdf`,
           type: 'application/pdf',
           storage: 'local'
@@ -173,7 +194,7 @@ export default defineOperationApi<Optionen>({
           wochenblatt: blatt.id,
           schluessel: eintrag.schluessel,
           slug: eintrag.slug,
-          nummer: eintrag.nummer,
+          nummer,
           datum: eintrag.datum,
           seite_url: eintrag.seiteUrl,
           pdf_url: pdf.pdfUrl,
@@ -187,14 +208,14 @@ export default defineOperationApi<Optionen>({
           const anzahl = await inventarisiere(
             blatt,
             ausgabeId,
-            eintrag.nummer,
+            nummer,
             eintrag.datum,
             pdf.daten,
             layer.seiten
           )
           ergebnis.kandidaten += anzahl
           ergebnis.hinweise.push(
-            `${blatt.name} Nr. ${eintrag.nummer ?? eintrag.schluessel}: ${anzahl} Kandidaten`
+            `${blatt.name} Nr. ${nummer ?? eintrag.schluessel}: ${anzahl} Kandidaten`
           )
         } catch (fehler) {
           // The issue row stays — PDF and text layer are already worth having.
@@ -228,10 +249,10 @@ export default defineOperationApi<Optionen>({
           digest
         ),
         model: 'claude-opus-5',
-        // Thinking and answer share the budget; a 16-page paper is mostly
-        // prose the model reads rather than transcribes. Streams under the
-        // hood (see sendToClaude), and no request is waiting on this.
-        maxTokens: 16000,
+        // Thinking and answer share the budget, and a text-dense paper (the
+        // Riehener Zeitung blew through 16k) needs room for both. Streams
+        // under the hood (see sendToClaude), and no request is waiting.
+        maxTokens: 32000,
         schema: INVENTAR_SCHEMA
       })
 

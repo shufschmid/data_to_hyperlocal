@@ -68,14 +68,15 @@ them is wrong even if it works.
    Redis, no queue broker, no external cron host, no side-car. Outbound dependencies
    are enumerated below and adding one is a deliberate decision, not a commit.
 
-   | Host                           | Why                                                                                                                 | Adapter               |
-   | ------------------------------ | ------------------------------------------------------------------------------------------------------------------- | --------------------- |
-   | `api.anthropic.com`            | every LLM call                                                                                                      | `shared/claude.ts`    |
-   | `data.bl.ch`                   | open-data catalogue and records (no auth, documented API)                                                           | `shared/ods/`         |
-   | `www.baselland.ch`             | the publication agenda — announcements the API cannot give                                                          | `shared/agenda/`      |
-   | `statistik.bl.ch`              | tables the open-data portal does not carry                                                                          | `shared/statbl/`      |
-   | `crawler.wepublish.dev`        | renders sport pages that refuse a plain request                                                                     | `shared/crawler/`     |
-   | `www.binninger-wochenblatt.ch` | the first registered weekly-paper archive — one host per Blatt, only archives an editor registered, read once a day | `shared/wochenblatt/` |
+   | Host                           | Why                                                                                                                                                                                  | Adapter               |
+   | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------- |
+   | `api.anthropic.com`            | every LLM call                                                                                                                                                                       | `shared/claude.ts`    |
+   | `data.bl.ch`                   | open-data catalogue and records (no auth, documented API)                                                                                                                            | `shared/ods/`         |
+   | `www.baselland.ch`             | the publication agenda — announcements the API cannot give                                                                                                                           | `shared/agenda/`      |
+   | `statistik.bl.ch`              | tables the open-data portal does not carry                                                                                                                                           | `shared/statbl/`      |
+   | `crawler.wepublish.dev`        | renders sport pages that refuse a plain request                                                                                                                                      | `shared/crawler/`     |
+   | `www.binninger-wochenblatt.ch` | the first registered weekly-paper archive — one host per Blatt, only archives an editor registered, read once a day                                                                  | `shared/wochenblatt/` |
+   | `www.lokalzeitungen.ch`        | the platform hosting the Riehener Zeitung (and others) — the paper page links the current issue, the issue page links a paywall-free PDF from its title; only that free door is used | `shared/wochenblatt/` |
 
    The crawler is the one host we do not own the other end of, and it exists for
    a measured reason: the football association's Match Center answers `curl`
@@ -198,25 +199,25 @@ them is wrong even if it works.
 
 ## Where does this feature go?
 
-| The change is…                                | Goes to                                                                                                                                                                        |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| a new collection, field, relation or role     | Directus admin UI, then `npm run schema:dump` — [apps/directus](apps/directus/)                                                                                                |
-| a calculation, validation or business rule    | extension bundle (endpoint or hook)                                                                                                                                            |
-| anything that calls Claude                    | extension bundle, via `shared/claude.ts`                                                                                                                                       |
-| something that must run nightly/hourly        | Flow with a Schedule trigger + a custom operation in the bundle                                                                                                                |
-| a screen, a form, a list, a chart             | [apps/front](apps/front/) — MUI components, Apollo for data                                                                                                                    |
-| a new query the UI needs                      | `apps/front/src/graphql/*.ts`                                                                                                                                                  |
-| a new rule about what an article may say      | the prompt in `redaktion/prompt.ts` **and** a check next to it — a prompt is a request, a check is a rule                                                                      |
-| a table on statistik.bl.ch the newsroom wants | paste its URL in the workspace — „statistik.bl" → „Auftrag …" — it becomes an ordinary dataset                                                                                 |
-| a club whose results the newsroom wants       | a row in `vereine` with its `ergebnis_url`, then a connector for that `quelle`                                                                                                 |
-| a new rule about what a match report may say  | `redaktion/spielbericht.ts` — the prompt **and** the check next to it                                                                                                          |
-| an Abfuhrkalender the newsroom wants          | paste the PDF's address in the workspace — „Entsorgung" → „Abfuhrkalender erfassen"; one PDF per zone (Riehen) registers zone by zone into the same calendar                   |
-| a weekly paper the newsroom wants read        | „Presseschau" → „Wochenblatt erfassen" with its archive URL; a paper whose archive is not a WordPress list needs its own `konnektor` value and parser in `shared/wochenblatt/` |
-| a new rule about what a press review may say  | `redaktion/presseschau.ts` — the prompt **and** the checks next to it (attribution, digits, verbatim overlap)                                                                  |
-| a new rule about what a reminder may say      | `redaktion/erinnerung.ts` — the prompt **and** the check next to it                                                                                                            |
-| a one-off data repair or backfill             | rows only: a one-shot Flow, else `apps/directus/migrations/*.mts` as a last resort                                                                                             |
-| an agenda entry the crawler could not fetch   | the banner in the workspace → „Eintrag von Hand erfassen"                                                                                                                      |
-| a new environment variable                    | `apps/directus/.env.example` **and** root `.env.example` **and** docker-compose.yml                                                                                            |
+| The change is…                                | Goes to                                                                                                                                                                                                               |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| a new collection, field, relation or role     | Directus admin UI, then `npm run schema:dump` — [apps/directus](apps/directus/)                                                                                                                                       |
+| a calculation, validation or business rule    | extension bundle (endpoint or hook)                                                                                                                                                                                   |
+| anything that calls Claude                    | extension bundle, via `shared/claude.ts`                                                                                                                                                                              |
+| something that must run nightly/hourly        | Flow with a Schedule trigger + a custom operation in the bundle                                                                                                                                                       |
+| a screen, a form, a list, a chart             | [apps/front](apps/front/) — MUI components, Apollo for data                                                                                                                                                           |
+| a new query the UI needs                      | `apps/front/src/graphql/*.ts`                                                                                                                                                                                         |
+| a new rule about what an article may say      | the prompt in `redaktion/prompt.ts` **and** a check next to it — a prompt is a request, a check is a rule                                                                                                             |
+| a table on statistik.bl.ch the newsroom wants | paste its URL in the workspace — „statistik.bl" → „Auftrag …" — it becomes an ordinary dataset                                                                                                                        |
+| a club whose results the newsroom wants       | a row in `vereine` with its `ergebnis_url`, then a connector for that `quelle`                                                                                                                                        |
+| a new rule about what a match report may say  | `redaktion/spielbericht.ts` — the prompt **and** the check next to it                                                                                                                                                 |
+| an Abfuhrkalender the newsroom wants          | paste the PDF's address in the workspace — „Entsorgung" → „Abfuhrkalender erfassen"; one PDF per zone (Riehen) registers zone by zone into the same calendar                                                          |
+| a weekly paper the newsroom wants read        | „Presseschau" → „Wochenblatt erfassen" with its archive URL; the platform decides the parser (`konnektor`: WordPress-Archivliste or lokalzeitungen.ch) — a third platform gets its own value in `shared/wochenblatt/` |
+| a new rule about what a press review may say  | `redaktion/presseschau.ts` — the prompt **and** the checks next to it (attribution, digits, verbatim overlap)                                                                                                         |
+| a new rule about what a reminder may say      | `redaktion/erinnerung.ts` — the prompt **and** the check next to it                                                                                                                                                   |
+| a one-off data repair or backfill             | rows only: a one-shot Flow, else `apps/directus/migrations/*.mts` as a last resort                                                                                                                                    |
+| an agenda entry the crawler could not fetch   | the banner in the workspace → „Eintrag von Hand erfassen"                                                                                                                                                             |
+| a new environment variable                    | `apps/directus/.env.example` **and** root `.env.example` **and** docker-compose.yml                                                                                                                                   |
 
 A change that spans both apps starts in `apps/directus` — data model first, then the
 GraphQL documents in the frontend.
