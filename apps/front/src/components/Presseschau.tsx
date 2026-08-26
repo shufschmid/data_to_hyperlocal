@@ -23,6 +23,7 @@ import type {
   AlleMeldungFelder,
   GemeindeFelder,
   KandidatFelder,
+  RecherchehinweisFelder,
   WochenblattFelder
 } from '@/graphql/redaktion'
 import { MeldungKarte, type MeldungAktion } from './MeldungKarte'
@@ -67,13 +68,16 @@ export interface PresseschauProps {
   blaetter: readonly WochenblattFelder[]
   gemeinden: readonly GemeindeFelder[]
   meldungen: readonly AlleMeldungFelder[]
+  hinweise?: readonly RecherchehinweisFelder[]
   laedt?: boolean
   laeuft?: boolean
-  onAnlegen: (eingabe: { gemeinde: string; name: string; archiv_url: string }) => Promise<void>
+  onAnlegen: (eingabe: { gemeinden: string[]; name: string; archiv_url: string }) => Promise<void>
   onPruefen: () => Promise<void>
   onInventar: (ausgabeId: string) => Promise<void>
   onMeldung: (kandidatId: string) => Promise<void>
   onAblehnen: (kandidatId: string, grund: string, kommentar: string) => Promise<void>
+  onGemeinde?: (kandidatId: string, gemeindeId: string) => Promise<void>
+  onHinweisUrteil?: (hinweisId: string, brauchbar: boolean, kommentar: string) => Promise<void>
   onChat: (id: string, anweisung: string) => Promise<void>
   onAktion: (id: string, aktion: MeldungAktion) => Promise<void>
   onPerlePublizieren: (id: string, perle: boolean) => Promise<void>
@@ -83,6 +87,7 @@ export function Presseschau({
   blaetter,
   gemeinden,
   meldungen,
+  hinweise = [],
   laedt = false,
   laeuft = false,
   onAnlegen,
@@ -90,22 +95,35 @@ export function Presseschau({
   onInventar,
   onMeldung,
   onAblehnen,
+  onGemeinde,
+  onHinweisUrteil,
   onChat,
   onAktion,
   onPerlePublizieren
 }: PresseschauProps) {
-  const [gemeinde, setGemeinde] = useState('')
+  const [gewaehlteGemeinden, setGewaehlteGemeinden] = useState<string[]>([])
   const [name, setName] = useState('')
   const [archivUrl, setArchivUrl] = useState('')
   const [ablehnung, setAblehnung] = useState<KandidatFelder | null>(null)
   const [grund, setGrund] = useState('nicht_relevant')
   const [kommentar, setKommentar] = useState('')
+  const [urteil, setUrteil] = useState<{
+    hinweis: RecherchehinweisFelder
+    brauchbar: boolean
+  } | null>(null)
+  const [urteilKommentar, setUrteilKommentar] = useState('')
 
-  // One paper per municipality — offer only those that have none yet.
+  // A municipality already covered by some paper is not offered again.
   const freieGemeinden = useMemo(() => {
-    const belegt = new Set(blaetter.map((b) => b.gemeinde?.id))
+    const belegt = new Set<string | undefined>()
+    for (const blatt of blaetter) {
+      belegt.add(blatt.gemeinde?.id)
+      for (const a of blatt.abdeckungen) belegt.add(a.gemeinde?.id)
+    }
     return gemeinden.filter((g) => !belegt.has(g.id))
   }, [blaetter, gemeinden])
+
+  const offeneHinweise = useMemo(() => hinweise.filter((h) => h.status === 'offen'), [hinweise])
 
   const nachKandidat = useMemo(() => {
     const karte = new Map<string, AlleMeldungFelder>()
@@ -118,8 +136,12 @@ export function Presseschau({
   const liest = blaetter.some((b) => b.ausgaben.some((a) => a.status === 'liest' || a.status === 'neu'))
 
   async function anlegen() {
-    await onAnlegen({ gemeinde, name: name.trim(), archiv_url: archivUrl.trim() })
-    setGemeinde('')
+    await onAnlegen({
+      gemeinden: gewaehlteGemeinden,
+      name: name.trim(),
+      archiv_url: archivUrl.trim()
+    })
+    setGewaehlteGemeinden([])
     setName('')
     setArchivUrl('')
   }
@@ -130,6 +152,13 @@ export function Presseschau({
     setAblehnung(null)
     setGrund('nicht_relevant')
     setKommentar('')
+  }
+
+  async function beurteilen() {
+    if (urteil === null || onHinweisUrteil === undefined) return
+    await onHinweisUrteil(urteil.hinweis.id, urteil.brauchbar, urteilKommentar.trim())
+    setUrteil(null)
+    setUrteilKommentar('')
   }
 
   return (
@@ -149,17 +178,78 @@ export function Presseschau({
           </Alert>
         ))}
 
+      {/* Research leads first and loud: never content, always work — a new
+          one must be impossible to miss. */}
+      {offeneHinweise.length > 0 && (
+        <Paper sx={{ p: 2, borderLeft: 4, borderColor: 'warning.main' }}>
+          <Stack spacing={1.5}>
+            <Typography variant="subtitle2">Recherche-Hinweise ({offeneHinweise.length} offen)</Typography>
+            {offeneHinweise.map((h) => (
+              <Box key={h.id} sx={{ borderTop: 1, borderColor: 'divider', pt: 1 }}>
+                <Stack spacing={0.5}>
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{ alignItems: 'center', flexWrap: 'wrap', gap: 0.5 }}
+                  >
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {h.titel}
+                    </Typography>
+                    {h.gemeinde !== null && <Chip size="small" variant="outlined" label={h.gemeinde.name} />}
+                    <Typography variant="caption" color="text.secondary">
+                      {h.ausgabe?.wochenblatt?.name}
+                      {h.ausgabe?.nummer !== null && ` Nr. ${h.ausgabe?.nummer}`}
+                    </Typography>
+                  </Stack>
+                  {h.fundort !== null && (
+                    <Typography variant="caption" color="text.secondary">
+                      {h.fundort}
+                    </Typography>
+                  )}
+                  {h.begruendung !== null && <Typography variant="body2">{h.begruendung}</Typography>}
+                  {onHinweisUrteil !== undefined && (
+                    <Stack direction="row" spacing={1}>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="warning"
+                        onClick={() => setUrteil({ hinweis: h, brauchbar: true })}
+                        disabled={laeuft}
+                      >
+                        Brauchbare Fährte
+                      </Button>
+                      <Button
+                        size="small"
+                        onClick={() => setUrteil({ hinweis: h, brauchbar: false })}
+                        disabled={laeuft}
+                      >
+                        Kein Hinweis
+                      </Button>
+                    </Stack>
+                  )}
+                </Stack>
+              </Box>
+            ))}
+          </Stack>
+        </Paper>
+      )}
+
       <Paper sx={{ p: 2 }}>
         <Stack spacing={1}>
           <Typography variant="subtitle2">Wochenblatt erfassen</Typography>
           <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
             <TextField
               select
-              label="Gemeinde"
+              label="Gemeinden"
               size="small"
-              value={gemeinde}
-              onChange={(e) => setGemeinde(e.target.value)}
-              sx={{ minWidth: 180 }}
+              value={gewaehlteGemeinden}
+              onChange={(e) => {
+                const wert = e.target.value
+                setGewaehlteGemeinden(Array.isArray(wert) ? wert : [wert])
+              }}
+              helperText="Mehrfachwahl: der Anzeiger zweier Gemeinden traegt beide."
+              slotProps={{ select: { multiple: true } }}
+              sx={{ minWidth: 200 }}
             >
               {freieGemeinden.map((g) => (
                 <MenuItem key={g.id} value={g.id}>
@@ -187,7 +277,10 @@ export function Presseschau({
               size="small"
               onClick={() => void anlegen()}
               disabled={
-                laeuft || gemeinde === '' || name.trim() === '' || !/^https?:\/\//.test(archivUrl.trim())
+                laeuft ||
+                gewaehlteGemeinden.length === 0 ||
+                name.trim() === '' ||
+                !/^https?:\/\//.test(archivUrl.trim())
               }
             >
               Erfassen
@@ -292,6 +385,33 @@ export function Presseschau({
                             {kandidat.perle_vorschlag && (
                               <Chip size="small" color="secondary" label="Perle?" />
                             )}
+                            {/* The per-piece municipality — only worth pixels
+                                when the paper covers more than one. */}
+                            {blatt.abdeckungen.length > 1 &&
+                              (onGemeinde !== undefined ? (
+                                <TextField
+                                  select
+                                  size="small"
+                                  variant="standard"
+                                  value={kandidat.gemeinde?.id ?? ''}
+                                  onChange={(e) => void onGemeinde(kandidat.id, e.target.value)}
+                                  disabled={laeuft}
+                                  aria-label="Gemeinde des Beitrags"
+                                  sx={{ minWidth: 110 }}
+                                >
+                                  {blatt.abdeckungen
+                                    .filter((a) => a.gemeinde !== null)
+                                    .map((a) => (
+                                      <MenuItem key={a.gemeinde?.id} value={a.gemeinde?.id ?? ''}>
+                                        {a.gemeinde?.name}
+                                      </MenuItem>
+                                    ))}
+                                </TextField>
+                              ) : (
+                                kandidat.gemeinde !== null && (
+                                  <Chip size="small" variant="outlined" label={kandidat.gemeinde.name} />
+                                )
+                              ))}
                           </Stack>
                           {kandidat.warum_exklusiv !== null && (
                             <Typography variant="caption" color="text.secondary">
@@ -380,6 +500,35 @@ export function Presseschau({
           <Button onClick={() => setAblehnung(null)}>Abbrechen</Button>
           <Button variant="contained" onClick={() => void ablehnen()} disabled={laeuft}>
             Ablehnen
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* The lead verdict dialog — "war das ein Recherchehinweis?" is the
+          learning signal, the optional comment its reasoning. */}
+      <Dialog open={urteil !== null} onClose={() => setUrteil(null)} fullWidth maxWidth="xs">
+        <DialogTitle>
+          {urteil?.brauchbar === true ? 'Als brauchbare Fährte bestätigen' : 'Als «kein Hinweis» ablegen'}
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={1}>
+            <Typography variant="body2" color="text.secondary">
+              {urteil?.hinweis.titel}
+            </Typography>
+            <TextField
+              label="Kommentar (optional, hilft dem Lernen)"
+              size="small"
+              multiline
+              minRows={2}
+              value={urteilKommentar}
+              onChange={(e) => setUrteilKommentar(e.target.value)}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setUrteil(null)}>Abbrechen</Button>
+          <Button variant="contained" onClick={() => void beurteilen()} disabled={laeuft}>
+            Speichern
           </Button>
         </DialogActions>
       </Dialog>

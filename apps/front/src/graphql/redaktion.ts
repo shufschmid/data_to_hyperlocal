@@ -809,6 +809,9 @@ export interface KandidatFelder {
   titel: string
   seite: number | null
   typ: string
+  /** Zuordnung des Inventars — bei Mehr-Gemeinden-Blättern korrigierbar. */
+  gemeinde: { id: string; name: string } | null
+  gemeinde_korrigiert: boolean
   frontseite: boolean
   warum_exklusiv: string | null
   zusammenfassung: string | null
@@ -840,6 +843,8 @@ export interface WochenblattFelder {
   letzte_pruefung: string | null
   letzter_fehler: string | null
   gemeinde: { id: string; name: string } | null
+  /** Alle Gemeinden, über die das Blatt schreibt — der Anzeiger hat zwei. */
+  abdeckungen: Array<{ id: string; gemeinde: { id: string; name: string } | null }>
   /** Die neuesten Ausgaben zuerst; die Ansicht zeigt die erste. */
   ausgaben: AusgabeFelder[]
 }
@@ -861,6 +866,13 @@ export const WOCHENBLAETTER_QUERY = gql`
         id
         name
       }
+      abdeckungen {
+        id
+        gemeinde {
+          id
+          name
+        }
+      }
       ausgaben(sort: ["-datum"], limit: 3) {
         id
         schluessel
@@ -876,6 +888,11 @@ export const WOCHENBLAETTER_QUERY = gql`
           titel
           seite
           typ
+          gemeinde {
+            id
+            name
+          }
+          gemeinde_korrigiert
           frontseite
           warum_exklusiv
           zusammenfassung
@@ -889,3 +906,60 @@ export const WOCHENBLAETTER_QUERY = gql`
     }
   }
 `
+
+// --- Recherche-Faehrten: nie Inhalt, immer Arbeit --------------------------
+
+export interface RecherchehinweisFelder {
+  id: string
+  titel: string
+  fundort: string | null
+  begruendung: string | null
+  status: string
+  kommentar: string | null
+  date_created: string | null
+  gemeinde: { id: string; name: string } | null
+  ausgabe: {
+    id: string
+    nummer: string | null
+    pdf_url: string | null
+    wochenblatt: { id: string; name: string } | null
+  } | null
+}
+
+export interface RecherchehinweiseErgebnis {
+  recherchehinweise: RecherchehinweisFelder[]
+}
+
+export const RECHERCHEHINWEISE_QUERY = gql`
+  query Recherchehinweise {
+    recherchehinweise(sort: ["-date_created"], limit: 100) {
+      id
+      titel
+      fundort
+      begruendung
+      status
+      kommentar
+      date_created
+      gemeinde {
+        id
+        name
+      }
+      ausgabe {
+        id
+        nummer
+        pdf_url
+        wochenblatt {
+          id
+          name
+        }
+      }
+    }
+  }
+`
+
+// Die Gemeinde-Korrektur an einem Kandidaten laeuft ueber den Endpoint
+// (POST /redaktion/kandidaten/:id/gemeinde) — dieselbe Falle wie bei den
+// Ankuendigungen: die GraphQL-Mutation typt die Relation als Create-Input
+// und will eine ganze neue Gemeinde statt einer Referenz. Der Hook
+// `kandidat-gemeinde` markiert die Korrektur auf jedem Schreibweg als
+// Lernsignal (`gemeinde_korrigiert`).

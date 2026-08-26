@@ -20,7 +20,8 @@ const ERLAUBT: RegExp[] = [
   /^wochenblaetter$/i,
   /^wochenblaetter\/pruefen$/i,
   /^ausgaben\/[0-9a-f-]{36}\/inventar$/i,
-  /^kandidaten\/[0-9a-f-]{36}\/(meldung|ablehnen)$/i
+  /^kandidaten\/[0-9a-f-]{36}\/(meldung|ablehnen|gemeinde)$/i,
+  /^hinweise\/[0-9a-f-]{36}\/bewerten$/i
 ]
 
 // The one read this proxy carries: the state of a hand-started scrape run.

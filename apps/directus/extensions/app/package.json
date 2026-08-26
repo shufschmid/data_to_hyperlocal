@@ -75,6 +75,11 @@
       },
       {
         "type": "hook",
+        "name": "kandidat-gemeinde",
+        "source": "src/hooks/kandidat-gemeinde/index.ts"
+      },
+      {
+        "type": "hook",
         "name": "meldung-status",
         "source": "src/hooks/meldung-status/index.ts"
       },

@@ -525,6 +525,35 @@ export type Ablehnungsgrund =
   | 'falsche_gemeinde'
   | 'andere'
 
+/** One municipality a paper covers — the Muttenzer & Prattler Anzeiger has two. */
+export interface Wochenblattgemeinde {
+  id: string
+  wochenblatt: string
+  gemeinde: string
+  date_created: string | null
+}
+
+export type HinweisStatus = 'offen' | 'brauchbar' | 'kein_hinweis'
+
+/**
+ * A research lead the paper carries — usually a Leserbrief. NEVER published
+ * unchecked: leads are work for the newsroom, not content. The editor's
+ * verdict (brauchbar / kein Hinweis) teaches the next inventory what a lead is.
+ */
+export interface Recherchehinweis {
+  id: string
+  ausgabe: string
+  gemeinde: string | null
+  titel: string
+  /** Where it stands — "Leserbrief 'Wertvoller Regen', S. 2". */
+  fundort: string | null
+  begruendung: string | null
+  status: HinweisStatus
+  kommentar: string | null
+  date_created: string | null
+  date_updated: string | null
+}
+
 /**
  * One exclusive piece of an issue, as the inventory proposed it.
  *
@@ -535,6 +564,14 @@ export type Ablehnungsgrund =
 export interface Wochenblattkandidat {
   id: string
   ausgabe: string
+  /**
+   * Which municipality the piece is about — assigned by the inventory (page
+   * index top-left where present, content otherwise), correctable by the
+   * editor. Null only for papers covering a single municipality anyway.
+   */
+  gemeinde: string | null
+  /** Set by the hook when the editor reassigns — the learning signal. */
+  gemeinde_korrigiert: boolean
   /** As printed in the paper. */
   titel: string
   seite: number | null
@@ -574,4 +611,6 @@ export interface Schema {
   wochenblaetter: Wochenblatt[]
   wochenblattausgaben: Wochenblattausgabe[]
   wochenblattkandidaten: Wochenblattkandidat[]
+  wochenblattgemeinden: Wochenblattgemeinde[]
+  recherchehinweise: Recherchehinweis[]
 }

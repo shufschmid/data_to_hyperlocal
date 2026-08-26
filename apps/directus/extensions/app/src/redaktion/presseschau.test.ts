@@ -33,6 +33,7 @@ const KANDIDAT = {
   titel: 'Wo die Temperaturrekorde purzeln',
   seite: 3,
   typ: 'reportage',
+  gemeinde: 'Binningen',
   frontseite: true,
   warum_exklusiv: 'Eigene Reportage mit Besuch vor Ort.',
   zusammenfassung: 'Fakten.',
@@ -40,17 +41,25 @@ const KANDIDAT = {
   perle_begruendung: 'Weltweit einmalige Messreihe.'
 }
 
+const EINE_GEMEINDE = ['Binningen']
+
 describe('parseInventar', () => {
   it('nimmt gueltige Kandidaten und prueft die Seite gegen unsere Seitenzahl', () => {
-    const inventar = parseInventar({ kandidaten: [KANDIDAT], hinweise: [] }, 16)
+    const inventar = parseInventar(
+      { kandidaten: [KANDIDAT], recherchehinweise: [], hinweise: [] },
+      16,
+      EINE_GEMEINDE
+    )
     expect(inventar.kandidaten).toHaveLength(1)
     expect(inventar.kandidaten[0]?.perle_vorschlag).toBe(true)
+    expect(inventar.kandidaten[0]?.gemeinde).toBe('Binningen')
   })
 
   it('entfernt eine Seitenangabe ausserhalb der Ausgabe, statt ihr zu glauben', () => {
     const inventar = parseInventar(
       { kandidaten: [{ ...KANDIDAT, seite: 99 }], hinweise: [] },
-      16
+      16,
+      EINE_GEMEINDE
     )
     expect(inventar.kandidaten[0]?.seite).toBeNull()
     expect(inventar.hinweise[0]).toContain('Seite 99')
@@ -59,7 +68,8 @@ describe('parseInventar', () => {
   it('verwirft unbekannte Typen und sagt es', () => {
     const inventar = parseInventar(
       { kandidaten: [{ ...KANDIDAT, typ: 'leitartikel' }], hinweise: [] },
-      16
+      16,
+      EINE_GEMEINDE
     )
     expect(inventar.kandidaten).toHaveLength(0)
     expect(inventar.hinweise[0]).toContain('leitartikel')
@@ -68,9 +78,62 @@ describe('parseInventar', () => {
   it('dedupliziert auf Titel und Seite', () => {
     const inventar = parseInventar(
       { kandidaten: [KANDIDAT, { ...KANDIDAT }], hinweise: [] },
-      16
+      16,
+      EINE_GEMEINDE
     )
     expect(inventar.kandidaten).toHaveLength(1)
+  })
+
+  it('prueft die Gemeinde gegen die Abdeckung — und teilt Unklares der Hauptgemeinde zu', () => {
+    // Der Muttenzer & Prattler Anzeiger deckt zwei Gemeinden ab. Eine Behaup-
+    // tung ausserhalb der Abdeckung wird nicht geglaubt, sondern benannt.
+    const inventar = parseInventar(
+      {
+        kandidaten: [
+          { ...KANDIDAT, titel: 'Prattler Sache', gemeinde: 'pratteln' },
+          { ...KANDIDAT, titel: 'Fremde Sache', gemeinde: 'Basel' }
+        ],
+        recherchehinweise: [],
+        hinweise: []
+      },
+      16,
+      ['Muttenz', 'Pratteln']
+    )
+
+    expect(inventar.kandidaten[0]?.gemeinde).toBe('Pratteln')
+    expect(inventar.kandidaten[1]?.gemeinde).toBe('Muttenz')
+    expect(inventar.hinweise[0]).toContain('"Basel" nicht in der Abdeckung')
+  })
+
+  it('nimmt Recherche-Faehrten mit, validiert aber deren Gemeinde', () => {
+    const inventar = parseInventar(
+      {
+        kandidaten: [],
+        recherchehinweise: [
+          {
+            titel: 'Sechs Meter hohe Daemme geplant',
+            fundort: "Leserbrief 'Wertvoller Regen', S. 2",
+            begruendung: 'Konkretes Bauprojekt, das niemand eingeordnet hat.',
+            gemeinde: 'Muttenz'
+          },
+          {
+            titel: 'Ohne Gemeinde',
+            fundort: null,
+            begruendung: null,
+            gemeinde: 'Bern'
+          }
+        ],
+        hinweise: []
+      },
+      16,
+      ['Muttenz', 'Pratteln']
+    )
+
+    expect(inventar.recherchehinweise).toHaveLength(2)
+    expect(inventar.recherchehinweise[0]?.gemeinde).toBe('Muttenz')
+    expect(inventar.recherchehinweise[0]?.fundort).toContain('Leserbrief')
+    // Eine Faehrte wird nie zum Artikel — null ist hier ehrlicher als raten.
+    expect(inventar.recherchehinweise[1]?.gemeinde).toBeNull()
   })
 })
 
@@ -122,7 +185,7 @@ describe('lernDigest', () => {
       'JVBERi0=',
       {
         name: 'Binninger Wochenblatt',
-        gemeinde: 'Binningen',
+        gemeinden: ['Binningen'],
         nummer: '35',
         datum: null
       },
@@ -133,6 +196,46 @@ describe('lernDigest', () => {
     const text = inhalt.find((b) => b.type === 'text')
     expect(text && 'text' in text ? text.text : '').toContain(digest)
     expect(inhalt[0]?.type).toBe('document')
+  })
+
+  it('nennt bei mehreren Gemeinden die ganze Abdeckung im Auftrag', () => {
+    const [nachricht] = buildInventarMessages(
+      'JVBERi0=',
+      {
+        name: 'Muttenzer & Prattler Anzeiger',
+        gemeinden: ['Muttenz', 'Pratteln'],
+        nummer: '34',
+        datum: '2026-08-21'
+      },
+      ''
+    )
+    const inhalt = nachricht?.content
+    if (!Array.isArray(inhalt)) throw new Error('Content fehlt')
+    const text = inhalt.find((b) => b.type === 'text')
+    const auftrag = text && 'text' in text ? text.text : ''
+    expect(auftrag).toContain('Muttenz, Pratteln')
+    expect(auftrag).toContain('ordne jeden Kandidaten')
+  })
+
+  it('traegt Gemeinde-Korrekturen und Faehrten-Urteile in den Digest', () => {
+    const digest = lernDigest(
+      [],
+      [{ titel: 'Neues Schulhaus', gemeinde: 'Pratteln' }],
+      [
+        { titel: 'Sechs Meter hohe Daemme', brauchbar: true, kommentar: null },
+        {
+          titel: 'Aerger ueber Laub',
+          brauchbar: false,
+          kommentar: 'blosse Stimmung'
+        }
+      ]
+    )
+
+    expect(digest).toContain('"Neues Schulhaus" gehoert zu Pratteln')
+    expect(digest).toContain('"Sechs Meter hohe Daemme": brauchbare Faehrte')
+    expect(digest).toContain(
+      '"Aerger ueber Laub": keine Faehrte — blosse Stimmung'
+    )
   })
 })
 

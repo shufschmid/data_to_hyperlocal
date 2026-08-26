@@ -67,6 +67,8 @@ import {
   PRESSESCHAU_SYSTEM_PROMPT,
   ueberlappungsWarnungen,
   zahlWarnungenPresseschau,
+  type FaehrtenUrteil,
+  type GemeindeKorrektur,
   type LernEintrag,
   type PresseschauFakten
 } from '../../redaktion/presseschau'
@@ -418,6 +420,7 @@ export default defineEndpoint(
 
         const koerper = (req.body ?? {}) as {
           gemeinde?: unknown
+          gemeinden?: unknown
           name?: unknown
           archiv_url?: unknown
         }
@@ -426,9 +429,17 @@ export default defineEndpoint(
           typeof koerper.archiv_url === 'string'
             ? koerper.archiv_url.trim()
             : ''
+        // One paper can cover several municipalities (the Muttenzer & Prattler
+        // Anzeiger has two). The first named is the main one.
+        const gemeindeIds: string[] = Array.isArray(koerper.gemeinden)
+          ? koerper.gemeinden.filter(
+              (g): g is string => typeof g === 'string' && UUID.test(g)
+            )
+          : typeof koerper.gemeinde === 'string' && UUID.test(koerper.gemeinde)
+            ? [koerper.gemeinde]
+            : []
         if (
-          typeof koerper.gemeinde !== 'string' ||
-          !UUID.test(koerper.gemeinde) ||
+          gemeindeIds.length === 0 ||
           name === '' ||
           !/^https?:\/\//.test(archivUrl)
         ) {
@@ -458,17 +469,28 @@ export default defineEndpoint(
         }
 
         try {
+          const schema = await getSchema()
           const blaetter = new ItemsService('wochenblaetter', {
-            schema: await getSchema(),
+            schema,
+            accountability: req.accountability
+          })
+          const abdeckungen = new ItemsService('wochenblattgemeinden', {
+            schema,
             accountability: req.accountability
           })
           const id = (await blaetter.createOne({
-            gemeinde: koerper.gemeinde,
+            gemeinde: gemeindeIds[0],
             name,
             archiv_url: archivUrl,
             konnektor,
             aktiv: true
           })) as string
+          for (const gemeindeId of gemeindeIds) {
+            await abdeckungen.createOne({
+              wochenblatt: id,
+              gemeinde: gemeindeId
+            })
+          }
 
           // The newest issue is processed right away — that was the deal:
           // current one in, backlog ignored forever.
@@ -517,7 +539,12 @@ export default defineEndpoint(
           datum: string | null
           seiten: number | null
           pdf: string | null
-          wochenblatt: { id: string; name: string; gemeinde: { name: string } }
+          wochenblatt: {
+            id: string
+            name: string
+            gemeinde: { id: string; name: string }
+            abdeckungen: Array<{ gemeinde: { id: string; name: string } }>
+          }
         }
         try {
           ausgabe = (await ausgaben.readOne(id, {
@@ -530,7 +557,10 @@ export default defineEndpoint(
               'pdf',
               'wochenblatt.id',
               'wochenblatt.name',
-              'wochenblatt.gemeinde.name'
+              'wochenblatt.gemeinde.id',
+              'wochenblatt.gemeinde.name',
+              'wochenblatt.abdeckungen.gemeinde.id',
+              'wochenblatt.abdeckungen.gemeinde.name'
             ]
           })) as typeof ausgabe
         } catch (error) {
@@ -559,8 +589,17 @@ export default defineEndpoint(
           try {
             const pdfDaten = await lesePdf(schema, ausgabe.pdf as string)
             const digest = lernDigest(
-              await ladeLernEintraege(schema, ausgabe.wochenblatt.id)
+              ...(await ladeLernEintraege(schema, ausgabe.wochenblatt.id))
             )
+
+            // Covered municipalities, main one first — names and ids in step.
+            const abdeckung = [ausgabe.wochenblatt.gemeinde]
+            for (const eintrag of ausgabe.wochenblatt.abdeckungen ?? []) {
+              if (eintrag.gemeinde.id !== ausgabe.wochenblatt.gemeinde.id) {
+                abdeckung.push(eintrag.gemeinde)
+              }
+            }
+            const gemeindeIds = new Map(abdeckung.map((g) => [g.name, g.id]))
 
             const antwort = await completeChatJson<unknown>({
               system: INVENTAR_SYSTEM_PROMPT,
@@ -568,7 +607,7 @@ export default defineEndpoint(
                 pdfDaten.toString('base64'),
                 {
                   name: ausgabe.wochenblatt.name,
-                  gemeinde: ausgabe.wochenblatt.gemeinde.name,
+                  gemeinden: abdeckung.map((g) => g.name),
                   nummer: ausgabe.nummer,
                   datum: ausgabe.datum
                 },
@@ -579,7 +618,11 @@ export default defineEndpoint(
               maxTokens: 32000,
               schema: INVENTAR_SCHEMA
             })
-            const inventar = parseInventar(antwort, ausgabe.seiten)
+            const inventar = parseInventar(
+              antwort,
+              ausgabe.seiten,
+              abdeckung.map((g) => g.name)
+            )
 
             // Diff instead of replace: a candidate the editor already decided
             // on, or one that became a Meldung, is not up for debate again.
@@ -630,12 +673,43 @@ export default defineEndpoint(
                 titel: neu.titel,
                 seite: neu.seite,
                 typ: neu.typ,
+                gemeinde:
+                  gemeindeIds.get(neu.gemeinde) ??
+                  ausgabe.wochenblatt.gemeinde.id,
                 frontseite: neu.frontseite,
                 warum_exklusiv: neu.warum_exklusiv,
                 zusammenfassung: neu.zusammenfassung,
                 perle_vorschlag: neu.perle_vorschlag,
                 perle_begruendung: neu.perle_begruendung,
                 entscheid: 'offen'
+              })
+            }
+
+            // Research leads: only genuinely new ones are added — a verdict
+            // the newsroom already gave is never asked for twice.
+            const hinweiseService = new ItemsService('recherchehinweise', {
+              schema
+            })
+            const bestehendeFaehrten = (await hinweiseService.readByQuery({
+              filter: { ausgabe: { _eq: id } },
+              fields: ['titel'],
+              limit: -1
+            })) as Array<{ titel: string }>
+            const bekannteFaehrten = new Set(
+              bestehendeFaehrten.map((f) => f.titel.toLowerCase())
+            )
+            for (const faehrte of inventar.recherchehinweise) {
+              if (bekannteFaehrten.has(faehrte.titel.toLowerCase())) continue
+              await hinweiseService.createOne({
+                ausgabe: id,
+                gemeinde:
+                  faehrte.gemeinde === null
+                    ? null
+                    : (gemeindeIds.get(faehrte.gemeinde) ?? null),
+                titel: faehrte.titel,
+                fundort: faehrte.fundort,
+                begruendung: faehrte.begruendung,
+                status: 'offen'
               })
             }
 
@@ -785,6 +859,81 @@ export default defineEndpoint(
           })
 
           return res.json({ data: { kandidat: id, entscheid: 'abgelehnt' } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    router.post(
+      '/kandidaten/:id/gemeinde',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        const koerper = (req.body ?? {}) as { gemeinde?: unknown }
+        if (
+          typeof koerper.gemeinde !== 'string' ||
+          !UUID.test(koerper.gemeinde)
+        ) {
+          return next(new UngueltigeId())
+        }
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const kandidatenService = new ItemsService('wochenblattkandidaten', {
+            schema: await getSchema(),
+            accountability: req.accountability
+          })
+
+          // The reassignment itself; the `kandidat-gemeinde` hook stamps
+          // `gemeinde_korrigiert` — the signal the next inventory learns from.
+          await kandidatenService.updateOne(id, { gemeinde: koerper.gemeinde })
+
+          return res.json({ data: { kandidat: id } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    router.post(
+      '/hinweise/:id/bewerten',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        const koerper = (req.body ?? {}) as {
+          brauchbar?: unknown
+          kommentar?: unknown
+        }
+        if (typeof koerper.brauchbar !== 'boolean') {
+          return next(new UngueltigerAblehnungsgrund())
+        }
+        const kommentar =
+          typeof koerper.kommentar === 'string' &&
+          koerper.kommentar.trim() !== ''
+            ? koerper.kommentar.trim()
+            : null
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const hinweise = new ItemsService('recherchehinweise', {
+            schema: await getSchema(),
+            accountability: req.accountability
+          })
+
+          // The other half of the lead loop: "war das ein Recherchehinweis
+          // oder nicht?" — the verdict teaches the next inventory.
+          await hinweise.updateOne(id, {
+            status: koerper.brauchbar ? 'brauchbar' : 'kein_hinweis',
+            kommentar
+          })
+
+          return res.json({
+            data: {
+              hinweis: id,
+              status: koerper.brauchbar ? 'brauchbar' : 'kein_hinweis'
+            }
+          })
         } catch (error) {
           return next(uebersetze(error))
         }
@@ -2598,6 +2747,8 @@ export default defineEndpoint(
           'typ',
           'frontseite',
           'zusammenfassung',
+          'gemeinde.id',
+          'gemeinde.name',
           'ausgabe.nummer',
           'ausgabe.schluessel',
           'ausgabe.datum',
@@ -2614,6 +2765,8 @@ export default defineEndpoint(
         typ: PresseschauFakten['typ']
         frontseite: boolean
         zusammenfassung: string | null
+        /** The per-piece assignment — multi-municipality papers live on this. */
+        gemeinde: { id: string; name: string } | null
         ausgabe: {
           nummer: string | null
           schluessel: string
@@ -2634,14 +2787,17 @@ export default defineEndpoint(
         throw new NichtsZuTun()
       }
 
+      const gemeinde =
+        kandidat.gemeinde ?? kandidat.ausgabe.wochenblatt.gemeinde
+
       return {
-        gemeindeId: kandidat.ausgabe.wochenblatt.gemeinde.id,
+        gemeindeId: gemeinde.id,
         volltext: kandidat.ausgabe.volltext,
         fakten: {
           blatt: kandidat.ausgabe.wochenblatt.name,
           nummer: kandidat.ausgabe.nummer ?? kandidat.ausgabe.schluessel,
           datum: kandidat.ausgabe.datum,
-          gemeinde: kandidat.ausgabe.wochenblatt.gemeinde.name,
+          gemeinde: gemeinde.name,
           titel: kandidat.titel,
           seite: kandidat.seite,
           typ: kandidat.typ,
@@ -2758,17 +2914,19 @@ export default defineEndpoint(
     }
 
     /**
-     * The learning half of the press review, endpoint-side: the same digest
-     * the 09:00 operation builds, for the re-inventory button.
+     * The learning half of the press review, endpoint-side: the same signals
+     * the 09:00 operation gathers, for the re-inventory button — take/reject
+     * decisions, municipality corrections and lead verdicts, all per paper.
      */
     async function ladeLernEintraege(
       schema: Awaited<ReturnType<typeof getSchema>>,
       blattId: string
-    ): Promise<LernEintrag[]> {
+    ): Promise<[LernEintrag[], GemeindeKorrektur[], FaehrtenUrteil[]]> {
       const kandidatenService = new ItemsService('wochenblattkandidaten', {
         schema
       })
       const meldungenService = new ItemsService('meldungen', { schema })
+      const hinweiseService = new ItemsService('recherchehinweise', { schema })
 
       const kandidaten = (await kandidatenService.readByQuery({
         filter: {
@@ -2795,34 +2953,69 @@ export default defineEndpoint(
         ablehnungskommentar: string | null
         perle_vorschlag: boolean
       }>
-      if (kandidaten.length === 0) return []
 
-      const meldungen = (await meldungenService.readByQuery({
-        filter: { kandidat: { _in: kandidaten.map((k) => k.id) } },
-        fields: ['kandidat', 'status', 'perle'],
-        limit: -1
-      })) as Array<{
-        kandidat: string
-        status: string
-        perle: boolean | null
-      }>
-      const nachKandidat = new Map(meldungen.map((m) => [m.kandidat, m]))
-
-      return kandidaten.map((k) => {
-        const meldung = nachKandidat.get(k.id)
-        return {
+      const korrigierte = (await kandidatenService.readByQuery({
+        filter: {
+          gemeinde_korrigiert: { _eq: true },
+          ausgabe: { wochenblatt: { _eq: blattId } }
+        },
+        sort: ['-date_updated'],
+        fields: ['titel', 'gemeinde.name'],
+        limit: 20
+      })) as Array<{ titel: string; gemeinde: { name: string } | null }>
+      const korrekturen: GemeindeKorrektur[] = korrigierte
+        .filter((k) => k.gemeinde !== null)
+        .map((k) => ({
           titel: k.titel,
-          typ: k.typ,
-          entscheid: k.entscheid,
-          ablehnungsgrund: k.ablehnungsgrund,
-          ablehnungskommentar: k.ablehnungskommentar,
-          perleVorschlag: k.perle_vorschlag,
-          perleBestaetigt:
-            meldung !== undefined && meldung.status === 'publiziert'
-              ? meldung.perle === true
-              : null
-        }
-      })
+          gemeinde: (k.gemeinde as { name: string }).name
+        }))
+
+      const beurteilte = (await hinweiseService.readByQuery({
+        filter: {
+          status: { _neq: 'offen' },
+          ausgabe: { wochenblatt: { _eq: blattId } }
+        },
+        sort: ['-date_updated'],
+        fields: ['titel', 'status', 'kommentar'],
+        limit: 20
+      })) as Array<{ titel: string; status: string; kommentar: string | null }>
+      const faehrten: FaehrtenUrteil[] = beurteilte.map((f) => ({
+        titel: f.titel,
+        brauchbar: f.status === 'brauchbar',
+        kommentar: f.kommentar
+      }))
+
+      let eintraege: LernEintrag[] = []
+      if (kandidaten.length > 0) {
+        const meldungen = (await meldungenService.readByQuery({
+          filter: { kandidat: { _in: kandidaten.map((k) => k.id) } },
+          fields: ['kandidat', 'status', 'perle'],
+          limit: -1
+        })) as Array<{
+          kandidat: string
+          status: string
+          perle: boolean | null
+        }>
+        const nachKandidat = new Map(meldungen.map((m) => [m.kandidat, m]))
+
+        eintraege = kandidaten.map((k) => {
+          const meldung = nachKandidat.get(k.id)
+          return {
+            titel: k.titel,
+            typ: k.typ,
+            entscheid: k.entscheid,
+            ablehnungsgrund: k.ablehnungsgrund,
+            ablehnungskommentar: k.ablehnungskommentar,
+            perleVorschlag: k.perle_vorschlag,
+            perleBestaetigt:
+              meldung !== undefined && meldung.status === 'publiziert'
+                ? meldung.perle === true
+                : null
+          }
+        })
+      }
+
+      return [eintraege, korrekturen, faehrten]
     }
 
     async function ueberarbeiteSpielbericht(

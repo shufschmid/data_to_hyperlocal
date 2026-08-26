@@ -14,6 +14,8 @@ import {
   INVENTAR_SYSTEM_PROMPT,
   lernDigest,
   parseInventar,
+  type FaehrtenUrteil,
+  type GemeindeKorrektur,
   type LernEintrag
 } from '../../redaktion/presseschau'
 import { optionalEnv } from '../../shared/env'
@@ -91,6 +93,10 @@ export default defineOperationApi<Optionen>({
       schema,
       knex: database
     })
+    const hinweiseService = new ItemsService('recherchehinweise', {
+      schema,
+      knex: database
+    })
     const files = new FilesService({ schema, knex: database })
 
     const ergebnis: Ergebnis = {
@@ -103,11 +109,21 @@ export default defineOperationApi<Optionen>({
 
     const blaetter = (await blaetterService.readByQuery({
       filter: { aktiv: { _eq: true } },
-      fields: ['id', 'name', 'archiv_url', 'konnektor', 'gemeinde.name'],
+      fields: [
+        'id',
+        'name',
+        'archiv_url',
+        'konnektor',
+        'gemeinde.id',
+        'gemeinde.name',
+        'abdeckungen.gemeinde.id',
+        'abdeckungen.gemeinde.name'
+      ],
       limit: hoechstens
     })) as Array<
       Pick<Wochenblatt, 'id' | 'name' | 'archiv_url' | 'konnektor'> & {
-        gemeinde: { name: string }
+        gemeinde: { id: string; name: string }
+        abdeckungen: Array<{ gemeinde: { id: string; name: string } }>
       }
     >
 
@@ -142,12 +158,28 @@ export default defineOperationApi<Optionen>({
 
     return ergebnis
 
-    async function pruefeBlatt(
-      blatt: Pick<Wochenblatt, 'id' | 'name' | 'archiv_url'> & {
-        konnektor: WochenblattKonnektor
-        gemeinde: { name: string }
+    interface BlattZeile {
+      id: string
+      name: string
+      archiv_url: string
+      konnektor: WochenblattKonnektor
+      gemeinde: { id: string; name: string }
+      abdeckungen: Array<{ gemeinde: { id: string; name: string } }>
+    }
+
+    /** Covered municipalities, main one first — names and ids in step. */
+    function abdeckungVon(
+      blatt: BlattZeile
+    ): Array<{ id: string; name: string }> {
+      const liste = [blatt.gemeinde]
+      for (const eintrag of blatt.abdeckungen ?? []) {
+        if (eintrag.gemeinde.id !== blatt.gemeinde.id)
+          liste.push(eintrag.gemeinde)
       }
-    ): Promise<void> {
+      return liste
+    }
+
+    async function pruefeBlatt(blatt: BlattZeile): Promise<void> {
       const archiv = await fetchAusgabenliste(
         blatt.konnektor,
         blatt.archiv_url,
@@ -232,20 +264,27 @@ export default defineOperationApi<Optionen>({
 
     /** One Opus call over the PDF, steered by what the newsroom decided before. */
     async function inventarisiere(
-      blatt: Pick<Wochenblatt, 'id' | 'name'> & { gemeinde: { name: string } },
+      blatt: BlattZeile,
       ausgabeId: string,
       nummer: string | null,
       datum: string | null,
       pdfDaten: Buffer,
       seiten: number
     ): Promise<number> {
-      const digest = lernDigest(await ladeEntscheide(blatt.id))
+      const abdeckung = abdeckungVon(blatt)
+      const gemeindeIds = new Map(abdeckung.map((g) => [g.name, g.id]))
+      const digest = lernDigest(...(await ladeLernSignale(blatt.id)))
 
       const antwort = await completeChatJson<unknown>({
         system: INVENTAR_SYSTEM_PROMPT,
         messages: buildInventarMessages(
           pdfDaten.toString('base64'),
-          { name: blatt.name, gemeinde: blatt.gemeinde.name, nummer, datum },
+          {
+            name: blatt.name,
+            gemeinden: abdeckung.map((g) => g.name),
+            nummer,
+            datum
+          },
           digest
         ),
         model: 'claude-opus-5',
@@ -256,7 +295,11 @@ export default defineOperationApi<Optionen>({
         schema: INVENTAR_SCHEMA
       })
 
-      const inventar = parseInventar(antwort, seiten)
+      const inventar = parseInventar(
+        antwort,
+        seiten,
+        abdeckung.map((g) => g.name)
+      )
 
       for (const kandidat of inventar.kandidaten) {
         await kandidatenService.createOne({
@@ -264,12 +307,29 @@ export default defineOperationApi<Optionen>({
           titel: kandidat.titel,
           seite: kandidat.seite,
           typ: kandidat.typ,
+          gemeinde: gemeindeIds.get(kandidat.gemeinde) ?? blatt.gemeinde.id,
           frontseite: kandidat.frontseite,
           warum_exklusiv: kandidat.warum_exklusiv,
           zusammenfassung: kandidat.zusammenfassung,
           perle_vorschlag: kandidat.perle_vorschlag,
           perle_begruendung: kandidat.perle_begruendung,
           entscheid: 'offen'
+        })
+      }
+
+      // Research leads land in their own collection — never candidates, never
+      // published unchecked; the workspace badge makes a new one unmissable.
+      for (const faehrte of inventar.recherchehinweise) {
+        await hinweiseService.createOne({
+          ausgabe: ausgabeId,
+          gemeinde:
+            faehrte.gemeinde === null
+              ? null
+              : (gemeindeIds.get(faehrte.gemeinde) ?? null),
+          titel: faehrte.titel,
+          fundort: faehrte.fundort,
+          begruendung: faehrte.begruendung,
+          status: 'offen'
         })
       }
 
@@ -283,10 +343,13 @@ export default defineOperationApi<Optionen>({
     }
 
     /**
-     * The recent decisions of THIS paper — what in Binningen is a Doublette
-     * says nothing about Muttenz, so the digest is deliberately per paper.
+     * The recent teaching of THIS paper — take/reject decisions, municipality
+     * corrections and lead verdicts. What in Binningen is a Doublette says
+     * nothing about Muttenz, so everything is deliberately per paper.
      */
-    async function ladeEntscheide(blattId: string): Promise<LernEintrag[]> {
+    async function ladeLernSignale(
+      blattId: string
+    ): Promise<[LernEintrag[], GemeindeKorrektur[], FaehrtenUrteil[]]> {
       const kandidaten = (await kandidatenService.readByQuery({
         filter: {
           entscheid: { _neq: 'offen' },
@@ -316,32 +379,66 @@ export default defineOperationApi<Optionen>({
         >
       >
 
-      if (kandidaten.length === 0) return []
-
-      // A Perle verdict exists only once the Meldung is published — unpublished
-      // means undecided, not "no".
-      const meldungen = (await meldungenService.readByQuery({
-        filter: { kandidat: { _in: kandidaten.map((k) => k.id) } },
-        fields: ['kandidat', 'status', 'perle'],
-        limit: -1
-      })) as Pick<Meldung, 'kandidat' | 'status' | 'perle'>[]
-      const nachKandidat = new Map(meldungen.map((m) => [m.kandidat, m]))
-
-      return kandidaten.map((k) => {
-        const meldung = nachKandidat.get(k.id)
-        return {
+      const korrigierte = (await kandidatenService.readByQuery({
+        filter: {
+          gemeinde_korrigiert: { _eq: true },
+          ausgabe: { wochenblatt: { _eq: blattId } }
+        },
+        sort: ['-date_updated'],
+        fields: ['titel', 'gemeinde.name'],
+        limit: LERN_FENSTER
+      })) as Array<{ titel: string; gemeinde: { name: string } | null }>
+      const korrekturen: GemeindeKorrektur[] = korrigierte
+        .filter((k) => k.gemeinde !== null)
+        .map((k) => ({
           titel: k.titel,
-          typ: k.typ,
-          entscheid: k.entscheid,
-          ablehnungsgrund: k.ablehnungsgrund,
-          ablehnungskommentar: k.ablehnungskommentar,
-          perleVorschlag: k.perle_vorschlag,
-          perleBestaetigt:
-            meldung !== undefined && meldung.status === 'publiziert'
-              ? meldung.perle === true
-              : null
-        }
-      })
+          gemeinde: (k.gemeinde as { name: string }).name
+        }))
+
+      const beurteilte = (await hinweiseService.readByQuery({
+        filter: {
+          status: { _neq: 'offen' },
+          ausgabe: { wochenblatt: { _eq: blattId } }
+        },
+        sort: ['-date_updated'],
+        fields: ['titel', 'status', 'kommentar'],
+        limit: LERN_FENSTER
+      })) as Array<{ titel: string; status: string; kommentar: string | null }>
+      const faehrten: FaehrtenUrteil[] = beurteilte.map((f) => ({
+        titel: f.titel,
+        brauchbar: f.status === 'brauchbar',
+        kommentar: f.kommentar
+      }))
+
+      let eintraege: LernEintrag[] = []
+      if (kandidaten.length > 0) {
+        // A Perle verdict exists only once the Meldung is published —
+        // unpublished means undecided, not "no".
+        const meldungen = (await meldungenService.readByQuery({
+          filter: { kandidat: { _in: kandidaten.map((k) => k.id) } },
+          fields: ['kandidat', 'status', 'perle'],
+          limit: -1
+        })) as Pick<Meldung, 'kandidat' | 'status' | 'perle'>[]
+        const nachKandidat = new Map(meldungen.map((m) => [m.kandidat, m]))
+
+        eintraege = kandidaten.map((k) => {
+          const meldung = nachKandidat.get(k.id)
+          return {
+            titel: k.titel,
+            typ: k.typ,
+            entscheid: k.entscheid,
+            ablehnungsgrund: k.ablehnungsgrund,
+            ablehnungskommentar: k.ablehnungskommentar,
+            perleVorschlag: k.perle_vorschlag,
+            perleBestaetigt:
+              meldung !== undefined && meldung.status === 'publiziert'
+                ? meldung.perle === true
+                : null
+          }
+        })
+      }
+
+      return [eintraege, korrekturen, faehrten]
     }
   }
 })

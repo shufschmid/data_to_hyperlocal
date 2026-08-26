@@ -7,6 +7,7 @@ import AccordionDetails from '@mui/material/AccordionDetails'
 import AccordionSummary from '@mui/material/AccordionSummary'
 import Alert from '@mui/material/Alert'
 import Chip from '@mui/material/Chip'
+import Badge from '@mui/material/Badge'
 import CircularProgress from '@mui/material/CircularProgress'
 import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
@@ -28,9 +29,11 @@ import {
   ENTSORGUNGSKALENDER_QUERY,
   ENTSORGUNGSTERMINE_QUERY,
   WOCHENBLAETTER_QUERY,
+  RECHERCHEHINWEISE_QUERY,
   type EntsorgungskalenderErgebnis,
   type EntsorgungstermineErgebnis,
   type WochenblaetterErgebnis,
+  type RecherchehinweiseErgebnis,
   LAEUFE_QUERY,
   PORTAL_BEOBACHTEN_MUTATION,
   PORTAL_QUERY,
@@ -152,6 +155,9 @@ export function RedaktionPanel() {
   const wochenblaetter = useQuery<WochenblaetterErgebnis>(WOCHENBLAETTER_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY
   })
+  const recherchehinweise = useQuery<RecherchehinweiseErgebnis>(RECHERCHEHINWEISE_QUERY, {
+    fetchPolicy: LIVE_FETCH_POLICY
+  })
   // Per selected calendar, not all of them: a hundred dates times eighty-seven
   // municipalities is a table nobody looks at whole.
   const termine = useQuery<EntsorgungstermineErgebnis>(ENTSORGUNGSTERMINE_QUERY, {
@@ -181,11 +187,17 @@ export function RedaktionPanel() {
     blatt.ausgaben.some((a) => a.status === 'liest' || a.status === 'neu')
   )
   const { startPolling: blattPollingStart, stopPolling: blattPollingStop } = wochenblaetter
+  const hinweiseNeuLaden = recherchehinweise.refetch
+  const warInventarisiert = useRef(false)
   useEffect(() => {
+    // New research leads land at the very end of an inventory — one refetch
+    // on the falling edge keeps the tab badge honest.
+    if (warInventarisiert.current && !wirdInventarisiert) void hinweiseNeuLaden()
+    warInventarisiert.current = wirdInventarisiert
     if (!wirdInventarisiert) return
     blattPollingStart(10_000)
     return () => blattPollingStop()
-  }, [wirdInventarisiert, blattPollingStart, blattPollingStop])
+  }, [wirdInventarisiert, blattPollingStart, blattPollingStop, hinweiseNeuLaden])
 
   const [setzeAktiv] = useMutation<GemeindeAktivErgebnis>(GEMEINDE_AKTIV_MUTATION)
 
@@ -441,7 +453,19 @@ export function RedaktionPanel() {
         <Tab label="statistik.bl" />
         <Tab label="Sportresultate" />
         <Tab label="Entsorgung" />
-        <Tab label="Presseschau" />
+        <Tab
+          label={
+            <Badge
+              color="warning"
+              badgeContent={
+                (recherchehinweise.data?.recherchehinweise ?? []).filter((h) => h.status === 'offen').length
+              }
+              sx={{ '& .MuiBadge-badge': { right: -12 } }}
+            >
+              Presseschau
+            </Badge>
+          }
+        />
         <Tab label="Blog" />
         <Tab label="Gelerntes" />
         <Tab label="Gemeinden" />
@@ -664,6 +688,7 @@ export function RedaktionPanel() {
             blaetter={wochenblaetter.data?.wochenblaetter ?? []}
             gemeinden={gemeinden.data?.gemeinden ?? []}
             meldungen={meldungenAlle}
+            hinweise={recherchehinweise.data?.recherchehinweise ?? []}
             laedt={wochenblaetter.loading}
             laeuft={sendet}
             onAnlegen={async (eingabe) => {
@@ -672,11 +697,11 @@ export function RedaktionPanel() {
             }}
             onPruefen={async () => {
               await fuehreAus('wochenblaetter/pruefen')
-              await wochenblaetter.refetch()
+              await Promise.all([wochenblaetter.refetch(), recherchehinweise.refetch()])
             }}
             onInventar={async (id) => {
               await fuehreAus(`ausgaben/${id}/inventar`)
-              await wochenblaetter.refetch()
+              await Promise.all([wochenblaetter.refetch(), recherchehinweise.refetch()])
             }}
             onMeldung={async (id) => {
               await fuehreAus(`kandidaten/${id}/meldung`)
@@ -688,6 +713,17 @@ export function RedaktionPanel() {
                 ...(kommentar === '' ? {} : { kommentar })
               })
               await wochenblaetter.refetch()
+            }}
+            onGemeinde={async (id, gemeindeId) => {
+              await fuehreAus(`kandidaten/${id}/gemeinde`, { gemeinde: gemeindeId })
+              await wochenblaetter.refetch()
+            }}
+            onHinweisUrteil={async (id, brauchbar, kommentar) => {
+              await fuehreAus(`hinweise/${id}/bewerten`, {
+                brauchbar,
+                ...(kommentar === '' ? {} : { kommentar })
+              })
+              await recherchehinweise.refetch()
             }}
             onChat={async (id, anweisung) => {
               await fuehreAus(`meldungen/${id}/chat`, { anweisung })

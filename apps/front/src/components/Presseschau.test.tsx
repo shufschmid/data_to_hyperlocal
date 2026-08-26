@@ -14,6 +14,8 @@ function kandidat(ueber: Partial<KandidatFelder>): KandidatFelder {
     titel: 'Wo die Temperaturrekorde purzeln',
     seite: 3,
     typ: 'reportage',
+    gemeinde: { id: 'g-1', name: 'Binningen' },
+    gemeinde_korrigiert: false,
     frontseite: true,
     warum_exklusiv: 'Eigene Reportage mit Besuch vor Ort.',
     zusammenfassung: 'Die Basler Klimamessreihe reicht bis 1755 zurueck.',
@@ -35,6 +37,7 @@ function blatt(ueber: Partial<WochenblattFelder>): WochenblattFelder {
     letzte_pruefung: null,
     letzter_fehler: null,
     gemeinde: { id: 'g-1', name: 'Binningen' },
+    abdeckungen: [{ id: 'a-g-1', gemeinde: { id: 'g-1', name: 'Binningen' } }],
     ausgaben: [
       {
         id: 'a-1',

@@ -70,6 +70,26 @@ Je Kandidat:
   Wesentliche drinstehen. Uebernimm keine ganzen Saetze des Blatts.
 - Daten absolut ("am 26. August 2026"), nie relativ.
 
+Gemeinde-Zuordnung: Der Auftrag nennt die Gemeinden, die das Blatt abdeckt.
+Ordne JEDEN Kandidaten genau einer davon zu ("gemeinde"). Massgeblich ist der
+Gemeinde-Index oben links auf der Seite; wo er fehlt (etwa auf der Front),
+entscheide am Inhalt. Laesst es sich nicht entscheiden, nimm die erstgenannte
+Gemeinde und benenne die Unsicherheit in "hinweise".
+
+Geburtstags- und Jubilaeums-Portraets sind nur Kandidaten, wenn die
+Lebensgeschichte selbst berichtenswert ist (eine Stadtmeisterin, eine
+ungewoehnliche Karriere, eine historische Rolle). Ein gewoehnlicher runder
+Geburtstag oder ein Ehejubilaeum ohne besondere Zutaten nimmt die Huerde nicht.
+
+Recherche-Faehrten: Leserbriefe sind NIE Kandidaten — sie werden nie
+ungeprueft uebernommen. Aber sie (und andere Beitraege) koennen Faehrten fuer
+eigene Recherchen tragen: konkrete lokale Projekte, Konflikte oder
+Missstaende, die jemand nachpruefen koennte (etwa geplante sechs Meter hohe
+Hochwasserschutz-Daemme). Gib solche unter "recherchehinweise" zurueck, mit
+Titel, Fundort ("Leserbrief '…', S. 2"), Begruendung und Gemeinde. Sei
+zurueckhaltend: eine Faehrte ist ein ueberpruefbarer Ansatz, keine Meinung
+und keine Stimmung.
+
 Perlen: Eine Perle ist KURIOS UND UEBERoertlich — die Geschichte, die auch die
 Stadt Basel amuesiert oder interessiert (nach dem Geschmack der Redaktion etwa:
 pfeifende Hochhaeuser, die ein Dorf wachhalten; ein ausgebuexter Esel; eine
@@ -85,7 +105,7 @@ Regeln, ohne Ausnahme:
 export const INVENTAR_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['kandidaten', 'hinweise'],
+  required: ['kandidaten', 'recherchehinweise', 'hinweise'],
   properties: {
     kandidaten: {
       type: 'array',
@@ -96,6 +116,7 @@ export const INVENTAR_SCHEMA = {
           'titel',
           'seite',
           'typ',
+          'gemeinde',
           'frontseite',
           'warum_exklusiv',
           'zusammenfassung',
@@ -106,11 +127,26 @@ export const INVENTAR_SCHEMA = {
           titel: { type: 'string' },
           seite: { type: ['integer', 'null'] },
           typ: { type: 'string', enum: [...TYPEN] },
+          gemeinde: { type: ['string', 'null'] },
           frontseite: { type: 'boolean' },
           warum_exklusiv: { type: 'string' },
           zusammenfassung: { type: 'string' },
           perle_vorschlag: { type: 'boolean' },
           perle_begruendung: { type: ['string', 'null'] }
+        }
+      }
+    },
+    recherchehinweise: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['titel', 'fundort', 'begruendung', 'gemeinde'],
+        properties: {
+          titel: { type: 'string' },
+          fundort: { type: ['string', 'null'] },
+          begruendung: { type: ['string', 'null'] },
+          gemeinde: { type: ['string', 'null'] }
         }
       }
     },
@@ -138,6 +174,19 @@ const GRUND_TEXT: Record<Ablehnungsgrund, string> = {
   andere: 'anderer Grund'
 }
 
+/** A municipality reassignment by the editor — the assignment's teacher. */
+export interface GemeindeKorrektur {
+  titel: string
+  gemeinde: string
+}
+
+/** The editor's verdict on a proposed research lead. */
+export interface FaehrtenUrteil {
+  titel: string
+  brauchbar: boolean
+  kommentar: string | null
+}
+
 /**
  * What the newsroom taught us, as examples for the next inventory.
  *
@@ -146,7 +195,11 @@ const GRUND_TEXT: Record<Ablehnungsgrund, string> = {
  * in the USER turn — it changes with every decision, and the system prompt
  * must stay byte-identical.
  */
-export function lernDigest(entscheide: readonly LernEintrag[]): string {
+export function lernDigest(
+  entscheide: readonly LernEintrag[],
+  korrekturen: readonly GemeindeKorrektur[] = [],
+  faehrten: readonly FaehrtenUrteil[] = []
+): string {
   const uebernommen = entscheide.filter((e) => e.entscheid === 'uebernommen')
   const abgelehnt = entscheide.filter((e) => e.entscheid === 'abgelehnt')
   const perlen = entscheide.filter(
@@ -155,7 +208,9 @@ export function lernDigest(entscheide: readonly LernEintrag[]): string {
   if (
     uebernommen.length === 0 &&
     abgelehnt.length === 0 &&
-    perlen.length === 0
+    perlen.length === 0 &&
+    korrekturen.length === 0 &&
+    faehrten.length === 0
   ) {
     return ''
   }
@@ -185,6 +240,24 @@ export function lernDigest(entscheide: readonly LernEintrag[]): string {
       )
     }
   }
+  if (korrekturen.length > 0) {
+    zeilen.push(
+      '',
+      'Gemeinde-Korrekturen der Redaktion (solche Beitraege kuenftig gleich richtig zuordnen):'
+    )
+    for (const k of korrekturen) {
+      zeilen.push(`- "${k.titel}" gehoert zu ${k.gemeinde}`)
+    }
+  }
+  if (faehrten.length > 0) {
+    zeilen.push('', 'Urteile ueber vorgeschlagene Recherche-Faehrten:')
+    for (const f of faehrten) {
+      const kommentar = f.kommentar === null ? '' : ` — ${f.kommentar}`
+      zeilen.push(
+        `- "${f.titel}": ${f.brauchbar ? 'brauchbare Faehrte' : 'keine Faehrte'}${kommentar}`
+      )
+    }
+  }
   return zeilen.join('\n')
 }
 
@@ -196,15 +269,20 @@ export function buildInventarMessages(
   pdfBase64: string,
   blatt: {
     name: string
-    gemeinde: string
+    /** Covered municipalities, main one first — the assignment's answer set. */
+    gemeinden: readonly string[]
     nummer: string | null
     datum: string | null
   },
   digest: string
 ): Anthropic.MessageParam[] {
+  const abdeckung =
+    blatt.gemeinden.length === 1
+      ? `Gemeinde ${blatt.gemeinden[0]}`
+      : `deckt die Gemeinden ${blatt.gemeinden.join(', ')} ab — ordne jeden Kandidaten und jede Recherche-Faehrte genau einer davon zu`
   const kopf =
     `Das ist die Ausgabe${blatt.nummer === null ? '' : ` Nr. ${blatt.nummer}`}` +
-    ` des "${blatt.name}" (Gemeinde ${blatt.gemeinde})` +
+    ` des "${blatt.name}" (${abdeckung})` +
     `${blatt.datum === null ? '' : ` vom ${blatt.datum}`}.`
 
   return [
@@ -238,6 +316,8 @@ export interface InventarKandidat {
   titel: string
   seite: number | null
   typ: KandidatTyp
+  /** Canonical municipality name out of the covered list. */
+  gemeinde: string
   frontseite: boolean
   warum_exklusiv: string
   zusammenfassung: string
@@ -245,8 +325,16 @@ export interface InventarKandidat {
   perle_begruendung: string | null
 }
 
+export interface InventarFaehrte {
+  titel: string
+  fundort: string | null
+  begruendung: string | null
+  gemeinde: string | null
+}
+
 export interface Inventar {
   kandidaten: InventarKandidat[]
+  recherchehinweise: InventarFaehrte[]
   hinweise: string[]
 }
 
@@ -259,7 +347,8 @@ export interface Inventar {
  */
 export function parseInventar(
   antwort: unknown,
-  seiten: number | null
+  seiten: number | null,
+  gemeinden: readonly string[] = []
 ): Inventar {
   if (typeof antwort !== 'object' || antwort === null) {
     throw new Error('Antwort ist kein Objekt.')
@@ -271,6 +360,28 @@ export function parseInventar(
   const hinweise: string[] = Array.isArray(roh.hinweise)
     ? roh.hinweise.filter((h): h is string => typeof h === 'string')
     : []
+
+  const hauptGemeinde = gemeinden[0] ?? ''
+  // Case-insensitive lookup back to OUR canonical spelling — the model's
+  // claim is matched against the handed list, never trusted verbatim.
+  const gemeindeKanon = new Map(gemeinden.map((g) => [g.toLowerCase(), g]))
+  const ordneGemeindeZu = (
+    wert: unknown,
+    titel: string,
+    still: boolean
+  ): string => {
+    const name =
+      typeof wert === 'string'
+        ? gemeindeKanon.get(wert.trim().toLowerCase())
+        : undefined
+    if (name !== undefined) return name
+    if (!still && gemeinden.length > 1) {
+      hinweise.push(
+        `"${titel}": Gemeinde ${typeof wert === 'string' ? `"${wert}" nicht in der Abdeckung` : 'nicht zugeordnet'} — der Hauptgemeinde ${hauptGemeinde} zugeteilt, bitte pruefen.`
+      )
+    }
+    return hauptGemeinde
+  }
 
   const kandidaten: InventarKandidat[] = []
   const gesehen = new Set<string>()
@@ -297,6 +408,8 @@ export function parseInventar(
       continue
     }
 
+    const gemeinde = ordneGemeindeZu(e.gemeinde, titel, false)
+
     let seite =
       typeof e.seite === 'number' && Number.isInteger(e.seite) ? e.seite : null
     if (seite !== null && seiten !== null && (seite < 1 || seite > seiten)) {
@@ -314,6 +427,7 @@ export function parseInventar(
       titel,
       seite,
       typ,
+      gemeinde,
       frontseite: e.frontseite === true,
       warum_exklusiv:
         typeof e.warum_exklusiv === 'string' ? e.warum_exklusiv.trim() : '',
@@ -327,7 +441,37 @@ export function parseInventar(
     })
   }
 
-  return { kandidaten, hinweise }
+  const recherchehinweise: InventarFaehrte[] = []
+  if (Array.isArray(roh.recherchehinweise)) {
+    for (const eintrag of roh.recherchehinweise) {
+      if (typeof eintrag !== 'object' || eintrag === null) continue
+      const e = eintrag as Record<string, unknown>
+      const titel = typeof e.titel === 'string' ? e.titel.trim() : ''
+      if (titel === '') continue
+
+      // A lead without a covered municipality is still a lead — unlike a
+      // candidate it never becomes an article, so null is honest here.
+      const roheGemeinde =
+        typeof e.gemeinde === 'string'
+          ? gemeindeKanon.get(e.gemeinde.trim().toLowerCase())
+          : undefined
+
+      recherchehinweise.push({
+        titel,
+        fundort:
+          typeof e.fundort === 'string' && e.fundort.trim() !== ''
+            ? e.fundort.trim()
+            : null,
+        begruendung:
+          typeof e.begruendung === 'string' && e.begruendung.trim() !== ''
+            ? e.begruendung.trim()
+            : null,
+        gemeinde: roheGemeinde ?? null
+      })
+    }
+  }
+
+  return { kandidaten, recherchehinweise, hinweise }
 }
 
 // ---------------------------------------------------------------------------

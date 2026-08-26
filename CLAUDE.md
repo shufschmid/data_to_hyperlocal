@@ -145,6 +145,17 @@ them is wrong even if it works.
    proposes, the editor decides at publish time („Als Perle publizieren" /
    plain), and unpublished never means Perle. Registration takes the newest
    issue and ignores the backlog forever.
+   One paper can cover SEVERAL municipalities (the Muttenzer & Prattler
+   Anzeiger has two, `wochenblattgemeinden`): every candidate carries its own
+   `gemeinde`, assigned by the inventory — the page index top-left where
+   printed, the content where not (the front) — and correctable by the editor;
+   the `kandidat-gemeinde` hook stamps corrections and they teach the next
+   inventory. Wochenblätter also yield RECHERCHE-FÄHRTEN (mostly from
+   Leserbriefe): leads for the newsroom's own reporting, collected in
+   `recherchehinweise`, shown as a highlighted block on top of the tab with a
+   count badge ON the tab itself — and NEVER published unchecked. The
+   editor's verdict (brauchbar / kein Hinweis + Kommentar) is a learning
+   signal like the Perlen.
    „Gemeinden" is a flat, searchable list — not grouped by district. The
    districts were dropped because they hid what they organised: Riehen, the
    first municipality outside the five Basel-Landschaft districts, arrived as
@@ -490,11 +501,13 @@ joining the two on `Spielnummer`. Read results from there, or not at all.
   matters later: without it, a category the model dropped by mistake is
   indistinguishable from one the calendar never had.
 - `wochenblattkandidaten.entscheid` + `ablehnungsgrund`/`ablehnungskommentar` +
-  `meldungen.perle` — the press review's memory IS its decision rows: no
-  distillation call, no second store. `lernDigest` renders the last ~20 per
-  paper into the next inventory's user turn — never into the cached system
-  prefix, and deliberately scoped per Blatt: what is a Doublette in Binningen
-  says nothing about Muttenz.
+  `meldungen.perle` + `wochenblattkandidaten.gemeinde_korrigiert` +
+  `recherchehinweise.status`/`kommentar` — the press review's memory IS its
+  decision rows: no distillation call, no second store. `lernDigest` renders
+  the last ~20 of each signal per paper into the next inventory's user turn —
+  take/reject with reasons, Perle verdicts, municipality corrections, lead
+  verdicts — never into the cached system prefix, and deliberately scoped per
+  Blatt: what is a Doublette in Binningen says nothing about Muttenz.
 
 Both are bounded on purpose: the rules feed the cached prompt prefix, and an
 unbounded memory would grow it without limit.
