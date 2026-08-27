@@ -93,10 +93,7 @@ export function AppShell() {
       </AppBar>
 
       <Container maxWidth="lg" sx={{ py: 3 }}>
-        {/* Stirbt die Sitzung im Betrieb, prueft die Huelle neu und zeigt das
-            Anmeldeformular — statt angemeldet auszusehen, waehrend nichts mehr
-            laedt. */}
-        <RedaktionPanel onSitzungEnde={check} />
+        <RedaktionPanel />
       </Container>
     </>
   )

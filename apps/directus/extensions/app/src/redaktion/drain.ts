@@ -15,8 +15,7 @@ import {
   hasUsableCoverage,
   describeCoverage,
   latestPeriod,
-  matchMunicipalities,
-  PERIODE_MAX
+  matchMunicipalities
 } from './gemeinden'
 import { JAHR_SPALTE, ladeReihe, ladeTabelle } from '../shared/statbl'
 import type { OdsField } from '../shared/ods'
@@ -1083,17 +1082,6 @@ export async function eroeffneLaeufe(
       }
       if (periode === null) {
         ergebnis.fehler.push(`${datensatz.titel}: keine Periode erkennbar`)
-        continue
-      }
-      // `laeufe.periode` is varchar(32). Letting the database refuse the value
-      // turns a data problem into an unreadable Postgres 22001 that repeats on
-      // every tick — and says the wrong column name, because the driver puts
-      // the whole INSERT in the message and Directus reads the first name it
-      // finds. Named here, it reaches the workspace as a sentence.
-      if (periode.length > PERIODE_MAX) {
-        ergebnis.fehler.push(
-          `${datensatz.titel}: Periode "${periode}" ist zu lang (${periode.length} Zeichen, erlaubt sind ${PERIODE_MAX})`
-        )
         continue
       }
 
