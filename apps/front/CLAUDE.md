@@ -42,7 +42,6 @@ apps/front/src/
     ├── public.server.ts     server-only: the few unauthenticated paths (approval, public blog)
     ├── directus.server.ts   server-only: login/refresh/logout/fetch
     ├── session.server.ts    server-only: the two httpOnly cookies
-    ├── sessionRefresh.ts    one rotation per refresh token, and what a 403 means (tested)
     └── proxy.server.ts      server-only: browser request → Directus request
 ```
 
@@ -57,17 +56,6 @@ component is a build error, which is what keeps tokens off the browser.
   with the **signed-in user's** access token, so Directus permissions decide what
   happens. Expired access token → refreshed once, request retried, rotated cookies
   written back.
-- **Rotation is shared, and a 403 is not always a permission error.** Directus
-  rotates on every `/auth/refresh` and the new pair invalidates the old access
-  token immediately. A page load fires a dozen GraphQL requests at once, so when
-  the access cookie has expired they must not each rotate on their own — the
-  second rotation kills the first one's fresh token and Directus answers those
-  requests with `403 INVALID_TOKEN` while their siblings get 200. `lib/sessionRefresh.ts`
-  gives the whole burst one rotation and keeps the answer for a minute, because a
-  request that left before the new cookie reached the browser still carries the
-  old token. The retry reads the error code, not just the status: `401 TOKEN_EXPIRED`
-  and `403 INVALID_TOKEN` are replayed, `403 FORBIDDEN` is the permission system
-  and is passed straight through.
 - There is deliberately **no service/admin token in this app**. If a feature seems to
   need one, it needs a Directus extension endpoint instead — that is the whole point
   of constraint 7 in the root CLAUDE.md.
