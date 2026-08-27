@@ -122,8 +122,8 @@ them is wrong even if it works.
    spans a minute at a _lower_ request rate than before. That fixed it; the
    source has read all 44 announcements since.
 
-   The workspace has seven tabs: **statistik.bl · Sportresultate · Entsorgung ·
-   Presseschau · Blog · Gelerntes · Gemeinden**. „Sportresultate" is the second feed and works
+   The workspace has eight tabs: **statistik.bl · Sportresultate · Entsorgung ·
+   Wochenblätter · Chefredaktion · Blog · Gelerntes · Gemeinden**. „Sportresultate" is the second feed and works
    the same way as the first: a source that publishes on its own schedule, watched
    daily. What differs is the shape — a statistic arrives once a year for every
    municipality at once, a match arrives every weekend for one club. Filterable
@@ -135,19 +135,27 @@ them is wrong even if it works.
    and produces the whole year's reminders in advance. Its unit of work is one
    calendar — pick it, read it, confirm its dates, write its year — so the tab
    shows one at a time rather than a directory of eighty-seven.
-   „Presseschau" is the fourth feed: every municipality's weekly paper,
-   watched daily at 09:00 through its public PDF archive. A new issue is
-   inventoried by one Opus call into CANDIDATES — only the paper's own
+   „Wochenblätter" (the press review, `presseschau` in code) is the fourth
+   feed and deliberately a DESK, not an archive: every municipality's weekly
+   paper, watched daily at 09:00 through its public PDF archive. A new issue
+   is inventoried by one Opus call into CANDIDATES — only the paper's own
    exclusive journalism, never what the municipality publishes itself (that
-   arrives through the other feeds). The editor takes a candidate over (one
-   short Meldung in own words, mandatory in-text attribution, a `#page=N`
-   link straight to the piece) or rejects it WITH A REASON — nicht relevant,
-   Doublette, veraltet, falsche Gemeinde, andere + Kommentar. Both decisions
-   are the learning signal: the last ~20 ride into the next inventory's user
-   turn as examples, per paper. Some pieces are PERLEN — curious AND of
-   supra-local interest (the story the city of Basel wants too); the model
-   proposes, the editor decides at publish time („Als Perle publizieren" /
-   plain), and unpublished never means Perle. Registration takes the newest
+   arrives through the other feeds) — and they land on the editor's desk.
+   She takes a candidate over (one short Meldung in own words, mandatory
+   in-text attribution, a `#page=N` link straight to the piece), rejects it
+   WITH A REASON — nicht relevant, Doublette, veraltet, falsche Gemeinde,
+   andere + Kommentar — or HANDS IT UP (`weitergereicht`): a good piece she
+   cannot verify today becomes a Recherche-Hinweis on the Chefredaktion desk
+   instead of a Meldung. All three decisions are the learning signal: the
+   last ~20 ride into the next inventory's user turn as examples, per paper.
+   Some pieces are PERLEN — curious AND of supra-local interest (the story
+   the city of Basel wants too); the model proposes, the chief editor decides
+   — ON THE CANDIDATE (`wochenblattkandidaten.perle`, null = pending on her
+   desk), via POST /kandidaten/:id/perle, INDEPENDENT of whether a Meldung
+   ever comes of the piece. A published Meldung carries a mirrored copy
+   (`meldungen.perle`): the meldung-status hook stamps it at publish time,
+   the endpoint updates one published already — unpublished still never
+   carries a Perle, the hook guards it. Registration takes the newest
    issue and ignores the backlog forever. An issue whose PDF outgrows the
    Claude API's 32-MB request limit (issuu and Localpoint hand out the
    publisher's original — measured 34 MB and 58 MB) is inventoried from its
@@ -166,10 +174,28 @@ them is wrong even if it works.
    the `kandidat-gemeinde` hook stamps corrections and they teach the next
    inventory. Wochenblätter also yield RECHERCHE-FÄHRTEN (mostly from
    Leserbriefe): leads for the newsroom's own reporting, collected in
-   `recherchehinweise`, shown as a highlighted block on top of the tab with a
-   count badge ON the tab itself — and NEVER published unchecked. The
-   editor's verdict (brauchbar / kein Hinweis + Kommentar) is a learning
-   signal like the Perlen.
+   `recherchehinweise` — and NEVER published unchecked. The verdict
+   (brauchbar / kein Hinweis + Kommentar) is a learning signal like the
+   Perlen. The inventory proposes leads VERY sparingly (two to three per
+   issue at most — a missed lead is acceptable, a dozen bland ones are not),
+   and every verdict is checked against the source, not the summary: every
+   candidate and lead links its page (`seitenLink`) and shows the original
+   wording in a collapsible box (`seiten_texte` on the issue for candidates;
+   a lead carries its page's text itself in `quelltext`, so it outlives its
+   issue). „Chefredaktion" is the fifth tab and the SECOND desk: the leads
+   and the pending Perle decisions live there with a count badge, and they
+   deliberately survive new issues — the chief editor clears them by verdict,
+   however long that takes. The Wochenblätter desk, by contrast, cleans
+   itself twice over: FINISHED work vanishes immediately from the view
+   (`bleibtAufDemTisch` — published, verworfen, abgelehnt and weitergereicht
+   drop off; an übernommene Meldung stays while it is being edited), and when
+   a paper's next issue is inventoried, the previous issues' UNDECIDED
+   candidates are deleted (`raeumeAlteVorschlaegeAuf`) — decided rows stay,
+   they are the memory, and candidates with a Perle proposal are spared too
+   (their verdict belongs to the Chefredaktion and survives new issues); the
+   badge counts what the desk shows. A re-inventory diffs leads like
+   candidates: open ones the new run no longer proposes are deleted, verdicts
+   are never re-asked.
    „Gemeinden" is a flat, searchable list — not grouped by district. The
    districts were dropped because they hid what they organised: Riehen, the
    first municipality outside the five Basel-Landschaft districts, arrived as
@@ -351,8 +377,10 @@ editor takes a candidate over ── POST /redaktion/kandidaten/:id/meldung
   └─ 1× Sonnet over the handed fact summary → short Meldung in own words,
      in-text attribution enforced (check + one retry), source line with
      #page=N appended by code, 8-gram overlap check against the issue's own
-     text — then the normal review/chat/publish workflow. Publishing asks
-     the Perle question; rejection asks for the reason. Both teach the next
+     text — then the normal review/chat/publish workflow. Rejection asks for
+     the reason; the Perle question is NOT asked here — the chief editor
+     answers it on the candidate (POST /redaktion/kandidaten/:id/perle),
+     whether or not a Meldung exists. Every decision teaches the next
      inventory.
 
 Flow "Sportresultate holen"  (0 30 6 * * *)
@@ -514,14 +542,19 @@ joining the two on `Spielnummer`. Read results from there, or not at all.
   deliberately discarded as a regular collection. The second half is the one that
   matters later: without it, a category the model dropped by mistake is
   indistinguishable from one the calendar never had.
-- `wochenblattkandidaten.entscheid` + `ablehnungsgrund`/`ablehnungskommentar` +
-  `meldungen.perle` + `wochenblattkandidaten.gemeinde_korrigiert` +
+- `wochenblattkandidaten.entscheid` (uebernommen/abgelehnt/weitergereicht) +
+  `ablehnungsgrund`/`ablehnungskommentar` +
+  `wochenblattkandidaten.perle` + `wochenblattkandidaten.gemeinde_korrigiert` +
   `recherchehinweise.status`/`kommentar` — the press review's memory IS its
   decision rows: no distillation call, no second store. `lernDigest` renders
   the last ~20 of each signal per paper into the next inventory's user turn —
-  take/reject with reasons, Perle verdicts, municipality corrections, lead
-  verdicts — never into the cached system prefix, and deliberately scoped per
-  Blatt: what is a Doublette in Binningen says nothing about Muttenz.
+  take/reject with reasons, handovers to the Chefredaktion (a positive
+  signal: good, but verify first), Perle verdicts (on the candidate, null =
+  still on her desk, not "no" — counted even when the candidate itself was
+  never decided; `meldungen.perle` is only the published mirror), municipality
+  corrections, lead verdicts — never into the cached system prefix, and
+  deliberately scoped per Blatt: what is a Doublette in Binningen says nothing
+  about Muttenz.
 
 Both are bounded on purpose: the rules feed the cached prompt prefix, and an
 unbounded memory would grow it without limit.

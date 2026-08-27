@@ -146,7 +146,7 @@ describe('parseInventar', () => {
     )
   })
 
-  it('nimmt Recherche-Faehrten mit, validiert aber deren Gemeinde', () => {
+  it('nimmt Recherche-Faehrten mit, validiert aber Gemeinde und Seite', () => {
     const inventar = parseInventar(
       {
         kandidaten: [],
@@ -154,12 +154,15 @@ describe('parseInventar', () => {
           {
             titel: 'Sechs Meter hohe Daemme geplant',
             fundort: "Leserbrief 'Wertvoller Regen', S. 2",
+            seite: 2,
             begruendung: 'Konkretes Bauprojekt, das niemand eingeordnet hat.',
             gemeinde: 'Muttenz'
           },
           {
             titel: 'Ohne Gemeinde',
             fundort: null,
+            // Seite 99 gibt es in 16 Seiten nicht — die Angabe faellt weg.
+            seite: 99,
             begruendung: null,
             gemeinde: 'Bern'
           }
@@ -173,8 +176,10 @@ describe('parseInventar', () => {
     expect(inventar.recherchehinweise).toHaveLength(2)
     expect(inventar.recherchehinweise[0]?.gemeinde).toBe('Muttenz')
     expect(inventar.recherchehinweise[0]?.fundort).toContain('Leserbrief')
+    expect(inventar.recherchehinweise[0]?.seite).toBe(2)
     // Eine Faehrte wird nie zum Artikel — null ist hier ehrlicher als raten.
     expect(inventar.recherchehinweise[1]?.gemeinde).toBeNull()
+    expect(inventar.recherchehinweise[1]?.seite).toBeNull()
   })
 })
 
@@ -218,6 +223,24 @@ describe('lernDigest', () => {
       '"Alter Hut" (reportage) — veraltet: stand schon im Amtsblatt'
     )
     expect(digest).toContain('"Kuriose Messreihe": als Perle bestaetigt')
+  })
+
+  it('zaehlt ein Perlen-Urteil auch ohne Kandidaten-Entscheid — die Chefredaktion urteilt unabhaengig', () => {
+    // Die Chefin kann eine Perle bestaetigen, aus der nie eine Meldung wurde.
+    // Das Urteil erscheint bei den Perlen — und nirgendwo sonst, denn ein
+    // offener Kandidat ist weder ueber- noch abgelehnt.
+    const digest = lernDigest([
+      eintrag({
+        titel: 'Kurioses Fundstueck',
+        entscheid: 'offen',
+        perleVorschlag: true,
+        perleBestaetigt: false
+      })
+    ])
+
+    expect(digest).toContain('"Kurioses Fundstueck": doch keine Perle')
+    expect(digest).not.toContain('Uebernommen')
+    expect(digest).not.toContain('Abgelehnt')
   })
 
   it('landet im User-Turn des Inventars, nie im System-Prompt', () => {
@@ -286,6 +309,18 @@ describe('lernDigest', () => {
     expect(brauchtTextTransport(INVENTAR_PDF_MAX_BYTES)).toBe(false)
     // Die Nr. 35 des Wochenblatts fuer das Birseck: 33.8 MB Original.
     expect(brauchtTextTransport(34 * 1024 * 1024)).toBe(true)
+  })
+
+  it('traegt Weitergereichtes als eigene, positive Kategorie', () => {
+    // Weiterreichen heisst "gut, aber erst verifizieren" — als Ablehnung
+    // gelesen wuerde es dem Inventar das Gegenteil beibringen.
+    const digest = lernDigest([
+      eintrag({ titel: 'Steiner-Schule spart', entscheid: 'weitergereicht' })
+    ])
+
+    expect(digest).toContain('An die Chefredaktion weitergereicht')
+    expect(digest).toContain('"Steiner-Schule spart"')
+    expect(digest).not.toContain('nicht mehr machen')
   })
 
   it('traegt Gemeinde-Korrekturen und Faehrten-Urteile in den Digest', () => {

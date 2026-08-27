@@ -597,3 +597,36 @@ export function quellenLaufText(status: QuellenLaufStatus): string | null {
   })
   return `Letzter Lauf um ${uhrzeit} Uhr — ${teile.join(' · ')}.`
 }
+
+/**
+ * Der Link auf eine Seite einer Wochenblatt-Ausgabe — dasselbe Muster, mit dem
+ * das Backend die Quelle-Zeile baut: `#page=N` fuer PDF-Viewer, ein
+ * Pfadsegment fuer den issuu-Reader (der Fragmente ignoriert).
+ */
+export function seitenLink(pdfUrl: string, seite: number | null): string {
+  if (seite === null) return pdfUrl
+  try {
+    if (/(^|\.)issuu\.com$/i.test(new URL(pdfUrl).host)) {
+      return `${pdfUrl.replace(/\/$/, '')}/${seite}`
+    }
+  } catch {
+    // Keine parsbare URL — das Fragment ist der harmlose Normalfall.
+  }
+  return `${pdfUrl}#page=${seite}`
+}
+
+/**
+ * Ob ein Wochenblatt-Kandidat noch auf dem Tisch der Redaktorin liegt.
+ *
+ * Der Tisch zeigt Arbeit, nicht Geschichte: offen heisst unbearbeitet, eine
+ * übernommene Meldung bleibt sichtbar, solange sie im Redigierprozess steckt.
+ * Publiziert oder verworfen ist erledigt — weg vom Tisch, genau wie abgelehnte
+ * und weitergereichte Kandidaten. Die Zeilen selbst bleiben in der Datenbank:
+ * sie sind das Gedächtnis des Inventars.
+ */
+export function bleibtAufDemTisch(entscheid: string, meldungStatus: string | null): boolean {
+  if (entscheid === 'offen') return true
+  if (entscheid !== 'uebernommen') return false
+  if (meldungStatus === null) return false
+  return meldungStatus !== 'publiziert' && meldungStatus !== 'verworfen'
+}

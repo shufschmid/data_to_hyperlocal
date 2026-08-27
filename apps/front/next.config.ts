@@ -1,3 +1,4 @@
+import path from 'node:path'
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
@@ -6,6 +7,13 @@ const nextConfig: NextConfig = {
   // Produces .next/standalone — a self-contained server with only the modules it
   // actually needs. The Dockerfile copies that instead of node_modules.
   output: 'standalone',
+
+  // The monorepo root also carries a lockfile, and when Turbopack infers THAT as
+  // the workspace root, the catch-all API route ([...pfad]) silently 404s in
+  // dev. This app is its own root — no hoisting, own lockfile (root CLAUDE.md).
+  turbopack: {
+    root: path.join(__dirname)
+  },
 
   async headers() {
     return [

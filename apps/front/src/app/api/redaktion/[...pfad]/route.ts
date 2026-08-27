@@ -20,7 +20,7 @@ const ERLAUBT: RegExp[] = [
   /^wochenblaetter$/i,
   /^wochenblaetter\/pruefen$/i,
   /^ausgaben\/[0-9a-f-]{36}\/inventar$/i,
-  /^kandidaten\/[0-9a-f-]{36}\/(meldung|ablehnen|gemeinde)$/i,
+  /^kandidaten\/[0-9a-f-]{36}\/(meldung|ablehnen|gemeinde|weiterreichen|perle)$/i,
   /^hinweise\/[0-9a-f-]{36}\/bewerten$/i
 ]
 

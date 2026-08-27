@@ -67,22 +67,22 @@ type Query {
   wochenblaetter_by_id(id: ID!, version: String): wochenblaetter
   wochenblaetter_aggregated(groupBy: [String], filter: wochenblaetter_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [wochenblaetter_aggregated!]!
   wochenblaetter_by_version(version: String!, id: ID!): version_wochenblaetter
-  recherchehinweise(filter: recherchehinweise_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [recherchehinweise!]!
-  recherchehinweise_by_id(id: ID!, version: String): recherchehinweise
-  recherchehinweise_aggregated(groupBy: [String], filter: recherchehinweise_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [recherchehinweise_aggregated!]!
-  recherchehinweise_by_version(version: String!, id: ID!): version_recherchehinweise
-  wochenblattgemeinden(filter: wochenblattgemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [wochenblattgemeinden!]!
-  wochenblattgemeinden_by_id(id: ID!, version: String): wochenblattgemeinden
-  wochenblattgemeinden_aggregated(groupBy: [String], filter: wochenblattgemeinden_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [wochenblattgemeinden_aggregated!]!
-  wochenblattgemeinden_by_version(version: String!, id: ID!): version_wochenblattgemeinden
-  wochenblattkandidaten(filter: wochenblattkandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [wochenblattkandidaten!]!
-  wochenblattkandidaten_by_id(id: ID!, version: String): wochenblattkandidaten
-  wochenblattkandidaten_aggregated(groupBy: [String], filter: wochenblattkandidaten_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [wochenblattkandidaten_aggregated!]!
-  wochenblattkandidaten_by_version(version: String!, id: ID!): version_wochenblattkandidaten
   wochenblattausgaben(filter: wochenblattausgaben_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [wochenblattausgaben!]!
   wochenblattausgaben_by_id(id: ID!, version: String): wochenblattausgaben
   wochenblattausgaben_aggregated(groupBy: [String], filter: wochenblattausgaben_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [wochenblattausgaben_aggregated!]!
   wochenblattausgaben_by_version(version: String!, id: ID!): version_wochenblattausgaben
+  recherchehinweise(filter: recherchehinweise_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [recherchehinweise!]!
+  recherchehinweise_by_id(id: ID!, version: String): recherchehinweise
+  recherchehinweise_aggregated(groupBy: [String], filter: recherchehinweise_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [recherchehinweise_aggregated!]!
+  recherchehinweise_by_version(version: String!, id: ID!): version_recherchehinweise
+  wochenblattkandidaten(filter: wochenblattkandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [wochenblattkandidaten!]!
+  wochenblattkandidaten_by_id(id: ID!, version: String): wochenblattkandidaten
+  wochenblattkandidaten_aggregated(groupBy: [String], filter: wochenblattkandidaten_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [wochenblattkandidaten_aggregated!]!
+  wochenblattkandidaten_by_version(version: String!, id: ID!): version_wochenblattkandidaten
+  wochenblattgemeinden(filter: wochenblattgemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [wochenblattgemeinden!]!
+  wochenblattgemeinden_by_id(id: ID!, version: String): wochenblattgemeinden
+  wochenblattgemeinden_aggregated(groupBy: [String], filter: wochenblattgemeinden_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [wochenblattgemeinden_aggregated!]!
+  wochenblattgemeinden_by_version(version: String!, id: ID!): version_wochenblattgemeinden
 }
 
 type Mutation {
@@ -120,14 +120,14 @@ type Mutation {
   create_entsorgungstermine_item(data: create_entsorgungstermine_input!): entsorgungstermine
   create_wochenblaetter_items(filter: wochenblaetter_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_wochenblaetter_input!]): [wochenblaetter!]!
   create_wochenblaetter_item(data: create_wochenblaetter_input!): wochenblaetter
-  create_recherchehinweise_items(filter: recherchehinweise_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_recherchehinweise_input!]): [recherchehinweise!]!
-  create_recherchehinweise_item(data: create_recherchehinweise_input!): recherchehinweise
-  create_wochenblattgemeinden_items(filter: wochenblattgemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_wochenblattgemeinden_input!]): [wochenblattgemeinden!]!
-  create_wochenblattgemeinden_item(data: create_wochenblattgemeinden_input!): wochenblattgemeinden
-  create_wochenblattkandidaten_items(filter: wochenblattkandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_wochenblattkandidaten_input!]): [wochenblattkandidaten!]!
-  create_wochenblattkandidaten_item(data: create_wochenblattkandidaten_input!): wochenblattkandidaten
   create_wochenblattausgaben_items(filter: wochenblattausgaben_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_wochenblattausgaben_input!]): [wochenblattausgaben!]!
   create_wochenblattausgaben_item(data: create_wochenblattausgaben_input!): wochenblattausgaben
+  create_recherchehinweise_items(filter: recherchehinweise_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_recherchehinweise_input!]): [recherchehinweise!]!
+  create_recherchehinweise_item(data: create_recherchehinweise_input!): recherchehinweise
+  create_wochenblattkandidaten_items(filter: wochenblattkandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_wochenblattkandidaten_input!]): [wochenblattkandidaten!]!
+  create_wochenblattkandidaten_item(data: create_wochenblattkandidaten_input!): wochenblattkandidaten
+  create_wochenblattgemeinden_items(filter: wochenblattgemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_wochenblattgemeinden_input!]): [wochenblattgemeinden!]!
+  create_wochenblattgemeinden_item(data: create_wochenblattgemeinden_input!): wochenblattgemeinden
   update_quellen_items(filter: quellen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_quellen_input!): [quellen!]!
   update_quellen_batch(filter: quellen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_quellen_input!]): [quellen!]!
   update_quellen_item(id: ID!, data: update_quellen_input!): quellen
@@ -179,18 +179,18 @@ type Mutation {
   update_wochenblaetter_items(filter: wochenblaetter_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_wochenblaetter_input!): [wochenblaetter!]!
   update_wochenblaetter_batch(filter: wochenblaetter_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_wochenblaetter_input!]): [wochenblaetter!]!
   update_wochenblaetter_item(id: ID!, data: update_wochenblaetter_input!): wochenblaetter
-  update_recherchehinweise_items(filter: recherchehinweise_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_recherchehinweise_input!): [recherchehinweise!]!
-  update_recherchehinweise_batch(filter: recherchehinweise_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_recherchehinweise_input!]): [recherchehinweise!]!
-  update_recherchehinweise_item(id: ID!, data: update_recherchehinweise_input!): recherchehinweise
-  update_wochenblattgemeinden_items(filter: wochenblattgemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_wochenblattgemeinden_input!): [wochenblattgemeinden!]!
-  update_wochenblattgemeinden_batch(filter: wochenblattgemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_wochenblattgemeinden_input!]): [wochenblattgemeinden!]!
-  update_wochenblattgemeinden_item(id: ID!, data: update_wochenblattgemeinden_input!): wochenblattgemeinden
-  update_wochenblattkandidaten_items(filter: wochenblattkandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_wochenblattkandidaten_input!): [wochenblattkandidaten!]!
-  update_wochenblattkandidaten_batch(filter: wochenblattkandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_wochenblattkandidaten_input!]): [wochenblattkandidaten!]!
-  update_wochenblattkandidaten_item(id: ID!, data: update_wochenblattkandidaten_input!): wochenblattkandidaten
   update_wochenblattausgaben_items(filter: wochenblattausgaben_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_wochenblattausgaben_input!): [wochenblattausgaben!]!
   update_wochenblattausgaben_batch(filter: wochenblattausgaben_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_wochenblattausgaben_input!]): [wochenblattausgaben!]!
   update_wochenblattausgaben_item(id: ID!, data: update_wochenblattausgaben_input!): wochenblattausgaben
+  update_recherchehinweise_items(filter: recherchehinweise_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_recherchehinweise_input!): [recherchehinweise!]!
+  update_recherchehinweise_batch(filter: recherchehinweise_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_recherchehinweise_input!]): [recherchehinweise!]!
+  update_recherchehinweise_item(id: ID!, data: update_recherchehinweise_input!): recherchehinweise
+  update_wochenblattkandidaten_items(filter: wochenblattkandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_wochenblattkandidaten_input!): [wochenblattkandidaten!]!
+  update_wochenblattkandidaten_batch(filter: wochenblattkandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_wochenblattkandidaten_input!]): [wochenblattkandidaten!]!
+  update_wochenblattkandidaten_item(id: ID!, data: update_wochenblattkandidaten_input!): wochenblattkandidaten
+  update_wochenblattgemeinden_items(filter: wochenblattgemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_wochenblattgemeinden_input!): [wochenblattgemeinden!]!
+  update_wochenblattgemeinden_batch(filter: wochenblattgemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_wochenblattgemeinden_input!]): [wochenblattgemeinden!]!
+  update_wochenblattgemeinden_item(id: ID!, data: update_wochenblattgemeinden_input!): wochenblattgemeinden
   delete_quellen_items(ids: [ID]!): delete_many
   delete_quellen_item(id: ID!): delete_one
   delete_ankuendigungen_items(ids: [ID]!): delete_many
@@ -225,14 +225,14 @@ type Mutation {
   delete_entsorgungstermine_item(id: ID!): delete_one
   delete_wochenblaetter_items(ids: [ID]!): delete_many
   delete_wochenblaetter_item(id: ID!): delete_one
-  delete_recherchehinweise_items(ids: [ID]!): delete_many
-  delete_recherchehinweise_item(id: ID!): delete_one
-  delete_wochenblattgemeinden_items(ids: [ID]!): delete_many
-  delete_wochenblattgemeinden_item(id: ID!): delete_one
-  delete_wochenblattkandidaten_items(ids: [ID]!): delete_many
-  delete_wochenblattkandidaten_item(id: ID!): delete_one
   delete_wochenblattausgaben_items(ids: [ID]!): delete_many
   delete_wochenblattausgaben_item(id: ID!): delete_one
+  delete_recherchehinweise_items(ids: [ID]!): delete_many
+  delete_recherchehinweise_item(id: ID!): delete_one
+  delete_wochenblattkandidaten_items(ids: [ID]!): delete_many
+  delete_wochenblattkandidaten_item(id: ID!): delete_one
+  delete_wochenblattgemeinden_items(ids: [ID]!): delete_many
+  delete_wochenblattgemeinden_item(id: ID!): delete_one
 }
 
 type Subscription {
@@ -276,10 +276,10 @@ type Subscription {
   entsorgungskalender_mutated(event: EventEnum): entsorgungskalender_mutated
   entsorgungstermine_mutated(event: EventEnum): entsorgungstermine_mutated
   wochenblaetter_mutated(event: EventEnum): wochenblaetter_mutated
-  recherchehinweise_mutated(event: EventEnum): recherchehinweise_mutated
-  wochenblattgemeinden_mutated(event: EventEnum): wochenblattgemeinden_mutated
-  wochenblattkandidaten_mutated(event: EventEnum): wochenblattkandidaten_mutated
   wochenblattausgaben_mutated(event: EventEnum): wochenblattausgaben_mutated
+  recherchehinweise_mutated(event: EventEnum): recherchehinweise_mutated
+  wochenblattkandidaten_mutated(event: EventEnum): wochenblattkandidaten_mutated
+  wochenblattgemeinden_mutated(event: EventEnum): wochenblattgemeinden_mutated
 }
 
 """The `Boolean` scalar type represents `true` or `false`."""
@@ -1787,7 +1787,7 @@ type meldungen {
   kandidat(filter: wochenblattkandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): wochenblattkandidaten
 
   """
-  Beim Publizieren entschieden: eine Perle interessiert auch die Stadt Basel. Nicht publiziert heisst keine Perle.
+  Kopie des Kandidaten-Entscheids für publizierte Presseschau-Meldungen — die Chefredaktion entscheidet am Kandidaten. Nicht publiziert trägt keine Perle.
   """
   perle: Boolean
 }
@@ -1865,7 +1865,7 @@ type meldungen_aggregated_count {
   kandidat: Int
 
   """
-  Beim Publizieren entschieden: eine Perle interessiert auch die Stadt Basel. Nicht publiziert heisst keine Perle.
+  Kopie des Kandidaten-Entscheids für publizierte Presseschau-Meldungen — die Chefredaktion entscheidet am Kandidaten. Nicht publiziert trägt keine Perle.
   """
   perle: Int
 }
@@ -2135,6 +2135,16 @@ type recherchehinweise {
   date_created_func: datetime_functions
   date_updated: Date
   date_updated_func: datetime_functions
+
+  """
+  Seite in der Ausgabe - Ziel des Quelle-Links und Schluessel fuer den Originaltext.
+  """
+  seite: Int
+
+  """
+  Der Textlayer der Fundseite, beim Anlegen kopiert - die Faehrte ueberlebt ihre Ausgabe.
+  """
+  quelltext: String
 }
 
 type recherchehinweise_aggregated {
@@ -2142,6 +2152,12 @@ type recherchehinweise_aggregated {
   countAll: Int
   count: recherchehinweise_aggregated_count
   countDistinct: recherchehinweise_aggregated_count
+  avg: recherchehinweise_aggregated_fields
+  sum: recherchehinweise_aggregated_fields
+  avgDistinct: recherchehinweise_aggregated_fields
+  sumDistinct: recherchehinweise_aggregated_fields
+  min: recherchehinweise_aggregated_fields
+  max: recherchehinweise_aggregated_fields
 }
 
 type recherchehinweise_aggregated_count {
@@ -2163,6 +2179,23 @@ type recherchehinweise_aggregated_count {
   kommentar: Int
   date_created: Int
   date_updated: Int
+
+  """
+  Seite in der Ausgabe - Ziel des Quelle-Links und Schluessel fuer den Originaltext.
+  """
+  seite: Int
+
+  """
+  Der Textlayer der Fundseite, beim Anlegen kopiert - die Faehrte ueberlebt ihre Ausgabe.
+  """
+  quelltext: Int
+}
+
+type recherchehinweise_aggregated_fields {
+  """
+  Seite in der Ausgabe - Ziel des Quelle-Links und Schluessel fuer den Originaltext.
+  """
+  seite: Float
 }
 
 type recherchehinweise_mutated {
@@ -2725,7 +2758,7 @@ type version_meldungen {
   kandidat: JSON
 
   """
-  Beim Publizieren entschieden: eine Perle interessiert auch die Stadt Basel. Nicht publiziert heisst keine Perle.
+  Kopie des Kandidaten-Entscheids für publizierte Presseschau-Meldungen — die Chefredaktion entscheidet am Kandidaten. Nicht publiziert trägt keine Perle.
   """
   perle: Boolean
 }
@@ -2833,6 +2866,16 @@ type version_recherchehinweise {
   kommentar: String
   date_created: Date
   date_updated: Date
+
+  """
+  Seite in der Ausgabe - Ziel des Quelle-Links und Schluessel fuer den Originaltext.
+  """
+  seite: Int
+
+  """
+  Der Textlayer der Fundseite, beim Anlegen kopiert - die Faehrte ueberlebt ihre Ausgabe.
+  """
+  quelltext: String
 }
 
 """"""
@@ -2991,6 +3034,11 @@ type version_wochenblattausgaben {
   fehler: String
   date_created: Date
   date_updated: Date
+
+  """
+  Der Textlayer je Seite - der Workspace zeigt damit den Originaltext neben Kandidaten und Faehrten.
+  """
+  seiten_texte: JSON
   kandidaten: JSON
   hinweisfaehrten: JSON
 }
@@ -3040,6 +3088,11 @@ type version_wochenblattkandidaten {
 
   """Von der Redaktion umgeteilt — das Lernsignal fuer die Zuordnung."""
   gemeinde_korrigiert: Boolean
+
+  """
+  Entscheid der Chefredaktion zum Perlen-Vorschlag — unabhängig davon, ob aus dem Kandidaten eine Meldung wird. Null heisst: liegt noch auf ihrem Tisch.
+  """
+  perle: Boolean
 }
 
 type wochenblaetter {
@@ -3165,6 +3218,12 @@ type wochenblattausgaben {
   date_created_func: datetime_functions
   date_updated: Date
   date_updated_func: datetime_functions
+
+  """
+  Der Textlayer je Seite - der Workspace zeigt damit den Originaltext neben Kandidaten und Faehrten.
+  """
+  seiten_texte: JSON
+  seiten_texte_func: count_functions
   kandidaten(filter: wochenblattkandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [wochenblattkandidaten]
   kandidaten_func: count_functions
   hinweisfaehrten(filter: recherchehinweise_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [recherchehinweise]
@@ -3222,6 +3281,11 @@ type wochenblattausgaben_aggregated_count {
   fehler: Int
   date_created: Int
   date_updated: Int
+
+  """
+  Der Textlayer je Seite - der Workspace zeigt damit den Originaltext neben Kandidaten und Faehrten.
+  """
+  seiten_texte: Int
   kandidaten: Int
 }
 
@@ -3301,6 +3365,11 @@ type wochenblattkandidaten {
 
   """Von der Redaktion umgeteilt — das Lernsignal fuer die Zuordnung."""
   gemeinde_korrigiert: Boolean!
+
+  """
+  Entscheid der Chefredaktion zum Perlen-Vorschlag — unabhängig davon, ob aus dem Kandidaten eine Meldung wird. Null heisst: liegt noch auf ihrem Tisch.
+  """
+  perle: Boolean
 }
 
 type wochenblattkandidaten_aggregated {
@@ -3356,6 +3425,11 @@ type wochenblattkandidaten_aggregated_count {
 
   """Von der Redaktion umgeteilt — das Lernsignal fuer die Zuordnung."""
   gemeinde_korrigiert: Int
+
+  """
+  Entscheid der Chefredaktion zum Perlen-Vorschlag — unabhängig davon, ob aus dem Kandidaten eine Meldung wird. Null heisst: liegt noch auf ihrem Tisch.
+  """
+  perle: Int
 }
 
 type wochenblattkandidaten_aggregated_fields {
@@ -3863,7 +3937,7 @@ input create_meldungen_input {
   kandidat: create_wochenblattkandidaten_input
 
   """
-  Beim Publizieren entschieden: eine Perle interessiert auch die Stadt Basel. Nicht publiziert heisst keine Perle.
+  Kopie des Kandidaten-Entscheids für publizierte Presseschau-Meldungen — die Chefredaktion entscheidet am Kandidaten. Nicht publiziert trägt keine Perle.
   """
   perle: Boolean
 }
@@ -3967,6 +4041,16 @@ input create_recherchehinweise_input {
   kommentar: String
   date_created: Date
   date_updated: Date
+
+  """
+  Seite in der Ausgabe - Ziel des Quelle-Links und Schluessel fuer den Originaltext.
+  """
+  seite: Int
+
+  """
+  Der Textlayer der Fundseite, beim Anlegen kopiert - die Faehrte ueberlebt ihre Ausgabe.
+  """
+  quelltext: String
 }
 
 input create_redaktionswissen_input {
@@ -4120,6 +4204,11 @@ input create_wochenblattausgaben_input {
   fehler: String
   date_created: Date
   date_updated: Date
+
+  """
+  Der Textlayer je Seite - der Workspace zeigt damit den Originaltext neben Kandidaten und Faehrten.
+  """
+  seiten_texte: JSON
   kandidaten: [create_wochenblattkandidaten_input]
   hinweisfaehrten: [create_recherchehinweise_input]
 }
@@ -4167,6 +4256,11 @@ input create_wochenblattkandidaten_input {
 
   """Von der Redaktion umgeteilt — das Lernsignal fuer die Zuordnung."""
   gemeinde_korrigiert: Boolean!
+
+  """
+  Entscheid der Chefredaktion zum Perlen-Vorschlag — unabhängig davon, ob aus dem Kandidaten eine Meldung wird. Null heisst: liegt noch auf ihrem Tisch.
+  """
+  perle: Boolean
 }
 
 input date_filter_operators {
@@ -5047,6 +5141,8 @@ input recherchehinweise_filter {
   date_created_func: datetime_function_filter_operators
   date_updated: date_filter_operators
   date_updated_func: datetime_function_filter_operators
+  seite: number_filter_operators
+  quelltext: string_filter_operators
   _and: [recherchehinweise_filter]
   _or: [recherchehinweise_filter]
 }
@@ -5065,6 +5161,8 @@ input recherchehinweise_quantifier_filter {
   date_created_func: datetime_function_filter_operators
   date_updated: date_filter_operators
   date_updated_func: datetime_function_filter_operators
+  seite: number_filter_operators
+  quelltext: string_filter_operators
   _and: [recherchehinweise_filter]
   _or: [recherchehinweise_filter]
   _some: recherchehinweise_filter
@@ -5561,7 +5659,7 @@ input update_meldungen_input {
   kandidat: update_wochenblattkandidaten_input
 
   """
-  Beim Publizieren entschieden: eine Perle interessiert auch die Stadt Basel. Nicht publiziert heisst keine Perle.
+  Kopie des Kandidaten-Entscheids für publizierte Presseschau-Meldungen — die Chefredaktion entscheidet am Kandidaten. Nicht publiziert trägt keine Perle.
   """
   perle: Boolean
 }
@@ -5665,6 +5763,16 @@ input update_recherchehinweise_input {
   kommentar: String
   date_created: Date
   date_updated: Date
+
+  """
+  Seite in der Ausgabe - Ziel des Quelle-Links und Schluessel fuer den Originaltext.
+  """
+  seite: Int
+
+  """
+  Der Textlayer der Fundseite, beim Anlegen kopiert - die Faehrte ueberlebt ihre Ausgabe.
+  """
+  quelltext: String
 }
 
 input update_redaktionswissen_input {
@@ -5818,6 +5926,11 @@ input update_wochenblattausgaben_input {
   fehler: String
   date_created: Date
   date_updated: Date
+
+  """
+  Der Textlayer je Seite - der Workspace zeigt damit den Originaltext neben Kandidaten und Faehrten.
+  """
+  seiten_texte: JSON
   kandidaten: [update_wochenblattkandidaten_input]
   hinweisfaehrten: [update_recherchehinweise_input]
 }
@@ -5865,6 +5978,11 @@ input update_wochenblattkandidaten_input {
 
   """Von der Redaktion umgeteilt — das Lernsignal fuer die Zuordnung."""
   gemeinde_korrigiert: Boolean
+
+  """
+  Entscheid der Chefredaktion zum Perlen-Vorschlag — unabhängig davon, ob aus dem Kandidaten eine Meldung wird. Null heisst: liegt noch auf ihrem Tisch.
+  """
+  perle: Boolean
 }
 
 input vereine_filter {
@@ -5932,6 +6050,8 @@ input wochenblattausgaben_filter {
   date_created_func: datetime_function_filter_operators
   date_updated: date_filter_operators
   date_updated_func: datetime_function_filter_operators
+  seiten_texte: string_filter_operators
+  seiten_texte_func: count_function_filter_operators
   kandidaten: wochenblattkandidaten_quantifier_filter
   kandidaten_func: count_function_filter_operators
   _and: [wochenblattausgaben_filter]
@@ -5961,6 +6081,8 @@ input wochenblattausgaben_quantifier_filter {
   date_created_func: datetime_function_filter_operators
   date_updated: date_filter_operators
   date_updated_func: datetime_function_filter_operators
+  seiten_texte: string_filter_operators
+  seiten_texte_func: count_function_filter_operators
   kandidaten: wochenblattkandidaten_quantifier_filter
   kandidaten_func: count_function_filter_operators
   _and: [wochenblattausgaben_filter]
@@ -6013,6 +6135,7 @@ input wochenblattkandidaten_filter {
   date_updated_func: datetime_function_filter_operators
   gemeinde: gemeinden_filter
   gemeinde_korrigiert: boolean_filter_operators
+  perle: boolean_filter_operators
   _and: [wochenblattkandidaten_filter]
   _or: [wochenblattkandidaten_filter]
 }
@@ -6038,6 +6161,7 @@ input wochenblattkandidaten_quantifier_filter {
   date_updated_func: datetime_function_filter_operators
   gemeinde: gemeinden_filter
   gemeinde_korrigiert: boolean_filter_operators
+  perle: boolean_filter_operators
   _and: [wochenblattkandidaten_filter]
   _or: [wochenblattkandidaten_filter]
   _some: wochenblattkandidaten_filter

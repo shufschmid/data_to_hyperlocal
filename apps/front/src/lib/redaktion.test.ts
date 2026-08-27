@@ -1,6 +1,7 @@
 import type { AnkuendigungFelder, MeldungFelder } from '@/graphql/redaktion'
 import {
   absaetze,
+  bleibtAufDemTisch,
   formatiereDatum,
   fortschritt,
   istBeschaeftigt,
@@ -12,6 +13,7 @@ import {
   meldungenNachLauf,
   quellenLaufText,
   resultat,
+  seitenLink,
   teileSpiele,
   vereineNachGemeinde,
   nachQuartal,
@@ -564,5 +566,44 @@ describe('quellenLaufText', () => {
     expect(text).toContain('Datenquellen: 2 neu, 1 geändert, 5 bewertet')
     expect(text).toContain('1 Quelle(n) mit Fehler')
     expect(text).toContain('Sport: 4 neu, 3 aktualisiert')
+  })
+})
+
+describe('seitenLink', () => {
+  it('haengt bei PDFs das Viewer-Fragment an', () => {
+    expect(seitenLink('https://files.localpoint.ch/pdf/bib/2026/x.pdf', 4)).toBe(
+      'https://files.localpoint.ch/pdf/bib/2026/x.pdf#page=4'
+    )
+  })
+
+  it('haengt beim issuu-Reader die Seite als Pfadsegment an', () => {
+    expect(seitenLink('https://issuu.com/az-anzeiger/docs/35_20260827_woz_wobanz', 19)).toBe(
+      'https://issuu.com/az-anzeiger/docs/35_20260827_woz_wobanz/19'
+    )
+  })
+
+  it('gibt ohne Seite die Adresse unveraendert zurueck', () => {
+    expect(seitenLink('https://example.ch/zeitung.pdf', null)).toBe('https://example.ch/zeitung.pdf')
+  })
+})
+
+describe('bleibtAufDemTisch', () => {
+  it('laesst Offenes und laufendes Redigat liegen', () => {
+    expect(bleibtAufDemTisch('offen', null)).toBe(true)
+    expect(bleibtAufDemTisch('uebernommen', 'entwurf')).toBe(true)
+    expect(bleibtAufDemTisch('uebernommen', 'in_pruefung')).toBe(true)
+    expect(bleibtAufDemTisch('uebernommen', 'freigegeben')).toBe(true)
+  })
+
+  it('raeumt Erledigtes ab — publiziert, verworfen, abgelehnt, weitergereicht', () => {
+    expect(bleibtAufDemTisch('uebernommen', 'publiziert')).toBe(false)
+    expect(bleibtAufDemTisch('uebernommen', 'verworfen')).toBe(false)
+    expect(bleibtAufDemTisch('abgelehnt', null)).toBe(false)
+    expect(bleibtAufDemTisch('weitergereicht', null)).toBe(false)
+  })
+
+  it('zeigt eine uebernommene Meldung nicht mehr, wenn sie verschwunden ist', () => {
+    // Ein Admin-Delete der Meldung laesst nichts zu tun uebrig.
+    expect(bleibtAufDemTisch('uebernommen', null)).toBe(false)
   })
 })

@@ -832,6 +832,8 @@ export interface AusgabeFelder {
   seiten: number | null
   status: string
   fehler: string | null
+  /** Textlayer je Seite — die Ausklappbox „Originaltext" neben jedem Vorschlag. */
+  seiten_texte: string[] | null
   kandidaten: KandidatFelder[]
 }
 
@@ -873,7 +875,7 @@ export const WOCHENBLAETTER_QUERY = gql`
           name
         }
       }
-      ausgaben(sort: ["-datum"], limit: 3) {
+      ausgaben(sort: ["-datum"], limit: 1) {
         id
         schluessel
         nummer
@@ -883,6 +885,7 @@ export const WOCHENBLAETTER_QUERY = gql`
         seiten
         status
         fehler
+        seiten_texte
         kandidaten(sort: ["seite"], limit: -1) {
           id
           titel
@@ -913,7 +916,10 @@ export interface RecherchehinweisFelder {
   id: string
   titel: string
   fundort: string | null
+  seite: number | null
   begruendung: string | null
+  /** Der Wortlaut der Fundseite, beim Anlegen kopiert — die Fährte überlebt ihre Ausgabe. */
+  quelltext: string | null
   status: string
   kommentar: string | null
   date_created: string | null
@@ -936,7 +942,9 @@ export const RECHERCHEHINWEISE_QUERY = gql`
       id
       titel
       fundort
+      seite
       begruendung
+      quelltext
       status
       kommentar
       date_created
@@ -963,3 +971,63 @@ export const RECHERCHEHINWEISE_QUERY = gql`
 // und will eine ganze neue Gemeinde statt einer Referenz. Der Hook
 // `kandidat-gemeinde` markiert die Korrektur auf jedem Schreibweg als
 // Lernsignal (`gemeinde_korrigiert`).
+
+/**
+ * Ein Kandidat mit Perlen-Vorschlag, dessen Urteil noch aussteht — der
+ * Perlen-Stapel auf dem Tisch der Chefredaktion. Das Urteil hängt am
+ * KANDIDATEN und ist unabhängig davon, ob je eine Meldung daraus wird;
+ * darum überlebt der Stapel auch neue Ausgaben (das Aufräumen verschont
+ * Perlen-Vorschläge). `seiten_texte` kommt mit, damit sie das Urteil am
+ * Original fällt statt an der Zusammenfassung.
+ */
+export interface PerleFelder {
+  id: string
+  titel: string
+  seite: number | null
+  zusammenfassung: string | null
+  perle_begruendung: string | null
+  entscheid: string
+  gemeinde: { id: string; name: string } | null
+  ausgabe: {
+    id: string
+    nummer: string | null
+    pdf_url: string | null
+    seiten_texte: string[] | null
+    wochenblatt: { id: string; name: string } | null
+  } | null
+}
+
+export interface PerlenErgebnis {
+  wochenblattkandidaten: PerleFelder[]
+}
+
+export const OFFENE_PERLEN_QUERY = gql`
+  query OffenePerlen {
+    wochenblattkandidaten(
+      filter: { perle_vorschlag: { _eq: true }, perle: { _null: true } }
+      sort: ["-date_created"]
+      limit: 50
+    ) {
+      id
+      titel
+      seite
+      zusammenfassung
+      perle_begruendung
+      entscheid
+      gemeinde {
+        id
+        name
+      }
+      ausgabe {
+        id
+        nummer
+        pdf_url
+        seiten_texte
+        wochenblatt {
+          id
+          name
+        }
+      }
+    }
+  }
+`

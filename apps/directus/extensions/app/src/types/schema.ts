@@ -173,9 +173,11 @@ export interface Meldung {
   /** Set for press-review articles from a Wochenblatt candidate. Null otherwise. */
   kandidat: string | null
   /**
-   * Decided at publish time, only for press-review articles: a Perle is the
-   * curious local story that also interests the city of Basel. Unpublished
-   * means no Perle, always.
+   * Mirror of the candidate's Perle verdict, for downstream readers of
+   * published press reviews. The Chefredaktion decides on the CANDIDATE
+   * (`wochenblattkandidaten.perle`) — independent of whether a Meldung ever
+   * exists; the hook copies the verdict onto the Meldung at publish time.
+   * Unpublished never carries a Perle.
    */
   perle: boolean | null
   gemeinde: string
@@ -499,6 +501,8 @@ export interface Wochenblattausgabe {
   status: AusgabeStatus
   /** The PDF's text layer — the corpus the verbatim-overlap check runs against. */
   volltext: string | null
+  /** The same text page by page — the workspace shows the original wording next to a proposal. */
+  seiten_texte: string[] | null
   inventar: Record<string, unknown> | null
   fehler: string | null
   date_created: string | null
@@ -516,7 +520,12 @@ export type KandidatTyp =
   | 'erfolgsmeldung'
   | 'fotoverweis'
 
-export type KandidatEntscheid = 'offen' | 'uebernommen' | 'abgelehnt'
+/** `weitergereicht`: good piece, not verifiable today — handed to the Chefredaktion as a lead. */
+export type KandidatEntscheid =
+  | 'offen'
+  | 'uebernommen'
+  | 'abgelehnt'
+  | 'weitergereicht'
 
 export type Ablehnungsgrund =
   | 'nicht_relevant'
@@ -547,7 +556,11 @@ export interface Recherchehinweis {
   titel: string
   /** Where it stands — "Leserbrief 'Wertvoller Regen', S. 2". */
   fundort: string | null
+  /** The page as a number — what the source link and the original-text box key on. */
+  seite: number | null
   begruendung: string | null
+  /** The page's own text layer, copied at creation — the lead outlives its issue's row. */
+  quelltext: string | null
   status: HinweisStatus
   kommentar: string | null
   date_created: string | null
@@ -584,6 +597,12 @@ export interface Wochenblattkandidat {
   /** Curious AND of supra-local interest — could amuse the city of Basel too. */
   perle_vorschlag: boolean
   perle_begruendung: string | null
+  /**
+   * The Chefredaktion's verdict on that proposal — independent of whether the
+   * candidate ever becomes a Meldung. Null while it sits on her desk; a
+   * pending proposal survives the desk cleanup on purpose.
+   */
+  perle: boolean | null
   entscheid: KandidatEntscheid
   /** The learning signal: flows into the next inventory's digest. */
   ablehnungsgrund: Ablehnungsgrund | null

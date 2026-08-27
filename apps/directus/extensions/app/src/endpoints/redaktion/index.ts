@@ -613,12 +613,13 @@ export default defineEndpoint(
             const gemeindeIds = new Map(abdeckung.map((g) => [g.name, g.id]))
 
             // Same transport rule as the 09:00 run: a file past the API's
-            // request limit travels as its text layer, page by page.
+            // request limit travels as its text layer, page by page. The
+            // extraction always runs — re-inventorying also refreshes the
+            // stored text layer, which backfills `seiten_texte` on issues
+            // read before that column existed.
+            const layer = await extrahiereText(pdfDaten)
             const quelle: InventarQuelle = brauchtTextTransport(pdfDaten.length)
-              ? {
-                  art: 'seitentexte',
-                  seitenTexte: (await extrahiereText(pdfDaten)).seitenTexte
-                }
+              ? { art: 'seitentexte', seitenTexte: layer.seitenTexte }
               : { art: 'pdf', base64: pdfDaten.toString('base64') }
 
             const antwort = await completeChatJson<unknown>({
@@ -705,21 +706,40 @@ export default defineEndpoint(
               })
             }
 
-            // Research leads: only genuinely new ones are added — a verdict
-            // the newsroom already gave is never asked for twice.
+            // Research leads: diffed like the candidates. A verdict the
+            // newsroom already gave is never asked for twice — but an OPEN
+            // lead the new run no longer proposes is deleted, otherwise every
+            // re-inventory stacks paraphrased duplicates of the same leads.
             const hinweiseService = new ItemsService('recherchehinweise', {
               schema
             })
             const bestehendeFaehrten = (await hinweiseService.readByQuery({
               filter: { ausgabe: { _eq: id } },
-              fields: ['titel'],
+              fields: ['id', 'titel', 'status'],
               limit: -1
-            })) as Array<{ titel: string }>
-            const bekannteFaehrten = new Set(
-              bestehendeFaehrten.map((f) => f.titel.toLowerCase())
+            })) as Array<{ id: string; titel: string; status: string }>
+            const neueFaehrten = new Map(
+              inventar.recherchehinweise.map((f) => [f.titel.toLowerCase(), f])
             )
-            for (const faehrte of inventar.recherchehinweise) {
-              if (bekannteFaehrten.has(faehrte.titel.toLowerCase())) continue
+            const faehrtenQuelltext = (seite: number | null): string | null =>
+              seite === null ? null : (layer.seitenTexte[seite - 1] ?? null)
+            for (const alt of bestehendeFaehrten) {
+              const neu = neueFaehrten.get(alt.titel.toLowerCase())
+              if (neu !== undefined) {
+                neueFaehrten.delete(alt.titel.toLowerCase())
+                if (alt.status === 'offen') {
+                  await hinweiseService.updateOne(alt.id, {
+                    fundort: neu.fundort,
+                    seite: neu.seite,
+                    begruendung: neu.begruendung,
+                    quelltext: faehrtenQuelltext(neu.seite)
+                  })
+                }
+              } else if (alt.status === 'offen') {
+                await hinweiseService.deleteOne(alt.id)
+              }
+            }
+            for (const faehrte of neueFaehrten.values()) {
               await hinweiseService.createOne({
                 ausgabe: id,
                 gemeinde:
@@ -728,7 +748,9 @@ export default defineEndpoint(
                     : (gemeindeIds.get(faehrte.gemeinde) ?? null),
                 titel: faehrte.titel,
                 fundort: faehrte.fundort,
+                seite: faehrte.seite,
                 begruendung: faehrte.begruendung,
+                quelltext: faehrtenQuelltext(faehrte.seite),
                 status: 'offen'
               })
             }
@@ -736,6 +758,9 @@ export default defineEndpoint(
             await system.updateOne(id, {
               status: 'inventarisiert',
               inventar: inventar as unknown as Record<string, unknown>,
+              seiten: layer.seiten,
+              volltext: layer.text,
+              seiten_texte: layer.seitenTexte,
               fehler: null
             })
           } catch (fehler) {
@@ -879,6 +904,137 @@ export default defineEndpoint(
           })
 
           return res.json({ data: { kandidat: id, entscheid: 'abgelehnt' } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    router.post(
+      '/kandidaten/:id/weiterreichen',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        const koerper = (req.body ?? {}) as { begruendung?: unknown }
+        const begruendung =
+          typeof koerper.begruendung === 'string' &&
+          koerper.begruendung.trim() !== ''
+            ? koerper.begruendung.trim()
+            : null
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const schema = await getSchema()
+          const kandidatenService = new ItemsService('wochenblattkandidaten', {
+            schema,
+            accountability: req.accountability
+          })
+          const hinweiseService = new ItemsService('recherchehinweise', {
+            schema,
+            accountability: req.accountability
+          })
+
+          const kandidat = (await kandidatenService.readOne(id, {
+            fields: [
+              'id',
+              'titel',
+              'seite',
+              'entscheid',
+              'warum_exklusiv',
+              'gemeinde',
+              'ausgabe.id',
+              'ausgabe.seiten_texte'
+            ]
+          })) as {
+            id: string
+            titel: string
+            seite: number | null
+            entscheid: string
+            warum_exklusiv: string | null
+            gemeinde: string | null
+            ausgabe: { id: string; seiten_texte: string[] | null }
+          }
+          if (kandidat.entscheid !== 'offen') {
+            return next(new KandidatSchonUebernommen())
+          }
+
+          // A good piece the desk cannot verify today becomes the chief
+          // editor's work instead of a Meldung: same collection as the
+          // inventory's own leads, so her desk has one pile.
+          const hinweisId = (await hinweiseService.createOne({
+            ausgabe: kandidat.ausgabe.id,
+            gemeinde: kandidat.gemeinde,
+            titel: kandidat.titel,
+            fundort:
+              `Beitrag "${kandidat.titel}"` +
+              (kandidat.seite === null ? '' : `, S. ${kandidat.seite}`),
+            seite: kandidat.seite,
+            begruendung: begruendung ?? kandidat.warum_exklusiv,
+            quelltext:
+              kandidat.seite === null
+                ? null
+                : (kandidat.ausgabe.seiten_texte?.[kandidat.seite - 1] ?? null),
+            status: 'offen'
+          })) as string
+
+          // Its own decision value: rejecting would teach the inventory
+          // "don't propose such pieces", which is the opposite of the truth.
+          await kandidatenService.updateOne(id, {
+            entscheid: 'weitergereicht'
+          })
+
+          return res.json({ data: { kandidat: id, hinweis: hinweisId } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    router.post(
+      '/kandidaten/:id/perle',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        const koerper = (req.body ?? {}) as { perle?: unknown }
+        if (typeof koerper.perle !== 'boolean') {
+          return next(new UngueltigerAblehnungsgrund())
+        }
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const schema = await getSchema()
+          const kandidaten = new ItemsService('wochenblattkandidaten', {
+            schema,
+            accountability: req.accountability
+          })
+
+          // The chief editor's verdict lives on the CANDIDATE — independent
+          // of whether a Meldung ever came of it. A pending proposal survives
+          // the desk cleanup; this call is what takes it off her desk.
+          await kandidaten.updateOne(id, { perle: koerper.perle })
+
+          // A published Meldung carries a copy for downstream readers. The
+          // hook stamps future publishes; this covers one published already.
+          const meldungen = new ItemsService('meldungen', {
+            schema,
+            accountability: req.accountability
+          })
+          const publizierte = (await meldungen.readByQuery({
+            filter: {
+              _and: [
+                { kandidat: { _eq: id } },
+                { status: { _eq: 'publiziert' } }
+              ]
+            },
+            fields: ['id'],
+            limit: 1
+          })) as { id: string }[]
+          const meldungId = publizierte[0]?.id
+          if (meldungId !== undefined) {
+            await meldungen.updateOne(meldungId, { perle: koerper.perle })
+          }
+
+          return res.json({ data: { id, perle: koerper.perle } })
         } catch (error) {
           return next(uebersetze(error))
         }
@@ -1498,21 +1654,11 @@ export default defineEndpoint(
           const zustellung =
             ziel === 'in_pruefung' ? await mintFreigabe(meldungen, id) : null
 
-          // Publishing a press review is also the Perle decision: "als Perle
-          // publizieren" or plain publishing. Explicitly false when unsaid —
-          // an unpublished or silently published piece is never a Perle.
-          let perleFelder: Record<string, unknown> = {}
-          if (ziel === 'publiziert') {
-            const zeile = (await meldungen.readOne(id, {
-              fields: ['kandidat']
-            })) as { kandidat: string | null }
-            if (zeile.kandidat !== null) {
-              const koerper = (req.body ?? {}) as { perle?: unknown }
-              perleFelder = { perle: koerper.perle === true }
-            }
-          }
-
-          await meldungen.updateOne(id, { status: ziel, ...perleFelder })
+          // Publishing deliberately does NOT decide the Perle question: the
+          // Chefredaktion answers it on the CANDIDATE, whenever she gets to
+          // it (POST /kandidaten/:id/perle). If she already has, the
+          // meldung-status hook copies her verdict onto the Meldung here.
+          await meldungen.updateOne(id, { status: ziel })
 
           return res.json({
             data: {
@@ -2945,13 +3091,22 @@ export default defineEndpoint(
       const kandidatenService = new ItemsService('wochenblattkandidaten', {
         schema
       })
-      const meldungenService = new ItemsService('meldungen', { schema })
       const hinweiseService = new ItemsService('recherchehinweise', { schema })
 
+      // Decided candidates — plus the ones whose Perle question the
+      // Chefredaktion answered even though nobody took or rejected them:
+      // that verdict is a learning signal of its own.
       const kandidaten = (await kandidatenService.readByQuery({
         filter: {
-          entscheid: { _neq: 'offen' },
-          ausgabe: { wochenblatt: { _eq: blattId } }
+          _and: [
+            { ausgabe: { wochenblatt: { _eq: blattId } } },
+            {
+              _or: [
+                { entscheid: { _neq: 'offen' } },
+                { perle: { _nnull: true } }
+              ]
+            }
+          ]
         },
         sort: ['-date_updated'],
         fields: [
@@ -2961,7 +3116,8 @@ export default defineEndpoint(
           'entscheid',
           'ablehnungsgrund',
           'ablehnungskommentar',
-          'perle_vorschlag'
+          'perle_vorschlag',
+          'perle'
         ],
         limit: 20
       })) as Array<{
@@ -2972,6 +3128,7 @@ export default defineEndpoint(
         ablehnungsgrund: LernEintrag['ablehnungsgrund']
         ablehnungskommentar: string | null
         perle_vorschlag: boolean
+        perle: boolean | null
       }>
 
       const korrigierte = (await kandidatenService.readByQuery({
@@ -3005,35 +3162,15 @@ export default defineEndpoint(
         kommentar: f.kommentar
       }))
 
-      let eintraege: LernEintrag[] = []
-      if (kandidaten.length > 0) {
-        const meldungen = (await meldungenService.readByQuery({
-          filter: { kandidat: { _in: kandidaten.map((k) => k.id) } },
-          fields: ['kandidat', 'status', 'perle'],
-          limit: -1
-        })) as Array<{
-          kandidat: string
-          status: string
-          perle: boolean | null
-        }>
-        const nachKandidat = new Map(meldungen.map((m) => [m.kandidat, m]))
-
-        eintraege = kandidaten.map((k) => {
-          const meldung = nachKandidat.get(k.id)
-          return {
-            titel: k.titel,
-            typ: k.typ,
-            entscheid: k.entscheid,
-            ablehnungsgrund: k.ablehnungsgrund,
-            ablehnungskommentar: k.ablehnungskommentar,
-            perleVorschlag: k.perle_vorschlag,
-            perleBestaetigt:
-              meldung !== undefined && meldung.status === 'publiziert'
-                ? meldung.perle === true
-                : null
-          }
-        })
-      }
+      const eintraege: LernEintrag[] = kandidaten.map((k) => ({
+        titel: k.titel,
+        typ: k.typ,
+        entscheid: k.entscheid,
+        ablehnungsgrund: k.ablehnungsgrund,
+        ablehnungskommentar: k.ablehnungskommentar,
+        perleVorschlag: k.perle_vorschlag,
+        perleBestaetigt: k.perle
+      }))
 
       return [eintraege, korrekturen, faehrten]
     }

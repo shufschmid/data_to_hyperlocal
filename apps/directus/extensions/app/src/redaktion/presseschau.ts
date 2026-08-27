@@ -97,9 +97,13 @@ ungeprueft uebernommen. Aber sie (und andere Beitraege) koennen Faehrten fuer
 eigene Recherchen tragen: konkrete lokale Projekte, Konflikte oder
 Missstaende, die jemand nachpruefen koennte (etwa geplante sechs Meter hohe
 Hochwasserschutz-Daemme). Gib solche unter "recherchehinweise" zurueck, mit
-Titel, Fundort ("Leserbrief '…', S. 2"), Begruendung und Gemeinde. Sei
-zurueckhaltend: eine Faehrte ist ein ueberpruefbarer Ansatz, keine Meinung
-und keine Stimmung.
+Titel, Fundort ("Leserbrief '…', S. 2"), Seite (als Zahl), Begruendung und
+Gemeinde. Sei SEHR zurueckhaltend: hoechstens zwei bis drei Faehrten je
+Ausgabe, und nur, was die Redaktion wirklich interessieren muss — eine
+verpasste Faehrte ist verschmerzbar, ein Dutzend belanglose verstopfen den
+Tisch. Eine Faehrte ist ein ueberpruefbarer Ansatz, keine Meinung und keine
+Stimmung. Gibt eine Ausgabe nichts her, ist eine leere Liste die richtige
+Antwort.
 
 Perlen: Eine Perle ist KURIOS UND UEBERoertlich — die Geschichte, die auch die
 Stadt Basel amuesiert oder interessiert (nach dem Geschmack der Redaktion etwa:
@@ -152,10 +156,11 @@ export const INVENTAR_SCHEMA = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['titel', 'fundort', 'begruendung', 'gemeinde'],
+        required: ['titel', 'fundort', 'seite', 'begruendung', 'gemeinde'],
         properties: {
           titel: { type: 'string' },
           fundort: { type: ['string', 'null'] },
+          seite: { type: ['integer', 'null'] },
           begruendung: { type: ['string', 'null'] },
           gemeinde: { type: ['string', 'null'] }
         }
@@ -173,7 +178,10 @@ export interface LernEintrag {
   ablehnungsgrund: Ablehnungsgrund | null
   ablehnungskommentar: string | null
   perleVorschlag: boolean
-  /** From the published Meldung; null while unpublished (= no Perle yet). */
+  /**
+   * The Chefredaktion's verdict on the proposal, straight from the candidate
+   * — independent of any Meldung. Null while it sits on her desk.
+   */
   perleBestaetigt: boolean | null
 }
 
@@ -213,12 +221,16 @@ export function lernDigest(
 ): string {
   const uebernommen = entscheide.filter((e) => e.entscheid === 'uebernommen')
   const abgelehnt = entscheide.filter((e) => e.entscheid === 'abgelehnt')
+  const weitergereicht = entscheide.filter(
+    (e) => e.entscheid === 'weitergereicht'
+  )
   const perlen = entscheide.filter(
     (e) => e.perleVorschlag && e.perleBestaetigt !== null
   )
   if (
     uebernommen.length === 0 &&
     abgelehnt.length === 0 &&
+    weitergereicht.length === 0 &&
     perlen.length === 0 &&
     korrekturen.length === 0 &&
     faehrten.length === 0
@@ -242,6 +254,13 @@ export function lernDigest(
         e.ablehnungskommentar === null ? '' : `: ${e.ablehnungskommentar}`
       zeilen.push(`- "${e.titel}" (${e.typ})${grund}${kommentar}`)
     }
+  }
+  if (weitergereicht.length > 0) {
+    zeilen.push(
+      '',
+      'An die Chefredaktion weitergereicht (gute Vorschlaege, die erst verifiziert werden muessen — weiter solche machen):'
+    )
+    for (const e of weitergereicht) zeilen.push(`- "${e.titel}" (${e.typ})`)
   }
   if (perlen.length > 0) {
     zeilen.push('', 'Perlen-Urteile der Redaktion:')
@@ -374,6 +393,8 @@ export interface InventarKandidat {
 export interface InventarFaehrte {
   titel: string
   fundort: string | null
+  /** Where the piece stands — validated against OUR page count, like a candidate's. */
+  seite: number | null
   begruendung: string | null
   gemeinde: string | null
 }
@@ -511,12 +532,25 @@ export function parseInventar(
           ? gemeindeKanon.get(e.gemeinde.trim().toLowerCase())
           : undefined
 
+      let faehrtenSeite =
+        typeof e.seite === 'number' && Number.isInteger(e.seite)
+          ? e.seite
+          : null
+      if (
+        faehrtenSeite !== null &&
+        seiten !== null &&
+        (faehrtenSeite < 1 || faehrtenSeite > seiten)
+      ) {
+        faehrtenSeite = null
+      }
+
       recherchehinweise.push({
         titel,
         fundort:
           typeof e.fundort === 'string' && e.fundort.trim() !== ''
             ? e.fundort.trim()
             : null,
+        seite: faehrtenSeite,
         begruendung:
           typeof e.begruendung === 'string' && e.begruendung.trim() !== ''
             ? e.begruendung.trim()

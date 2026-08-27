@@ -302,10 +302,10 @@ type Subscription {
   entsorgungskalender_mutated(event: EventEnum): entsorgungskalender_mutated
   entsorgungstermine_mutated(event: EventEnum): entsorgungstermine_mutated
   wochenblaetter_mutated(event: EventEnum): wochenblaetter_mutated
-  recherchehinweise_mutated(event: EventEnum): recherchehinweise_mutated
-  wochenblattgemeinden_mutated(event: EventEnum): wochenblattgemeinden_mutated
-  wochenblattkandidaten_mutated(event: EventEnum): wochenblattkandidaten_mutated
   wochenblattausgaben_mutated(event: EventEnum): wochenblattausgaben_mutated
+  recherchehinweise_mutated(event: EventEnum): recherchehinweise_mutated
+  wochenblattkandidaten_mutated(event: EventEnum): wochenblattkandidaten_mutated
+  wochenblattgemeinden_mutated(event: EventEnum): wochenblattgemeinden_mutated
 }
 
 """The `Boolean` scalar type represents `true` or `false`."""
@@ -2165,7 +2165,7 @@ type meldungen {
   kandidat(filter: wochenblattkandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): wochenblattkandidaten
 
   """
-  Beim Publizieren entschieden: eine Perle interessiert auch die Stadt Basel. Nicht publiziert heisst keine Perle.
+  Kopie des Kandidaten-Entscheids für publizierte Presseschau-Meldungen — die Chefredaktion entscheidet am Kandidaten. Nicht publiziert trägt keine Perle.
   """
   perle: Boolean
 }
@@ -2312,6 +2312,16 @@ type recherchehinweise {
   date_created_func: datetime_functions
   date_updated: Date
   date_updated_func: datetime_functions
+
+  """
+  Seite in der Ausgabe - Ziel des Quelle-Links und Schluessel fuer den Originaltext.
+  """
+  seite: Int
+
+  """
+  Der Textlayer der Fundseite, beim Anlegen kopiert - die Faehrte ueberlebt ihre Ausgabe.
+  """
+  quelltext: String
 }
 
 type recherchehinweise_mutated {
@@ -2543,6 +2553,12 @@ type wochenblattausgaben {
   date_created_func: datetime_functions
   date_updated: Date
   date_updated_func: datetime_functions
+
+  """
+  Der Textlayer je Seite - der Workspace zeigt damit den Originaltext neben Kandidaten und Faehrten.
+  """
+  seiten_texte: JSON
+  seiten_texte_func: count_functions
   kandidaten(filter: wochenblattkandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [wochenblattkandidaten]
   kandidaten_func: count_functions
   hinweisfaehrten(filter: recherchehinweise_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [recherchehinweise]
@@ -2606,6 +2622,11 @@ type wochenblattkandidaten {
 
   """Von der Redaktion umgeteilt — das Lernsignal fuer die Zuordnung."""
   gemeinde_korrigiert: Boolean!
+
+  """
+  Entscheid der Chefredaktion zum Perlen-Vorschlag — unabhängig davon, ob aus dem Kandidaten eine Meldung wird. Null heisst: liegt noch auf ihrem Tisch.
+  """
+  perle: Boolean
 }
 
 type wochenblattkandidaten_mutated {
@@ -3981,6 +4002,8 @@ input recherchehinweise_filter {
   date_created_func: datetime_function_filter_operators
   date_updated: date_filter_operators
   date_updated_func: datetime_function_filter_operators
+  seite: number_filter_operators
+  quelltext: string_filter_operators
   _and: [recherchehinweise_filter]
   _or: [recherchehinweise_filter]
 }
@@ -3999,6 +4022,8 @@ input recherchehinweise_quantifier_filter {
   date_created_func: datetime_function_filter_operators
   date_updated: date_filter_operators
   date_updated_func: datetime_function_filter_operators
+  seite: number_filter_operators
+  quelltext: string_filter_operators
   _and: [recherchehinweise_filter]
   _or: [recherchehinweise_filter]
   _some: recherchehinweise_filter
@@ -4501,6 +4526,8 @@ input wochenblattausgaben_filter {
   date_created_func: datetime_function_filter_operators
   date_updated: date_filter_operators
   date_updated_func: datetime_function_filter_operators
+  seiten_texte: string_filter_operators
+  seiten_texte_func: count_function_filter_operators
   kandidaten: wochenblattkandidaten_quantifier_filter
   kandidaten_func: count_function_filter_operators
   _and: [wochenblattausgaben_filter]
@@ -4530,6 +4557,8 @@ input wochenblattausgaben_quantifier_filter {
   date_created_func: datetime_function_filter_operators
   date_updated: date_filter_operators
   date_updated_func: datetime_function_filter_operators
+  seiten_texte: string_filter_operators
+  seiten_texte_func: count_function_filter_operators
   kandidaten: wochenblattkandidaten_quantifier_filter
   kandidaten_func: count_function_filter_operators
   _and: [wochenblattausgaben_filter]
@@ -4582,6 +4611,7 @@ input wochenblattkandidaten_filter {
   date_updated_func: datetime_function_filter_operators
   gemeinde: gemeinden_filter
   gemeinde_korrigiert: boolean_filter_operators
+  perle: boolean_filter_operators
   _and: [wochenblattkandidaten_filter]
   _or: [wochenblattkandidaten_filter]
 }
@@ -4607,6 +4637,7 @@ input wochenblattkandidaten_quantifier_filter {
   date_updated_func: datetime_function_filter_operators
   gemeinde: gemeinden_filter
   gemeinde_korrigiert: boolean_filter_operators
+  perle: boolean_filter_operators
   _and: [wochenblattkandidaten_filter]
   _or: [wochenblattkandidaten_filter]
   _some: wochenblattkandidaten_filter

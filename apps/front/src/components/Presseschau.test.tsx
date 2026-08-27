@@ -49,6 +49,7 @@ function blatt(ueber: Partial<WochenblattFelder>): WochenblattFelder {
         seiten: 16,
         status: 'inventarisiert',
         fehler: null,
+        seiten_texte: ['Seite 1.', 'Seite 2.', 'Wortlaut der Reportage auf Seite drei.'],
         kandidaten: [kandidat({})]
       }
     ],
@@ -86,9 +87,9 @@ const NICHTS = {
   onInventar: jest.fn().mockResolvedValue(undefined),
   onMeldung: jest.fn().mockResolvedValue(undefined),
   onAblehnen: jest.fn().mockResolvedValue(undefined),
+  onWeiterreichen: jest.fn().mockResolvedValue(undefined),
   onChat: jest.fn().mockResolvedValue(undefined),
-  onAktion: jest.fn().mockResolvedValue(undefined),
-  onPerlePublizieren: jest.fn().mockResolvedValue(undefined)
+  onAktion: jest.fn().mockResolvedValue(undefined)
 }
 
 describe('Presseschau', () => {
@@ -124,7 +125,7 @@ describe('Presseschau', () => {
     expect(NICHTS.onAblehnen).toHaveBeenCalledWith('k-1', 'doublette', 'stand schon im Amtsblatt')
   })
 
-  it('zeigt einen abgelehnten Kandidaten mit seinem Grund', () => {
+  it('nimmt einen abgelehnten Kandidaten vom Tisch', () => {
     const abgelehnt = kandidat({
       entscheid: 'abgelehnt',
       ablehnungsgrund: 'veraltet',
@@ -135,16 +136,115 @@ describe('Presseschau', () => {
 
     render(<Presseschau blaetter={[mitAbgelehntem]} gemeinden={gemeinden} meldungen={[]} {...NICHTS} />)
 
-    expect(screen.getByText(/Abgelehnt — Veraltet: zu spaet/)).toBeInTheDocument()
+    expect(screen.queryByText(/Wo die Temperaturrekorde purzeln/)).not.toBeInTheDocument()
+    expect(screen.getByText(/Alle Vorschläge dieser Ausgabe sind bearbeitet/)).toBeInTheDocument()
+  })
+
+  it('nimmt einen Kandidaten mit publizierter Meldung vom Tisch — Erledigtes bleibt nicht liegen', () => {
+    const uebernommen = blatt({})
+    uebernommen.ausgaben[0]!.kandidaten = [kandidat({ entscheid: 'uebernommen' })]
+
+    render(
+      <Presseschau
+        blaetter={[uebernommen]}
+        gemeinden={gemeinden}
+        meldungen={[meldung({ status: 'publiziert' })]}
+        {...NICHTS}
+      />
+    )
+
+    expect(screen.queryByText(/Wo die Temperaturrekorde purzeln/)).not.toBeInTheDocument()
+    expect(screen.getByText(/Alle Vorschläge dieser Ausgabe sind bearbeitet/)).toBeInTheDocument()
+  })
+
+  it('laesst eine uebernommene Meldung auf dem Tisch, solange sie im Redigat steckt', () => {
+    const uebernommen = blatt({})
+    uebernommen.ausgaben[0]!.kandidaten = [kandidat({ entscheid: 'uebernommen' })]
+
+    render(
+      <Presseschau
+        blaetter={[uebernommen]}
+        gemeinden={gemeinden}
+        meldungen={[meldung({ status: 'entwurf' })]}
+        {...NICHTS}
+      />
+    )
+
+    expect(screen.getByText(/Die Maenner hinter den Basler Hitzerekorden/)).toBeInTheDocument()
+  })
+
+  it('publiziert schlicht — die Perlen-Frage gehoert der Chefredaktion', async () => {
+    render(<Presseschau blaetter={[blatt({})]} gemeinden={gemeinden} meldungen={[meldung({})]} {...NICHTS} />)
+
+    expect(screen.queryByRole('button', { name: /Perle/ })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Publizieren' }))
+    expect(NICHTS.onAktion).toHaveBeenCalledWith('m-1', 'publizieren')
+  })
+
+  it('reicht einen Kandidaten mit Begruendung an die Chefredaktion weiter', async () => {
+    render(<Presseschau blaetter={[blatt({})]} gemeinden={gemeinden} meldungen={[]} {...NICHTS} />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'An Chefredaktion' }))
+    await userEvent.type(screen.getByLabelText(/Begründung/), 'Zahlen zuerst verifizieren')
+    await userEvent.click(screen.getByRole('button', { name: 'Weiterreichen' }))
+
+    expect(NICHTS.onWeiterreichen).toHaveBeenCalledWith('k-1', 'Zahlen zuerst verifizieren')
+  })
+
+  it('nimmt einen weitergereichten Kandidaten vom Tisch — er liegt jetzt bei der Chefredaktion', () => {
+    const weg = blatt({})
+    weg.ausgaben[0]!.kandidaten = [kandidat({ entscheid: 'weitergereicht' })]
+
+    render(<Presseschau blaetter={[weg]} gemeinden={gemeinden} meldungen={[]} {...NICHTS} />)
+
+    expect(screen.queryByText(/Wo die Temperaturrekorde purzeln/)).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Meldung erzeugen' })).not.toBeInTheDocument()
   })
 
-  it('bietet an der fertigen Meldung die Perlen-Entscheidung an', async () => {
-    render(<Presseschau blaetter={[blatt({})]} gemeinden={gemeinden} meldungen={[meldung({})]} {...NICHTS} />)
+  it('bietet die Gemeinde-Korrektur nur an, solange der Kandidat offen ist', () => {
+    // Zwei abgedeckte Gemeinden: beim offenen Kandidaten ist die Zuordnung ein
+    // Auswahlfeld. Sobald eine Meldung existiert, traegt DIE die Gemeinde —
+    // eine Aenderung am Kandidaten wuerde sie nicht mehr umziehen, also
+    // verschwindet das Feld.
+    const zweiGemeinden = blatt({
+      abdeckungen: [
+        { id: 'a-g-1', gemeinde: { id: 'g-1', name: 'Binningen' } },
+        { id: 'a-g-2', gemeinde: { id: 'g-2', name: 'Bottmingen' } }
+      ]
+    })
+    const mitGemeinde = { ...NICHTS, onGemeinde: jest.fn().mockResolvedValue(undefined) }
 
-    await userEvent.click(screen.getByRole('button', { name: 'Als Perle publizieren' }))
+    const { rerender } = render(
+      <Presseschau blaetter={[zweiGemeinden]} gemeinden={gemeinden} meldungen={[]} {...mitGemeinde} />
+    )
+    expect(screen.getByRole('combobox', { name: 'Gemeinde des Beitrags' })).toBeInTheDocument()
 
-    expect(NICHTS.onPerlePublizieren).toHaveBeenCalledWith('m-1', true)
+    rerender(
+      <Presseschau
+        blaetter={[zweiGemeinden]}
+        gemeinden={gemeinden}
+        meldungen={[meldung({})]}
+        {...mitGemeinde}
+      />
+    )
+    expect(screen.queryByRole('combobox', { name: 'Gemeinde des Beitrags' })).not.toBeInTheDocument()
+  })
+
+  it('klappt den Originaltext der Seite auf — geprueft wird am Original, nie an der Zusammenfassung', async () => {
+    render(<Presseschau blaetter={[blatt({})]} gemeinden={gemeinden} meldungen={[]} {...NICHTS} />)
+
+    expect(screen.queryByText(/Wortlaut der Reportage/)).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Originaltext lesen (S. 3)' }))
+    expect(screen.getByText(/Wortlaut der Reportage auf Seite drei/)).toBeInTheDocument()
+  })
+
+  it('verlinkt die Seitenangabe des Kandidaten direkt auf die Beitragsseite', () => {
+    render(<Presseschau blaetter={[blatt({})]} gemeinden={gemeinden} meldungen={[]} {...NICHTS} />)
+
+    expect(screen.getByRole('link', { name: '(S. 3)' })).toHaveAttribute(
+      'href',
+      'https://www.binninger-wochenblatt.ch/wp-content/uploads/2026/08/BWB-KW34-2026.pdf#page=3'
+    )
   })
 
   it('zeigt ein Blatt mit Abruffehler als Banner, nicht als Stille', () => {

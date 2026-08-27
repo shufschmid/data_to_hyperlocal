@@ -6,6 +6,7 @@ import AlertTitle from '@mui/material/AlertTitle'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
+import Collapse from '@mui/material/Collapse'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
@@ -23,9 +24,9 @@ import type {
   AlleMeldungFelder,
   GemeindeFelder,
   KandidatFelder,
-  RecherchehinweisFelder,
   WochenblattFelder
 } from '@/graphql/redaktion'
+import { bleibtAufDemTisch, seitenLink } from '@/lib/redaktion'
 import { MeldungKarte, type MeldungAktion } from './MeldungKarte'
 
 // The press review: what each municipality's weekly paper has exclusively.
@@ -62,13 +63,47 @@ const GRUENDE = [
   { wert: 'andere', text: 'Andere' }
 ]
 
-const GRUND_LABEL: Record<string, string> = Object.fromEntries(GRUENDE.map((g) => [g.wert, g.text]))
+/**
+ * Checking a proposal must not require opening the PDF: the page's own text
+ * layer sits in a collapsible box under it. The summary above stays what it
+ * is — a summary; verified is only ever the original. Shared with the
+ * Chefredaktion desk, where a lead carries its page text itself.
+ */
+export function Originaltext({ text, seite }: { text: string | null; seite: number | null }) {
+  const [offen, setOffen] = useState(false)
+  if (text === null || seite === null) return null
+
+  return (
+    <Box>
+      <Button size="small" variant="text" onClick={() => setOffen((o) => !o)} sx={{ px: 0 }}>
+        {offen ? 'Originaltext verbergen' : `Originaltext lesen (S. ${seite})`}
+      </Button>
+      {/* unmountOnExit: a 24-page text layer has no business in the DOM
+          while the box is closed. */}
+      <Collapse in={offen} unmountOnExit>
+        <Box
+          sx={{
+            maxHeight: 280,
+            overflowY: 'auto',
+            bgcolor: 'action.hover',
+            borderRadius: 1,
+            p: 1.5,
+            whiteSpace: 'pre-wrap'
+          }}
+        >
+          <Typography variant="body2" component="div">
+            {text}
+          </Typography>
+        </Box>
+      </Collapse>
+    </Box>
+  )
+}
 
 export interface PresseschauProps {
   blaetter: readonly WochenblattFelder[]
   gemeinden: readonly GemeindeFelder[]
   meldungen: readonly AlleMeldungFelder[]
-  hinweise?: readonly RecherchehinweisFelder[]
   laedt?: boolean
   laeuft?: boolean
   onAnlegen: (eingabe: { gemeinden: string[]; name: string; archiv_url: string }) => Promise<void>
@@ -76,18 +111,17 @@ export interface PresseschauProps {
   onInventar: (ausgabeId: string) => Promise<void>
   onMeldung: (kandidatId: string) => Promise<void>
   onAblehnen: (kandidatId: string, grund: string, kommentar: string) => Promise<void>
+  /** Gute Meldung, aber heute nicht verifizierbar — wandert als Fährte auf den Chefredaktions-Tisch. */
+  onWeiterreichen: (kandidatId: string, begruendung: string) => Promise<void>
   onGemeinde?: (kandidatId: string, gemeindeId: string) => Promise<void>
-  onHinweisUrteil?: (hinweisId: string, brauchbar: boolean, kommentar: string) => Promise<void>
   onChat: (id: string, anweisung: string) => Promise<void>
   onAktion: (id: string, aktion: MeldungAktion) => Promise<void>
-  onPerlePublizieren: (id: string, perle: boolean) => Promise<void>
 }
 
 export function Presseschau({
   blaetter,
   gemeinden,
   meldungen,
-  hinweise = [],
   laedt = false,
   laeuft = false,
   onAnlegen,
@@ -95,11 +129,10 @@ export function Presseschau({
   onInventar,
   onMeldung,
   onAblehnen,
+  onWeiterreichen,
   onGemeinde,
-  onHinweisUrteil,
   onChat,
-  onAktion,
-  onPerlePublizieren
+  onAktion
 }: PresseschauProps) {
   const [gewaehlteGemeinden, setGewaehlteGemeinden] = useState<string[]>([])
   const [name, setName] = useState('')
@@ -107,11 +140,8 @@ export function Presseschau({
   const [ablehnung, setAblehnung] = useState<KandidatFelder | null>(null)
   const [grund, setGrund] = useState('nicht_relevant')
   const [kommentar, setKommentar] = useState('')
-  const [urteil, setUrteil] = useState<{
-    hinweis: RecherchehinweisFelder
-    brauchbar: boolean
-  } | null>(null)
-  const [urteilKommentar, setUrteilKommentar] = useState('')
+  const [weitergabe, setWeitergabe] = useState<KandidatFelder | null>(null)
+  const [weitergabeGrund, setWeitergabeGrund] = useState('')
 
   // A municipality already covered by some paper is not offered again.
   const freieGemeinden = useMemo(() => {
@@ -122,8 +152,6 @@ export function Presseschau({
     }
     return gemeinden.filter((g) => !belegt.has(g.id))
   }, [blaetter, gemeinden])
-
-  const offeneHinweise = useMemo(() => hinweise.filter((h) => h.status === 'offen'), [hinweise])
 
   const nachKandidat = useMemo(() => {
     const karte = new Map<string, AlleMeldungFelder>()
@@ -154,11 +182,11 @@ export function Presseschau({
     setKommentar('')
   }
 
-  async function beurteilen() {
-    if (urteil === null || onHinweisUrteil === undefined) return
-    await onHinweisUrteil(urteil.hinweis.id, urteil.brauchbar, urteilKommentar.trim())
-    setUrteil(null)
-    setUrteilKommentar('')
+  async function weiterreichen() {
+    if (weitergabe === null) return
+    await onWeiterreichen(weitergabe.id, weitergabeGrund.trim())
+    setWeitergabe(null)
+    setWeitergabeGrund('')
   }
 
   return (
@@ -177,62 +205,6 @@ export function Presseschau({
             </Link>
           </Alert>
         ))}
-
-      {/* Research leads first and loud: never content, always work — a new
-          one must be impossible to miss. */}
-      {offeneHinweise.length > 0 && (
-        <Paper sx={{ p: 2, borderLeft: 4, borderColor: 'warning.main' }}>
-          <Stack spacing={1.5}>
-            <Typography variant="subtitle2">Recherche-Hinweise ({offeneHinweise.length} offen)</Typography>
-            {offeneHinweise.map((h) => (
-              <Box key={h.id} sx={{ borderTop: 1, borderColor: 'divider', pt: 1 }}>
-                <Stack spacing={0.5}>
-                  <Stack
-                    direction="row"
-                    spacing={1}
-                    sx={{ alignItems: 'center', flexWrap: 'wrap', gap: 0.5 }}
-                  >
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {h.titel}
-                    </Typography>
-                    {h.gemeinde !== null && <Chip size="small" variant="outlined" label={h.gemeinde.name} />}
-                    <Typography variant="caption" color="text.secondary">
-                      {h.ausgabe?.wochenblatt?.name}
-                      {h.ausgabe?.nummer !== null && ` Nr. ${h.ausgabe?.nummer}`}
-                    </Typography>
-                  </Stack>
-                  {h.fundort !== null && (
-                    <Typography variant="caption" color="text.secondary">
-                      {h.fundort}
-                    </Typography>
-                  )}
-                  {h.begruendung !== null && <Typography variant="body2">{h.begruendung}</Typography>}
-                  {onHinweisUrteil !== undefined && (
-                    <Stack direction="row" spacing={1}>
-                      <Button
-                        size="small"
-                        variant="contained"
-                        color="warning"
-                        onClick={() => setUrteil({ hinweis: h, brauchbar: true })}
-                        disabled={laeuft}
-                      >
-                        Brauchbare Fährte
-                      </Button>
-                      <Button
-                        size="small"
-                        onClick={() => setUrteil({ hinweis: h, brauchbar: false })}
-                        disabled={laeuft}
-                      >
-                        Kein Hinweis
-                      </Button>
-                    </Stack>
-                  )}
-                </Stack>
-              </Box>
-            ))}
-          </Stack>
-        </Paper>
-      )}
 
       <Paper sx={{ p: 2 }}>
         <Stack spacing={1}>
@@ -302,6 +274,12 @@ export function Presseschau({
 
       {blaetter.map((blatt) => {
         const ausgabe = blatt.ausgaben[0]
+        // Der Tisch zeigt Arbeit, nicht Geschichte: Erledigtes — publiziert,
+        // verworfen, abgelehnt, weitergereicht — verschwindet sofort. Die
+        // Zeilen bleiben in der Datenbank als Gedächtnis des Inventars.
+        const aufDemTisch = (ausgabe?.kandidaten ?? []).filter((k) =>
+          bleibtAufDemTisch(k.entscheid, nachKandidat.get(k.id)?.status ?? null)
+        )
         return (
           <Paper key={blatt.id} sx={{ p: 2 }}>
             <Stack spacing={2}>
@@ -362,7 +340,7 @@ export function Presseschau({
                     </Alert>
                   )}
 
-                  {ausgabe.kandidaten.map((kandidat) => {
+                  {aufDemTisch.map((kandidat) => {
                     const meldung = nachKandidat.get(kandidat.id)
                     return (
                       <Box key={kandidat.id} sx={{ borderTop: 1, borderColor: 'divider', pt: 1.5 }}>
@@ -374,7 +352,21 @@ export function Presseschau({
                           >
                             <Typography variant="body2" sx={{ fontWeight: 500 }}>
                               {kandidat.titel}
-                              {kandidat.seite !== null && ` (S. ${kandidat.seite})`}
+                              {kandidat.seite !== null &&
+                                (ausgabe.pdf_url !== null ? (
+                                  <>
+                                    {' '}
+                                    <Link
+                                      href={seitenLink(ausgabe.pdf_url, kandidat.seite)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      (S. {kandidat.seite})
+                                    </Link>
+                                  </>
+                                ) : (
+                                  ` (S. ${kandidat.seite})`
+                                ))}
                             </Typography>
                             <Chip
                               size="small"
@@ -386,9 +378,14 @@ export function Presseschau({
                               <Chip size="small" color="secondary" label="Perle?" />
                             )}
                             {/* The per-piece municipality — only worth pixels
-                                when the paper covers more than one. */}
+                                when the paper covers more than one. Correctable
+                                only WHILE the candidate is open: once a Meldung
+                                exists it carries the municipality itself (its
+                                card says so), and changing the candidate would
+                                no longer move it. */}
                             {blatt.abdeckungen.length > 1 &&
-                              (onGemeinde !== undefined ? (
+                              meldung === undefined &&
+                              (onGemeinde !== undefined && kandidat.entscheid === 'offen' ? (
                                 <TextField
                                   select
                                   size="small"
@@ -396,7 +393,14 @@ export function Presseschau({
                                   value={kandidat.gemeinde?.id ?? ''}
                                   onChange={(e) => void onGemeinde(kandidat.id, e.target.value)}
                                   disabled={laeuft}
-                                  aria-label="Gemeinde des Beitrags"
+                                  // The name must sit on the element carrying the
+                                  // combobox role — a plain aria-label on the
+                                  // TextField never reaches it.
+                                  slotProps={{
+                                    select: {
+                                      SelectDisplayProps: { 'aria-label': 'Gemeinde des Beitrags' }
+                                    }
+                                  }}
                                   sx={{ minWidth: 110 }}
                                 >
                                   {blatt.abdeckungen
@@ -421,18 +425,20 @@ export function Presseschau({
                             </Typography>
                           )}
                           <Typography variant="body2">{kandidat.zusammenfassung}</Typography>
+                          <Originaltext
+                            text={
+                              kandidat.seite === null
+                                ? null
+                                : (ausgabe.seiten_texte?.[kandidat.seite - 1] ?? null)
+                            }
+                            seite={kandidat.seite}
+                          />
 
-                          {kandidat.entscheid === 'abgelehnt' ? (
-                            <Typography variant="caption" color="text.secondary">
-                              Abgelehnt — {GRUND_LABEL[kandidat.ablehnungsgrund ?? ''] ?? 'ohne Grund'}
-                              {kandidat.ablehnungskommentar !== null && `: ${kandidat.ablehnungskommentar}`}
-                            </Typography>
-                          ) : meldung !== undefined ? (
+                          {meldung !== undefined ? (
                             <MeldungKarte
                               meldung={meldung}
                               onChat={onChat}
                               onAktion={onAktion}
-                              onPerlePublizieren={onPerlePublizieren}
                               laeuft={laeuft}
                             />
                           ) : (
@@ -448,6 +454,9 @@ export function Presseschau({
                               <Button size="small" onClick={() => setAblehnung(kandidat)} disabled={laeuft}>
                                 Ablehnen
                               </Button>
+                              <Button size="small" onClick={() => setWeitergabe(kandidat)} disabled={laeuft}>
+                                An Chefredaktion
+                              </Button>
                             </Stack>
                           )}
                         </Stack>
@@ -460,6 +469,13 @@ export function Presseschau({
                       Keine exklusiven Beiträge in dieser Ausgabe gefunden.
                     </Typography>
                   )}
+                  {ausgabe.status === 'inventarisiert' &&
+                    ausgabe.kandidaten.length > 0 &&
+                    aufDemTisch.length === 0 && (
+                      <Typography variant="body2" color="text.secondary">
+                        Alle Vorschläge dieser Ausgabe sind bearbeitet — der Tisch ist leer.
+                      </Typography>
+                    )}
                 </Stack>
               )}
             </Stack>
@@ -504,31 +520,33 @@ export function Presseschau({
         </DialogActions>
       </Dialog>
 
-      {/* The lead verdict dialog — "war das ein Recherchehinweis?" is the
-          learning signal, the optional comment its reasoning. */}
-      <Dialog open={urteil !== null} onClose={() => setUrteil(null)} fullWidth maxWidth="xs">
-        <DialogTitle>
-          {urteil?.brauchbar === true ? 'Als brauchbare Fährte bestätigen' : 'Als «kein Hinweis» ablegen'}
-        </DialogTitle>
+      {/* The handover dialog — a good piece the desk cannot verify today goes
+          to the Chefredaktion as a lead instead of being rejected. */}
+      <Dialog open={weitergabe !== null} onClose={() => setWeitergabe(null)} fullWidth maxWidth="xs">
+        <DialogTitle>An die Chefredaktion weiterreichen</DialogTitle>
         <DialogContent>
           <Stack spacing={1}>
             <Typography variant="body2" color="text.secondary">
-              {urteil?.hinweis.titel}
+              {weitergabe?.titel}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Für gute Ansätze, die zuerst verifiziert oder fertig recherchiert werden müssen — landet als
+              Recherche-Hinweis auf dem Chefredaktions-Tisch.
             </Typography>
             <TextField
-              label="Kommentar (optional, hilft dem Lernen)"
+              label="Begründung (optional)"
               size="small"
               multiline
               minRows={2}
-              value={urteilKommentar}
-              onChange={(e) => setUrteilKommentar(e.target.value)}
+              value={weitergabeGrund}
+              onChange={(e) => setWeitergabeGrund(e.target.value)}
             />
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setUrteil(null)}>Abbrechen</Button>
-          <Button variant="contained" onClick={() => void beurteilen()} disabled={laeuft}>
-            Speichern
+          <Button onClick={() => setWeitergabe(null)}>Abbrechen</Button>
+          <Button variant="contained" onClick={() => void weiterreichen()} disabled={laeuft}>
+            Weiterreichen
           </Button>
         </DialogActions>
       </Dialog>

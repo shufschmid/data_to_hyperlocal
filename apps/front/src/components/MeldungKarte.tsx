@@ -33,12 +33,6 @@ export interface MeldungKarteProps {
    * Freitag ist Papierabfuhr" in front of readers in September.
    */
   erscheintAm?: string | null
-  /**
-   * Publishing a press review is also the Perle decision. When set, the card
-   * offers both ways out — "als Perle" for the curious story the city wants
-   * too, plain publishing otherwise. Unpublished stays no Perle, always.
-   */
-  onPerlePublizieren?: (id: string, perle: boolean) => Promise<void>
 }
 
 export function MeldungKarte({
@@ -46,8 +40,7 @@ export function MeldungKarte({
   onChat,
   onAktion,
   laeuft = false,
-  erscheintAm = null,
-  onPerlePublizieren
+  erscheintAm = null
 }: MeldungKarteProps) {
   const [anweisung, setAnweisung] = useState('')
   const [offen, setOffen] = useState(false)
@@ -123,36 +116,14 @@ export function MeldungKarte({
             Gegenlesen lassen
           </Button>
           {erscheintAm === null ? (
-            onPerlePublizieren !== undefined ? (
-              <>
-                <Button
-                  size="small"
-                  variant="contained"
-                  onClick={() => void onPerlePublizieren(meldung.id, true)}
-                  disabled={beschaeftigt || meldung.titel === null}
-                >
-                  Als Perle publizieren
-                </Button>
-                <Button
-                  size="small"
-                  variant="contained"
-                  color="inherit"
-                  onClick={() => void onPerlePublizieren(meldung.id, false)}
-                  disabled={beschaeftigt || meldung.titel === null}
-                >
-                  Publizieren
-                </Button>
-              </>
-            ) : (
-              <Button
-                size="small"
-                variant="contained"
-                onClick={() => void onAktion(meldung.id, 'publizieren')}
-                disabled={beschaeftigt || meldung.titel === null}
-              >
-                Publizieren
-              </Button>
-            )
+            <Button
+              size="small"
+              variant="contained"
+              onClick={() => void onAktion(meldung.id, 'publizieren')}
+              disabled={beschaeftigt || meldung.titel === null}
+            >
+              Publizieren
+            </Button>
           ) : (
             <Button
               size="small"
