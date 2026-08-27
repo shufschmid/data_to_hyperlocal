@@ -1,4 +1,5 @@
 import 'server-only'
+import type { SessionTokens } from './sessionRefresh'
 
 // Server-side Directus access.
 //
@@ -16,12 +17,8 @@ export function directusUrl(): string {
   return url.replace(/\/+$/, '')
 }
 
-export interface DirectusSessionTokens {
-  accessToken: string
-  refreshToken: string
-  /** Lifetime of the access token in milliseconds, as reported by Directus. */
-  expires: number
-}
+/** The pair Directus hands back. One shape, shared with the rotation cache. */
+export type DirectusSessionTokens = SessionTokens
 
 interface LoginResponse {
   data?: { access_token?: string; refresh_token?: string; expires?: number }
