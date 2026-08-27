@@ -7,6 +7,7 @@ import AccordionDetails from '@mui/material/AccordionDetails'
 import AccordionSummary from '@mui/material/AccordionSummary'
 import Alert from '@mui/material/Alert'
 import Chip from '@mui/material/Chip'
+import Badge from '@mui/material/Badge'
 import CircularProgress from '@mui/material/CircularProgress'
 import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
@@ -27,8 +28,14 @@ import {
   ALLE_MELDUNGEN_QUERY,
   ENTSORGUNGSKALENDER_QUERY,
   ENTSORGUNGSTERMINE_QUERY,
+  WOCHENBLAETTER_QUERY,
+  RECHERCHEHINWEISE_QUERY,
+  OFFENE_PERLEN_QUERY,
   type EntsorgungskalenderErgebnis,
   type EntsorgungstermineErgebnis,
+  type WochenblaetterErgebnis,
+  type RecherchehinweiseErgebnis,
+  type PerlenErgebnis,
   LAEUFE_QUERY,
   PORTAL_BEOBACHTEN_MUTATION,
   PORTAL_QUERY,
@@ -50,7 +57,16 @@ import {
   type QuellenErgebnis,
   type WissenErgebnis
 } from '@/graphql/redaktion'
-import { blogNachGemeinde, meldungenNachLauf, zeitleiste } from '@/lib/redaktion'
+import {
+  bleibtAufDemTisch,
+  blogNachGemeinde,
+  meldungenNachLauf,
+  zeitleiste,
+  type QuellenLaufStatus
+} from '@/lib/redaktion'
+import { QuellenLauf } from './QuellenLauf'
+import { Presseschau } from './Presseschau'
+import { Chefredaktion } from './Chefredaktion'
 import { Zeitleiste } from './Zeitleiste'
 import { AuftragDialog, type AuftragZiel } from './AuftragDialog'
 import { GemeindenAuswahl } from './GemeindenAuswahl'
@@ -113,7 +129,7 @@ function schreibeGemeindeInUrl(slug: string | null): void {
 export function RedaktionPanel() {
   const [blogGemeinde, setBlogGemeinde] = useState<string | null>(gemeindeAusUrl)
   // Mit ?gemeinde=… startet die Ansicht im Blog — das ist der Sinn des Links.
-  const [reiter, setReiter] = useState(blogGemeinde === null ? 0 : 3)
+  const [reiter, setReiter] = useState(blogGemeinde === null ? 0 : 5)
   const [kalenderWahl, setKalenderWahl] = useState<string | null>(null)
   const [fehler, setFehler] = useState<string | null>(null)
   const [sendet, setSendet] = useState(false)
@@ -145,6 +161,18 @@ export function RedaktionPanel() {
   const kalender = useQuery<EntsorgungskalenderErgebnis>(ENTSORGUNGSKALENDER_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY
   })
+  const wochenblaetter = useQuery<WochenblaetterErgebnis>(WOCHENBLAETTER_QUERY, {
+    fetchPolicy: LIVE_FETCH_POLICY
+  })
+  const recherchehinweise = useQuery<RecherchehinweiseErgebnis>(RECHERCHEHINWEISE_QUERY, {
+    fetchPolicy: LIVE_FETCH_POLICY
+  })
+  // Der Perlen-Stapel der Chefredaktion: Kandidaten mit Perlen-Vorschlag,
+  // deren Urteil noch aussteht — unabhängig davon, ob eine Meldung daraus
+  // wurde. Sie überleben neue Ausgaben, bis die Chefin entschieden hat.
+  const offenePerlen = useQuery<PerlenErgebnis>(OFFENE_PERLEN_QUERY, {
+    fetchPolicy: LIVE_FETCH_POLICY
+  })
   // Per selected calendar, not all of them: a hundred dates times eighty-seven
   // municipalities is a table nobody looks at whole.
   const termine = useQuery<EntsorgungstermineErgebnis>(ENTSORGUNGSTERMINE_QUERY, {
@@ -168,6 +196,24 @@ export function RedaktionPanel() {
     startPolling(10_000)
     return () => stopPolling()
   }, [wirdAusgelesen, startPolling, stopPolling, termineNeuLaden])
+  // Same story for the press review: fetching and inventorying an issue runs
+  // detached on the server, so the tab polls while any issue reports it.
+  const wirdInventarisiert = (wochenblaetter.data?.wochenblaetter ?? []).some((blatt) =>
+    blatt.ausgaben.some((a) => a.status === 'liest' || a.status === 'neu')
+  )
+  const { startPolling: blattPollingStart, stopPolling: blattPollingStop } = wochenblaetter
+  const hinweiseNeuLaden = recherchehinweise.refetch
+  const warInventarisiert = useRef(false)
+  useEffect(() => {
+    // New research leads land at the very end of an inventory — one refetch
+    // on the falling edge keeps the tab badge honest.
+    if (warInventarisiert.current && !wirdInventarisiert) void hinweiseNeuLaden()
+    warInventarisiert.current = wirdInventarisiert
+    if (!wirdInventarisiert) return
+    blattPollingStart(10_000)
+    return () => blattPollingStop()
+  }, [wirdInventarisiert, blattPollingStart, blattPollingStop, hinweiseNeuLaden])
+
   const [setzeAktiv] = useMutation<GemeindeAktivErgebnis>(GEMEINDE_AKTIV_MUTATION)
 
   // Loaded with the tab, not on demand: 181 rows is one small query, and a
@@ -189,10 +235,56 @@ export function RedaktionPanel() {
   const laufStatus = new Map((laeufe.data?.laeufe ?? []).map((l) => [l.id, l.status]))
   const blogs = blogNachGemeinde(meldungenAlle)
   const spielBerichte = meldungenAlle.filter((m) => m.spiel !== null)
+  // Der Tisch der Redaktorin zählt, was noch Arbeit ist — dieselbe Regel wie
+  // die Presseschau-Ansicht, damit Badge und Karten nie auseinanderlaufen.
+  const meldungStatusJeKandidat = new Map(
+    meldungenAlle.flatMap((m) => (m.kandidat === null ? [] : [[m.kandidat.id, m.status] as const]))
+  )
 
   const allesNeuLaden = useCallback(async () => {
     await Promise.all([laeufe.refetch(), alleMeldungen.refetch(), datensaetze.refetch()])
   }, [laeufe, alleMeldungen, datensaetze])
+
+  // The hand-started scrape run: state lives in the extension's process, this
+  // only mirrors it. Polled while a run is under way; when it finishes, the
+  // affected tabs are refetched once.
+  const [quellenLaufStatus, setQuellenLaufStatus] = useState<QuellenLaufStatus | null>(null)
+  const ladeQuellenLauf = useCallback(async () => {
+    try {
+      const antwort = await fetch('/api/redaktion/quellen/lauf')
+      if (!antwort.ok) return
+      const inhalt = (await antwort.json()) as { data?: QuellenLaufStatus }
+      setQuellenLaufStatus(inhalt.data ?? null)
+    } catch {
+      // Die Anzeige ist Komfort; ein verpasster Abruf wird beim naechsten Poll
+      // nachgeholt.
+    }
+  }, [])
+  useEffect(() => {
+    void ladeQuellenLauf()
+  }, [ladeQuellenLauf])
+  const quellenRefetch = quellen.refetch
+  const datensaetzeRefetch = datensaetze.refetch
+  const ankuendigungenRefetch = ankuendigungen.refetch
+  const spieleRefetch = spiele.refetch
+  const warUnterwegs = useRef(false)
+  useEffect(() => {
+    const unterwegs = quellenLaufStatus?.laeuft === true
+    if (warUnterwegs.current && !unterwegs) {
+      void Promise.all([quellenRefetch(), datensaetzeRefetch(), ankuendigungenRefetch(), spieleRefetch()])
+    }
+    warUnterwegs.current = unterwegs
+    if (!unterwegs) return
+    const intervall = setInterval(() => void ladeQuellenLauf(), 10_000)
+    return () => clearInterval(intervall)
+  }, [
+    quellenLaufStatus?.laeuft,
+    ladeQuellenLauf,
+    quellenRefetch,
+    datensaetzeRefetch,
+    ankuendigungenRefetch,
+    spieleRefetch
+  ])
 
   async function fuehreAus(pfad: string, body?: unknown) {
     setSendet(true)
@@ -381,6 +473,39 @@ export function RedaktionPanel() {
         <Tab label="statistik.bl" />
         <Tab label="Sportresultate" />
         <Tab label="Entsorgung" />
+        <Tab
+          label={
+            <Badge
+              color="info"
+              badgeContent={
+                // Der Füllstand des Tischs: alles, was noch auf die
+                // Redaktorin wartet — Offenes und Meldungen im Redigat.
+                (wochenblaetter.data?.wochenblaetter ?? [])
+                  .flatMap((b) => b.ausgaben)
+                  .flatMap((a) => a.kandidaten)
+                  .filter((k) => bleibtAufDemTisch(k.entscheid, meldungStatusJeKandidat.get(k.id) ?? null))
+                  .length
+              }
+              sx={{ '& .MuiBadge-badge': { right: -12 } }}
+            >
+              Wochenblätter
+            </Badge>
+          }
+        />
+        <Tab
+          label={
+            <Badge
+              color="warning"
+              badgeContent={
+                (recherchehinweise.data?.recherchehinweise ?? []).filter((h) => h.status === 'offen').length +
+                (offenePerlen.data?.wochenblattkandidaten ?? []).length
+              }
+              sx={{ '& .MuiBadge-badge': { right: -12 } }}
+            >
+              Chefredaktion
+            </Badge>
+          }
+        />
         <Tab label="Blog" />
         <Tab label="Gelerntes" />
         <Tab label="Gemeinden" />
@@ -595,6 +720,94 @@ export function RedaktionPanel() {
       {reiter === 3 && (
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
+            Was die Wochenblätter exklusiv haben. Der 9-Uhr-Lauf inventarisiert jede neue Ausgabe zu
+            Kandidaten; aus übernommenen entsteht eine kurze Meldung mit Verweis aufs Blatt — abgelehnte
+            lernen dem Inventar, was die Redaktion nicht will. Erledigtes verschwindet sofort vom Tisch, und
+            mit jeder neuen Ausgabe verfallen die unentschiedenen Vorschläge der alten von selbst.
+          </Typography>
+          <Presseschau
+            blaetter={wochenblaetter.data?.wochenblaetter ?? []}
+            gemeinden={gemeinden.data?.gemeinden ?? []}
+            meldungen={meldungenAlle}
+            laedt={wochenblaetter.loading}
+            laeuft={sendet}
+            onAnlegen={async (eingabe) => {
+              await fuehreAus('wochenblaetter', eingabe)
+              await wochenblaetter.refetch()
+            }}
+            onPruefen={async () => {
+              await fuehreAus('wochenblaetter/pruefen')
+              await Promise.all([wochenblaetter.refetch(), recherchehinweise.refetch()])
+            }}
+            onInventar={async (id) => {
+              await fuehreAus(`ausgaben/${id}/inventar`)
+              await Promise.all([wochenblaetter.refetch(), recherchehinweise.refetch()])
+            }}
+            onMeldung={async (id) => {
+              await fuehreAus(`kandidaten/${id}/meldung`)
+              await Promise.all([wochenblaetter.refetch(), alleMeldungen.refetch()])
+            }}
+            onAblehnen={async (id, grund, kommentar) => {
+              await fuehreAus(`kandidaten/${id}/ablehnen`, {
+                grund,
+                ...(kommentar === '' ? {} : { kommentar })
+              })
+              await wochenblaetter.refetch()
+            }}
+            onWeiterreichen={async (id, begruendung) => {
+              await fuehreAus(`kandidaten/${id}/weiterreichen`, {
+                ...(begruendung === '' ? {} : { begruendung })
+              })
+              await Promise.all([wochenblaetter.refetch(), recherchehinweise.refetch()])
+            }}
+            onGemeinde={async (id, gemeindeId) => {
+              await fuehreAus(`kandidaten/${id}/gemeinde`, { gemeinde: gemeindeId })
+              await wochenblaetter.refetch()
+            }}
+            onChat={async (id, anweisung) => {
+              await fuehreAus(`meldungen/${id}/chat`, { anweisung })
+            }}
+            onAktion={async (id, was) => {
+              // Publiziert oder verworfen heisst: weg vom Tisch. Die Karten
+              // filtern über den Meldungsstatus, den fuehreAus frisch holt.
+              await fuehreAus(`meldungen/${id}/${was}`)
+            }}
+          />
+        </Stack>
+      )}
+
+      {reiter === 4 && (
+        <Stack spacing={2}>
+          <Typography variant="body2" color="text.secondary">
+            Der Tisch der Chefredaktion: Recherche-Hinweise (aus Leserbriefen, vom Inventar oder von der
+            Redaktion weitergereicht) und die Perlen-Frage zu Beiträgen der Wochenblätter — unabhängig davon,
+            ob eine Meldung daraus wird. Beides bleibt liegen, bis es entschieden ist — auch über neue
+            Ausgaben hinweg.
+          </Typography>
+          <Chefredaktion
+            hinweise={recherchehinweise.data?.recherchehinweise ?? []}
+            perlen={offenePerlen.data?.wochenblattkandidaten ?? []}
+            laeuft={sendet}
+            onHinweisUrteil={async (id, brauchbar, kommentar) => {
+              await fuehreAus(`hinweise/${id}/bewerten`, {
+                brauchbar,
+                ...(kommentar === '' ? {} : { kommentar })
+              })
+              await recherchehinweise.refetch()
+            }}
+            onPerle={async (id, perle) => {
+              // Das Urteil hängt am Kandidaten — ob je eine Meldung daraus
+              // wurde, spielt keine Rolle.
+              await fuehreAus(`kandidaten/${id}/perle`, { perle })
+              await offenePerlen.refetch()
+            }}
+          />
+        </Stack>
+      )}
+
+      {reiter === 5 && (
+        <Stack spacing={2}>
+          <Typography variant="body2" color="text.secondary">
             Alles, was für eine Gemeinde geschrieben wurde — neuste zuerst, gleich ob aus einer Statistik oder
             aus einem Spiel entstanden. Woher ein Beitrag kommt, ist eine Frage der Produktion; gelesen wird
             er als einer.
@@ -611,7 +824,7 @@ export function RedaktionPanel() {
         </Stack>
       )}
 
-      {reiter === 4 && (
+      {reiter === 6 && (
         <Stack spacing={1}>
           <Typography variant="body2" color="text.secondary">
             Regeln, die aus deinen Anweisungen gelernt wurden. Sie fliessen in jede weitere Meldung ein — auch
@@ -629,12 +842,20 @@ export function RedaktionPanel() {
         </Stack>
       )}
 
-      {reiter === 5 && (
+      {reiter === 7 && (
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
             Für welche Gemeinden ein Lauf Meldungen schreibt. Gilt ab dem nächsten Lauf; bereits erzeugte
             Meldungen bleiben, wie sie sind.
           </Typography>
+          <QuellenLauf
+            status={quellenLaufStatus}
+            laeuft={sendet}
+            onStarten={async () => {
+              await fuehreAus('quellen/lauf')
+              await ladeQuellenLauf()
+            }}
+          />
           {gemeinden.loading && <CircularProgress />}
           <GemeindenAuswahl
             gemeinden={gemeinden.data?.gemeinden ?? []}

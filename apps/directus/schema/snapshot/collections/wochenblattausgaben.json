@@ -1,0 +1,28 @@
+{
+  "collection": "wochenblattausgaben",
+  "meta": {
+    "accountability": "all",
+    "archive_app_filter": true,
+    "archive_field": null,
+    "archive_value": null,
+    "collapse": "open",
+    "collection": "wochenblattausgaben",
+    "color": null,
+    "display_template": "{{wochenblatt.name}} Nr. {{nummer}}",
+    "group": null,
+    "hidden": false,
+    "icon": "auto_stories",
+    "item_duplication_fields": null,
+    "note": "Eine Ausgabe: das PDF, sein Textlayer und das Inventar der exklusiven Beitraege.",
+    "preview_url": null,
+    "singleton": false,
+    "sort": null,
+    "sort_field": null,
+    "translations": null,
+    "unarchive_value": null,
+    "versioning": false
+  },
+  "schema": {
+    "name": "wochenblattausgaben"
+  }
+}

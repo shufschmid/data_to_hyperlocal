@@ -56,13 +56,58 @@ export default defineHook(({ filter }, { services }) => {
         'lead',
         'text',
         'entscheidung',
-        'freigegeben_am'
+        'freigegeben_am',
+        'kandidat'
       ]
-    })) as (MeldungZustand & { id: string })[]
+    })) as (MeldungZustand & { id: string; kandidat: string | null })[]
 
     let ergebnis = daten
 
+    // The Perle verdict lives on the CANDIDATE — the Chefredaktion may decide
+    // it before any Meldung exists. A published Meldung carries a copy for
+    // downstream readers, stamped here so the admin UI path mirrors too.
+    // Batch updates are left alone: one shared payload cannot carry per-item
+    // verdicts, and publishing is a per-item act everywhere in this app.
+    if (
+      ergebnis['status'] === 'publiziert' &&
+      ergebnis['perle'] === undefined &&
+      aktuelle.length === 1 &&
+      aktuelle[0] !== undefined &&
+      aktuelle[0].kandidat !== null
+    ) {
+      const kandidaten = new ItemsService('wochenblattkandidaten', {
+        schema: context.schema,
+        knex: context.database
+      })
+      const [kandidat] = (await kandidaten.readMany([aktuelle[0].kandidat], {
+        fields: ['perle']
+      })) as { perle: boolean | null }[]
+      if (kandidat !== undefined && kandidat.perle !== null) {
+        ergebnis = { ...ergebnis, perle: kandidat.perle }
+      }
+    }
+
     for (const aktuell of aktuelle) {
+      // A Perle is carried only by a PUBLISHED press review — nothing else.
+      // The rule lives here because an administrator can set the flag in the
+      // admin UI, which no endpoint sees.
+      if (ergebnis['perle'] === true) {
+        const zielStatus =
+          typeof ergebnis['status'] === 'string'
+            ? ergebnis['status']
+            : aktuell.status
+        if (aktuell.kandidat === null) {
+          throw new UebergangError({
+            grund: 'Nur Presseschau-Meldungen koennen Perlen sein.'
+          })
+        }
+        if (zielStatus !== 'publiziert') {
+          throw new UebergangError({
+            grund:
+              'Eine Perle traegt nur eine publizierte Meldung — den Entscheid faellt die Chefredaktion am Kandidaten.'
+          })
+        }
+      }
       // An edit to the text invalidates an approval that was given for the
       // old text. Checked before the transition, so the reset is part of the
       // same write rather than a second one that could fail on its own.

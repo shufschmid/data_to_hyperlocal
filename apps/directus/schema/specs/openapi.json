@@ -3,7 +3,7 @@
   "info": {
     "title": "Dynamic API Specification",
     "description": "This is a dynamically generated API specification for all endpoints existing on the current project.",
-    "version": "6726255c9ed3cb7909818d152136ff4187ffec25"
+    "version": "caf7a356d90e53707fc266f0adfc86639852e177"
   },
   "servers": [
     {
@@ -13344,6 +13344,1951 @@
           }
         ]
       }
+    },
+    "/items/wochenblaetter": {
+      "post": {
+        "summary": "Create an Item",
+        "description": "Create a new wochenblaetter item.",
+        "tags": [
+          "Items",
+          "ItemsWochenblaetter"
+        ],
+        "operationId": "createItemsWochenblaetter",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Meta"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsWochenblaetter"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsWochenblaetter"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsWochenblaetter"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "get": {
+        "summary": "List Items",
+        "description": "List the wochenblaetter items.",
+        "tags": [
+          "Items",
+          "ItemsWochenblaetter"
+        ],
+        "operationId": "readItemsWochenblaetter",
+        "security": [
+          {
+            "Auth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "$ref": "#/components/schemas/ItemsWochenblaetter"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/x-metadata"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update Multiple Items",
+        "description": "Update multiple wochenblaetter items at the same time.",
+        "tags": [
+          "Items",
+          "ItemsWochenblaetter"
+        ],
+        "operationId": "updateItemsWochenblaetter",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsWochenblaetter"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsWochenblaetter"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsWochenblaetter"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Multiple Items",
+        "description": "Delete multiple existing wochenblaetter items.",
+        "tags": [
+          "Items",
+          "ItemsWochenblaetter"
+        ],
+        "operationId": "deleteItemsWochenblaetter",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/items/wochenblaetter/{id}": {
+      "get": {
+        "summary": "Retrieve an Item",
+        "description": "Retrieve a single wochenblaetter item by unique identifier.",
+        "tags": [
+          "Items",
+          "ItemsWochenblaetter"
+        ],
+        "operationId": "readSingleItemsWochenblaetter",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Version"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsWochenblaetter"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update an Item",
+        "description": "Update an existing wochenblaetter item.",
+        "tags": [
+          "Items",
+          "ItemsWochenblaetter"
+        ],
+        "operationId": "updateSingleItemsWochenblaetter",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "$ref": "#/components/schemas/ItemsWochenblaetter"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsWochenblaetter"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete an Item",
+        "description": "Delete an existing wochenblaetter item.",
+        "tags": [
+          "Items",
+          "ItemsWochenblaetter"
+        ],
+        "operationId": "deleteSingleItemsWochenblaetter",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "/items/wochenblattausgaben": {
+      "post": {
+        "summary": "Create an Item",
+        "description": "Create a new wochenblattausgaben item.",
+        "tags": [
+          "Items",
+          "ItemsWochenblattausgaben"
+        ],
+        "operationId": "createItemsWochenblattausgaben",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Meta"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsWochenblattausgaben"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsWochenblattausgaben"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsWochenblattausgaben"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "get": {
+        "summary": "List Items",
+        "description": "List the wochenblattausgaben items.",
+        "tags": [
+          "Items",
+          "ItemsWochenblattausgaben"
+        ],
+        "operationId": "readItemsWochenblattausgaben",
+        "security": [
+          {
+            "Auth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "$ref": "#/components/schemas/ItemsWochenblattausgaben"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/x-metadata"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update Multiple Items",
+        "description": "Update multiple wochenblattausgaben items at the same time.",
+        "tags": [
+          "Items",
+          "ItemsWochenblattausgaben"
+        ],
+        "operationId": "updateItemsWochenblattausgaben",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsWochenblattausgaben"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsWochenblattausgaben"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsWochenblattausgaben"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Multiple Items",
+        "description": "Delete multiple existing wochenblattausgaben items.",
+        "tags": [
+          "Items",
+          "ItemsWochenblattausgaben"
+        ],
+        "operationId": "deleteItemsWochenblattausgaben",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/items/wochenblattausgaben/{id}": {
+      "get": {
+        "summary": "Retrieve an Item",
+        "description": "Retrieve a single wochenblattausgaben item by unique identifier.",
+        "tags": [
+          "Items",
+          "ItemsWochenblattausgaben"
+        ],
+        "operationId": "readSingleItemsWochenblattausgaben",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Version"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsWochenblattausgaben"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update an Item",
+        "description": "Update an existing wochenblattausgaben item.",
+        "tags": [
+          "Items",
+          "ItemsWochenblattausgaben"
+        ],
+        "operationId": "updateSingleItemsWochenblattausgaben",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "$ref": "#/components/schemas/ItemsWochenblattausgaben"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsWochenblattausgaben"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete an Item",
+        "description": "Delete an existing wochenblattausgaben item.",
+        "tags": [
+          "Items",
+          "ItemsWochenblattausgaben"
+        ],
+        "operationId": "deleteSingleItemsWochenblattausgaben",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "/items/recherchehinweise": {
+      "post": {
+        "summary": "Create an Item",
+        "description": "Create a new recherchehinweise item.",
+        "tags": [
+          "Items",
+          "ItemsRecherchehinweise"
+        ],
+        "operationId": "createItemsRecherchehinweise",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Meta"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsRecherchehinweise"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsRecherchehinweise"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsRecherchehinweise"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "get": {
+        "summary": "List Items",
+        "description": "List the recherchehinweise items.",
+        "tags": [
+          "Items",
+          "ItemsRecherchehinweise"
+        ],
+        "operationId": "readItemsRecherchehinweise",
+        "security": [
+          {
+            "Auth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "$ref": "#/components/schemas/ItemsRecherchehinweise"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/x-metadata"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update Multiple Items",
+        "description": "Update multiple recherchehinweise items at the same time.",
+        "tags": [
+          "Items",
+          "ItemsRecherchehinweise"
+        ],
+        "operationId": "updateItemsRecherchehinweise",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsRecherchehinweise"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsRecherchehinweise"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsRecherchehinweise"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Multiple Items",
+        "description": "Delete multiple existing recherchehinweise items.",
+        "tags": [
+          "Items",
+          "ItemsRecherchehinweise"
+        ],
+        "operationId": "deleteItemsRecherchehinweise",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/items/recherchehinweise/{id}": {
+      "get": {
+        "summary": "Retrieve an Item",
+        "description": "Retrieve a single recherchehinweise item by unique identifier.",
+        "tags": [
+          "Items",
+          "ItemsRecherchehinweise"
+        ],
+        "operationId": "readSingleItemsRecherchehinweise",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Version"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsRecherchehinweise"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update an Item",
+        "description": "Update an existing recherchehinweise item.",
+        "tags": [
+          "Items",
+          "ItemsRecherchehinweise"
+        ],
+        "operationId": "updateSingleItemsRecherchehinweise",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "$ref": "#/components/schemas/ItemsRecherchehinweise"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsRecherchehinweise"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete an Item",
+        "description": "Delete an existing recherchehinweise item.",
+        "tags": [
+          "Items",
+          "ItemsRecherchehinweise"
+        ],
+        "operationId": "deleteSingleItemsRecherchehinweise",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "/items/wochenblattkandidaten": {
+      "post": {
+        "summary": "Create an Item",
+        "description": "Create a new wochenblattkandidaten item.",
+        "tags": [
+          "Items",
+          "ItemsWochenblattkandidaten"
+        ],
+        "operationId": "createItemsWochenblattkandidaten",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Meta"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsWochenblattkandidaten"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsWochenblattkandidaten"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsWochenblattkandidaten"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "get": {
+        "summary": "List Items",
+        "description": "List the wochenblattkandidaten items.",
+        "tags": [
+          "Items",
+          "ItemsWochenblattkandidaten"
+        ],
+        "operationId": "readItemsWochenblattkandidaten",
+        "security": [
+          {
+            "Auth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "$ref": "#/components/schemas/ItemsWochenblattkandidaten"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/x-metadata"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update Multiple Items",
+        "description": "Update multiple wochenblattkandidaten items at the same time.",
+        "tags": [
+          "Items",
+          "ItemsWochenblattkandidaten"
+        ],
+        "operationId": "updateItemsWochenblattkandidaten",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsWochenblattkandidaten"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsWochenblattkandidaten"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsWochenblattkandidaten"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Multiple Items",
+        "description": "Delete multiple existing wochenblattkandidaten items.",
+        "tags": [
+          "Items",
+          "ItemsWochenblattkandidaten"
+        ],
+        "operationId": "deleteItemsWochenblattkandidaten",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/items/wochenblattkandidaten/{id}": {
+      "get": {
+        "summary": "Retrieve an Item",
+        "description": "Retrieve a single wochenblattkandidaten item by unique identifier.",
+        "tags": [
+          "Items",
+          "ItemsWochenblattkandidaten"
+        ],
+        "operationId": "readSingleItemsWochenblattkandidaten",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Version"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsWochenblattkandidaten"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update an Item",
+        "description": "Update an existing wochenblattkandidaten item.",
+        "tags": [
+          "Items",
+          "ItemsWochenblattkandidaten"
+        ],
+        "operationId": "updateSingleItemsWochenblattkandidaten",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "$ref": "#/components/schemas/ItemsWochenblattkandidaten"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsWochenblattkandidaten"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete an Item",
+        "description": "Delete an existing wochenblattkandidaten item.",
+        "tags": [
+          "Items",
+          "ItemsWochenblattkandidaten"
+        ],
+        "operationId": "deleteSingleItemsWochenblattkandidaten",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "/items/wochenblattgemeinden": {
+      "post": {
+        "summary": "Create an Item",
+        "description": "Create a new wochenblattgemeinden item.",
+        "tags": [
+          "Items",
+          "ItemsWochenblattgemeinden"
+        ],
+        "operationId": "createItemsWochenblattgemeinden",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Meta"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsWochenblattgemeinden"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsWochenblattgemeinden"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsWochenblattgemeinden"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "get": {
+        "summary": "List Items",
+        "description": "List the wochenblattgemeinden items.",
+        "tags": [
+          "Items",
+          "ItemsWochenblattgemeinden"
+        ],
+        "operationId": "readItemsWochenblattgemeinden",
+        "security": [
+          {
+            "Auth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "$ref": "#/components/schemas/ItemsWochenblattgemeinden"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/x-metadata"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update Multiple Items",
+        "description": "Update multiple wochenblattgemeinden items at the same time.",
+        "tags": [
+          "Items",
+          "ItemsWochenblattgemeinden"
+        ],
+        "operationId": "updateItemsWochenblattgemeinden",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsWochenblattgemeinden"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsWochenblattgemeinden"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsWochenblattgemeinden"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Multiple Items",
+        "description": "Delete multiple existing wochenblattgemeinden items.",
+        "tags": [
+          "Items",
+          "ItemsWochenblattgemeinden"
+        ],
+        "operationId": "deleteItemsWochenblattgemeinden",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/items/wochenblattgemeinden/{id}": {
+      "get": {
+        "summary": "Retrieve an Item",
+        "description": "Retrieve a single wochenblattgemeinden item by unique identifier.",
+        "tags": [
+          "Items",
+          "ItemsWochenblattgemeinden"
+        ],
+        "operationId": "readSingleItemsWochenblattgemeinden",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Version"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsWochenblattgemeinden"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update an Item",
+        "description": "Update an existing wochenblattgemeinden item.",
+        "tags": [
+          "Items",
+          "ItemsWochenblattgemeinden"
+        ],
+        "operationId": "updateSingleItemsWochenblattgemeinden",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "$ref": "#/components/schemas/ItemsWochenblattgemeinden"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsWochenblattgemeinden"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete an Item",
+        "description": "Delete an existing wochenblattgemeinden item.",
+        "tags": [
+          "Items",
+          "ItemsWochenblattgemeinden"
+        ],
+        "operationId": "deleteSingleItemsWochenblattgemeinden",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ]
+      }
     }
   },
   "tags": [
@@ -13542,6 +15487,31 @@
       "name": "ItemsEntsorgungstermine",
       "x-collection": "entsorgungstermine",
       "description": "Ein aussergewoehnlicher Abfuhrtermin. Regelmaessige Abfuhren stehen nur im Merkblatt."
+    },
+    {
+      "name": "ItemsWochenblaetter",
+      "x-collection": "wochenblaetter",
+      "description": "Die Wochenzeitung einer Gemeinde und ihr PDF-Archiv. Taeglich um 9 Uhr auf neue Ausgaben geprueft."
+    },
+    {
+      "name": "ItemsWochenblattausgaben",
+      "x-collection": "wochenblattausgaben",
+      "description": "Eine Ausgabe: das PDF, sein Textlayer und das Inventar der exklusiven Beitraege."
+    },
+    {
+      "name": "ItemsRecherchehinweise",
+      "x-collection": "recherchehinweise",
+      "description": "Recherche-Faehrten aus den Wochenblaettern (meist Leserbriefe). Werden NIE ungeprueft publiziert — sie sind Arbeit fuer die Redaktion, kein Inhalt."
+    },
+    {
+      "name": "ItemsWochenblattkandidaten",
+      "x-collection": "wochenblattkandidaten",
+      "description": "Ein exklusiver Beitrag einer Ausgabe. Die Redaktion entscheidet: Meldung oder ablehnen — beides lernt das Inventar."
+    },
+    {
+      "name": "ItemsWochenblattgemeinden",
+      "x-collection": "wochenblattgemeinden",
+      "description": "Welche Gemeinden ein Wochenblatt abdeckt. Der Muttenzer & Prattler Anzeiger traegt zwei."
     }
   ],
   "components": {
@@ -15776,6 +17746,24 @@
             "description": "Nur bei Entsorgungserinnerungen: der Newsletter-Tag. Publiziert wird am Vortag.",
             "type": "string",
             "format": "date"
+          },
+          "kandidat": {
+            "nullable": true,
+            "description": "Gesetzt, wenn diese Meldung eine Presseschau aus einem Wochenblatt-Beitrag ist.",
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsWochenblattkandidaten"
+              }
+            ]
+          },
+          "perle": {
+            "nullable": true,
+            "description": "Kopie des Kandidaten-Entscheids für publizierte Presseschau-Meldungen — die Chefredaktion entscheidet am Kandidaten. Nicht publiziert trägt keine Perle.",
+            "type": "boolean"
           }
         },
         "x-collection": "meldungen",
@@ -16793,6 +18781,464 @@
           "kalender",
           "kategorie",
           "datum"
+        ]
+      },
+      "ItemsWochenblaetter": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "nullable": false,
+            "type": "string",
+            "format": "uuid"
+          },
+          "gemeinde": {
+            "nullable": false,
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsGemeinden"
+              }
+            ]
+          },
+          "name": {
+            "nullable": false,
+            "description": "Wie das Blatt heisst — steht so in der Attribution jeder Meldung.",
+            "type": "string"
+          },
+          "archiv_url": {
+            "nullable": false,
+            "description": "Das oeffentliche Ausgaben-Archiv. Nur diese Seite wird gelesen — URLs werden nie geraten.",
+            "type": "string"
+          },
+          "konnektor": {
+            "nullable": false,
+            "description": "Wie das Archiv gelesen wird. Das naechste Blatt mit anderem Aufbau bekommt seinen eigenen Wert.",
+            "type": "string"
+          },
+          "aktiv": {
+            "nullable": false,
+            "type": "boolean"
+          },
+          "letzte_pruefung": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "letzter_fehler": {
+            "nullable": true,
+            "description": "Warum der letzte Abruf scheiterte — sichtbar im Workspace, damit Abwesenheit nie Stille ist.",
+            "type": "string"
+          },
+          "date_created": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "date_updated": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "ausgaben": {
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "$ref": "#/components/schemas/ItemsWochenblattausgaben"
+                }
+              ]
+            }
+          },
+          "abdeckungen": {
+            "nullable": true,
+            "description": "Alle Gemeinden, ueber die dieses Blatt schreibt. Die erste ist die Hauptgemeinde im Feld \"gemeinde\".",
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "$ref": "#/components/schemas/ItemsWochenblattgemeinden"
+                }
+              ]
+            }
+          }
+        },
+        "x-collection": "wochenblaetter",
+        "required": [
+          "id",
+          "gemeinde",
+          "name",
+          "archiv_url"
+        ]
+      },
+      "ItemsWochenblattausgaben": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "nullable": false,
+            "type": "string",
+            "format": "uuid"
+          },
+          "wochenblatt": {
+            "nullable": false,
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsWochenblaetter"
+              }
+            ]
+          },
+          "schluessel": {
+            "nullable": false,
+            "description": "Kanonische Identitaet (\"kw34-2026\"), aus dem Slug normalisiert. Macht den Tageslauf idempotent.",
+            "type": "string"
+          },
+          "slug": {
+            "nullable": true,
+            "type": "string"
+          },
+          "nummer": {
+            "nullable": true,
+            "description": "Wie das Blatt sie druckt — \"34\" oder \"30/31\". Steht in der Attribution.",
+            "type": "string"
+          },
+          "datum": {
+            "nullable": true,
+            "type": "string",
+            "format": "date"
+          },
+          "seite_url": {
+            "nullable": true,
+            "description": "Die Ausgabenseite im Archiv.",
+            "type": "string"
+          },
+          "pdf_url": {
+            "nullable": true,
+            "description": "Die aufgeloeste PDF-Adresse. Mit #page=N verlinken Meldungen direkt auf die Beitragsseite.",
+            "type": "string"
+          },
+          "pdf": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/Files"
+              }
+            ]
+          },
+          "seiten": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "status": {
+            "nullable": false,
+            "type": "string"
+          },
+          "volltext": {
+            "nullable": true,
+            "description": "Textlayer des PDFs — Korpus fuer den Ueberlappungs-Check der Meldungen.",
+            "type": "string"
+          },
+          "inventar": {
+            "nullable": true,
+            "description": "Rohergebnis des Inventars, zum Nachvollziehen."
+          },
+          "fehler": {
+            "nullable": true,
+            "description": "Warum das Inventar scheiterte.",
+            "type": "string"
+          },
+          "date_created": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "date_updated": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "seiten_texte": {
+            "nullable": true,
+            "description": "Der Textlayer je Seite - der Workspace zeigt damit den Originaltext neben Kandidaten und Faehrten."
+          },
+          "kandidaten": {
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "$ref": "#/components/schemas/ItemsWochenblattkandidaten"
+                }
+              ]
+            }
+          }
+        },
+        "x-collection": "wochenblattausgaben",
+        "required": [
+          "id",
+          "wochenblatt",
+          "schluessel"
+        ]
+      },
+      "ItemsRecherchehinweise": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "nullable": false,
+            "type": "string",
+            "format": "uuid"
+          },
+          "ausgabe": {
+            "nullable": false,
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsWochenblattausgaben"
+              }
+            ]
+          },
+          "gemeinde": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsGemeinden"
+              }
+            ]
+          },
+          "titel": {
+            "nullable": false,
+            "type": "string"
+          },
+          "fundort": {
+            "nullable": true,
+            "description": "Wo die Faehrte steht — \"Leserbrief 'Wertvoller Regen', S. 2\".",
+            "type": "string"
+          },
+          "begruendung": {
+            "nullable": true,
+            "description": "Warum das eine Recherche wert sein koennte.",
+            "type": "string"
+          },
+          "status": {
+            "nullable": false,
+            "description": "Das Urteil der Redaktion — es lehrt das naechste Inventar, was eine Faehrte ist.",
+            "type": "string"
+          },
+          "kommentar": {
+            "nullable": true,
+            "type": "string"
+          },
+          "date_created": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "date_updated": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "seite": {
+            "nullable": true,
+            "description": "Seite in der Ausgabe - Ziel des Quelle-Links und Schluessel fuer den Originaltext.",
+            "type": "integer"
+          },
+          "quelltext": {
+            "nullable": true,
+            "description": "Der Textlayer der Fundseite, beim Anlegen kopiert - die Faehrte ueberlebt ihre Ausgabe.",
+            "type": "string"
+          }
+        },
+        "x-collection": "recherchehinweise",
+        "required": [
+          "id",
+          "ausgabe",
+          "titel"
+        ]
+      },
+      "ItemsWochenblattkandidaten": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "nullable": false,
+            "type": "string",
+            "format": "uuid"
+          },
+          "ausgabe": {
+            "nullable": false,
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsWochenblattausgaben"
+              }
+            ]
+          },
+          "titel": {
+            "nullable": false,
+            "description": "Wie im Blatt gedruckt.",
+            "type": "string"
+          },
+          "seite": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "typ": {
+            "nullable": false,
+            "type": "string"
+          },
+          "frontseite": {
+            "nullable": false,
+            "description": "Auf der Frontseite angerissen — was dort steht, ist oft am interessantesten.",
+            "type": "boolean"
+          },
+          "warum_exklusiv": {
+            "nullable": true,
+            "type": "string"
+          },
+          "zusammenfassung": {
+            "nullable": true,
+            "description": "Nackte Fakten aus dem Beitrag — die einzige Quelle der spaeteren Meldung.",
+            "type": "string"
+          },
+          "perle_vorschlag": {
+            "nullable": false,
+            "description": "Kurios UND ueberoertlich — koennte auch die Stadt Basel interessieren.",
+            "type": "boolean"
+          },
+          "perle_begruendung": {
+            "nullable": true,
+            "type": "string"
+          },
+          "entscheid": {
+            "nullable": false,
+            "type": "string"
+          },
+          "ablehnungsgrund": {
+            "nullable": true,
+            "description": "Das Lernsignal: der Grund fliesst in den Digest des naechsten Inventars.",
+            "type": "string"
+          },
+          "ablehnungskommentar": {
+            "nullable": true,
+            "type": "string"
+          },
+          "date_created": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "date_updated": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "gemeinde": {
+            "nullable": true,
+            "description": "Um welche Gemeinde es im Beitrag geht. Vom Inventar zugeordnet (Seitenindex, sonst Inhalt) — die Redaktion darf korrigieren, und das Inventar lernt daraus.",
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsGemeinden"
+              }
+            ]
+          },
+          "gemeinde_korrigiert": {
+            "nullable": false,
+            "description": "Von der Redaktion umgeteilt — das Lernsignal fuer die Zuordnung.",
+            "type": "boolean"
+          },
+          "perle": {
+            "nullable": true,
+            "description": "Entscheid der Chefredaktion zum Perlen-Vorschlag — unabhängig davon, ob aus dem Kandidaten eine Meldung wird. Null heisst: liegt noch auf ihrem Tisch.",
+            "type": "boolean"
+          }
+        },
+        "x-collection": "wochenblattkandidaten",
+        "required": [
+          "id",
+          "ausgabe",
+          "titel",
+          "typ"
+        ]
+      },
+      "ItemsWochenblattgemeinden": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "nullable": false,
+            "type": "string",
+            "format": "uuid"
+          },
+          "wochenblatt": {
+            "nullable": false,
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsWochenblaetter"
+              }
+            ]
+          },
+          "gemeinde": {
+            "nullable": false,
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsGemeinden"
+              }
+            ]
+          },
+          "date_created": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          }
+        },
+        "x-collection": "wochenblattgemeinden",
+        "required": [
+          "id",
+          "wochenblatt",
+          "gemeinde"
         ]
       }
     },

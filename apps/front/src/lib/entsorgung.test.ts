@@ -49,6 +49,8 @@ function meldung(ueber: Partial<AlleMeldungFelder>): AlleMeldungFelder {
     gemeinde: { id: 'g-1', name: 'Binningen', bezirk: 'Arlesheim' },
     lauf: null,
     spiel: null,
+    kandidat: null,
+    perle: null,
     ...ueber
   }
 }

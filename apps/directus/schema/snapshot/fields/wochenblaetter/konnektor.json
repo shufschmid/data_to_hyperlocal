@@ -1,0 +1,63 @@
+{
+  "collection": "wochenblaetter",
+  "field": "konnektor",
+  "type": "string",
+  "meta": {
+    "collection": "wochenblaetter",
+    "conditions": null,
+    "display": null,
+    "display_options": null,
+    "field": "konnektor",
+    "group": null,
+    "hidden": false,
+    "interface": "select-dropdown",
+    "note": "Wie das Archiv gelesen wird. Das naechste Blatt mit anderem Aufbau bekommt seinen eigenen Wert.",
+    "options": {
+      "choices": [
+        {
+          "text": "WordPress-Archiv",
+          "value": "wordpress-archiv"
+        },
+        {
+          "text": "lokalzeitungen.ch",
+          "value": "lokalzeitungen"
+        },
+        {
+          "text": "issuu (E-Paper)",
+          "value": "issuu"
+        },
+        {
+          "text": "Localpoint (bcms)",
+          "value": "localpoint"
+        }
+      ]
+    },
+    "readonly": false,
+    "required": false,
+    "searchable": true,
+    "sort": 5,
+    "special": null,
+    "translations": null,
+    "validation": null,
+    "validation_message": null,
+    "width": "half"
+  },
+  "schema": {
+    "name": "konnektor",
+    "table": "wochenblaetter",
+    "data_type": "character varying",
+    "default_value": "wordpress-archiv",
+    "max_length": 40,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "is_nullable": false,
+    "is_unique": false,
+    "is_indexed": false,
+    "is_primary_key": false,
+    "is_generated": false,
+    "generation_expression": null,
+    "has_auto_increment": false,
+    "foreign_key_table": null,
+    "foreign_key_column": null
+  }
+}

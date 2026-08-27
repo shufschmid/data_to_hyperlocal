@@ -31,6 +31,20 @@
     "_syncId": "53e7cdc8-a297-45b9-a7af-6422b1dd215a"
   },
   {
+    "name": "Pruefen",
+    "key": "pruefen",
+    "type": "wochenblatt-pruefen",
+    "position_x": 19,
+    "position_y": 1,
+    "options": {
+      "blaetter": 10
+    },
+    "resolve": null,
+    "reject": null,
+    "flow": "9be7d274-fc8b-4e16-8d77-7b8f558d97e3",
+    "_syncId": "b6936e87-d0a2-4641-97b2-9d2a45bb9233"
+  },
+  {
     "name": "Publizieren",
     "key": "publizieren",
     "type": "entsorgung-publizieren",

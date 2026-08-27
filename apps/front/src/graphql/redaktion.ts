@@ -210,6 +210,10 @@ export interface AlleMeldungFelder {
     sportart: string
     wettbewerb: string
   } | null
+  /** Only set on press-review articles: the Wochenblatt candidate behind them. */
+  kandidat: { id: string } | null
+  /** Decided at publish time on press reviews: interesting for the city too. */
+  perle: boolean | null
 }
 
 export interface AlleMeldungenErgebnis {
@@ -246,6 +250,10 @@ export const ALLE_MELDUNGEN_QUERY = gql`
         sportart
         wettbewerb
       }
+      kandidat {
+        id
+      }
+      perle
     }
   }
 `
@@ -789,6 +797,236 @@ export const ENTSORGUNGSTERMINE_QUERY = gql`
       geprueft
       meldung {
         id
+      }
+    }
+  }
+`
+
+// --- Presseschau: Wochenblaetter, Ausgaben, Kandidaten ----------------------
+
+export interface KandidatFelder {
+  id: string
+  titel: string
+  seite: number | null
+  typ: string
+  /** Zuordnung des Inventars — bei Mehr-Gemeinden-Blättern korrigierbar. */
+  gemeinde: { id: string; name: string } | null
+  gemeinde_korrigiert: boolean
+  frontseite: boolean
+  warum_exklusiv: string | null
+  zusammenfassung: string | null
+  perle_vorschlag: boolean
+  perle_begruendung: string | null
+  entscheid: string
+  ablehnungsgrund: string | null
+  ablehnungskommentar: string | null
+}
+
+export interface AusgabeFelder {
+  id: string
+  schluessel: string
+  nummer: string | null
+  datum: string | null
+  seite_url: string | null
+  pdf_url: string | null
+  seiten: number | null
+  status: string
+  fehler: string | null
+  /** Textlayer je Seite — die Ausklappbox „Originaltext" neben jedem Vorschlag. */
+  seiten_texte: string[] | null
+  kandidaten: KandidatFelder[]
+}
+
+export interface WochenblattFelder {
+  id: string
+  name: string
+  archiv_url: string
+  aktiv: boolean
+  letzte_pruefung: string | null
+  letzter_fehler: string | null
+  gemeinde: { id: string; name: string } | null
+  /** Alle Gemeinden, über die das Blatt schreibt — der Anzeiger hat zwei. */
+  abdeckungen: Array<{ id: string; gemeinde: { id: string; name: string } | null }>
+  /** Die neuesten Ausgaben zuerst; die Ansicht zeigt die erste. */
+  ausgaben: AusgabeFelder[]
+}
+
+export interface WochenblaetterErgebnis {
+  wochenblaetter: WochenblattFelder[]
+}
+
+export const WOCHENBLAETTER_QUERY = gql`
+  query Wochenblaetter {
+    wochenblaetter(sort: ["gemeinde.name"], limit: -1) {
+      id
+      name
+      archiv_url
+      aktiv
+      letzte_pruefung
+      letzter_fehler
+      gemeinde {
+        id
+        name
+      }
+      abdeckungen {
+        id
+        gemeinde {
+          id
+          name
+        }
+      }
+      ausgaben(sort: ["-datum"], limit: 1) {
+        id
+        schluessel
+        nummer
+        datum
+        seite_url
+        pdf_url
+        seiten
+        status
+        fehler
+        seiten_texte
+        kandidaten(sort: ["seite"], limit: -1) {
+          id
+          titel
+          seite
+          typ
+          gemeinde {
+            id
+            name
+          }
+          gemeinde_korrigiert
+          frontseite
+          warum_exklusiv
+          zusammenfassung
+          perle_vorschlag
+          perle_begruendung
+          entscheid
+          ablehnungsgrund
+          ablehnungskommentar
+        }
+      }
+    }
+  }
+`
+
+// --- Recherche-Faehrten: nie Inhalt, immer Arbeit --------------------------
+
+export interface RecherchehinweisFelder {
+  id: string
+  titel: string
+  fundort: string | null
+  seite: number | null
+  begruendung: string | null
+  /** Der Wortlaut der Fundseite, beim Anlegen kopiert — die Fährte überlebt ihre Ausgabe. */
+  quelltext: string | null
+  status: string
+  kommentar: string | null
+  date_created: string | null
+  gemeinde: { id: string; name: string } | null
+  ausgabe: {
+    id: string
+    nummer: string | null
+    pdf_url: string | null
+    wochenblatt: { id: string; name: string } | null
+  } | null
+}
+
+export interface RecherchehinweiseErgebnis {
+  recherchehinweise: RecherchehinweisFelder[]
+}
+
+export const RECHERCHEHINWEISE_QUERY = gql`
+  query Recherchehinweise {
+    recherchehinweise(sort: ["-date_created"], limit: 100) {
+      id
+      titel
+      fundort
+      seite
+      begruendung
+      quelltext
+      status
+      kommentar
+      date_created
+      gemeinde {
+        id
+        name
+      }
+      ausgabe {
+        id
+        nummer
+        pdf_url
+        wochenblatt {
+          id
+          name
+        }
+      }
+    }
+  }
+`
+
+// Die Gemeinde-Korrektur an einem Kandidaten laeuft ueber den Endpoint
+// (POST /redaktion/kandidaten/:id/gemeinde) — dieselbe Falle wie bei den
+// Ankuendigungen: die GraphQL-Mutation typt die Relation als Create-Input
+// und will eine ganze neue Gemeinde statt einer Referenz. Der Hook
+// `kandidat-gemeinde` markiert die Korrektur auf jedem Schreibweg als
+// Lernsignal (`gemeinde_korrigiert`).
+
+/**
+ * Ein Kandidat mit Perlen-Vorschlag, dessen Urteil noch aussteht — der
+ * Perlen-Stapel auf dem Tisch der Chefredaktion. Das Urteil hängt am
+ * KANDIDATEN und ist unabhängig davon, ob je eine Meldung daraus wird;
+ * darum überlebt der Stapel auch neue Ausgaben (das Aufräumen verschont
+ * Perlen-Vorschläge). `seiten_texte` kommt mit, damit sie das Urteil am
+ * Original fällt statt an der Zusammenfassung.
+ */
+export interface PerleFelder {
+  id: string
+  titel: string
+  seite: number | null
+  zusammenfassung: string | null
+  perle_begruendung: string | null
+  entscheid: string
+  gemeinde: { id: string; name: string } | null
+  ausgabe: {
+    id: string
+    nummer: string | null
+    pdf_url: string | null
+    seiten_texte: string[] | null
+    wochenblatt: { id: string; name: string } | null
+  } | null
+}
+
+export interface PerlenErgebnis {
+  wochenblattkandidaten: PerleFelder[]
+}
+
+export const OFFENE_PERLEN_QUERY = gql`
+  query OffenePerlen {
+    wochenblattkandidaten(
+      filter: { perle_vorschlag: { _eq: true }, perle: { _null: true } }
+      sort: ["-date_created"]
+      limit: 50
+    ) {
+      id
+      titel
+      seite
+      zusammenfassung
+      perle_begruendung
+      entscheid
+      gemeinde {
+        id
+        name
+      }
+      ausgabe {
+        id
+        nummer
+        pdf_url
+        seiten_texte
+        wochenblatt {
+          id
+          name
+        }
       }
     }
   }

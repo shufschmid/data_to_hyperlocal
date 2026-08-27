@@ -170,6 +170,16 @@ export interface Meldung {
    * newsletter then.
    */
   erscheint_am: string | null
+  /** Set for press-review articles from a Wochenblatt candidate. Null otherwise. */
+  kandidat: string | null
+  /**
+   * Mirror of the candidate's Perle verdict, for downstream readers of
+   * published press reviews. The Chefredaktion decides on the CANDIDATE
+   * (`wochenblattkandidaten.perle`) — independent of whether a Meldung ever
+   * exists; the hook copies the verdict onto the Meldung at publish time.
+   * Unpublished never carries a Perle.
+   */
+  perle: boolean | null
   gemeinde: string
 
   titel: string | null
@@ -454,6 +464,153 @@ export interface Entsorgungstermin {
   date_updated: string | null
 }
 
+/** The weekly paper of one municipality and where its PDF archive lives. */
+export interface Wochenblatt {
+  id: string
+  gemeinde: string
+  /** As printed on the masthead — this exact name appears in every attribution. */
+  name: string
+  /** The public issue archive. Only this page is ever read; URLs are never guessed. */
+  archiv_url: string
+  /** Which parser reads the archive — the next paper with a different layout gets its own value. */
+  konnektor: 'wordpress-archiv' | 'lokalzeitungen' | 'issuu' | 'localpoint'
+  aktiv: boolean
+  letzte_pruefung: string | null
+  letzter_fehler: string | null
+  date_created: string | null
+  date_updated: string | null
+}
+
+export type AusgabeStatus = 'neu' | 'liest' | 'inventarisiert' | 'fehler'
+
+/** One issue: the PDF, its text layer, and the inventory of exclusive pieces. */
+export interface Wochenblattausgabe {
+  id: string
+  wochenblatt: string
+  /** Canonical identity ("kw34-2026"), slug suffixes normalized away — the idempotency key. */
+  schluessel: string
+  slug: string | null
+  /** As the paper prints it — "34" or "30/31". Part of every attribution. */
+  nummer: string | null
+  datum: string | null
+  seite_url: string | null
+  /** The resolved PDF address. With `#page=N` a Meldung links straight to the piece. */
+  pdf_url: string | null
+  pdf: string | null
+  seiten: number | null
+  status: AusgabeStatus
+  /** The PDF's text layer — the corpus the verbatim-overlap check runs against. */
+  volltext: string | null
+  /** The same text page by page — the workspace shows the original wording next to a proposal. */
+  seiten_texte: string[] | null
+  inventar: Record<string, unknown> | null
+  fehler: string | null
+  date_created: string | null
+  date_updated: string | null
+}
+
+export type KandidatTyp =
+  | 'interview'
+  | 'reportage'
+  | 'portraet'
+  | 'hintergrund'
+  | 'vereinsleben'
+  | 'veranstaltung'
+  | 'service'
+  | 'erfolgsmeldung'
+  | 'fotoverweis'
+
+/** `weitergereicht`: good piece, not verifiable today — handed to the Chefredaktion as a lead. */
+export type KandidatEntscheid =
+  | 'offen'
+  | 'uebernommen'
+  | 'abgelehnt'
+  | 'weitergereicht'
+
+export type Ablehnungsgrund =
+  | 'nicht_relevant'
+  | 'doublette'
+  | 'veraltet'
+  | 'falsche_gemeinde'
+  | 'andere'
+
+/** One municipality a paper covers — the Muttenzer & Prattler Anzeiger has two. */
+export interface Wochenblattgemeinde {
+  id: string
+  wochenblatt: string
+  gemeinde: string
+  date_created: string | null
+}
+
+export type HinweisStatus = 'offen' | 'brauchbar' | 'kein_hinweis'
+
+/**
+ * A research lead the paper carries — usually a Leserbrief. NEVER published
+ * unchecked: leads are work for the newsroom, not content. The editor's
+ * verdict (brauchbar / kein Hinweis) teaches the next inventory what a lead is.
+ */
+export interface Recherchehinweis {
+  id: string
+  ausgabe: string
+  gemeinde: string | null
+  titel: string
+  /** Where it stands — "Leserbrief 'Wertvoller Regen', S. 2". */
+  fundort: string | null
+  /** The page as a number — what the source link and the original-text box key on. */
+  seite: number | null
+  begruendung: string | null
+  /** The page's own text layer, copied at creation — the lead outlives its issue's row. */
+  quelltext: string | null
+  status: HinweisStatus
+  kommentar: string | null
+  date_created: string | null
+  date_updated: string | null
+}
+
+/**
+ * One exclusive piece of an issue, as the inventory proposed it.
+ *
+ * The editor's decision on it — taken over, or rejected with a reason — is the
+ * learning signal: recent decisions ride into the next inventory's user turn
+ * as examples, so the proposals grow towards the newsroom's taste.
+ */
+export interface Wochenblattkandidat {
+  id: string
+  ausgabe: string
+  /**
+   * Which municipality the piece is about — assigned by the inventory (page
+   * index top-left where present, content otherwise), correctable by the
+   * editor. Null only for papers covering a single municipality anyway.
+   */
+  gemeinde: string | null
+  /** Set by the hook when the editor reassigns — the learning signal. */
+  gemeinde_korrigiert: boolean
+  /** As printed in the paper. */
+  titel: string
+  seite: number | null
+  typ: KandidatTyp
+  /** Teased on the front page — what sits there is often the most interesting. */
+  frontseite: boolean
+  warum_exklusiv: string | null
+  /** Bare facts from the piece — the ONLY source the drafting call ever sees. */
+  zusammenfassung: string | null
+  /** Curious AND of supra-local interest — could amuse the city of Basel too. */
+  perle_vorschlag: boolean
+  perle_begruendung: string | null
+  /**
+   * The Chefredaktion's verdict on that proposal — independent of whether the
+   * candidate ever becomes a Meldung. Null while it sits on her desk; a
+   * pending proposal survives the desk cleanup on purpose.
+   */
+  perle: boolean | null
+  entscheid: KandidatEntscheid
+  /** The learning signal: flows into the next inventory's digest. */
+  ablehnungsgrund: Ablehnungsgrund | null
+  ablehnungskommentar: string | null
+  date_created: string | null
+  date_updated: string | null
+}
+
 export interface Schema {
   gemeinden: Gemeinde[]
   quellen: Quelle[]
@@ -470,4 +627,9 @@ export interface Schema {
   entsorgungskalender: Entsorgungskalender[]
   entsorgungsdokumente: Entsorgungsdokument[]
   entsorgungstermine: Entsorgungstermin[]
+  wochenblaetter: Wochenblatt[]
+  wochenblattausgaben: Wochenblattausgabe[]
+  wochenblattkandidaten: Wochenblattkandidat[]
+  wochenblattgemeinden: Wochenblattgemeinde[]
+  recherchehinweise: Recherchehinweis[]
 }

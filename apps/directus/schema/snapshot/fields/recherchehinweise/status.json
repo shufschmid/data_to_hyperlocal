@@ -1,0 +1,59 @@
+{
+  "collection": "recherchehinweise",
+  "field": "status",
+  "type": "string",
+  "meta": {
+    "collection": "recherchehinweise",
+    "conditions": null,
+    "display": "labels",
+    "display_options": null,
+    "field": "status",
+    "group": null,
+    "hidden": false,
+    "interface": "select-dropdown",
+    "note": "Das Urteil der Redaktion — es lehrt das naechste Inventar, was eine Faehrte ist.",
+    "options": {
+      "choices": [
+        {
+          "text": "Offen",
+          "value": "offen"
+        },
+        {
+          "text": "Brauchbar",
+          "value": "brauchbar"
+        },
+        {
+          "text": "Kein Hinweis",
+          "value": "kein_hinweis"
+        }
+      ]
+    },
+    "readonly": false,
+    "required": false,
+    "searchable": true,
+    "sort": 7,
+    "special": null,
+    "translations": null,
+    "validation": null,
+    "validation_message": null,
+    "width": "half"
+  },
+  "schema": {
+    "name": "status",
+    "table": "recherchehinweise",
+    "data_type": "character varying",
+    "default_value": "offen",
+    "max_length": 20,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "is_nullable": false,
+    "is_unique": false,
+    "is_indexed": false,
+    "is_primary_key": false,
+    "is_generated": false,
+    "generation_expression": null,
+    "has_auto_increment": false,
+    "foreign_key_table": null,
+    "foreign_key_column": null
+  }
+}

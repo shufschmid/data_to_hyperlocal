@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+    <meta charset="UTF-8">
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width">
+    <title></title>
+    <script type="text/javascript">
+            var baseUrl = "//bibo.ch/"; var bd = bd || {}; bd.config = bd.config || {}; 
+            bd.config.protocol = "https"; 
+            bd.config.cookiepart = "/";
+            bd.config.table = "";
+            bd.userID =0
+            bd.userHash = ""
+
+	// #JSON #LOCALE
+            bd.config.page = "bcms-de_DE-.read_epaper";
+            bd.config.localizations = [];
+
+            bd.config.locale = "de_DE";
+            bd.config.date_format = "yyyy-MM-DD";
+            bd.config.datepicker_date_format = "yy-mm-dd";
+            bd.config.preload = true;
+            bd.config.offset = { localId:1, hashId:3, nested:0 };
+            bd.config.path = "bibo.ch/";
+            bd.config.username_instance = "https://usernames2.blitzdata.com/";
+            bd.config.username_instances = ["https:\/\/usernames2.blitzdata.com\/"];
+            var jsData = [];</script><script type="text/javascript" src="//bibo.ch/assets/js/jquery-3.6.0.min.js"  ></script><script type="text/javascript" src="//bibo.ch/apps/bcms/@themes/demo/assets/vendor/PhotoViewerJS-master/js/photo.js?v=5"  ></script><link type="text/css" rel="stylesheet" href="//bibo.ch/assets/css/bootstrap-grid.min.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,600,700|Fjalla+One|Roboto+Slab:300,400,500,700" integrity="" crossorigin="anonymous"><style type='text/css'>h1, h2, h3, h4, h5, h6 {font-family: "Roboto Slab";font-weight: 900;
+}.btn-danger:hover, .btn-danger:focus {background-position: 0 -30px;
+}div.menu-top > a:nth-child(1){margin-right:20px}.blog-header-logo #logo{/*max-width: 80%;*/float: left;
+}.main-content, .secondary-content {margin-top: 1em;
+}div.loaded-article, .loaded-article h3{cursor:pointer;}.pagination{font-size: 20px;
+}</style><style type='text/css'>body {padding: 0;margin: 0;font-size: 62.5%;font-family: 'Arial';
+}/**
+========================================
+Gallery
+========================================
+**/.photo-gallery {width: 100%;height: auto;position: relative;z-index: 1;margin-top: 20px;
+}.photo-gallery:after {content: '';display: table;clear: both;width: 100%;
+}.photo-gallery .photo-gallery--image {padding-right: 30px;padding-bottom: 30px;margin: 0;overflow: hidden;float: left;position: relative;z-index: 1;
+}.photo-gallery .photo-gallery--image a {border: none;
+}.photo-gallery .photo-gallery--image img {object-fit: cover;width: 130px;height: 130px;
+}/**
+========================================
+Viewer
+========================================
+**/</style><style type='text/css'>/**
+===========================================================
+Photo Viewer
+By Curtis Campbell
+Version 0.1
+March 24, 2015
+===========================================================
+**/@import url('https://fonts.googleapis.com/css?family=Open+Sans:400,700');.photo-viewer * {box-sizing: border-box;
+}.photo-viewer a {color: #FFF;text-decoration: none;
+}.photo-viewer a:hover {/*color: orange;*/text-decoration: none;color: #acacac;
+}.photo-viewer {width: 100%;height: 100%;background: #0e0e0e;  position: fixed;top: 0;left: -99999px;z-index: 9999;  overflow: hidden;  opacity: 0;  -webkit-transform: scale(0.2);transform: scale(0.2);  -webkit-transition: opacity 0.5s ease, -webkit-transform 0.2s ease;transition: opacity 0.5s ease, transform 0.2s ease;  font-family: 'Open Sans', Arial, sans-serif;
+}.photo-viewer--visible {opacity: 1;left: 0;  -webkit-transform: scale(1);transform: scale(1);
+}.photo-viewer--title {width: 100%;background: rgba(0,0,0,0.45) !important;position: absolute;top: 0;left: 0;z-index: 20;
+}.photo-viewer--title h1 {margin: 0;color: #FFF;text-align: center;font-size: 1.2rem;line-height: 1.2em;padding: 15px 40px;height: 100%;display: block;
+}.photo-viewer--title .photo-viewer--close {width: 40px;height: 40px;margin: 10px;  background: rgba(255,255,255,0.2);border-radius: 40px;  position: absolute;right: 0;top: 0;  font-size: 1.2rem;font-weight: bold;text-align: center;line-height: 40px;
+}.photo-viewer--container {position: relative;height: 100%;white-space: nowrap;
+}.photo-viewer--current-image {width: 100%;height: 100%;line-height: 1px;display: inline-block;text-align: center;margin: 0;  opacity: 0;  -webkit-transition: all 0.5s ease;transition: all 0.5s ease;  position: relative;left: 0;
+}.photo-viewer--current-image:before {content: "";display: inline-block;width: 1px;height: 100%;margin-right: -1px;vertical-align: middle;
+}.photo-viewer--current-image img {width: auto;height: auto;max-width: 100%;max-height: 100%;  display: inline-block;vertical-align: middle;
+}.photo-viewer--current-image.loaded {opacity: 1;
+}.photo-viewer--controls {width: 100%;height: 60px;padding: 0 20px;  /*background: rgba(0,0,0,0.75);*/  position: absolute;bottom: 50%;left: 0;z-index: 20;  color: #FFF;font-size: 4.0rem;line-height: 60px;
+}.photo-viewer--controls .photo-viewer--previous-image {width: 120px;float: left;
+}.photo-viewer--controls .photo-viewer--count {width: calc(100% - 240px);float: left;  text-align: center;
+}.photo-viewer--controls .photo-viewer--next-image {width: 120px;float: right;  text-align: right;
+}.photo-viewer--visible {opacity: 1;left: 0;  -webkit-transform: scale(1);transform: scale(1);background-color: rgba(0,0,0,0.85);
+}.photo-viewer--count{display: none;
+}#PhotoViewerTitle{position: absolute;bottom: 0;color: #fff;text-align: center;width: 100%;background: rgba(0,0,0,0.25) !important;font-size: 1.2rem;margin: 0;line-height: 1.2em;padding: 15px 40px;display: block;white-space: normal !important;}</style><link rel="stylesheet" href="//bibo.ch/apps/bcms/@themes/demo/home.css?20241016" integrity="" crossorigin="anonymous"><style type='text/css'>iframe.lpcms-abo {border: none;width: 100%;display: block;
+}.margin-auto{margin-left: auto;margin-right: auto;
+}.hv100{height: 100vh !important;
+}.hv150 {height: 150vh !important;
+}.hv200 {height: 200vh !important;
+}.hv210 {height: 210vh !important;
+}.hv220 {height: 220vh !important;
+}.hv230 {height: 230vh !important;
+}.hv240 {height: 240vh !important;
+}.hv250 {height: 250vh !important;
+}.hv300 {height: 300vh !important;
+}.hv350 {height: 350vh !important;
+}.hv400{height: 400vh !important;
+}.hv450{height: 450vh !important;
+}.hv500{height: 500vh !important;
+}.hv550{height: 550vh !important;
+}.hv600{height: 600vh !important;
+}.hv650{height: 650vh !important;
+}</style><style type='text/css'>body{margin: 0!important;
+}</style><link rel="stylesheet" href="https://bibo.ch/apps/bcms/@themes/demo/read_epaper.css?t=1768342348" integrity="" crossorigin="anonymous"><div class="errorholder"></div>
+<iframe style="height: 100vh;width:100vw;" class="lpcms-abo-iframe signup lpcms-abo lpcms-iframe-resizer lpcms-iframe-resizer-processed" src="https://epaper.blitzbucket.com/p/bib/2026/2026-08-27-9228fa61-cee0-4be7-9e73-0b5c4a5c81cf"></iframe>
+<script async src="https://securepubads.g.doubleclick.net/tag/js/gpt.js">
+  </script><script>
+    if(/android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase())){
+      window.googletag = window.googletag || {cmd: []};
+      googletag.cmd.push(function() {
+        googletag.defineSlot('/21822988163/vol_website/vol_mobile/vol_mobile_largemobile', [[320, 160], [320, 100]], 'div-gpt-ad-1573225556143-0').addService(googletag.pubads());
+        googletag.defineSlot('/21822988163/vol_website/vol_mobile/vol_mobile_mobilebanner', [[300, 50], [320, 50]], 'div-gpt-ad-1573225569459-0').addService(googletag.pubads());
+        googletag.defineSlot('/21822988163/vol_website/vol_mobile/vol_mobile_rectangle', [300, 250], 'div-gpt-ad-1573225596489-0').addService(googletag.pubads());
+        googletag.pubads().enableSingleRequest();
+        googletag.enableServices();
+      });
+    }
+    else{
+      window.googletag = window.googletag || {cmd: []};
+      googletag.cmd.push(function() {
+        googletag.defineSlot('/21822988163/vol_website/vol_display/vol_display_rectangle', [300, 250], 'div-gpt-ad-1573225486121-0').addService(googletag.pubads());
+        googletag.defineSlot('/21822988163/vol_website/vol_display/vol_display_sidebanner', [[160, 600], [300, 600]], 'div-gpt-ad-1573225501792-0').addService(googletag.pubads());
+        googletag.defineSlot('/21822988163/vol_website/vol_display/vol_display_topbanner', [[728, 90], [994, 250]], 'div-gpt-ad-1573225524595-0').addService(googletag.pubads());
+        googletag.pubads().enableSingleRequest();
+        googletag.enableServices();
+      });
+    }
+
+  </script><div class="overlay"><div class="loader"></div></div></body></html>

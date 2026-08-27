@@ -86,8 +86,6 @@ services:
     volumes:
       # Directus Files. The only binary storage this application has.
       - directus_uploads:/cms/uploads
-    ports:
-      - '${DIRECTUS_PORT:-8055}:8055'
     healthcheck:
       test:
         [
@@ -114,8 +112,6 @@ services:
       # it only talks to this app's own /api routes.
       DIRECTUS_URL: http://directus:8055
       NODE_ENV: production
-    ports:
-      - '${FRONT_PORT:-3000}:3000'
     healthcheck:
       test:
         [

@@ -59,6 +59,20 @@
     "_syncId": "804821a8-2dc2-4fe4-958b-9a934a6b0d37"
   },
   {
+    "name": "Wochenblaetter pruefen",
+    "icon": "newspaper",
+    "color": null,
+    "description": "Liest jeden Morgen die Archive der registrierten Wochenblaetter. Eine neue Ausgabe wird geholt und zu Kandidaten inventarisiert.",
+    "status": "active",
+    "trigger": "schedule",
+    "accountability": "all",
+    "options": {
+      "cron": "0 9 * * *"
+    },
+    "operation": "b6936e87-d0a2-4641-97b2-9d2a45bb9233",
+    "_syncId": "9be7d274-fc8b-4e16-8d77-7b8f558d97e3"
+  },
+  {
     "name": "Sportresultate holen",
     "icon": "scoreboard",
     "color": "#2ECDA7",

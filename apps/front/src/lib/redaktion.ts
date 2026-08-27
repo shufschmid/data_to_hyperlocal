@@ -547,3 +547,86 @@ export function gemeindeSlug(name: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
 }
+
+/** What the extension reports about a hand-started scrape run. */
+export interface QuellenLaufStatus {
+  laeuft: boolean
+  gestartet_um: string | null
+  beendet_um: string | null
+  quellen: Record<string, unknown> | null
+  sport: Record<string, unknown> | null
+  fehler: string | null
+}
+
+function anzahl(wert: unknown): number {
+  return typeof wert === 'number' && Number.isFinite(wert) ? wert : 0
+}
+
+/**
+ * One sentence about the run, from whatever the counters say.
+ *
+ * Null while nothing ever ran — the button explains itself, a status line
+ * about nothing would only add noise.
+ */
+export function quellenLaufText(status: QuellenLaufStatus): string | null {
+  if (status.laeuft) {
+    return 'Der Lauf ist unterwegs — das dauert einige Minuten, die Ansicht aktualisiert sich von selbst.'
+  }
+  if (status.beendet_um === null) return null
+
+  const teile: string[] = []
+  if (status.quellen !== null) {
+    const q = status.quellen
+    teile.push(
+      `Datenquellen: ${anzahl(q.neu)} neu, ${anzahl(q.geaendert)} geändert, ${anzahl(q.bewertet)} bewertet`
+    )
+    const fehler = Array.isArray(q.fehler) ? q.fehler.length : 0
+    if (fehler > 0) teile.push(`${fehler} Quelle(n) mit Fehler`)
+  }
+  if (status.sport !== null) {
+    const s = status.sport
+    teile.push(`Sport: ${anzahl(s.neu)} neu, ${anzahl(s.aktualisiert)} aktualisiert`)
+  }
+
+  if (teile.length === 0) return 'Der letzte Lauf hat nichts zurückgemeldet.'
+
+  const uhrzeit = new Date(status.beendet_um).toLocaleTimeString('de-CH', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Europe/Zurich'
+  })
+  return `Letzter Lauf um ${uhrzeit} Uhr — ${teile.join(' · ')}.`
+}
+
+/**
+ * Der Link auf eine Seite einer Wochenblatt-Ausgabe — dasselbe Muster, mit dem
+ * das Backend die Quelle-Zeile baut: `#page=N` fuer PDF-Viewer, ein
+ * Pfadsegment fuer den issuu-Reader (der Fragmente ignoriert).
+ */
+export function seitenLink(pdfUrl: string, seite: number | null): string {
+  if (seite === null) return pdfUrl
+  try {
+    if (/(^|\.)issuu\.com$/i.test(new URL(pdfUrl).host)) {
+      return `${pdfUrl.replace(/\/$/, '')}/${seite}`
+    }
+  } catch {
+    // Keine parsbare URL — das Fragment ist der harmlose Normalfall.
+  }
+  return `${pdfUrl}#page=${seite}`
+}
+
+/**
+ * Ob ein Wochenblatt-Kandidat noch auf dem Tisch der Redaktorin liegt.
+ *
+ * Der Tisch zeigt Arbeit, nicht Geschichte: offen heisst unbearbeitet, eine
+ * übernommene Meldung bleibt sichtbar, solange sie im Redigierprozess steckt.
+ * Publiziert oder verworfen ist erledigt — weg vom Tisch, genau wie abgelehnte
+ * und weitergereichte Kandidaten. Die Zeilen selbst bleiben in der Datenbank:
+ * sie sind das Gedächtnis des Inventars.
+ */
+export function bleibtAufDemTisch(entscheid: string, meldungStatus: string | null): boolean {
+  if (entscheid === 'offen') return true
+  if (entscheid !== 'uebernommen') return false
+  if (meldungStatus === null) return false
+  return meldungStatus !== 'publiziert' && meldungStatus !== 'verworfen'
+}

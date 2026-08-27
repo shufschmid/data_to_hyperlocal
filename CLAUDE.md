@@ -68,13 +68,19 @@ them is wrong even if it works.
    Redis, no queue broker, no external cron host, no side-car. Outbound dependencies
    are enumerated below and adding one is a deliberate decision, not a commit.
 
-   | Host                    | Why                                                        | Adapter            |
-   | ----------------------- | ---------------------------------------------------------- | ------------------ |
-   | `api.anthropic.com`     | every LLM call                                             | `shared/claude.ts` |
-   | `data.bl.ch`            | open-data catalogue and records (no auth, documented API)  | `shared/ods/`      |
-   | `www.baselland.ch`      | the publication agenda — announcements the API cannot give | `shared/agenda/`   |
-   | `statistik.bl.ch`       | tables the open-data portal does not carry                 | `shared/statbl/`   |
-   | `crawler.wepublish.dev` | renders sport pages that refuse a plain request            | `shared/crawler/`  |
+   | Host                           | Why                                                                                                                                                                                                                                                                                                                                                   | Adapter               |
+   | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+   | `api.anthropic.com`            | every LLM call                                                                                                                                                                                                                                                                                                                                        | `shared/claude.ts`    |
+   | `data.bl.ch`                   | open-data catalogue and records (no auth, documented API)                                                                                                                                                                                                                                                                                             | `shared/ods/`         |
+   | `www.baselland.ch`             | the publication agenda — announcements the API cannot give                                                                                                                                                                                                                                                                                            | `shared/agenda/`      |
+   | `statistik.bl.ch`              | tables the open-data portal does not carry                                                                                                                                                                                                                                                                                                            | `shared/statbl/`      |
+   | `crawler.wepublish.dev`        | renders sport pages that refuse a plain request                                                                                                                                                                                                                                                                                                       | `shared/crawler/`     |
+   | `www.binninger-wochenblatt.ch` | the first registered weekly-paper archive — one host per Blatt, only archives an editor registered, read once a day                                                                                                                                                                                                                                   | `shared/wochenblatt/` |
+   | `www.lokalzeitungen.ch`        | the platform hosting the Riehener Zeitung (and others) — the paper page links the current issue, the issue page links a paywall-free PDF from its title; only that free door is used                                                                                                                                                                  | `shared/wochenblatt/` |
+   | `www.wochenblatt.ch`           | the Wochenblatt für das Birseck's e-paper listing — plain links to issuu readers, newest first, the slug carries number and date                                                                                                                                                                                                                      | `shared/wochenblatt/` |
+   | `issuu.com`                    | where that Wochenblatt's issues actually live — the reader page yields the `publicationId`, the anonymous `public.reader.download` API (the same call the reader's download button makes, answering only where the publisher enabled downloads) yields a signed S3 address for the original PDF; if the publisher turns it off, the run fails visibly | `shared/wochenblatt/` |
+   | `bibo.ch`                      | the BiBo (Birsigtal-Bote), on Localpoint's CMS — the listing page embeds its issues as JSON, the reader page names the coordinates the PDF address is derived from                                                                                                                                                                                    | `shared/wochenblatt/` |
+   | `files.localpoint.ch`          | the BiBo's original PDFs — the same public address the reader's download button opens, no login                                                                                                                                                                                                                                                       | `shared/wochenblatt/` |
 
    The crawler is the one host we do not own the other end of, and it exists for
    a measured reason: the football association's Match Center answers `curl`
@@ -116,8 +122,8 @@ them is wrong even if it works.
    spans a minute at a _lower_ request rate than before. That fixed it; the
    source has read all 44 announcements since.
 
-   The workspace has six tabs: **statistik.bl · Sportresultate · Entsorgung ·
-   Blog · Gelerntes · Gemeinden**. „Sportresultate" is the second feed and works
+   The workspace has eight tabs: **statistik.bl · Sportresultate · Entsorgung ·
+   Wochenblätter · Chefredaktion · Blog · Gelerntes · Gemeinden**. „Sportresultate" is the second feed and works
    the same way as the first: a source that publishes on its own schedule, watched
    daily. What differs is the shape — a statistic arrives once a year for every
    municipality at once, a match arrives every weekend for one club. Filterable
@@ -129,6 +135,67 @@ them is wrong even if it works.
    and produces the whole year's reminders in advance. Its unit of work is one
    calendar — pick it, read it, confirm its dates, write its year — so the tab
    shows one at a time rather than a directory of eighty-seven.
+   „Wochenblätter" (the press review, `presseschau` in code) is the fourth
+   feed and deliberately a DESK, not an archive: every municipality's weekly
+   paper, watched daily at 09:00 through its public PDF archive. A new issue
+   is inventoried by one Opus call into CANDIDATES — only the paper's own
+   exclusive journalism, never what the municipality publishes itself (that
+   arrives through the other feeds) — and they land on the editor's desk.
+   She takes a candidate over (one short Meldung in own words, mandatory
+   in-text attribution, a `#page=N` link straight to the piece), rejects it
+   WITH A REASON — nicht relevant, Doublette, veraltet, falsche Gemeinde,
+   andere + Kommentar — or HANDS IT UP (`weitergereicht`): a good piece she
+   cannot verify today becomes a Recherche-Hinweis on the Chefredaktion desk
+   instead of a Meldung. All three decisions are the learning signal: the
+   last ~20 ride into the next inventory's user turn as examples, per paper.
+   Some pieces are PERLEN — curious AND of supra-local interest (the story
+   the city of Basel wants too); the model proposes, the chief editor decides
+   — ON THE CANDIDATE (`wochenblattkandidaten.perle`, null = pending on her
+   desk), via POST /kandidaten/:id/perle, INDEPENDENT of whether a Meldung
+   ever comes of the piece. A published Meldung carries a mirrored copy
+   (`meldungen.perle`): the meldung-status hook stamps it at publish time,
+   the endpoint updates one published already — unpublished still never
+   carries a Perle, the hook guards it. Registration takes the newest
+   issue and ignores the backlog forever. An issue whose PDF outgrows the
+   Claude API's 32-MB request limit (issuu and Localpoint hand out the
+   publisher's original — measured 34 MB and 58 MB) is inventoried from its
+   TEXT LAYER, page by page — code decides the transport
+   (`brauchtTextTransport`), and the per-page rubric headers keep the
+   municipality assignment working without images (`entspreizeVersalien`
+   un-spaces letter-spaced headers first). Source links are per connector:
+   `#page=N` on a PDF, a path segment on an issuu reader (`seitenLink`).
+   A paper may cover municipalities the newsroom does not: a candidate the
+   model files under a foreign name is dropped by `parseInventar`, never
+   refiled under the nearest covered municipality.
+   One paper can cover SEVERAL municipalities (the Muttenzer & Prattler
+   Anzeiger has two, `wochenblattgemeinden`): every candidate carries its own
+   `gemeinde`, assigned by the inventory — the page index top-left where
+   printed, the content where not (the front) — and correctable by the editor;
+   the `kandidat-gemeinde` hook stamps corrections and they teach the next
+   inventory. Wochenblätter also yield RECHERCHE-FÄHRTEN (mostly from
+   Leserbriefe): leads for the newsroom's own reporting, collected in
+   `recherchehinweise` — and NEVER published unchecked. The verdict
+   (brauchbar / kein Hinweis + Kommentar) is a learning signal like the
+   Perlen. The inventory proposes leads VERY sparingly (two to three per
+   issue at most — a missed lead is acceptable, a dozen bland ones are not),
+   and every verdict is checked against the source, not the summary: every
+   candidate and lead links its page (`seitenLink`) and shows the original
+   wording in a collapsible box (`seiten_texte` on the issue for candidates;
+   a lead carries its page's text itself in `quelltext`, so it outlives its
+   issue). „Chefredaktion" is the fifth tab and the SECOND desk: the leads
+   and the pending Perle decisions live there with a count badge, and they
+   deliberately survive new issues — the chief editor clears them by verdict,
+   however long that takes. The Wochenblätter desk, by contrast, cleans
+   itself twice over: FINISHED work vanishes immediately from the view
+   (`bleibtAufDemTisch` — published, verworfen, abgelehnt and weitergereicht
+   drop off; an übernommene Meldung stays while it is being edited), and when
+   a paper's next issue is inventoried, the previous issues' UNDECIDED
+   candidates are deleted (`raeumeAlteVorschlaegeAuf`) — decided rows stay,
+   they are the memory, and candidates with a Perle proposal are spared too
+   (their verdict belongs to the Chefredaktion and survives new issues); the
+   badge counts what the desk shows. A re-inventory diffs leads like
+   candidates: open ones the new run no longer proposes are deleted, verdicts
+   are never re-asked.
    „Gemeinden" is a flat, searchable list — not grouped by district. The
    districts were dropped because they hid what they organised: Riehen, the
    first municipality outside the five Basel-Landschaft districts, arrived as
@@ -183,23 +250,25 @@ them is wrong even if it works.
 
 ## Where does this feature go?
 
-| The change is…                                | Goes to                                                                                                                                                      |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| a new collection, field, relation or role     | Directus admin UI, then `npm run schema:dump` — [apps/directus](apps/directus/)                                                                              |
-| a calculation, validation or business rule    | extension bundle (endpoint or hook)                                                                                                                          |
-| anything that calls Claude                    | extension bundle, via `shared/claude.ts`                                                                                                                     |
-| something that must run nightly/hourly        | Flow with a Schedule trigger + a custom operation in the bundle                                                                                              |
-| a screen, a form, a list, a chart             | [apps/front](apps/front/) — MUI components, Apollo for data                                                                                                  |
-| a new query the UI needs                      | `apps/front/src/graphql/*.ts`                                                                                                                                |
-| a new rule about what an article may say      | the prompt in `redaktion/prompt.ts` **and** a check next to it — a prompt is a request, a check is a rule                                                    |
-| a table on statistik.bl.ch the newsroom wants | paste its URL in the workspace — „statistik.bl" → „Auftrag …" — it becomes an ordinary dataset                                                               |
-| a club whose results the newsroom wants       | a row in `vereine` with its `ergebnis_url`, then a connector for that `quelle`                                                                               |
-| a new rule about what a match report may say  | `redaktion/spielbericht.ts` — the prompt **and** the check next to it                                                                                        |
-| an Abfuhrkalender the newsroom wants          | paste the PDF's address in the workspace — „Entsorgung" → „Abfuhrkalender erfassen"; one PDF per zone (Riehen) registers zone by zone into the same calendar |
-| a new rule about what a reminder may say      | `redaktion/erinnerung.ts` — the prompt **and** the check next to it                                                                                          |
-| a one-off data repair or backfill             | rows only: a one-shot Flow, else `apps/directus/migrations/*.mts` as a last resort                                                                           |
-| an agenda entry the crawler could not fetch   | the banner in the workspace → „Eintrag von Hand erfassen"                                                                                                    |
-| a new environment variable                    | `apps/directus/.env.example` **and** root `.env.example` **and** docker-compose.yml                                                                          |
+| The change is…                                | Goes to                                                                                                                                                                                                                                  |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| a new collection, field, relation or role     | Directus admin UI, then `npm run schema:dump` — [apps/directus](apps/directus/)                                                                                                                                                          |
+| a calculation, validation or business rule    | extension bundle (endpoint or hook)                                                                                                                                                                                                      |
+| anything that calls Claude                    | extension bundle, via `shared/claude.ts`                                                                                                                                                                                                 |
+| something that must run nightly/hourly        | Flow with a Schedule trigger + a custom operation in the bundle                                                                                                                                                                          |
+| a screen, a form, a list, a chart             | [apps/front](apps/front/) — MUI components, Apollo for data                                                                                                                                                                              |
+| a new query the UI needs                      | `apps/front/src/graphql/*.ts`                                                                                                                                                                                                            |
+| a new rule about what an article may say      | the prompt in `redaktion/prompt.ts` **and** a check next to it — a prompt is a request, a check is a rule                                                                                                                                |
+| a table on statistik.bl.ch the newsroom wants | paste its URL in the workspace — „statistik.bl" → „Auftrag …" — it becomes an ordinary dataset                                                                                                                                           |
+| a club whose results the newsroom wants       | a row in `vereine` with its `ergebnis_url`, then a connector for that `quelle`                                                                                                                                                           |
+| a new rule about what a match report may say  | `redaktion/spielbericht.ts` — the prompt **and** the check next to it                                                                                                                                                                    |
+| an Abfuhrkalender the newsroom wants          | paste the PDF's address in the workspace — „Entsorgung" → „Abfuhrkalender erfassen"; one PDF per zone (Riehen) registers zone by zone into the same calendar                                                                             |
+| a weekly paper the newsroom wants read        | „Presseschau" → „Wochenblatt erfassen" with its archive URL; the platform decides the parser (`konnektor`: WordPress-Archivliste, lokalzeitungen.ch, issuu or Localpoint) — a fifth platform gets its own value in `shared/wochenblatt/` |
+| a new rule about what a press review may say  | `redaktion/presseschau.ts` — the prompt **and** the checks next to it (attribution, digits, verbatim overlap)                                                                                                                            |
+| a new rule about what a reminder may say      | `redaktion/erinnerung.ts` — the prompt **and** the check next to it                                                                                                                                                                      |
+| a one-off data repair or backfill             | rows only: a one-shot Flow, else `apps/directus/migrations/*.mts` as a last resort                                                                                                                                                       |
+| an agenda entry the crawler could not fetch   | the banner in the workspace → „Eintrag von Hand erfassen"                                                                                                                                                                                |
+| a new environment variable                    | `apps/directus/.env.example` **and** root `.env.example` **and** docker-compose.yml                                                                                                                                                      |
 
 A change that spans both apps starts in `apps/directus` — data model first, then the
 GraphQL documents in the frontend.
@@ -286,6 +355,33 @@ Flow "Meldungen erzeugen"  (*/2)   endpoints/redaktion  (immediately)
                                  cached system prompt, checked afterwards
 
 hooks/meldung-status   guards every status change, on every write path
+
+Both scheduled scrapes can also be started by hand: the button in the
+„Gemeinden" tab (POST /redaktion/quellen/lauf, 202 + detached, single-flight,
+GET for the status) runs the same two operation handlers with the committed
+Flows' options — a button press and a nightly run are indistinguishable.
+Waste calendars are deliberately absent: those are registered one PDF at a
+time by an editor.
+
+Flow "Wochenblaetter pruefen"  (0 9 * * *)
+  └─ operations/wochenblatt-pruefen   per registered paper: read the archive
+       ├─ waehleNeueAusgaben   at most ONE new issue per paper per run; a
+       │                       first-ever run takes exactly the newest entry
+       │                       (backlog ignored forever, that was the deal)
+       ├─ PDF → Directus Files, text layer via unpdf → volltext + seiten
+       └─ 1× Opus per issue → CANDIDATES (exclusive journalism only), steered
+          by lernDigest: the newsroom's last ~20 take/reject decisions of
+          THIS paper, as few-shot examples in the user turn
+
+editor takes a candidate over ── POST /redaktion/kandidaten/:id/meldung
+  └─ 1× Sonnet over the handed fact summary → short Meldung in own words,
+     in-text attribution enforced (check + one retry), source line with
+     #page=N appended by code, 8-gram overlap check against the issue's own
+     text — then the normal review/chat/publish workflow. Rejection asks for
+     the reason; the Perle question is NOT asked here — the chief editor
+     answers it on the candidate (POST /redaktion/kandidaten/:id/perle),
+     whether or not a Meldung exists. Every decision teaches the next
+     inventory.
 
 Flow "Sportresultate holen"  (0 30 6 * * *)
   └─ operations/sportresultate-holen   dispatches on vereine.quelle
@@ -446,6 +542,19 @@ joining the two on `Spielnummer`. Read results from there, or not at all.
   deliberately discarded as a regular collection. The second half is the one that
   matters later: without it, a category the model dropped by mistake is
   indistinguishable from one the calendar never had.
+- `wochenblattkandidaten.entscheid` (uebernommen/abgelehnt/weitergereicht) +
+  `ablehnungsgrund`/`ablehnungskommentar` +
+  `wochenblattkandidaten.perle` + `wochenblattkandidaten.gemeinde_korrigiert` +
+  `recherchehinweise.status`/`kommentar` — the press review's memory IS its
+  decision rows: no distillation call, no second store. `lernDigest` renders
+  the last ~20 of each signal per paper into the next inventory's user turn —
+  take/reject with reasons, handovers to the Chefredaktion (a positive
+  signal: good, but verify first), Perle verdicts (on the candidate, null =
+  still on her desk, not "no" — counted even when the candidate itself was
+  never decided; `meldungen.perle` is only the published mirror), municipality
+  corrections, lead verdicts — never into the cached system prefix, and
+  deliberately scoped per Blatt: what is a Doublette in Binningen says nothing
+  about Muttenz.
 
 Both are bounded on purpose: the rules feed the cached prompt prefix, and an
 unbounded memory would grow it without limit.

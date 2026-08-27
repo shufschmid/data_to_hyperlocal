@@ -1,0 +1,30 @@
+{
+  "collection": "wochenblaetter",
+  "field": "abdeckungen",
+  "type": "alias",
+  "meta": {
+    "collection": "wochenblaetter",
+    "conditions": null,
+    "display": null,
+    "display_options": null,
+    "field": "abdeckungen",
+    "group": null,
+    "hidden": false,
+    "interface": "list-o2m",
+    "note": "Alle Gemeinden, ueber die dieses Blatt schreibt. Die erste ist die Hauptgemeinde im Feld \"gemeinde\".",
+    "options": {
+      "template": "{{gemeinde.name}}"
+    },
+    "readonly": false,
+    "required": false,
+    "searchable": true,
+    "sort": 10,
+    "special": [
+      "o2m"
+    ],
+    "translations": null,
+    "validation": null,
+    "validation_message": null,
+    "width": "full"
+  }
+}

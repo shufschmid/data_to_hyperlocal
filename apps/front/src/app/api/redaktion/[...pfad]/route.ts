@@ -15,8 +15,29 @@ const ERLAUBT: RegExp[] = [
   /^laeufe\/[0-9a-f-]{36}\/(chat|publizieren|pruefung|verwerfen)$/i,
   /^meldungen\/[0-9a-f-]{36}\/(chat|publizieren|pruefung|verwerfen|freigeben)$/i,
   /^entsorgung\/kalender$/i,
-  /^entsorgung\/kalender\/[0-9a-f-]{36}\/(extrahieren|pruefen|meldungen|freigeben)$/i
+  /^entsorgung\/kalender\/[0-9a-f-]{36}\/(extrahieren|pruefen|meldungen|freigeben)$/i,
+  /^quellen\/lauf$/i,
+  /^wochenblaetter$/i,
+  /^wochenblaetter\/pruefen$/i,
+  /^ausgaben\/[0-9a-f-]{36}\/inventar$/i,
+  /^kandidaten\/[0-9a-f-]{36}\/(meldung|ablehnen|gemeinde|weiterreichen|perle)$/i,
+  /^hinweise\/[0-9a-f-]{36}\/bewerten$/i
 ]
+
+// The one read this proxy carries: the state of a hand-started scrape run.
+// Everything else the workspace reads goes through GraphQL.
+const LESBAR: RegExp[] = [/^quellen\/lauf$/i]
+
+export async function GET(_request: Request, { params }: { params: Promise<{ pfad: string[] }> }) {
+  const { pfad } = await params
+  const ziel = pfad.join('/')
+
+  if (!LESBAR.some((muster) => muster.test(ziel))) {
+    return problem(404, 'Unbekannte Aktion.')
+  }
+
+  return proxyToDirectus(`/redaktion/${ziel}`, { method: 'GET' })
+}
 
 export async function POST(request: Request, { params }: { params: Promise<{ pfad: string[] }> }) {
   const { pfad } = await params
