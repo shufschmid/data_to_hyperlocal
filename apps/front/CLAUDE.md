@@ -42,6 +42,7 @@ apps/front/src/
     ├── public.server.ts     server-only: the few unauthenticated paths (approval, public blog)
     ├── directus.server.ts   server-only: login/refresh/logout/fetch
     ├── session.server.ts    server-only: the two httpOnly cookies
+    ├── auth.ts              pure: which refusal from Directus means "renew" (tested)
     └── proxy.server.ts      server-only: browser request → Directus request
 ```
 
@@ -54,8 +55,22 @@ component is a build error, which is what keeps tokens off the browser.
   cookies (`session_access_token`, `session_refresh_token`); no script can read them.
 - Every request to Directus goes through `proxyToDirectus` in `lib/proxy.server.ts`
   with the **signed-in user's** access token, so Directus permissions decide what
-  happens. Expired access token → refreshed once, request retried, rotated cookies
-  written back.
+  happens. A token Directus refuses → refreshed once, request retried, rotated
+  cookies written back; still refused → cookies cleared and a 401, so the workspace
+  falls back to the login form instead of holding a credential that can only fail.
+- **Which refusals mean "renew" is a measured rule, not a guess** — `istTokenProblem`
+  in `lib/auth.ts` (pure, tested). Directus answers 401 for a missing, malformed or
+  expired token, but **403 `INVALID_TOKEN`** for one it cannot verify — the case a
+  browser hits when the backend's `SECRET` changed. Reading the status alone left
+  that stuck for ever. It must stay narrow: the extension answers 403 with the code
+  `FORBIDDEN` for "not found or not readable", and treating that as a dead session
+  would sign an editor out over one invisible record.
+- **Renewals are shared, and the result outlives the call.** The access cookie
+  expires with the token it carries, so a workspace firing a dozen queries sends a
+  dozen renewals with the same refresh token — and Directus rotates on every one, so
+  the losers used to clear the session the winner had just renewed. One in-flight
+  promise per token plus a 60-second memory of the result fixes it; requests that
+  were already in flight with the old cookie get the same new pair.
 - There is deliberately **no service/admin token in this app**. If a feature seems to
   need one, it needs a Directus extension endpoint instead — that is the whole point
   of constraint 7 in the root CLAUDE.md.

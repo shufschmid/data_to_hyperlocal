@@ -85,7 +85,18 @@ import { QuellenHinweis } from './QuellenHinweis'
 // extension endpoint via a route handler, because that is where the state
 // machine and the approval links live.
 
-async function aktion(pfad: string, body?: unknown): Promise<string | null> {
+interface AktionErgebnis {
+  /** Was der Redaktorin gesagt werden muss — null, wenn nichts zu sagen ist. */
+  fehler: string | null
+  /**
+   * Die Sitzung ist zu Ende. Der Proxy hat die Cookies bereits verworfen, es
+   * hilft also nur noch eine neue Anmeldung — und ohne dieses Signal bliebe die
+   * Oberflaeche angemeldet aussehen, waehrend jede Abfrage scheitert.
+   */
+  sitzungBeendet: boolean
+}
+
+async function aktion(pfad: string, body?: unknown): Promise<AktionErgebnis> {
   const antwort = await fetch(`/api/redaktion/${pfad}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -97,7 +108,12 @@ async function aktion(pfad: string, body?: unknown): Promise<string | null> {
   } | null
 
   if (!antwort.ok) {
-    return inhalt?.errors?.[0]?.message ?? 'Das hat nicht geklappt.'
+    return {
+      fehler: inhalt?.errors?.[0]?.message ?? 'Das hat nicht geklappt.',
+      // 401 kommt hier ausschliesslich aus dem eigenen Proxy und heisst immer
+      // dasselbe: angemeldet ist niemand mehr.
+      sitzungBeendet: antwort.status === 401
+    }
   }
 
   // A 202 with nothing done is the confusing case: the request succeeded, the
@@ -107,7 +123,10 @@ async function aktion(pfad: string, body?: unknown): Promise<string | null> {
   const abgelehnt = (inhalt?.data?.abgelehnt ?? []).map((a) => a.grund)
   const zusammen = [...hinweise, ...abgelehnt]
 
-  return zusammen.length > 0 ? zusammen.join(' · ') : null
+  return {
+    fehler: zusammen.length > 0 ? zusammen.join(' · ') : null,
+    sitzungBeendet: false
+  }
 }
 
 // Der Blog ist ueber die Adresse ansteuerbar: ?gemeinde=riehen oeffnet ihn
@@ -126,7 +145,16 @@ function schreibeGemeindeInUrl(slug: string | null): void {
   window.history.replaceState(null, '', url)
 }
 
-export function RedaktionPanel() {
+export interface RedaktionPanelProps {
+  /**
+   * Die Sitzung ist zu Ende — die Huelle soll neu pruefen und das
+   * Anmeldeformular zeigen. Ohne das bliebe die Ansicht angemeldet aussehen,
+   * waehrend nichts mehr laedt.
+   */
+  onSitzungEnde?: () => void | Promise<void>
+}
+
+export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
   const [blogGemeinde, setBlogGemeinde] = useState<string | null>(gemeindeAusUrl)
   // Mit ?gemeinde=… startet die Ansicht im Blog — das ist der Sinn des Links.
   const [reiter, setReiter] = useState(blogGemeinde === null ? 0 : 5)
@@ -291,8 +319,14 @@ export function RedaktionPanel() {
     setFehler(null)
 
     try {
-      const problem = await aktion(pfad, body)
+      const { fehler: problem, sitzungBeendet } = await aktion(pfad, body)
       if (problem !== null) setFehler(problem)
+      // Neu laden hat keinen Sinn mehr, wenn niemand mehr angemeldet ist — es
+      // wuerde nur drei weitere Fehlschlaege erzeugen.
+      if (sitzungBeendet) {
+        await onSitzungEnde?.()
+        return
+      }
       await allesNeuLaden()
     } catch (error) {
       // Without this, a failing refetch — a broken query, a dropped connection —
@@ -412,8 +446,12 @@ export function RedaktionPanel() {
       // itself, so the browser never has to know which id an entry belongs to —
       // and GraphQL's create input for that relation would want a whole new
       // source rather than a reference to the existing one.
-      const problem = await aktion('ankuendigungen', eintrag)
+      const { fehler: problem, sitzungBeendet } = await aktion('ankuendigungen', eintrag)
       if (problem !== null) setFehler(problem)
+      if (sitzungBeendet) {
+        await onSitzungEnde?.()
+        return
+      }
       await ankuendigungen.refetch()
     } catch (error) {
       setFehler(
