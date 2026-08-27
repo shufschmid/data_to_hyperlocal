@@ -8,29 +8,49 @@
 import { buildUserAgent } from '../agenda'
 import { extractText, getDocumentProxy } from 'unpdf'
 import {
+  entspreizeVersalien,
+  findeIssuuPublicationId,
+  findeLocalpointPdf,
   findePdfLink,
   parseArchiv,
+  parseIssuuEpaper,
+  parseLocalpointEpaper,
   parseLokalzeitungen,
   type ArchivEintrag
 } from './parse'
 
 export {
+  entspreizeVersalien,
+  findeIssuuPublicationId,
+  findeLocalpointPdf,
   findePdfLink,
   istNeuer,
   normalisiereSchluessel,
   nummerAusDateiname,
+  nummerAusErsterSeite,
   parseArchiv,
   parseDeutschesDatum,
+  parseIssuuEpaper,
+  parseLocalpointEpaper,
   parseLokalzeitungen,
+  seitenLink,
   waehleNeueAusgaben,
   type ArchivEintrag
 } from './parse'
 
 /** Which parser reads a paper's archive. The registry row carries the value. */
-export type WochenblattKonnektor = 'wordpress-archiv' | 'lokalzeitungen'
+export type WochenblattKonnektor =
+  | 'wordpress-archiv'
+  | 'lokalzeitungen'
+  | 'issuu'
+  | 'localpoint'
 
-/** Issue PDFs run 5–10 MB; anything past this is not a weekly paper. */
-export const PDF_MAX_BYTES = 15 * 1024 * 1024
+/**
+ * Issue PDFs from WordPress archives run 5–10 MB; issuu and Localpoint hand
+ * out the publisher's ORIGINAL file — measured 34 MB (Wochenblatt Birseck)
+ * and 58 MB (BiBo). Anything past this is not a weekly paper.
+ */
+export const PDF_MAX_BYTES = 80 * 1024 * 1024
 
 export class WochenblattFehler extends Error {
   constructor(
@@ -111,7 +131,13 @@ export async function fetchAusgabenliste(
     )
   }
 
-  const eintraege = parseLokalzeitungen(await antwort.text(), archivUrl)
+  const html = await antwort.text()
+  const eintraege =
+    konnektor === 'issuu'
+      ? parseIssuuEpaper(html)
+      : konnektor === 'localpoint'
+        ? parseLocalpointEpaper(html, archivUrl)
+        : parseLokalzeitungen(html, archivUrl)
   if (eintraege.length === 0) {
     throw new WochenblattFehler(
       'Kein Ausgaben-Link auf der Zeitungsseite gefunden — hat sich der Seitenaufbau geaendert?',
@@ -186,6 +212,16 @@ export async function ladeAusgabePdf(
  * lokalzeitungen.ch puts a paywall in front of the reader view but links the
  * plain PDF from the issue title — so the page is read once, the first
  * same-host PDF link is followed, and only that free door is ever used.
+ *
+ * issuu is the same policy through a different door: the reader's download
+ * button calls the anonymous `public.reader.download` API, which answers only
+ * for documents whose publisher enabled downloads. We call exactly that API —
+ * no login, no fingerprint games — and if the publisher turns downloads off,
+ * the call fails and the workspace banner says so.
+ *
+ * Localpoint (the BiBo's CMS) again: the reader's download button opens a
+ * plain `files.localpoint.ch` address derived from the reader iframe's own
+ * coordinates — public, no login, stable enough for the source line.
  */
 export async function ladeAusgabePdfFuer(
   konnektor: WochenblattKonnektor,
@@ -193,6 +229,7 @@ export async function ladeAusgabePdfFuer(
   options: AbrufOptionen
 ): Promise<GeladenesPdf> {
   if (konnektor === 'wordpress-archiv') return ladeAusgabePdf(seiteUrl, options)
+  if (konnektor === 'issuu') return ladeIssuuPdf(seiteUrl, options)
 
   const fetchImpl = options.fetchImpl ?? fetch
   const antwort = await fetchImpl(seiteUrl, {
@@ -210,7 +247,11 @@ export async function ladeAusgabePdfFuer(
     )
   }
 
-  const pdfUrl = findePdfLink(await antwort.text(), seiteUrl)
+  const seite = await antwort.text()
+  const pdfUrl =
+    konnektor === 'localpoint'
+      ? findeLocalpointPdf(seite)
+      : findePdfLink(seite, seiteUrl)
   if (pdfUrl === null) {
     throw new WochenblattFehler(
       'Kein PDF-Link auf der Ausgabenseite gefunden — hat sich der Seitenaufbau geaendert?',
@@ -221,9 +262,74 @@ export async function ladeAusgabePdfFuer(
   return ladeAusgabePdf(pdfUrl, options)
 }
 
+/**
+ * The original PDF behind an issuu reader page: document page → publicationId
+ * → the publisher-enabled download API → a signed S3 address.
+ *
+ * The returned `pdfUrl` is the READER page, not the download address: the
+ * signature expires within the hour, while the reader page is the stable
+ * address a source line can deep-link (`…/docs/<slug>/<seite>`).
+ */
+async function ladeIssuuPdf(
+  seiteUrl: string,
+  options: AbrufOptionen
+): Promise<GeladenesPdf> {
+  const fetchImpl = options.fetchImpl ?? fetch
+  const kopf = {
+    'User-Agent': buildUserAgent(options.kontakt)
+  }
+
+  const seite = await fetchImpl(seiteUrl, {
+    headers: { ...kopf, Accept: 'text/html' },
+    redirect: 'follow',
+    signal: AbortSignal.timeout(20_000)
+  })
+  if (!seite.ok) {
+    throw new WochenblattFehler(
+      `issuu-Dokumentseite antwortete mit ${seite.status}.`,
+      seiteUrl
+    )
+  }
+  const publicationId = findeIssuuPublicationId(await seite.text())
+  if (publicationId === null) {
+    throw new WochenblattFehler(
+      'Keine publicationId auf der issuu-Dokumentseite gefunden — hat sich der Seitenaufbau geaendert?',
+      seiteUrl
+    )
+  }
+
+  const input = encodeURIComponent(JSON.stringify({ json: { publicationId } }))
+  const auskunftUrl = `https://issuu.com/api/content-service/public.reader.download?input=${input}`
+  const auskunft = await fetchImpl(auskunftUrl, {
+    headers: { ...kopf, Accept: 'application/json' },
+    signal: AbortSignal.timeout(20_000)
+  })
+  if (!auskunft.ok) {
+    throw new WochenblattFehler(
+      `Die issuu-Download-Auskunft antwortete mit ${auskunft.status} — hat der Verlag den Download abgeschaltet?`,
+      seiteUrl
+    )
+  }
+  const antwort = (await auskunft.json()) as {
+    result?: { data?: { json?: { url?: unknown } } }
+  }
+  const downloadUrl = antwort.result?.data?.json?.url
+  if (typeof downloadUrl !== 'string' || !/^https:\/\//.test(downloadUrl)) {
+    throw new WochenblattFehler(
+      'Die issuu-Download-Auskunft nannte keine Download-Adresse — hat der Verlag den Download abgeschaltet?',
+      seiteUrl
+    )
+  }
+
+  const pdf = await ladeAusgabePdf(downloadUrl, options)
+  return { pdfUrl: seiteUrl, daten: pdf.daten }
+}
+
 export interface Textlayer {
   seiten: number
   text: string
+  /** One entry per page — the transport when the PDF outgrows an API request. */
+  seitenTexte: string[]
 }
 
 /**
@@ -233,6 +339,14 @@ export interface Textlayer {
  */
 export async function extrahiereText(daten: Buffer): Promise<Textlayer> {
   const pdf = await getDocumentProxy(new Uint8Array(daten))
-  const { totalPages, text } = await extractText(pdf, { mergePages: true })
-  return { seiten: totalPages, text }
+  const { totalPages, text } = await extractText(pdf, { mergePages: false })
+  // Un-space letter-spaced headers so the text-transport inventory can still
+  // read the municipality rubric; body prose is untouched, so the verbatim
+  // overlap check against `text` is unaffected.
+  const seitenTexte = text.map(entspreizeVersalien)
+  return {
+    seiten: totalPages,
+    text: seitenTexte.join('\n\n'),
+    seitenTexte
+  }
 }

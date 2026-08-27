@@ -5,10 +5,12 @@ import {
   fetchAusgabenliste,
   ladeAusgabePdfFuer,
   nummerAusDateiname,
+  nummerAusErsterSeite,
   waehleNeueAusgaben,
   type WochenblattKonnektor
 } from '../../shared/wochenblatt'
 import {
+  brauchtTextTransport,
   buildInventarMessages,
   INVENTAR_SCHEMA,
   INVENTAR_SYSTEM_PROMPT,
@@ -16,6 +18,7 @@ import {
   parseInventar,
   type FaehrtenUrteil,
   type GemeindeKorrektur,
+  type InventarQuelle,
   type LernEintrag
 } from '../../redaktion/presseschau'
 import { optionalEnv } from '../../shared/env'
@@ -130,7 +133,9 @@ export default defineOperationApi<Optionen>({
     for (const blatt of blaetter) {
       if (
         blatt.konnektor !== 'wordpress-archiv' &&
-        blatt.konnektor !== 'lokalzeitungen'
+        blatt.konnektor !== 'lokalzeitungen' &&
+        blatt.konnektor !== 'issuu' &&
+        blatt.konnektor !== 'localpoint'
       ) {
         logger.warn(
           `wochenblatt: Konnektor "${blatt.konnektor}" hat keinen Leser — ${blatt.name} uebersprungen`
@@ -211,8 +216,13 @@ export default defineOperationApi<Optionen>({
         )
         const layer = await extrahiereText(pdf.daten)
         // Date-keyed archives do not state the printed number, but the PDF's
-        // own filename does (RZ-KW34-2026.pdf) — the attribution wants it.
-        const nummer = eintrag.nummer ?? nummerAusDateiname(pdf.pdfUrl)
+        // own filename does (RZ-KW34-2026.pdf) — and where the filename says
+        // nothing either (Localpoint's are UUIDs), the front page prints it
+        // ("BIBO NR. 35"). The attribution wants it; null stays honest.
+        const nummer =
+          eintrag.nummer ??
+          nummerAusDateiname(pdf.pdfUrl) ??
+          nummerAusErsterSeite(layer.seitenTexte[0] ?? '')
 
         const { Readable } = await import('node:stream')
         const dateiId = await files.uploadOne(Readable.from(pdf.daten), {
@@ -243,7 +253,7 @@ export default defineOperationApi<Optionen>({
             nummer,
             eintrag.datum,
             pdf.daten,
-            layer.seiten
+            layer
           )
           ergebnis.kandidaten += anzahl
           ergebnis.hinweise.push(
@@ -262,23 +272,30 @@ export default defineOperationApi<Optionen>({
       }
     }
 
-    /** One Opus call over the PDF, steered by what the newsroom decided before. */
+    /** One Opus call over the issue, steered by what the newsroom decided before. */
     async function inventarisiere(
       blatt: BlattZeile,
       ausgabeId: string,
       nummer: string | null,
       datum: string | null,
       pdfDaten: Buffer,
-      seiten: number
+      layer: { seiten: number; seitenTexte: string[] }
     ): Promise<number> {
       const abdeckung = abdeckungVon(blatt)
       const gemeindeIds = new Map(abdeckung.map((g) => [g.name, g.id]))
       const digest = lernDigest(...(await ladeLernSignale(blatt.id)))
+      const seiten = layer.seiten
+
+      // A file past the API's request limit travels as its text layer — the
+      // page headers carry the rubric, so nothing the assignment needs is lost.
+      const quelle: InventarQuelle = brauchtTextTransport(pdfDaten.length)
+        ? { art: 'seitentexte', seitenTexte: layer.seitenTexte }
+        : { art: 'pdf', base64: pdfDaten.toString('base64') }
 
       const antwort = await completeChatJson<unknown>({
         system: INVENTAR_SYSTEM_PROMPT,
         messages: buildInventarMessages(
-          pdfDaten.toString('base64'),
+          quelle,
           {
             name: blatt.name,
             gemeinden: abdeckung.map((g) => g.name),

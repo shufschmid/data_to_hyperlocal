@@ -252,6 +252,211 @@ export function findePdfLink(html: string, basisUrl: string): string | null {
 }
 
 /**
+ * Every issue link of an issuu e-paper listing, in source order.
+ *
+ * The Wochenblatt für das Birseck lists its issues as plain links to
+ * `issuu.com/az-anzeiger/docs/<slug>`, newest first, and the slug carries
+ * everything: `35_20260827_woz_wobanz` is Nr. 35 of 2026-08-27, a double
+ * issue reads `30-31_20260723_…`. The printed number doubles as the calendar
+ * week, so the canonical key is the same `kwNN-YYYY` the WordPress archive
+ * produces.
+ */
+export function parseIssuuEpaper(html: string): ArchivEintrag[] {
+  const eintraege: ArchivEintrag[] = []
+  const gesehen = new Set<string>()
+
+  const anker = /<a\s[^>]*href="([^"]+)"[^>]*>/gi
+  let treffer: RegExpExecArray | null
+  while ((treffer = anker.exec(html)) !== null) {
+    let url: URL
+    try {
+      url = new URL(treffer[1] ?? '')
+    } catch {
+      continue
+    }
+    if (!/(^|\.)issuu\.com$/i.test(url.host)) continue
+
+    const pfad = /^\/([^/]+)\/docs\/([^/]+)$/.exec(
+      url.pathname.replace(/\/$/, '')
+    )
+    if (pfad === null) continue
+    const slug = pfad[2] ?? ''
+
+    const teile = /^(\d{1,2})(?:-(\d{1,2}))?_(20\d{2})(\d{2})(\d{2})_/.exec(
+      slug
+    )
+    if (teile === null) continue
+    const kw = Number(teile[1])
+    if (kw < 1 || kw > 53) continue
+    const iso = `${teile[3]}-${teile[4]}-${teile[5]}`
+    const datum = new Date(`${iso}T00:00:00Z`)
+    if (
+      Number.isNaN(datum.getTime()) ||
+      datum.toISOString().slice(0, 10) !== iso
+    ) {
+      continue
+    }
+    const jahr = Number(teile[3])
+
+    if (gesehen.has(slug)) continue
+    gesehen.add(slug)
+
+    eintraege.push({
+      slug,
+      schluessel: `kw${String(kw).padStart(2, '0')}-${jahr}`,
+      nummer: teile[2] === undefined ? String(kw) : `${kw}/${Number(teile[2])}`,
+      datum: iso,
+      // The reader page, https enforced (the listing links `http://`) and the
+      // embed query stripped — this address is also what a Meldung's source
+      // line deep-links into, as `…/docs/<slug>/<seite>`.
+      seiteUrl: `https://issuu.com/${pfad[1]}/docs/${slug}`,
+      kw,
+      jahr
+    })
+  }
+
+  return eintraege
+}
+
+/**
+ * The document id an issuu reader page carries in its script payload — the
+ * only key the publisher-enabled download API needs. Exactly one occurrence
+ * on a real document page; null when the page shape changed.
+ */
+export function findeIssuuPublicationId(html: string): string | null {
+  return (
+    /\\?"publicationId\\?":\s*\\?"([0-9a-f]{32})\\?"/.exec(html)?.[1] ?? null
+  )
+}
+
+/**
+ * Every issue of a Localpoint-CMS e-paper listing, in source order.
+ *
+ * The BiBo (Birsigtal-Bote) runs on Localpoint's CMS: the listing page embeds
+ * its issues as JSON in `<script id="data-epapers">` — `name` is the issue
+ * date as `DD.MM.YYYY`, `unique_id` identifies the document. The reader lives
+ * at `/bcms/read_epaper?id={jahr}/{datum-iso}-{unique_id}` on the same host.
+ * The printed number is not in the listing; it is read off the front page's
+ * text layer once the PDF is downloaded (`nummerAusErsterSeite`).
+ */
+export function parseLocalpointEpaper(
+  html: string,
+  basisUrl: string
+): ArchivEintrag[] {
+  const basis = new URL(basisUrl)
+  const block = /<script[^>]*id="data-epapers"[^>]*>([\s\S]*?)<\/script>/i.exec(
+    html
+  )
+  if (block === null) return []
+
+  let roh: unknown
+  try {
+    roh = JSON.parse(block[1] ?? '')
+  } catch {
+    return []
+  }
+  if (!Array.isArray(roh)) return []
+
+  const eintraege: ArchivEintrag[] = []
+  const gesehen = new Set<string>()
+
+  for (const item of roh) {
+    if (typeof item !== 'object' || item === null) continue
+    const e = item as Record<string, unknown>
+    const name = typeof e.name === 'string' ? e.name : ''
+    const uniqueId = typeof e.unique_id === 'string' ? e.unique_id : ''
+    const datumTeile = /^(\d{2})\.(\d{2})\.(20\d{2})$/.exec(name)
+    if (datumTeile === null || uniqueId === '') continue
+
+    const iso = `${datumTeile[3]}-${datumTeile[2]}-${datumTeile[1]}`
+    const kanon = normalisiereSchluessel(iso)
+    if (kanon === null) continue
+
+    const slug = `${iso}-${uniqueId}`
+    if (gesehen.has(slug)) continue
+    gesehen.add(slug)
+
+    eintraege.push({
+      slug,
+      schluessel: kanon.schluessel,
+      nummer: null,
+      datum: iso,
+      seiteUrl: `${basis.origin}/bcms/read_epaper?id=${kanon.jahr}/${slug}`,
+      kw: kanon.kw,
+      jahr: kanon.jahr
+    })
+  }
+
+  return eintraege
+}
+
+/**
+ * The original PDF behind a Localpoint reader page.
+ *
+ * The reader page embeds an iframe on `epaper.blitzbucket.com/p/{pub}/{jahr}/
+ * {datei}`, and the reader's own download button opens
+ * `files.localpoint.ch/pdf/{pub}/{jahr}/{datei}.pdf` — the same coordinates,
+ * so the address is derived, never guessed. Null when the page shape changed.
+ */
+export function findeLocalpointPdf(html: string): string | null {
+  const treffer =
+    /https:\/\/epaper\.blitzbucket\.com\/p\/([\w-]+)\/(\d{4})\/([\w-]+)/.exec(
+      html
+    )
+  if (treffer === null) return null
+  return `https://files.localpoint.ch/pdf/${treffer[1]}/${treffer[2]}/${treffer[3]}.pdf`
+}
+
+/**
+ * The printed issue number, read off the front page's text layer.
+ *
+ * Localpoint listings never state it, but the front page prints it in the
+ * head ("BIBO NR. 35 | 82. JAHRGANG"). Null when the page says nothing —
+ * the attribution then falls back to the issue date, never to a guess.
+ */
+export function nummerAusErsterSeite(text: string): string | null {
+  const treffer = /\bNr\.\s?(\d{1,2})\b/i.exec(text.slice(0, 600))
+  if (treffer === null) return null
+  const nummer = Number(treffer[1])
+  return nummer >= 1 && nummer <= 53 ? String(nummer) : null
+}
+
+/**
+ * Un-space letter-spaced ALL-CAPS runs from a PDF text layer.
+ *
+ * InDesign sets section headers and kickers with wide letter-spacing, and the
+ * text layer preserves it: the Wochenblatt für das Birseck prints its
+ * municipality rubric as "R E I N AC H", "M Ü NC H E N S T E I N". When the
+ * issue travels to the inventory as text (too large for a document block),
+ * that garble hides exactly the signal the municipality assignment needs — so
+ * a run of four or more short uppercase tokens is collapsed back into a word.
+ * Body prose (lower-case, longer words) is left untouched.
+ */
+export function entspreizeVersalien(text: string): string {
+  return text.replace(
+    /(?<![A-Za-zÄÖÜäöü])(?:[A-ZÄÖÜ]{1,3} ){3,}[A-ZÄÖÜ]{1,3}(?![A-Za-zÄÖÜäöü])/g,
+    (lauf) => lauf.replace(/ /g, '')
+  )
+}
+
+/**
+ * The link a source line uses for one page of an issue.
+ *
+ * A PDF address takes the `#page=N` viewer fragment; an issuu reader address
+ * takes the page as a path segment — its viewer ignores fragments.
+ */
+export function seitenLink(pdfUrl: string, seite: number): string {
+  try {
+    if (/(^|\.)issuu\.com$/i.test(new URL(pdfUrl).host)) {
+      return `${pdfUrl.replace(/\/$/, '')}/${seite}`
+    }
+  } catch {
+    // Not a parseable URL — the fragment form is the harmless default.
+  }
+  return `${pdfUrl}#page=${seite}`
+}
+
+/**
  * The printed issue number, read off the PDF's own filename.
  *
  * Date-keyed archives never state it, but the paper's file does:

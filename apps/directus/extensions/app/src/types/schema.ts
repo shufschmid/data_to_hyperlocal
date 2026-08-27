@@ -471,7 +471,7 @@ export interface Wochenblatt {
   /** The public issue archive. Only this page is ever read; URLs are never guessed. */
   archiv_url: string
   /** Which parser reads the archive — the next paper with a different layout gets its own value. */
-  konnektor: 'wordpress-archiv' | 'lokalzeitungen'
+  konnektor: 'wordpress-archiv' | 'lokalzeitungen' | 'issuu' | 'localpoint'
   aktiv: boolean
   letzte_pruefung: string | null
   letzter_fehler: string | null

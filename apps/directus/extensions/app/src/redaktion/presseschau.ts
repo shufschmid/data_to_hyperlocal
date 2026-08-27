@@ -12,6 +12,7 @@
 // the issue's text layer — the check that tells "own words" from copying.
 
 import type Anthropic from '@anthropic-ai/sdk'
+import { seitenLink } from '../shared/wochenblatt/parse'
 import type {
   Ablehnungsgrund,
   KandidatEntscheid,
@@ -70,11 +71,21 @@ Je Kandidat:
   Wesentliche drinstehen. Uebernimm keine ganzen Saetze des Blatts.
 - Daten absolut ("am 26. August 2026"), nie relativ.
 
-Gemeinde-Zuordnung: Der Auftrag nennt die Gemeinden, die das Blatt abdeckt.
-Ordne JEDEN Kandidaten genau einer davon zu ("gemeinde"). Massgeblich ist der
-Gemeinde-Index oben links auf der Seite; wo er fehlt (etwa auf der Front),
-entscheide am Inhalt. Laesst es sich nicht entscheiden, nimm die erstgenannte
-Gemeinde und benenne die Unsicherheit in "hinweise".
+Gemeinde-Zuordnung: Der Auftrag nennt die Gemeinden, fuer die die Redaktion
+arbeitet — NICHT alle Gemeinden, die das Blatt abdeckt. Ein Blatt deckt oft
+mehr Gemeinden ab (Nachbargemeinden), die uns nichts angehen.
+- Massgeblich ist der Rubrik-Kopf der Seite (oben, meist der Gemeindename in
+  Grossbuchstaben, z.B. "ARLESHEIM", "MUENCHENSTEIN"). Nennt er eine Gemeinde
+  AUS DEM AUFTRAG, ordne den Beitrag ihr zu.
+- Nennt der Rubrik-Kopf eine Gemeinde, die NICHT im Auftrag steht (eine
+  Nachbargemeinde wie z.B. Reinach oder Oberwil, wenn diese nicht genannt
+  sind), gehoert die GANZE Seite nicht zu unserem Gebiet: lass alle ihre
+  Beitraege weg — oder, falls du einen dennoch auffuehrst, setze "gemeinde"
+  auf den FREMDEN Gemeindenamen, wie er im Kopf steht. Ordne solche Beitraege
+  NIE einer Auftrags-Gemeinde zu — das waere falsch.
+- Nur wo ein Rubrik-Kopf fehlt (etwa auf der Front), entscheide am Inhalt; auch
+  dann zaehlt nur, was eine Auftrags-Gemeinde betrifft. Bleibt es unklar, nimm
+  die erstgenannte Auftrags-Gemeinde und benenne die Unsicherheit in "hinweise".
 
 Geburtstags- und Jubilaeums-Portraets sind nur Kandidaten, wenn die
 Lebensgeschichte selbst berichtenswert ist (eine Stadtmeisterin, eine
@@ -262,11 +273,30 @@ export function lernDigest(
 }
 
 /**
- * The one user turn of the inventory: the PDF first, then who and what this
- * is, then what the newsroom taught us so far.
+ * How the issue reaches the inventory call: as the PDF itself, or — when the
+ * file outgrows an API request — as its text layer, page by page.
+ */
+export type InventarQuelle =
+  | { art: 'pdf'; base64: string }
+  | { art: 'seitentexte'; seitenTexte: readonly string[] }
+
+/**
+ * Past this, the PDF stays home and the text layer travels: the API takes 32
+ * MB per request, base64 inflates by a third, and issuu originals measure up
+ * to 34 MB. Code decides the transport — never the model, never a retry.
+ */
+export const INVENTAR_PDF_MAX_BYTES = 20 * 1024 * 1024
+
+export function brauchtTextTransport(pdfBytes: number): boolean {
+  return pdfBytes > INVENTAR_PDF_MAX_BYTES
+}
+
+/**
+ * The one user turn of the inventory: the issue first (PDF or page texts),
+ * then who and what this is, then what the newsroom taught us so far.
  */
 export function buildInventarMessages(
-  pdfBase64: string,
+  quelle: InventarQuelle,
   blatt: {
     name: string
     /** Covered municipalities, main one first — the assignment's answer set. */
@@ -285,18 +315,34 @@ export function buildInventarMessages(
     ` des "${blatt.name}" (${abdeckung})` +
     `${blatt.datum === null ? '' : ` vom ${blatt.datum}`}.`
 
-  return [
-    {
-      role: 'user',
-      content: [
-        {
+  const ausgabe: Anthropic.ContentBlockParam =
+    quelle.art === 'pdf'
+      ? {
           type: 'document',
           source: {
             type: 'base64',
             media_type: 'application/pdf',
-            data: pdfBase64
+            data: quelle.base64
           }
-        },
+        }
+      : {
+          type: 'text',
+          text: [
+            'Von dieser Ausgabe liegt nur der Textlayer vor (das PDF ist zu',
+            'gross fuer die Anfrage) — keine Bilder. Fotoberichte erkennst du',
+            'an Bildlegenden und Fototexten.',
+            '',
+            ...quelle.seitenTexte.map(
+              (text, i) => `--- Seite ${i + 1} ---\n${text}`
+            )
+          ].join('\n')
+        }
+
+  return [
+    {
+      role: 'user',
+      content: [
+        ausgabe,
         {
           type: 'text',
           text: [
@@ -365,22 +411,30 @@ export function parseInventar(
   // Case-insensitive lookup back to OUR canonical spelling — the model's
   // claim is matched against the handed list, never trusted verbatim.
   const gemeindeKanon = new Map(gemeinden.map((g) => [g.toLowerCase(), g]))
-  const ordneGemeindeZu = (
-    wert: unknown,
-    titel: string,
-    still: boolean
-  ): string => {
+  // Returns the canonical covered municipality, or null when the candidate
+  // does not belong to any of them.
+  //
+  // A paper often covers neighbouring municipalities we do NOT report on (the
+  // Wochenblatt für das Birseck carries whole Reinach and Dornach sections;
+  // the BiBo covers four municipalities of which only Bottmingen is ours). A
+  // candidate the model files under a FOREIGN name is always dropped, never
+  // refiled under the nearest covered municipality — that misfiling is the
+  // exact bug this guards. An UNNAMED candidate is dropped only when several
+  // covered municipalities compete; with a single one there is no ambiguity.
+  const ordneGemeindeZu = (wert: unknown, titel: string): string | null => {
     const name =
       typeof wert === 'string'
         ? gemeindeKanon.get(wert.trim().toLowerCase())
         : undefined
     if (name !== undefined) return name
-    if (!still && gemeinden.length > 1) {
-      hinweise.push(
-        `"${titel}": Gemeinde ${typeof wert === 'string' ? `"${wert}" nicht in der Abdeckung` : 'nicht zugeordnet'} — der Hauptgemeinde ${hauptGemeinde} zugeteilt, bitte pruefen.`
-      )
-    }
-    return hauptGemeinde
+
+    const benannt = typeof wert === 'string' && wert.trim() !== ''
+    if (!benannt && gemeinden.length <= 1) return hauptGemeinde
+
+    hinweise.push(
+      `"${titel}": ${benannt ? `Gemeinde "${String(wert).trim()}" gehoert nicht zum Gebiet` : 'keine Gemeinde aus dem Gebiet'} — nicht aufgenommen.`
+    )
+    return null
   }
 
   const kandidaten: InventarKandidat[] = []
@@ -408,7 +462,8 @@ export function parseInventar(
       continue
     }
 
-    const gemeinde = ordneGemeindeZu(e.gemeinde, titel, false)
+    const gemeinde = ordneGemeindeZu(e.gemeinde, titel)
+    if (gemeinde === null) continue
 
     let seite =
       typeof e.seite === 'number' && Number.isInteger(e.seite) ? e.seite : null
@@ -491,7 +546,7 @@ export interface PresseschauFakten {
   typ: KandidatTyp
   frontseite: boolean
   zusammenfassung: string
-  /** Resolved PDF address for the source line; `#page=N` is appended in code. */
+  /** Resolved PDF or reader address for the source line; the page link is appended in code. */
   pdfUrl: string | null
 }
 
@@ -579,15 +634,15 @@ export function buildPresseschauRevision(
 /**
  * The source line, appended by code — never left to the model.
  *
- * `#page=N` opens the browser's PDF viewer straight on the piece, which is why
- * the resolved PDF address is used and not the archive page: its redirect can
- * lose the fragment.
+ * The page link opens the reader straight on the piece: `#page=N` for a PDF
+ * viewer, a path segment for an issuu reader (see `seitenLink`). The resolved
+ * address is used and not the archive page, whose redirect can lose it.
  */
 export function quelleZeile(fakten: PresseschauFakten): string {
   const kopf = `Quelle: ${fakten.blatt} Nr. ${fakten.nummer}`
   if (fakten.pdfUrl === null) return kopf
-  const fragment = fakten.seite === null ? '' : `#page=${fakten.seite}`
-  return `${kopf}, ${fakten.pdfUrl}${fragment}`
+  if (fakten.seite === null) return `${kopf}, ${fakten.pdfUrl}`
+  return `${kopf}, ${seitenLink(fakten.pdfUrl, fakten.seite)}`
 }
 
 /** Model text plus the deterministic source line — shared by write and revision. */
@@ -604,8 +659,12 @@ export function attributionsWarnung(
   text: string,
   fakten: Pick<PresseschauFakten, 'blatt' | 'nummer'>
 ): string | null {
-  const klein = text.toLowerCase()
-  const blattDa = klein.includes(fakten.blatt.toLowerCase())
+  // NFC on both sides: the paper's name comes from the database and the text
+  // from the model, and an umlaut can be precomposed ("ü") in one and
+  // decomposed ("u" + combining diaeresis) in the other — a mismatch that
+  // reads identically but fails a raw `includes`.
+  const klein = text.normalize('NFC').toLowerCase()
+  const blattDa = klein.includes(fakten.blatt.normalize('NFC').toLowerCase())
   const nummerDa = new RegExp(
     `nr\\.?\\s*${fakten.nummer.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}`,
     'i'
@@ -649,6 +708,7 @@ export function zahlWarnungenPresseschau(
 
 function worte(text: string): string[] {
   return text
+    .normalize('NFC')
     .toLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim()

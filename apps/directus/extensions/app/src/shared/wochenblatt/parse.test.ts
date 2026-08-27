@@ -2,13 +2,20 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
+  entspreizeVersalien,
+  findeIssuuPublicationId,
+  findeLocalpointPdf,
   findePdfLink,
   istNeuer,
   normalisiereSchluessel,
   nummerAusDateiname,
+  nummerAusErsterSeite,
   parseArchiv,
   parseDeutschesDatum,
+  parseIssuuEpaper,
+  parseLocalpointEpaper,
   parseLokalzeitungen,
+  seitenLink,
   waehleNeueAusgaben,
   type ArchivEintrag
 } from './parse'
@@ -208,6 +215,194 @@ describe('nummerAusDateiname', () => {
     expect(
       nummerAusDateiname('https://example.ch/zeitung-august.pdf')
     ).toBeNull()
+  })
+})
+
+// The third connector: the Wochenblatt für das Birseck, whose e-paper page
+// lists issuu readers. Saved 2026-08-27; the slugs carry number and date, a
+// double issue reads `30-31_20260723_…`.
+const WOB_EPAPER = readFileSync(
+  join(__dirname, 'fixtures', 'birseck-epaper.html'),
+  'utf8'
+)
+const WOB_DOKUMENT = readFileSync(
+  join(__dirname, 'fixtures', 'birseck-issuu-dokument.html'),
+  'utf8'
+)
+
+describe('parseIssuuEpaper', () => {
+  const archiv = parseIssuuEpaper(WOB_EPAPER)
+
+  it('findet die Ausgaben in Quellreihenfolge, neueste zuerst', () => {
+    expect(archiv.length).toBeGreaterThan(5)
+    expect(archiv[0]?.schluessel).toBe('kw35-2026')
+    expect(archiv[1]?.schluessel).toBe('kw34-2026')
+  })
+
+  it('liest Nummer und Datum aus dem Slug', () => {
+    expect(archiv[0]?.nummer).toBe('35')
+    expect(archiv[0]?.datum).toBe('2026-08-27')
+    expect(archiv[0]?.jahr).toBe(2026)
+    expect(archiv[0]?.kw).toBe(35)
+  })
+
+  it('erzwingt https und streift die Embed-Query ab', () => {
+    // Die Listenseite verlinkt `http://…?mode=embed&layout=white`; die
+    // Quelle-Zeile braucht die nackte Reader-Adresse.
+    expect(archiv[0]?.seiteUrl).toBe(
+      'https://issuu.com/az-anzeiger/docs/35_20260827_woz_wobanz'
+    )
+  })
+
+  it('behaelt bei Doppelnummern beide Wochen im Nummerntext', () => {
+    const doppel = archiv.find((a) => a.schluessel === 'kw30-2026')
+    expect(doppel?.nummer).toBe('30/31')
+    expect(doppel?.datum).toBe('2026-07-23')
+    expect(doppel?.kw).toBe(30)
+  })
+
+  it('laesst fremde Links aus und dedupliziert', () => {
+    const slugs = archiv.map((a) => a.slug)
+    expect(new Set(slugs).size).toBe(slugs.length)
+    for (const a of archiv) {
+      // Auch hier gibt es Slug-Unfaelle (`…_woz_wobanz-7`) — die Identitaet
+      // traegt der Prefix aus Nummer und Datum, nicht das Suffix.
+      expect(a.slug).toMatch(/^\d{1,2}(-\d{1,2})?_20\d{6}_/)
+    }
+  })
+})
+
+describe('findeIssuuPublicationId', () => {
+  it('liest die publicationId aus dem Script-Payload der Dokumentseite', () => {
+    expect(findeIssuuPublicationId(WOB_DOKUMENT)).toBe(
+      'e88edd6aec66678064079d93a578d934'
+    )
+  })
+
+  it('gibt null zurueck, wenn die Seite keine traegt', () => {
+    expect(findeIssuuPublicationId('<html>Seite ohne Reader</html>')).toBeNull()
+  })
+})
+
+describe('entspreizeVersalien', () => {
+  it('entsperrt buchstabengesperrte Rubrik-Koepfe zu Gemeindenamen', () => {
+    // Genau die Form, in der das Wochenblatt fuer das Birseck seine Rubriken
+    // in den Textlayer schreibt — hier scheiterte die Gemeinde-Zuordnung.
+    expect(entspreizeVersalien('WochenBlatt R E I N AC H ANZEIGE')).toContain(
+      'REINACH'
+    )
+    expect(
+      entspreizeVersalien('M Ü NC H E N S T E I N Die Stiftung Hofmatt')
+    ).toBe('MÜNCHENSTEIN Die Stiftung Hofmatt')
+    expect(
+      entspreizeVersalien('A E S C H U N D PF E F F I NGE N MITTEILUNGEN')
+    ).toContain('AESCHUNDPFEFFINGEN')
+    expect(
+      entspreizeVersalien('D OR N AC H U N D D OR N E C K BE RG WochenBlatt')
+    ).toContain('DORNACHUNDDORNECKBERG')
+  })
+
+  it('laesst Fliesstext und einzelne Abkuerzungen unangetastet', () => {
+    const text = 'Fliesstext mit Michael Klaiber, die BLT und die ABB AG.'
+    expect(entspreizeVersalien(text)).toBe(text)
+  })
+})
+
+describe('seitenLink', () => {
+  it('haengt bei PDFs das Viewer-Fragment an', () => {
+    expect(seitenLink('https://example.ch/zeitung.pdf', 3)).toBe(
+      'https://example.ch/zeitung.pdf#page=3'
+    )
+  })
+
+  it('haengt bei issuu-Readern die Seite als Pfadsegment an', () => {
+    expect(
+      seitenLink(
+        'https://issuu.com/az-anzeiger/docs/35_20260827_woz_wobanz',
+        19
+      )
+    ).toBe('https://issuu.com/az-anzeiger/docs/35_20260827_woz_wobanz/19')
+  })
+})
+
+describe('waehleNeueAusgaben mit issuu-Eintraegen', () => {
+  const archiv = parseIssuuEpaper(WOB_EPAPER)
+
+  it('nimmt beim Erstlauf genau die neueste Ausgabe', () => {
+    expect(waehleNeueAusgaben(archiv, []).map((a) => a.schluessel)).toEqual([
+      'kw35-2026'
+    ])
+  })
+
+  it('erkennt Neueres an der Woche im Slug', () => {
+    expect(
+      waehleNeueAusgaben(archiv, ['kw34-2026']).map((a) => a.schluessel)
+    ).toEqual(['kw35-2026'])
+    expect(waehleNeueAusgaben(archiv, ['kw35-2026'])).toEqual([])
+  })
+})
+
+// The fourth connector: the BiBo (Birsigtal-Bote) on Localpoint's CMS, saved
+// 2026-08-27. The listing page embeds its issues as JSON; the reader page
+// carries the blitzbucket iframe the PDF address is derived from.
+const BIBO_EPAPER = readFileSync(
+  join(__dirname, 'fixtures', 'bibo-epaper.html'),
+  'utf8'
+)
+const BIBO_READER = readFileSync(
+  join(__dirname, 'fixtures', 'bibo-reader.html'),
+  'utf8'
+)
+
+describe('parseLocalpointEpaper', () => {
+  const archiv = parseLocalpointEpaper(BIBO_EPAPER, 'https://bibo.ch/epaper')
+
+  it('liest die eingebettete Ausgabenliste, neueste zuerst', () => {
+    expect(archiv.length).toBeGreaterThan(100)
+    expect(archiv[0]?.schluessel).toBe('2026-08-27')
+    expect(archiv[0]?.datum).toBe('2026-08-27')
+    expect(archiv[1]?.schluessel).toBe('2026-08-20')
+  })
+
+  it('baut die Reader-Adresse aus Jahr, Datum und unique_id', () => {
+    expect(archiv[0]?.seiteUrl).toBe(
+      'https://bibo.ch/bcms/read_epaper?id=2026/2026-08-27-9228fa61-cee0-4be7-9e73-0b5c4a5c81cf'
+    )
+    // Die gedruckte Nummer steht nicht in der Liste — sie kommt spaeter von
+    // der Frontseite des PDFs.
+    expect(archiv[0]?.nummer).toBeNull()
+  })
+
+  it('gibt fuer Seiten ohne eingebettete Liste eine leere Liste zurueck', () => {
+    expect(
+      parseLocalpointEpaper('<html></html>', 'https://bibo.ch/epaper')
+    ).toEqual([])
+  })
+})
+
+describe('findeLocalpointPdf', () => {
+  it('leitet die PDF-Adresse aus den Koordinaten des Reader-iframes ab', () => {
+    expect(findeLocalpointPdf(BIBO_READER)).toBe(
+      'https://files.localpoint.ch/pdf/bib/2026/2026-08-27-9228fa61-cee0-4be7-9e73-0b5c4a5c81cf.pdf'
+    )
+  })
+
+  it('gibt null zurueck, wenn kein Reader-iframe da ist', () => {
+    expect(findeLocalpointPdf('<html>nichts</html>')).toBeNull()
+  })
+})
+
+describe('nummerAusErsterSeite', () => {
+  it('liest die gedruckte Nummer aus dem Kopf der Frontseite', () => {
+    expect(
+      nummerAusErsterSeite(
+        'AMTLICHER ANZEIGER FÜR DAS BIRSIGTAL GZA 2012 BASEL | BIBO NR. 35 | 82. JAHRGANG'
+      )
+    ).toBe('35')
+  })
+
+  it('raet nicht, wenn die Frontseite nichts sagt', () => {
+    expect(nummerAusErsterSeite('Eine Seite ohne Nummer im Kopf.')).toBeNull()
   })
 })
 

@@ -55,6 +55,7 @@ import {
 import { heuteIso } from '../../redaktion/feiertage'
 import {
   attributionsWarnung,
+  brauchtTextTransport,
   buildInventarMessages,
   buildPresseschauPrompt,
   buildPresseschauRevision,
@@ -69,10 +70,12 @@ import {
   zahlWarnungenPresseschau,
   type FaehrtenUrteil,
   type GemeindeKorrektur,
+  type InventarQuelle,
   type LernEintrag,
   type PresseschauFakten
 } from '../../redaktion/presseschau'
 import {
+  extrahiereText,
   fetchAusgabenliste,
   type WochenblattKonnektor
 } from '../../shared/wochenblatt'
@@ -447,12 +450,20 @@ export default defineEndpoint(
         }
 
         // The platform decides the parser: lokalzeitungen.ch pages carry one
-        // "/ausgabe/…-DD-MM-YYYY/" link, everything else is read as a
-        // WordPress archive list. A third platform gets its own value here.
+        // "/ausgabe/…-DD-MM-YYYY/" link, wochenblatt.ch lists issuu readers
+        // (the PDF comes through issuu's publisher-enabled download API),
+        // bibo.ch runs on Localpoint's CMS (issue list embedded as JSON, the
+        // PDF on files.localpoint.ch), everything else is read as a WordPress
+        // archive list. A fifth platform gets its own value here.
+        const host = new URL(archivUrl).host
         const konnektor: WochenblattKonnektor =
-          /(^|\.)lokalzeitungen\.ch$/i.test(new URL(archivUrl).host)
+          /(^|\.)lokalzeitungen\.ch$/i.test(host)
             ? 'lokalzeitungen'
-            : 'wordpress-archiv'
+            : /(^|\.)wochenblatt\.ch$/i.test(host)
+              ? 'issuu'
+              : /(^|\.)bibo\.ch$/i.test(host)
+                ? 'localpoint'
+                : 'wordpress-archiv'
 
         // Read the archive BEFORE writing anything: a mistyped address should
         // fail the form, not become a row that errors every morning at nine.
@@ -601,10 +612,19 @@ export default defineEndpoint(
             }
             const gemeindeIds = new Map(abdeckung.map((g) => [g.name, g.id]))
 
+            // Same transport rule as the 09:00 run: a file past the API's
+            // request limit travels as its text layer, page by page.
+            const quelle: InventarQuelle = brauchtTextTransport(pdfDaten.length)
+              ? {
+                  art: 'seitentexte',
+                  seitenTexte: (await extrahiereText(pdfDaten)).seitenTexte
+                }
+              : { art: 'pdf', base64: pdfDaten.toString('base64') }
+
             const antwort = await completeChatJson<unknown>({
               system: INVENTAR_SYSTEM_PROMPT,
               messages: buildInventarMessages(
-                pdfDaten.toString('base64'),
+                quelle,
                 {
                   name: ausgabe.wochenblatt.name,
                   gemeinden: abdeckung.map((g) => g.name),

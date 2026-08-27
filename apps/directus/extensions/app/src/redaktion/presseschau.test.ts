@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
   attributionsWarnung,
+  brauchtTextTransport,
   buildInventarMessages,
   buildPresseschauPrompt,
   buildPresseschauRevision,
+  INVENTAR_PDF_MAX_BYTES,
   lernDigest,
   mitQuelle,
   parseInventar,
@@ -84,14 +86,17 @@ describe('parseInventar', () => {
     expect(inventar.kandidaten).toHaveLength(1)
   })
 
-  it('prueft die Gemeinde gegen die Abdeckung — und teilt Unklares der Hauptgemeinde zu', () => {
-    // Der Muttenzer & Prattler Anzeiger deckt zwei Gemeinden ab. Eine Behaup-
-    // tung ausserhalb der Abdeckung wird nicht geglaubt, sondern benannt.
+  it('prueft die Gemeinde gegen die Abdeckung und sortiert Fremdes aus', () => {
+    // Bei mehreren abgedeckten Gemeinden wird ein Beitrag einer fremden
+    // Gemeinde (das Blatt deckt auch Nachbargemeinden ab) NICHT der naechsten
+    // Auftrags-Gemeinde zugeschlagen, sondern weggelassen — genau der Fehler,
+    // der beim Wochenblatt fuer das Birseck auftrat.
     const inventar = parseInventar(
       {
         kandidaten: [
           { ...KANDIDAT, titel: 'Prattler Sache', gemeinde: 'pratteln' },
-          { ...KANDIDAT, titel: 'Fremde Sache', gemeinde: 'Basel' }
+          { ...KANDIDAT, titel: 'Fremde Sache', gemeinde: 'Basel' },
+          { ...KANDIDAT, titel: 'Ohne Gemeinde', gemeinde: null }
         ],
         recherchehinweise: [],
         hinweise: []
@@ -100,9 +105,45 @@ describe('parseInventar', () => {
       ['Muttenz', 'Pratteln']
     )
 
+    expect(inventar.kandidaten).toHaveLength(1)
     expect(inventar.kandidaten[0]?.gemeinde).toBe('Pratteln')
-    expect(inventar.kandidaten[1]?.gemeinde).toBe('Muttenz')
-    expect(inventar.hinweise[0]).toContain('"Basel" nicht in der Abdeckung')
+    expect(inventar.hinweise.join(' ')).toContain(
+      '"Basel" gehoert nicht zum Gebiet'
+    )
+    expect(inventar.hinweise.join(' ')).toContain(
+      'keine Gemeinde aus dem Gebiet'
+    )
+  })
+
+  it('behaelt bei einem Ein-Gemeinde-Blatt den Fallback auf die Gemeinde', () => {
+    // Ein Blatt mit nur einer abgedeckten Gemeinde hat keine Mehrdeutigkeit —
+    // ein unbenannter Kandidat bleibt bei ihr, statt zu verschwinden.
+    const inventar = parseInventar(
+      { kandidaten: [{ ...KANDIDAT, gemeinde: null }], hinweise: [] },
+      16,
+      EINE_GEMEINDE
+    )
+    expect(inventar.kandidaten).toHaveLength(1)
+    expect(inventar.kandidaten[0]?.gemeinde).toBe('Binningen')
+  })
+
+  it('sortiert benannt-Fremdes auch beim Ein-Gemeinde-Blatt aus', () => {
+    // Der BiBo deckt Bottmingen, Oberwil, Therwil und Ettingen ab — gefuehrt
+    // ist nur Bottmingen. Ein Oberwil-Beitrag darf nicht bei Bottmingen landen.
+    const inventar = parseInventar(
+      {
+        kandidaten: [
+          { ...KANDIDAT, titel: 'Oberwiler Sache', gemeinde: 'Oberwil' }
+        ],
+        hinweise: []
+      },
+      16,
+      ['Bottmingen']
+    )
+    expect(inventar.kandidaten).toHaveLength(0)
+    expect(inventar.hinweise.join(' ')).toContain(
+      '"Oberwil" gehoert nicht zum Gebiet'
+    )
   })
 
   it('nimmt Recherche-Faehrten mit, validiert aber deren Gemeinde', () => {
@@ -182,7 +223,7 @@ describe('lernDigest', () => {
   it('landet im User-Turn des Inventars, nie im System-Prompt', () => {
     const digest = 'Was die Redaktion entschieden hat: …'
     const [nachricht] = buildInventarMessages(
-      'JVBERi0=',
+      { art: 'pdf', base64: 'JVBERi0=' },
       {
         name: 'Binninger Wochenblatt',
         gemeinden: ['Binningen'],
@@ -200,7 +241,7 @@ describe('lernDigest', () => {
 
   it('nennt bei mehreren Gemeinden die ganze Abdeckung im Auftrag', () => {
     const [nachricht] = buildInventarMessages(
-      'JVBERi0=',
+      { art: 'pdf', base64: 'JVBERi0=' },
       {
         name: 'Muttenzer & Prattler Anzeiger',
         gemeinden: ['Muttenz', 'Pratteln'],
@@ -215,6 +256,36 @@ describe('lernDigest', () => {
     const auftrag = text && 'text' in text ? text.text : ''
     expect(auftrag).toContain('Muttenz, Pratteln')
     expect(auftrag).toContain('ordne jeden Kandidaten')
+  })
+
+  it('traegt bei zu grossen PDFs den Textlayer seitenweise statt des Dokuments', () => {
+    const [nachricht] = buildInventarMessages(
+      {
+        art: 'seitentexte',
+        seitenTexte: ['ARLESHEIM Musik unter Sternen', 'REINACH Rundgang']
+      },
+      {
+        name: 'Wochenblatt fuer das Birseck',
+        gemeinden: ['Aesch', 'Arlesheim', 'Muenchenstein'],
+        nummer: '35',
+        datum: '2026-08-27'
+      },
+      ''
+    )
+    const inhalt = nachricht?.content
+    if (!Array.isArray(inhalt)) throw new Error('Content fehlt')
+    expect(inhalt.every((b) => b.type === 'text')).toBe(true)
+    const ausgabe = inhalt[0] && 'text' in inhalt[0] ? inhalt[0].text : ''
+    expect(ausgabe).toContain('nur der Textlayer')
+    expect(ausgabe).toContain('--- Seite 1 ---\nARLESHEIM Musik unter Sternen')
+    expect(ausgabe).toContain('--- Seite 2 ---\nREINACH Rundgang')
+  })
+
+  it('entscheidet den Transport an der Byte-Grenze, nie das Modell', () => {
+    expect(brauchtTextTransport(12 * 1024 * 1024)).toBe(false)
+    expect(brauchtTextTransport(INVENTAR_PDF_MAX_BYTES)).toBe(false)
+    // Die Nr. 35 des Wochenblatts fuer das Birseck: 33.8 MB Original.
+    expect(brauchtTextTransport(34 * 1024 * 1024)).toBe(true)
   })
 
   it('traegt Gemeinde-Korrekturen und Faehrten-Urteile in den Digest', () => {
@@ -256,6 +327,22 @@ describe('quelleZeile / mitQuelle', () => {
   it('haengt die Zeile deterministisch an den Text', () => {
     expect(mitQuelle('Ein Text.', FAKTEN)).toBe(
       `Ein Text.\n\n${quelleZeile(FAKTEN)}`
+    )
+  })
+
+  it('verlinkt eine issuu-Reader-Adresse als Pfadsegment statt #page', () => {
+    // Die signierte Download-URL laeuft ab; gespeichert ist die Reader-Seite,
+    // und deren Viewer versteht die Seite nur als Pfad.
+    expect(
+      quelleZeile({
+        ...FAKTEN,
+        blatt: 'Wochenblatt fuer das Birseck',
+        nummer: '35',
+        seite: 19,
+        pdfUrl: 'https://issuu.com/az-anzeiger/docs/35_20260827_woz_wobanz'
+      })
+    ).toBe(
+      'Quelle: Wochenblatt fuer das Birseck Nr. 35, https://issuu.com/az-anzeiger/docs/35_20260827_woz_wobanz/19'
     )
   })
 })
