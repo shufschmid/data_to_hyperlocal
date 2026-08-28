@@ -9,10 +9,32 @@
 #
 # State lives in exactly two named volumes below. Nothing else on the host is
 # written to — that is the "no persistent file storage outside Directus" rule.
+#
+# ---------------------------------------------------------------------------------
+# THE `redaktion-` PREFIX ON THE SERVICE NAMES IS LOAD-BEARING. Never rename a
+# service back to a bare `directus`, `postgres` or `front`.
+#
+# Compose gives every service a network alias equal to its own name, and a PaaS that
+# hosts several stacks (Dokploy, Coolify, Caprover) puts every stack that owns a
+# domain on ONE shared Docker network. Two stacks that both call a service
+# `directus` therefore publish the same alias: `http://directus:8055` resolves to
+# both containers and Docker's DNS round-robins between them. Half your requests
+# reach a different application's Directus — which answers them with a valid-looking
+# 400 (its database has none of your collections) or a 403 INVALID_TOKEN (it signs
+# tokens with a different SECRET), while the other half work. Nothing in the logs
+# says "wrong host". This application shared a Dokploy host exactly that way in
+# August 2026, and the symptom was a login that held for some requests and not
+# others.
+#
+# The names have to be unique across the whole deploy host, not just within this
+# file, and they cannot be built from an environment variable — Compose validates
+# service keys before interpolating. Dokploy binds each domain to a service BY NAME,
+# so a rename here must update the Service Name on the domains in the same change.
+# ---------------------------------------------------------------------------------
 name: app
 
 services:
-  postgres:
+  redaktion-postgres:
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: ${DB_DATABASE:-directus}
@@ -27,11 +49,11 @@ services:
       retries: 20
     restart: unless-stopped
 
-  directus:
+  redaktion-directus:
     build:
       context: ./apps/directus
     depends_on:
-      postgres:
+      redaktion-postgres:
         condition: service_healthy
     environment:
       # The entrypoint uses these to create the first admin on an empty database.
@@ -42,7 +64,7 @@ services:
       SECRET: ${SECRET:?set SECRET in .env — openssl rand -hex 32}
 
       DB_CLIENT: pg
-      DB_HOST: postgres
+      DB_HOST: redaktion-postgres
       DB_PORT: '5432'
       DB_DATABASE: ${DB_DATABASE:-directus}
       DB_USER: ${DB_USER:-postgres}
@@ -101,16 +123,17 @@ services:
       start_period: 40s
     restart: unless-stopped
 
-  front:
+  redaktion-front:
     build:
       context: ./apps/front
     depends_on:
-      directus:
+      redaktion-directus:
         condition: service_healthy
     environment:
       # Inside the compose network, not localhost. The browser never uses this URL —
-      # it only talks to this app's own /api routes.
-      DIRECTUS_URL: http://directus:8055
+      # it only talks to this app's own /api routes. The service name, not a bare
+      # `directus`: on a shared deploy host that alias can belong to someone else.
+      DIRECTUS_URL: http://redaktion-directus:8055
       NODE_ENV: production
     healthcheck:
       test:

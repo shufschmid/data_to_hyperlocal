@@ -63,7 +63,14 @@ them is wrong even if it works.
    a second SDK, or a direct `fetch` to an inference endpoint.
 3. **Runs with Docker.** `cp .env.example .env && docker compose up --build` starts
    the entire application. Anything a feature needs at runtime is a service or an
-   environment variable in [docker-compose.yml](docker-compose.yml).
+   environment variable in [docker-compose.yml](docker-compose.yml). The service
+   names carry the `redaktion-` prefix and must stay unique **across the deploy
+   host**, not just within the file — never rename one back to a bare `directus`,
+   `postgres` or `front`. A PaaS that hosts several stacks puts them on one shared
+   Docker network, and two stacks publishing the alias `directus` round-robin each
+   other's requests: half come back `400` or `403 INVALID_TOKEN` from the other
+   application's Directus. This project hit exactly that on its Dokploy host in
+   August 2026 — the compose header carries the full story.
 4. **Self-contained.** Postgres, Directus and the frontend are the only services. No
    Redis, no queue broker, no external cron host, no side-car. Outbound dependencies
    are enumerated below and adding one is a deliberate decision, not a commit.
