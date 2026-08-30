@@ -147,12 +147,37 @@ export function describeCoverage(coverage: Coverage): string {
   return parts.join(' — ')
 }
 
+/** How much `laeufe.periode` holds — varchar(32) in the committed snapshot. */
+export const PERIODE_MAX = 32
+
+// A year, a month, a date, an ISO instant, a school year, a quarter. Leading
+// and trailing spaces are tolerated but never stripped: the stored value is the
+// unique key `(datensatz, periode)`, and rewriting it would open a second run
+// for a period that already has one.
+const PERIODENWERT =
+  /^\s*\d{4}(?:-\d{2}(?:-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?)?|\/\d{2}|-[Qq][1-4])?\s*$/
+
+/**
+ * Whether a value from the period column names a period at all.
+ *
+ * `detectPeriodField` accepts TEXT columns as a time axis, and portals put
+ * labels in them — "Zeitraum 2020–2024, provisorisch", "ohne Angabe". Compared
+ * as strings those beat every year, because letters sort above digits, so one
+ * stray label would be chosen as THE period of the run. It also does not fit
+ * `laeufe.periode`, which is how this surfaced: an unreadable Postgres 22001 on
+ * every tick, and the dataset never got a run.
+ */
+export function istPeriodenwert(wert: string): boolean {
+  return PERIODENWERT.test(wert)
+}
+
 /**
  * Picks the newest period in a slice.
  *
  * Values are compared as strings on purpose: the portal's period columns are
  * "2025" or "2026-06-14", and both sort correctly that way while a Date parse
- * would turn "2025" into the first of January and lose the distinction.
+ * would turn "2025" into the first of January and lose the distinction. Only
+ * values that actually look like a period take part — see `istPeriodenwert`.
  */
 export function latestPeriod(
   rows: OdsRecord[],
@@ -163,6 +188,7 @@ export function latestPeriod(
   for (const row of rows) {
     const value = row[periodField]
     if (typeof value !== 'string' || value.trim() === '') continue
+    if (!istPeriodenwert(value)) continue
     if (latest === null || value > latest) latest = value
   }
 

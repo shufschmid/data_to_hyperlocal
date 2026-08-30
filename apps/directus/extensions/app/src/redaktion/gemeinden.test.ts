@@ -3,10 +3,12 @@ import type { Gemeinde } from '../types/schema'
 import {
   describeCoverage,
   hasUsableCoverage,
+  istPeriodenwert,
   latestPeriod,
   matchMunicipalities,
   normalizeBfs,
-  normalizeName
+  normalizeName,
+  PERIODE_MAX
 } from './gemeinden'
 
 function gemeinde(bfs: number, name: string): Gemeinde {
@@ -194,6 +196,53 @@ describe('latestPeriod', () => {
 
   it('returns null when there is nothing to pick', () => {
     expect(latestPeriod([], 'jahr')).toBeNull()
+  })
+
+  // Der Fall aus der Produktion: die Zeitachse darf eine TEXT-Spalte sein, und
+  // Buchstaben schlagen im Stringvergleich jede Jahreszahl. Ein einziger
+  // Beschriftungswert wurde so zur Periode des Laufs — und sprengte
+  // laeufe.periode (varchar 32), worauf der Datensatz bei jedem Tick scheiterte.
+  it('laesst Freitext nicht gegen die Jahreszahl gewinnen', () => {
+    const rows = [
+      { periode: '2024' },
+      { periode: 'Zeitraum 2020-2024, provisorisch' },
+      { periode: '2026' },
+      { periode: 'ohne Angabe' }
+    ]
+    expect(latestPeriod(rows, 'periode')).toBe('2026')
+  })
+
+  it('meldet keine Periode, wenn die Spalte nur Beschriftungen enthaelt', () => {
+    expect(latestPeriod([{ periode: 'ohne Angabe' }], 'periode')).toBeNull()
+  })
+
+  it('nimmt die ueblichen Periodenformen an', () => {
+    expect(istPeriodenwert('2026')).toBe(true)
+    expect(istPeriodenwert('2026-06')).toBe(true)
+    expect(istPeriodenwert('2026-06-14')).toBe(true)
+    expect(istPeriodenwert('2026-06-14T00:00:00+02:00')).toBe(true)
+    expect(istPeriodenwert('2026-06-14T00:00:00.000Z')).toBe(true)
+    expect(istPeriodenwert('2025/26')).toBe(true)
+    expect(istPeriodenwert('2026-Q1')).toBe(true)
+  })
+
+  it('weist ab, was keine Periode ist', () => {
+    expect(istPeriodenwert('ohne Angabe')).toBe(false)
+    expect(istPeriodenwert('Zeitraum 2020-2024, provisorisch')).toBe(false)
+    expect(istPeriodenwert('Schuljahr 2023/24')).toBe(false)
+    expect(istPeriodenwert('Stand 31.12.2024')).toBe(false)
+  })
+
+  // Der Wert ist der eindeutige Schluessel (datensatz, periode): wuerde er beim
+  // Lesen getrimmt, bekaeme eine Periode mit Leerzeichen einen zweiten Lauf.
+  it('gibt den Wert unveraendert zurueck, auch mit Leerzeichen', () => {
+    expect(latestPeriod([{ jahr: ' 2026 ' }], 'jahr')).toBe(' 2026 ')
+  })
+
+  it('bleibt unter der Laenge, die laeufe.periode traegt', () => {
+    const laengste = '2026-06-14T00:00:00.000+02:00'
+    expect(istPeriodenwert(laengste)).toBe(true)
+    expect(laengste.length).toBeLessThanOrEqual(PERIODE_MAX)
   })
 })
 
