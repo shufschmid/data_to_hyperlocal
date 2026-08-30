@@ -34,6 +34,15 @@ export interface GemeindeEingabe {
   name: string
   bfs_nummer: number
   bezirk: string
+  /**
+   * The postcodes. Optional, and the one field whose absence is silent rather
+   * than loud: the gazette portal indexes half its publications by PLACE (the
+   * BFS number) and the other half by ADDRESS — commercial register,
+   * bankruptcies, payment orders. Without a postcode that half simply returns
+   * nothing, which looks exactly like "nothing was published". The workspace
+   * therefore names the municipalities that lack one.
+   */
+  plz: string[]
 }
 
 export type Pruefung<T> = { ok: true; wert: T } | { ok: false; grund: string }
@@ -90,7 +99,21 @@ export function pruefeGemeinde(
     }
   }
 
-  return { ok: true, wert: { name, bfs_nummer: bfs, bezirk } }
+  const plzRoh = Array.isArray(eingabe.plz) ? eingabe.plz : []
+  const plz: string[] = []
+  for (const eintrag of plzRoh) {
+    const wert = typeof eintrag === 'string' ? eintrag.trim() : ''
+    if (wert === '') continue
+    if (!/^[1-9]\d{3}$/.test(wert)) {
+      return {
+        ok: false,
+        grund: `"${wert}" ist keine Schweizer Postleitzahl (vier Ziffern).`
+      }
+    }
+    if (!plz.includes(wert)) plz.push(wert)
+  }
+
+  return { ok: true, wert: { name, bfs_nummer: bfs, bezirk, plz } }
 }
 
 /** The sports a club can be filed under — mirrors the field's own choices. */

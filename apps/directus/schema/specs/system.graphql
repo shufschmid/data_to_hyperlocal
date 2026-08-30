@@ -287,12 +287,11 @@ type Subscription {
   directus_deployment_runs_mutated(event: EventEnum): directus_deployment_runs_mutated
   quellen_mutated(event: EventEnum): quellen_mutated
   ankuendigungen_mutated(event: EventEnum): ankuendigungen_mutated
-  meldungen_mutated(event: EventEnum): meldungen_mutated
-  gemeinden_mutated(event: EventEnum): gemeinden_mutated
   chat_nachrichten_mutated(event: EventEnum): chat_nachrichten_mutated
   laeufe_mutated(event: EventEnum): laeufe_mutated
   redaktionswissen_mutated(event: EventEnum): redaktionswissen_mutated
   entsorgungsdokumente_mutated(event: EventEnum): entsorgungsdokumente_mutated
+  meldungen_mutated(event: EventEnum): meldungen_mutated
   portal_bereiche_mutated(event: EventEnum): portal_bereiche_mutated
   portal_seiten_mutated(event: EventEnum): portal_seiten_mutated
   directus_sync_id_map_mutated(event: EventEnum): directus_sync_id_map_mutated
@@ -306,6 +305,8 @@ type Subscription {
   recherchehinweise_mutated(event: EventEnum): recherchehinweise_mutated
   wochenblattkandidaten_mutated(event: EventEnum): wochenblattkandidaten_mutated
   wochenblattgemeinden_mutated(event: EventEnum): wochenblattgemeinden_mutated
+  amtsblattmeldungen_mutated(event: EventEnum): amtsblattmeldungen_mutated
+  gemeinden_mutated(event: EventEnum): gemeinden_mutated
 }
 
 """The `Boolean` scalar type represents `true` or `false`."""
@@ -368,6 +369,93 @@ enum EventEnum {
 enum graphql_sdl_scope {
   items
   system
+}
+
+type amtsblattmeldungen {
+  id: ID!
+
+  """
+  Die Identitaet beim Portal. Unique — die Klammer, die einen zweiten Lauf idempotent macht.
+  """
+  publikations_id: String!
+
+  """Amtliche Meldungsnummer, z.B. BP-BL05-0000006880."""
+  publikationsnummer: String
+
+  """Kantonskuerzel der Publikation."""
+  kanton: String
+
+  """
+  Wonach die Redaktion sortiert. "personen" ist keine Themen-, sondern eine Eigenschaft: dort werden Privatpersonen genannt.
+  """
+  gruppe: String
+  rubrik: String
+  unterrubrik: String
+
+  """Deutscher Name aus dem Rubrikkatalog des Portals."""
+  rubrik_name: String
+  titel: String
+  publiziert_am: Date
+  publiziert_am_func: date_functions
+
+  """
+  Einsprache- oder Auflagefrist. Die Zahl, die eine Meldung dringend macht — sie gehoert in den Lead.
+  """
+  frist: Date
+  frist_func: date_functions
+
+  """Publizierende Stelle."""
+  amt: String
+
+  """Das amtliche PDF. Vom Code gebaut, nie vom Modell geschrieben."""
+  pdf_url: String
+
+  """
+  Die beschrifteten Angaben aus der Einzelpublikation. Erst gefuellt, wenn jemand die Zeile anfasst.
+  """
+  angaben: JSON
+  angaben_func: count_functions
+
+  """
+  Worauf die Publikation verweist — Plaene, Akten, Karten. "lesbar" sagt, ob wir sie maschinell lesen koennen.
+  """
+  unterlagen: JSON
+  unterlagen_func: count_functions
+
+  """
+  Natuerliche Personen, welche die Publikation nennt. Sie gehen an den Prompt als "nicht nennen" und an die Pruefung.
+  """
+  personen: JSON
+  personen_func: count_functions
+
+  """
+  Was aus den aufgelegten Plaenen hervorgeht, je Befund mit dem Blatt, auf dem er steht.
+  """
+  planbefunde: JSON
+  planbefunde_func: count_functions
+  plan_status: String
+  plan_fazit: String
+
+  """
+  Urteil der Sichtung: lohnt sich ein Blick? Leer heisst "noch nicht beurteilt" — nicht "nein".
+  """
+  vorschlag: Boolean
+  vorschlag_begruendung: String
+  entscheid: String
+  ablehnungsgrund: String
+  ablehnungskommentar: String
+  date_created: Date
+  date_created_func: datetime_functions
+  date_updated: Date
+  date_updated_func: datetime_functions
+  gemeinde(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): gemeinden
+  meldungen(filter: meldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [meldungen]
+}
+
+type amtsblattmeldungen_mutated {
+  key: ID!
+  event: EventEnum
+  data: amtsblattmeldungen
 }
 
 type ankuendigungen {
@@ -2063,6 +2151,11 @@ type gemeinden {
   date_created_func: datetime_functions
   date_updated: Date
   date_updated_func: datetime_functions
+
+  """
+  Postleitzahlen der Gemeinde. Ohne sie bleibt die SHAB-Haelfte still: Handelsregister, Konkurse und Betreibungen sind beim Portal an die Adresse gebunden, nicht an die BFS-Nummer.
+  """
+  plz: [String]
 }
 
 type gemeinden_mutated {
@@ -2175,6 +2268,7 @@ type meldungen {
   Kopie des Kandidaten-Entscheids für publizierte Presseschau-Meldungen — die Chefredaktion entscheidet am Kandidaten. Nicht publiziert trägt keine Perle.
   """
   perle: Boolean
+  amtsblattmeldung(filter: amtsblattmeldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): amtsblattmeldungen
 }
 
 type meldungen_mutated {
@@ -2760,6 +2854,47 @@ type write_directus_relations_schema {
   constraint_name: String
   on_update: String!
   on_delete: String!
+}
+
+input amtsblattmeldungen_filter {
+  id: id_filter_operators
+  publikations_id: string_filter_operators
+  publikationsnummer: string_filter_operators
+  kanton: string_filter_operators
+  gruppe: string_filter_operators
+  rubrik: string_filter_operators
+  unterrubrik: string_filter_operators
+  rubrik_name: string_filter_operators
+  titel: string_filter_operators
+  publiziert_am: date_filter_operators
+  publiziert_am_func: date_function_filter_operators
+  frist: date_filter_operators
+  frist_func: date_function_filter_operators
+  amt: string_filter_operators
+  pdf_url: string_filter_operators
+  angaben: string_filter_operators
+  angaben_func: count_function_filter_operators
+  unterlagen: string_filter_operators
+  unterlagen_func: count_function_filter_operators
+  personen: string_filter_operators
+  personen_func: count_function_filter_operators
+  planbefunde: string_filter_operators
+  planbefunde_func: count_function_filter_operators
+  plan_status: string_filter_operators
+  plan_fazit: string_filter_operators
+  vorschlag: boolean_filter_operators
+  vorschlag_begruendung: string_filter_operators
+  entscheid: string_filter_operators
+  ablehnungsgrund: string_filter_operators
+  ablehnungskommentar: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  gemeinde: gemeinden_filter
+  _and: [amtsblattmeldungen_filter]
+  _or: [amtsblattmeldungen_filter]
+  meldungen: meldungen_quantifier_filter
 }
 
 input ankuendigungen_filter {
@@ -3850,6 +3985,7 @@ input gemeinden_filter {
   date_created_func: datetime_function_filter_operators
   date_updated: date_filter_operators
   date_updated_func: datetime_function_filter_operators
+  plz: string_filter_operators
   _and: [gemeinden_filter]
   _or: [gemeinden_filter]
 }
@@ -3939,8 +4075,52 @@ input meldungen_filter {
   erscheint_am_func: date_function_filter_operators
   kandidat: wochenblattkandidaten_filter
   perle: boolean_filter_operators
+  amtsblattmeldung: amtsblattmeldungen_filter
   _and: [meldungen_filter]
   _or: [meldungen_filter]
+}
+
+""""""
+input meldungen_quantifier_filter {
+  id: id_filter_operators
+  lauf: laeufe_filter
+  gemeinde: gemeinden_filter
+  titel: string_filter_operators
+  lead: string_filter_operators
+  text: string_filter_operators
+  status: string_filter_operators
+  datengrundlage: string_filter_operators
+  datengrundlage_func: count_function_filter_operators
+  zeit_warnungen: string_filter_operators
+  verarbeitung: string_filter_operators
+  anweisung: string_filter_operators
+  versuche: number_filter_operators
+  gesperrt_bis: date_filter_operators
+  gesperrt_bis_func: datetime_function_filter_operators
+  fehler: string_filter_operators
+  freigabe_token_hash: string_filter_operators
+  freigabe_token_ablauf: date_filter_operators
+  freigabe_token_ablauf_func: datetime_function_filter_operators
+  entscheidung: string_filter_operators
+  entscheidung_klartext: string_filter_operators
+  freigegeben_am: date_filter_operators
+  freigegeben_am_func: datetime_function_filter_operators
+  publiziert_am: date_filter_operators
+  publiziert_am_func: datetime_function_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  spiel: spiele_filter
+  erscheint_am: date_filter_operators
+  erscheint_am_func: date_function_filter_operators
+  kandidat: wochenblattkandidaten_filter
+  perle: boolean_filter_operators
+  amtsblattmeldung: amtsblattmeldungen_filter
+  _and: [meldungen_filter]
+  _or: [meldungen_filter]
+  _some: meldungen_filter
+  _none: meldungen_filter
 }
 
 input number_filter_operators {

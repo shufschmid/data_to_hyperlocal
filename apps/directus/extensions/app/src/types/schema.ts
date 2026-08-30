@@ -19,12 +19,20 @@ export interface Gemeinde {
   name: string
   bezirk: string
   aktiv: boolean
+  /**
+   * The municipality's postcodes. The gazette portal indexes half its
+   * publications by PLACE (the BFS number) and the other half by ADDRESS — the
+   * commercial register, bankruptcies, payment orders. Without this the second
+   * half of a municipality is invisible, which is why the Gemeinden card says
+   * so rather than showing an empty desk.
+   */
+  plz: string[] | null
   date_created: string | null
   date_updated: string | null
 }
 
 /** Picks the adapter in `shared/` that knows how to read a source. */
-export type QuellenTyp = 'ods' | 'agenda' | 'statbl'
+export type QuellenTyp = 'ods' | 'agenda' | 'statbl' | 'amtsblatt'
 
 export interface Quelle {
   id: string
@@ -183,6 +191,8 @@ export interface Meldung {
   erscheint_am: string | null
   /** Set for press-review articles from a Wochenblatt candidate. Null otherwise. */
   kandidat: string | null
+  /** Set for articles written from an official gazette publication. Null otherwise. */
+  amtsblattmeldung: string | null
   /**
    * Mirror of the candidate's Perle verdict, for downstream readers of
    * published press reviews. The Chefredaktion decides on the CANDIDATE
@@ -647,4 +657,79 @@ export interface Schema {
   wochenblattkandidaten: Wochenblattkandidat[]
   wochenblattgemeinden: Wochenblattgemeinde[]
   recherchehinweise: Recherchehinweis[]
+}
+
+/** Which of the five piles a publication belongs to — see `shared/amtsblatt`. */
+export type AmtsblattGruppe =
+  | 'bauen'
+  | 'wirtschaft'
+  | 'behoerden'
+  | 'grundbuch'
+  | 'personen'
+
+export type AmtsblattEntscheid =
+  | 'offen'
+  | 'uebernommen'
+  | 'abgelehnt'
+  | 'weitergereicht'
+
+/** How far we got with the documents a publication points at. */
+export type PlanStatus =
+  | 'offen'
+  | 'liest'
+  | 'gelesen'
+  | 'nicht_lesbar'
+  | 'fehler'
+
+/**
+ * One official publication, assigned to a municipality.
+ *
+ * The decision rows ARE this feed's memory: `entscheid` plus its reason ride
+ * into the next triage for the same municipality as few-shot examples. No
+ * distillation call, no second store — the same arrangement as the press
+ * review.
+ */
+export interface Amtsblattmeldung {
+  id: string
+  /** The identity at the portal. Unique — the clamp that makes a second run idempotent. */
+  publikations_id: string
+  publikationsnummer: string | null
+  gemeinde: string
+  kanton: string | null
+  gruppe: AmtsblattGruppe | null
+  rubrik: string | null
+  unterrubrik: string | null
+  rubrik_name: string | null
+  titel: string
+  publiziert_am: string | null
+  /** Objection or inspection deadline. The figure that makes an article urgent. */
+  frist: string | null
+  amt: string | null
+  /** The official PDF. Built by code, never written by a model. */
+  pdf_url: string | null
+  /** Labelled facts from the single publication. Filled when someone acts on the row. */
+  angaben: { bezeichnung: string; wert: string }[] | null
+  /** What the publication points at. `lesbar` says whether WE can read it. */
+  unterlagen:
+    | {
+        art: 'plaene' | 'akten' | 'karte' | 'ebau' | 'andere'
+        bezeichnung: string
+        url: string
+        lesbar: boolean
+      }[]
+    | null
+  /** Natural persons the publication names — handed to the prompt as "do not name". */
+  personen: string[] | null
+  /** What the plans yielded, each finding with the sheet it was read from. */
+  planbefunde: string[] | null
+  plan_status: PlanStatus
+  plan_fazit: string | null
+  /** The triage's verdict. Null means "not judged yet" — NOT "no". */
+  vorschlag: boolean | null
+  vorschlag_begruendung: string | null
+  entscheid: AmtsblattEntscheid
+  ablehnungsgrund: string | null
+  ablehnungskommentar: string | null
+  date_created: string | null
+  date_updated: string | null
 }

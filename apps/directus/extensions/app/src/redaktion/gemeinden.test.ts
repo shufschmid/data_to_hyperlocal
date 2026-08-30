@@ -18,6 +18,7 @@ function gemeinde(bfs: number, name: string): Gemeinde {
     name,
     bezirk: 'Arlesheim',
     aktiv: true,
+    plz: null,
     date_created: null,
     date_updated: null
   }

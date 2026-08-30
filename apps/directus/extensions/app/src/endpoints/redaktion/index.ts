@@ -55,6 +55,28 @@ import {
 } from '../../redaktion/erinnerung'
 import { heuteIso } from '../../redaktion/feiertage'
 import {
+  AMTSBLATT_SYSTEM_PROMPT,
+  artikelUnterlage,
+  attributionsWarnung as amtsblattAttributionsWarnung,
+  buildAmtsblattPrompt,
+  buildAmtsblattRevision,
+  mitQuelle as mitAmtsblattQuelle,
+  parseAmtsblattMeldung,
+  personenWarnungen,
+  quellenName,
+  zahlWarnungen as zahlWarnungenAmtsblatt,
+  type AmtsblattFakten
+} from '../../redaktion/amtsblatt'
+import {
+  ergaenzeZeile,
+  type AmtsblattZeile
+} from '../../redaktion/amtsblattlauf'
+import {
+  GRUPPEN_TEXT,
+  type Gruppe,
+  type Unterlage
+} from '../../shared/amtsblatt'
+import {
   attributionsWarnung,
   brauchtTextTransport,
   buildInventarMessages,
@@ -83,6 +105,7 @@ import {
 import quellenPruefen from '../../operations/quellen-pruefen/api'
 import sportresultateHolen from '../../operations/sportresultate-holen/api'
 import wochenblattPruefen from '../../operations/wochenblatt-pruefen/api'
+import amtsblattPruefen from '../../operations/amtsblatt-pruefen/api'
 import { agendaSchluessel } from '../../shared/agenda'
 import { ladeTabelle, StatblFehler, tabellenId } from '../../shared/statbl'
 import { tabellenFelder } from '../../shared/statbl/parse'
@@ -265,6 +288,24 @@ const laufendeExtraktionen = new Set<string>()
 // Newsletter-Tag, rund zehn je Kalender, also Minuten. Zwei Laeufe auf
 // demselben Kalender wuerden um dieselben Erscheinungstage konkurrieren.
 const laufendeErinnerungen = new Set<string>()
+
+const AmtsblattLaufLaeuftBereits = createError(
+  'RUN_IN_PROGRESS',
+  'Die Amtsblatt-Pruefung laeuft bereits.',
+  409
+)
+
+const UnterlagenLaufenBereits = createError(
+  'RUN_IN_PROGRESS',
+  'Die Unterlagen zu dieser Publikation werden bereits gelesen.',
+  409
+)
+
+const PublikationSchonEntschieden = createError(
+  'ALREADY_DECIDED',
+  'Ueber diese Publikation ist bereits entschieden.',
+  409
+)
 
 export default defineEndpoint(
   (router, { services, database, getSchema, logger }) => {
@@ -796,6 +837,478 @@ export default defineEndpoint(
       }
     )
 
+    // --- the official gazette: publications, triage, plans --------------------
+    //
+    // The desk of the fifth feed. Everything the 07:00 run collected is here;
+    // the triage put its proposals on top. Three decisions, exactly as in the
+    // press review — take over, reject with a reason, hand up to the chief
+    // editor — and all three teach the next triage.
+    //
+    // The fourth button is this feed's own: "read the documents". The run does
+    // it for what it proposed; for everything else the editor asks, and gets
+    // the same function.
+
+    let amtsblattLaufAktiv = false
+    const laufendeUnterlagen = new Set<string>()
+
+    function starteAmtsblattLauf(): boolean {
+      if (amtsblattLaufAktiv) return false
+      amtsblattLaufAktiv = true
+
+      const kontext = { services, getSchema, logger, database } as Parameters<
+        typeof amtsblattPruefen.handler
+      >[1]
+      void Promise.resolve(amtsblattPruefen.handler({}, kontext))
+        .then((ergebnis: unknown) =>
+          logger.info(ergebnis, 'redaktion: Amtsblatt-Lauf beendet')
+        )
+        .catch((fehler: unknown) =>
+          logger.error(fehler, 'redaktion: Amtsblatt-Lauf fehlgeschlagen')
+        )
+        .finally(() => {
+          amtsblattLaufAktiv = false
+        })
+      return true
+    }
+
+    router.post(
+      '/amtsblatt/pruefen',
+      (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        if (!starteAmtsblattLauf())
+          return next(new AmtsblattLaufLaeuftBereits())
+        return res.status(202).json({ data: { gestartet: true } })
+      }
+    )
+
+    interface AmtsblattRohzeile {
+      id: string
+      publikations_id: string
+      titel: string
+      kanton: string | null
+      gruppe: Gruppe | null
+      rubrik_name: string | null
+      amt: string | null
+      publiziert_am: string | null
+      frist: string | null
+      angaben: { bezeichnung: string; wert: string }[] | null
+      unterlagen: Unterlage[] | null
+      personen: string[] | null
+      planbefunde: string[] | null
+      plan_status: string
+      pdf_url: string | null
+      entscheid: string
+      vorschlag_begruendung: string | null
+      gemeinde: { id: string; name: string }
+    }
+
+    const AMTSBLATT_FELDER = [
+      'id',
+      'publikations_id',
+      'titel',
+      'kanton',
+      'gruppe',
+      'rubrik_name',
+      'amt',
+      'publiziert_am',
+      'frist',
+      'angaben',
+      'unterlagen',
+      'personen',
+      'planbefunde',
+      'plan_status',
+      'pdf_url',
+      'entscheid',
+      'vorschlag_begruendung',
+      'gemeinde.id',
+      'gemeinde.name'
+    ]
+
+    function amtsblattFakten(zeile: AmtsblattRohzeile): AmtsblattFakten {
+      return {
+        gemeinde: zeile.gemeinde.name,
+        kanton: zeile.kanton ?? '',
+        titel: zeile.titel,
+        rubrikName: zeile.rubrik_name ?? '',
+        gruppe: zeile.gruppe ?? 'behoerden',
+        amt: zeile.amt ?? '',
+        publiziertAm: zeile.publiziert_am ?? '',
+        frist: zeile.frist,
+        angaben: zeile.angaben ?? [],
+        planbefunde: zeile.planbefunde ?? [],
+        personen: zeile.personen ?? [],
+        pdfUrl: zeile.pdf_url ?? '',
+        unterlage: artikelUnterlage(zeile.unterlagen ?? [])
+      }
+    }
+
+    async function ladeAmtsblattZeile(
+      id: string,
+      accountability: ApiRequest['accountability']
+    ): Promise<AmtsblattRohzeile> {
+      const service = new ItemsService('amtsblattmeldungen', {
+        schema: await getSchema(),
+        accountability
+      })
+      return (await service.readOne(id, {
+        fields: AMTSBLATT_FELDER
+      })) as AmtsblattRohzeile
+    }
+
+    /**
+     * The article, with the checks that make its rules real.
+     *
+     * Attribution is retried once — a gazette piece that does not say it comes
+     * from the gazette reads as the newsroom's own reporting. The names of
+     * natural persons are only reported, never rewritten: silently deleting a
+     * name would hide from the editor that the model wanted to use it.
+     */
+    async function amtsblattMitChecks(
+      fakten: AmtsblattFakten,
+      prompt: string
+    ): Promise<{
+      bericht: { titel: string; lead: string; text: string }
+      warnungen: string[]
+    }> {
+      let bericht = parseAmtsblattMeldung(
+        await completeJson<unknown>({
+          system: AMTSBLATT_SYSTEM_PROMPT,
+          prompt,
+          maxTokens: 1500
+        })
+      )
+
+      let attribution = amtsblattAttributionsWarnung(
+        `${bericht.lead} ${bericht.text}`,
+        fakten
+      )
+      if (attribution !== null) {
+        bericht = parseAmtsblattMeldung(
+          await completeJson<unknown>({
+            system: AMTSBLATT_SYSTEM_PROMPT,
+            prompt: buildAmtsblattRevision(
+              fakten,
+              bericht,
+              `Nenne die Quelle im Fliesstext: "${quellenName(fakten.kanton, fakten.gruppe)}".`
+            ),
+            maxTokens: 1500
+          })
+        )
+        attribution = amtsblattAttributionsWarnung(
+          `${bericht.lead} ${bericht.text}`,
+          fakten
+        )
+      }
+
+      const alles = `${bericht.titel} ${bericht.lead} ${bericht.text}`
+      const warnungen = [
+        ...zeitWarnungen(alles),
+        ...zahlWarnungenAmtsblatt(alles, fakten),
+        ...personenWarnungen(alles, fakten.personen),
+        ...(attribution === null ? [] : [attribution])
+      ]
+
+      return { bericht, warnungen }
+    }
+
+    /**
+     * Reading the documents on demand.
+     *
+     * Answers 202 and runs detached: reading a building file is a handful of
+     * images through Opus and takes longer than a browser waits. Progress lives
+     * on the row as `plan_status`, which the workspace polls — the same shape
+     * as the waste-calendar extraction.
+     */
+    router.post(
+      '/amtsblatt/:id/unterlagen',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        let id: string
+        try {
+          id = pruefeId(req.params['id'])
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+
+        let zeile: AmtsblattRohzeile
+        try {
+          zeile = await ladeAmtsblattZeile(id, req.accountability)
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+
+        if (laufendeUnterlagen.has(id))
+          return next(new UnterlagenLaufenBereits())
+        laufendeUnterlagen.add(id)
+
+        const schema = await getSchema()
+        const meldungen = new ItemsService('amtsblattmeldungen', { schema })
+
+        const lesen = async (): Promise<void> => {
+          try {
+            await ergaenzeZeile(
+              {
+                id: zeile.id,
+                publikations_id: zeile.publikations_id,
+                titel: zeile.titel,
+                gemeinde: zeile.gemeinde,
+                angaben: zeile.angaben,
+                unterlagen: zeile.unterlagen,
+                plan_status: zeile.plan_status
+              } satisfies AmtsblattZeile,
+              {
+                meldungen,
+                logger,
+                abruf: {
+                  kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch')
+                }
+              }
+            )
+          } catch (fehler) {
+            logger.warn(fehler, 'redaktion: Unterlagen nicht gelesen')
+            try {
+              await meldungen.updateOne(id, {
+                plan_status: 'fehler',
+                plan_fazit: fehlerText(fehler)
+              })
+            } catch (schreibfehler) {
+              logger.warn(
+                schreibfehler,
+                'redaktion: Unterlagen-Fehler nicht notiert'
+              )
+            }
+          }
+        }
+
+        void lesen().finally(() => {
+          laufendeUnterlagen.delete(id)
+        })
+
+        return res.status(202).json({ data: { gestartet: true } })
+      }
+    )
+
+    router.post(
+      '/amtsblatt/:id/meldung',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const schema = await getSchema()
+          const publikationen = new ItemsService('amtsblattmeldungen', {
+            schema,
+            accountability: req.accountability
+          })
+          const meldungenService = new ItemsService('meldungen', {
+            schema,
+            accountability: req.accountability
+          })
+
+          let zeile = await ladeAmtsblattZeile(id, req.accountability)
+
+          const vorhandene = (await meldungenService.readByQuery({
+            filter: {
+              amtsblattmeldung: { _eq: id },
+              status: { _neq: 'verworfen' }
+            },
+            fields: ['id'],
+            limit: 1
+          })) as { id: string }[]
+          if (vorhandene.length > 0)
+            return next(new PublikationSchonEntschieden())
+
+          // The facts come from the single publication, which the list does not
+          // carry. Fetched here for a row nobody read yet — the editor picked
+          // it, so it is worth the request.
+          if (zeile.angaben === null || zeile.angaben.length === 0) {
+            await ergaenzeZeile(
+              {
+                id: zeile.id,
+                publikations_id: zeile.publikations_id,
+                titel: zeile.titel,
+                gemeinde: zeile.gemeinde,
+                angaben: zeile.angaben,
+                unterlagen: zeile.unterlagen,
+                plan_status: zeile.plan_status
+              } satisfies AmtsblattZeile,
+              {
+                meldungen: new ItemsService('amtsblattmeldungen', { schema }),
+                logger,
+                abruf: {
+                  kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch')
+                }
+              }
+            )
+            zeile = await ladeAmtsblattZeile(id, req.accountability)
+          }
+
+          const fakten = amtsblattFakten(zeile)
+          const { bericht, warnungen } = await amtsblattMitChecks(
+            fakten,
+            buildAmtsblattPrompt(fakten)
+          )
+
+          const meldungId = (await meldungenService.createOne({
+            amtsblattmeldung: id,
+            gemeinde: zeile.gemeinde.id,
+            titel: bericht.titel,
+            lead: bericht.lead,
+            text: mitAmtsblattQuelle(bericht.text, fakten),
+            status: 'entwurf',
+            verarbeitung: 'idle',
+            zeit_warnungen: warnungen.length > 0 ? warnungen : null,
+            datengrundlage: {
+              quelle: 'amtsblatt',
+              publikationsnummer: zeile.publikations_id,
+              rubrik: zeile.rubrik_name,
+              gruppe: zeile.gruppe === null ? null : GRUPPEN_TEXT[zeile.gruppe],
+              amt: zeile.amt,
+              publiziert_am: zeile.publiziert_am,
+              frist: zeile.frist,
+              pdf_url: zeile.pdf_url,
+              unterlage: fakten.unterlage?.url ?? null,
+              planbefunde: zeile.planbefunde
+            }
+          })) as string
+
+          await publikationen.updateOne(id, { entscheid: 'uebernommen' })
+
+          return res.json({ data: { meldung: meldungId, warnungen } })
+        } catch (error) {
+          const status = (error as { status?: unknown }).status
+          if (
+            status === 403 ||
+            status === 404 ||
+            status === 400 ||
+            status === 409
+          ) {
+            return next(uebersetze(error))
+          }
+          logger.error(error, 'redaktion: Amtsblatt-Meldung fehlgeschlagen')
+          return next(new UeberarbeitungFehlgeschlagen())
+        }
+      }
+    )
+
+    router.post(
+      '/amtsblatt/:id/ablehnen',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        const GRUENDE = [
+          'nicht_relevant',
+          'zu_privat',
+          'doublette',
+          'veraltet',
+          'falsche_gemeinde',
+          'andere'
+        ]
+        const koerper = (req.body ?? {}) as {
+          grund?: unknown
+          kommentar?: unknown
+        }
+        if (
+          typeof koerper.grund !== 'string' ||
+          !GRUENDE.includes(koerper.grund)
+        ) {
+          return next(new UngueltigerAblehnungsgrund())
+        }
+        const kommentar =
+          typeof koerper.kommentar === 'string' &&
+          koerper.kommentar.trim() !== ''
+            ? koerper.kommentar.trim()
+            : null
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const publikationen = new ItemsService('amtsblattmeldungen', {
+            schema: await getSchema(),
+            accountability: req.accountability
+          })
+
+          // The learning signal: reason and comment ride into the next
+          // triage's digest for this municipality as a negative example.
+          await publikationen.updateOne(id, {
+            entscheid: 'abgelehnt',
+            ablehnungsgrund: koerper.grund,
+            ablehnungskommentar: kommentar
+          })
+
+          return res.json({ data: { publikation: id, entscheid: 'abgelehnt' } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    router.post(
+      '/amtsblatt/:id/weiterreichen',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        const koerper = (req.body ?? {}) as { begruendung?: unknown }
+        const begruendung =
+          typeof koerper.begruendung === 'string' &&
+          koerper.begruendung.trim() !== ''
+            ? koerper.begruendung.trim()
+            : null
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const schema = await getSchema()
+          const publikationen = new ItemsService('amtsblattmeldungen', {
+            schema,
+            accountability: req.accountability
+          })
+          const hinweiseService = new ItemsService('recherchehinweise', {
+            schema,
+            accountability: req.accountability
+          })
+
+          const zeile = await ladeAmtsblattZeile(id, req.accountability)
+          if (zeile.entscheid !== 'offen') {
+            return next(new PublikationSchonEntschieden())
+          }
+
+          // A publication worth pursuing but not worth publishing as-is becomes
+          // the chief editor's work — same collection as the press review's
+          // leads, so her desk stays one pile. The facts travel with it in
+          // `quelltext`, so the lead outlives the row it came from.
+          const hinweisId = (await hinweiseService.createOne({
+            gemeinde: zeile.gemeinde.id,
+            titel: zeile.titel,
+            fundort: `Amtliche Publikation ${zeile.publikations_id}${
+              zeile.rubrik_name === null ? '' : ` (${zeile.rubrik_name})`
+            }`,
+            begruendung: begruendung ?? zeile.vorschlag_begruendung ?? null,
+            quelltext: [
+              zeile.titel,
+              zeile.amt === null ? '' : `Publiziert von: ${zeile.amt}`,
+              zeile.frist === null ? '' : `Frist: ${zeile.frist}`,
+              ...(zeile.angaben ?? []).map(
+                (a) => `${a.bezeichnung}: ${a.wert}`
+              ),
+              ...(zeile.planbefunde ?? []).map((b) => `Aus den Plaenen: ${b}`),
+              zeile.pdf_url ?? ''
+            ]
+              .filter((z) => z !== '')
+              .join('\n'),
+            status: 'offen'
+          })) as string
+
+          // Its own decision value: rejecting would teach the triage "don't
+          // propose such publications", which is the opposite of the truth.
+          await publikationen.updateOne(id, { entscheid: 'weitergereicht' })
+
+          return res.json({ data: { hinweis: hinweisId } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
     router.post(
       '/kandidaten/:id/meldung',
       async (req: ApiRequest, res: Response, next: NextFunction) => {
@@ -1091,6 +1604,50 @@ export default defineEndpoint(
           })) as string
 
           return res.json({ data: { gemeinde: id } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    /**
+     * The postcodes of a municipality already in the list.
+     *
+     * Its own route rather than a field on the create form, because the
+     * municipalities that need it most are the ones that were added long ago:
+     * the gazette feed arrived after them, and without a postcode their
+     * commercial register and bankruptcies stay invisible.
+     */
+    router.post(
+      '/gemeinden/:id/plz',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        const koerper = (req.body ?? {}) as { plz?: unknown }
+        const roh = Array.isArray(koerper.plz) ? koerper.plz : []
+        const plz: string[] = []
+        for (const eintrag of roh) {
+          const wert = typeof eintrag === 'string' ? eintrag.trim() : ''
+          if (wert === '') continue
+          if (!/^[1-9]\d{3}$/.test(wert)) {
+            return next(
+              new UngueltigeStammdaten({
+                grund: `"${wert}" ist keine Schweizer Postleitzahl (vier Ziffern).`
+              })
+            )
+          }
+          if (!plz.includes(wert)) plz.push(wert)
+        }
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const gemeinden = new ItemsService('gemeinden', {
+            schema: await getSchema(),
+            accountability: req.accountability
+          })
+          await gemeinden.updateOne(id, { plz })
+
+          return res.json({ data: { gemeinde: id, plz } })
         } catch (error) {
           return next(uebersetze(error))
         }

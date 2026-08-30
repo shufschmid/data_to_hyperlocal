@@ -1,0 +1,46 @@
+{
+  "collection": "gemeinden",
+  "field": "plz",
+  "type": "csv",
+  "meta": {
+    "collection": "gemeinden",
+    "conditions": null,
+    "display": null,
+    "display_options": null,
+    "field": "plz",
+    "group": null,
+    "hidden": false,
+    "interface": "tags",
+    "note": "Postleitzahlen der Gemeinde. Ohne sie bleibt die SHAB-Haelfte still: Handelsregister, Konkurse und Betreibungen sind beim Portal an die Adresse gebunden, nicht an die BFS-Nummer.",
+    "options": null,
+    "readonly": false,
+    "required": false,
+    "searchable": true,
+    "sort": 8,
+    "special": [
+      "cast-csv"
+    ],
+    "translations": null,
+    "validation": null,
+    "validation_message": null,
+    "width": "half"
+  },
+  "schema": {
+    "name": "plz",
+    "table": "gemeinden",
+    "data_type": "text",
+    "default_value": null,
+    "max_length": null,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "is_nullable": true,
+    "is_unique": false,
+    "is_indexed": false,
+    "is_primary_key": false,
+    "is_generated": false,
+    "generation_expression": null,
+    "has_auto_increment": false,
+    "foreign_key_table": null,
+    "foreign_key_column": null
+  }
+}

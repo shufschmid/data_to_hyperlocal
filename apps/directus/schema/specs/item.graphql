@@ -7,14 +7,6 @@ type Query {
   ankuendigungen_by_id(id: ID!, version: String): ankuendigungen
   ankuendigungen_aggregated(groupBy: [String], filter: ankuendigungen_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [ankuendigungen_aggregated!]!
   ankuendigungen_by_version(version: String!, id: ID!): version_ankuendigungen
-  meldungen(filter: meldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [meldungen!]!
-  meldungen_by_id(id: ID!, version: String): meldungen
-  meldungen_aggregated(groupBy: [String], filter: meldungen_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [meldungen_aggregated!]!
-  meldungen_by_version(version: String!, id: ID!): version_meldungen
-  gemeinden(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [gemeinden!]!
-  gemeinden_by_id(id: ID!, version: String): gemeinden
-  gemeinden_aggregated(groupBy: [String], filter: gemeinden_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [gemeinden_aggregated!]!
-  gemeinden_by_version(version: String!, id: ID!): version_gemeinden
   chat_nachrichten(filter: chat_nachrichten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [chat_nachrichten!]!
   chat_nachrichten_by_id(id: ID!, version: String): chat_nachrichten
   chat_nachrichten_aggregated(groupBy: [String], filter: chat_nachrichten_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [chat_nachrichten_aggregated!]!
@@ -31,6 +23,10 @@ type Query {
   entsorgungsdokumente_by_id(id: ID!, version: String): entsorgungsdokumente
   entsorgungsdokumente_aggregated(groupBy: [String], filter: entsorgungsdokumente_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [entsorgungsdokumente_aggregated!]!
   entsorgungsdokumente_by_version(version: String!, id: ID!): version_entsorgungsdokumente
+  meldungen(filter: meldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [meldungen!]!
+  meldungen_by_id(id: ID!, version: String): meldungen
+  meldungen_aggregated(groupBy: [String], filter: meldungen_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [meldungen_aggregated!]!
+  meldungen_by_version(version: String!, id: ID!): version_meldungen
   portal_bereiche(filter: portal_bereiche_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [portal_bereiche!]!
   portal_bereiche_by_id(id: ID!, version: String): portal_bereiche
   portal_bereiche_aggregated(groupBy: [String], filter: portal_bereiche_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [portal_bereiche_aggregated!]!
@@ -83,6 +79,14 @@ type Query {
   wochenblattgemeinden_by_id(id: ID!, version: String): wochenblattgemeinden
   wochenblattgemeinden_aggregated(groupBy: [String], filter: wochenblattgemeinden_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [wochenblattgemeinden_aggregated!]!
   wochenblattgemeinden_by_version(version: String!, id: ID!): version_wochenblattgemeinden
+  amtsblattmeldungen(filter: amtsblattmeldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [amtsblattmeldungen!]!
+  amtsblattmeldungen_by_id(id: ID!, version: String): amtsblattmeldungen
+  amtsblattmeldungen_aggregated(groupBy: [String], filter: amtsblattmeldungen_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [amtsblattmeldungen_aggregated!]!
+  amtsblattmeldungen_by_version(version: String!, id: ID!): version_amtsblattmeldungen
+  gemeinden(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [gemeinden!]!
+  gemeinden_by_id(id: ID!, version: String): gemeinden
+  gemeinden_aggregated(groupBy: [String], filter: gemeinden_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [gemeinden_aggregated!]!
+  gemeinden_by_version(version: String!, id: ID!): version_gemeinden
 }
 
 type Mutation {
@@ -90,10 +94,6 @@ type Mutation {
   create_quellen_item(data: create_quellen_input!): quellen
   create_ankuendigungen_items(filter: ankuendigungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_ankuendigungen_input!]): [ankuendigungen!]!
   create_ankuendigungen_item(data: create_ankuendigungen_input!): ankuendigungen
-  create_meldungen_items(filter: meldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_meldungen_input!]): [meldungen!]!
-  create_meldungen_item(data: create_meldungen_input!): meldungen
-  create_gemeinden_items(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_gemeinden_input!]): [gemeinden!]!
-  create_gemeinden_item(data: create_gemeinden_input!): gemeinden
   create_chat_nachrichten_items(filter: chat_nachrichten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_chat_nachrichten_input!]): [chat_nachrichten!]!
   create_chat_nachrichten_item(data: create_chat_nachrichten_input!): chat_nachrichten
   create_laeufe_items(filter: laeufe_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_laeufe_input!]): [laeufe!]!
@@ -102,6 +102,8 @@ type Mutation {
   create_redaktionswissen_item(data: create_redaktionswissen_input!): redaktionswissen
   create_entsorgungsdokumente_items(filter: entsorgungsdokumente_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_entsorgungsdokumente_input!]): [entsorgungsdokumente!]!
   create_entsorgungsdokumente_item(data: create_entsorgungsdokumente_input!): entsorgungsdokumente
+  create_meldungen_items(filter: meldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_meldungen_input!]): [meldungen!]!
+  create_meldungen_item(data: create_meldungen_input!): meldungen
   create_portal_bereiche_items(filter: portal_bereiche_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_portal_bereiche_input!]): [portal_bereiche!]!
   create_portal_bereiche_item(data: create_portal_bereiche_input!): portal_bereiche
   create_portal_seiten_items(filter: portal_seiten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_portal_seiten_input!]): [portal_seiten!]!
@@ -128,18 +130,16 @@ type Mutation {
   create_wochenblattkandidaten_item(data: create_wochenblattkandidaten_input!): wochenblattkandidaten
   create_wochenblattgemeinden_items(filter: wochenblattgemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_wochenblattgemeinden_input!]): [wochenblattgemeinden!]!
   create_wochenblattgemeinden_item(data: create_wochenblattgemeinden_input!): wochenblattgemeinden
+  create_amtsblattmeldungen_items(filter: amtsblattmeldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_amtsblattmeldungen_input!]): [amtsblattmeldungen!]!
+  create_amtsblattmeldungen_item(data: create_amtsblattmeldungen_input!): amtsblattmeldungen
+  create_gemeinden_items(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_gemeinden_input!]): [gemeinden!]!
+  create_gemeinden_item(data: create_gemeinden_input!): gemeinden
   update_quellen_items(filter: quellen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_quellen_input!): [quellen!]!
   update_quellen_batch(filter: quellen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_quellen_input!]): [quellen!]!
   update_quellen_item(id: ID!, data: update_quellen_input!): quellen
   update_ankuendigungen_items(filter: ankuendigungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_ankuendigungen_input!): [ankuendigungen!]!
   update_ankuendigungen_batch(filter: ankuendigungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_ankuendigungen_input!]): [ankuendigungen!]!
   update_ankuendigungen_item(id: ID!, data: update_ankuendigungen_input!): ankuendigungen
-  update_meldungen_items(filter: meldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_meldungen_input!): [meldungen!]!
-  update_meldungen_batch(filter: meldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_meldungen_input!]): [meldungen!]!
-  update_meldungen_item(id: ID!, data: update_meldungen_input!): meldungen
-  update_gemeinden_items(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_gemeinden_input!): [gemeinden!]!
-  update_gemeinden_batch(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_gemeinden_input!]): [gemeinden!]!
-  update_gemeinden_item(id: ID!, data: update_gemeinden_input!): gemeinden
   update_chat_nachrichten_items(filter: chat_nachrichten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_chat_nachrichten_input!): [chat_nachrichten!]!
   update_chat_nachrichten_batch(filter: chat_nachrichten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_chat_nachrichten_input!]): [chat_nachrichten!]!
   update_chat_nachrichten_item(id: ID!, data: update_chat_nachrichten_input!): chat_nachrichten
@@ -152,6 +152,9 @@ type Mutation {
   update_entsorgungsdokumente_items(filter: entsorgungsdokumente_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_entsorgungsdokumente_input!): [entsorgungsdokumente!]!
   update_entsorgungsdokumente_batch(filter: entsorgungsdokumente_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_entsorgungsdokumente_input!]): [entsorgungsdokumente!]!
   update_entsorgungsdokumente_item(id: ID!, data: update_entsorgungsdokumente_input!): entsorgungsdokumente
+  update_meldungen_items(filter: meldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_meldungen_input!): [meldungen!]!
+  update_meldungen_batch(filter: meldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_meldungen_input!]): [meldungen!]!
+  update_meldungen_item(id: ID!, data: update_meldungen_input!): meldungen
   update_portal_bereiche_items(filter: portal_bereiche_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_portal_bereiche_input!): [portal_bereiche!]!
   update_portal_bereiche_batch(filter: portal_bereiche_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_portal_bereiche_input!]): [portal_bereiche!]!
   update_portal_bereiche_item(id: ID!, data: update_portal_bereiche_input!): portal_bereiche
@@ -191,14 +194,16 @@ type Mutation {
   update_wochenblattgemeinden_items(filter: wochenblattgemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_wochenblattgemeinden_input!): [wochenblattgemeinden!]!
   update_wochenblattgemeinden_batch(filter: wochenblattgemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_wochenblattgemeinden_input!]): [wochenblattgemeinden!]!
   update_wochenblattgemeinden_item(id: ID!, data: update_wochenblattgemeinden_input!): wochenblattgemeinden
+  update_amtsblattmeldungen_items(filter: amtsblattmeldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_amtsblattmeldungen_input!): [amtsblattmeldungen!]!
+  update_amtsblattmeldungen_batch(filter: amtsblattmeldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_amtsblattmeldungen_input!]): [amtsblattmeldungen!]!
+  update_amtsblattmeldungen_item(id: ID!, data: update_amtsblattmeldungen_input!): amtsblattmeldungen
+  update_gemeinden_items(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_gemeinden_input!): [gemeinden!]!
+  update_gemeinden_batch(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_gemeinden_input!]): [gemeinden!]!
+  update_gemeinden_item(id: ID!, data: update_gemeinden_input!): gemeinden
   delete_quellen_items(ids: [ID]!): delete_many
   delete_quellen_item(id: ID!): delete_one
   delete_ankuendigungen_items(ids: [ID]!): delete_many
   delete_ankuendigungen_item(id: ID!): delete_one
-  delete_meldungen_items(ids: [ID]!): delete_many
-  delete_meldungen_item(id: ID!): delete_one
-  delete_gemeinden_items(ids: [ID]!): delete_many
-  delete_gemeinden_item(id: ID!): delete_one
   delete_chat_nachrichten_items(ids: [ID]!): delete_many
   delete_chat_nachrichten_item(id: ID!): delete_one
   delete_laeufe_items(ids: [ID]!): delete_many
@@ -207,6 +212,8 @@ type Mutation {
   delete_redaktionswissen_item(id: ID!): delete_one
   delete_entsorgungsdokumente_items(ids: [ID]!): delete_many
   delete_entsorgungsdokumente_item(id: ID!): delete_one
+  delete_meldungen_items(ids: [ID]!): delete_many
+  delete_meldungen_item(id: ID!): delete_one
   delete_portal_bereiche_items(ids: [ID]!): delete_many
   delete_portal_bereiche_item(id: ID!): delete_one
   delete_portal_seiten_items(ids: [ID]!): delete_many
@@ -233,6 +240,10 @@ type Mutation {
   delete_wochenblattkandidaten_item(id: ID!): delete_one
   delete_wochenblattgemeinden_items(ids: [ID]!): delete_many
   delete_wochenblattgemeinden_item(id: ID!): delete_one
+  delete_amtsblattmeldungen_items(ids: [ID]!): delete_many
+  delete_amtsblattmeldungen_item(id: ID!): delete_one
+  delete_gemeinden_items(ids: [ID]!): delete_many
+  delete_gemeinden_item(id: ID!): delete_one
 }
 
 type Subscription {
@@ -261,12 +272,11 @@ type Subscription {
   directus_deployment_runs_mutated(event: EventEnum): directus_deployment_runs_mutated
   quellen_mutated(event: EventEnum): quellen_mutated
   ankuendigungen_mutated(event: EventEnum): ankuendigungen_mutated
-  meldungen_mutated(event: EventEnum): meldungen_mutated
-  gemeinden_mutated(event: EventEnum): gemeinden_mutated
   chat_nachrichten_mutated(event: EventEnum): chat_nachrichten_mutated
   laeufe_mutated(event: EventEnum): laeufe_mutated
   redaktionswissen_mutated(event: EventEnum): redaktionswissen_mutated
   entsorgungsdokumente_mutated(event: EventEnum): entsorgungsdokumente_mutated
+  meldungen_mutated(event: EventEnum): meldungen_mutated
   portal_bereiche_mutated(event: EventEnum): portal_bereiche_mutated
   portal_seiten_mutated(event: EventEnum): portal_seiten_mutated
   directus_sync_id_map_mutated(event: EventEnum): directus_sync_id_map_mutated
@@ -280,6 +290,8 @@ type Subscription {
   recherchehinweise_mutated(event: EventEnum): recherchehinweise_mutated
   wochenblattkandidaten_mutated(event: EventEnum): wochenblattkandidaten_mutated
   wochenblattgemeinden_mutated(event: EventEnum): wochenblattgemeinden_mutated
+  amtsblattmeldungen_mutated(event: EventEnum): amtsblattmeldungen_mutated
+  gemeinden_mutated(event: EventEnum): gemeinden_mutated
 }
 
 """The `Boolean` scalar type represents `true` or `false`."""
@@ -326,6 +338,172 @@ enum EventEnum {
   create
   update
   delete
+}
+
+type amtsblattmeldungen {
+  id: ID!
+
+  """
+  Die Identitaet beim Portal. Unique — die Klammer, die einen zweiten Lauf idempotent macht.
+  """
+  publikations_id: String!
+
+  """Amtliche Meldungsnummer, z.B. BP-BL05-0000006880."""
+  publikationsnummer: String
+
+  """Kantonskuerzel der Publikation."""
+  kanton: String
+
+  """
+  Wonach die Redaktion sortiert. "personen" ist keine Themen-, sondern eine Eigenschaft: dort werden Privatpersonen genannt.
+  """
+  gruppe: String
+  rubrik: String
+  unterrubrik: String
+
+  """Deutscher Name aus dem Rubrikkatalog des Portals."""
+  rubrik_name: String
+  titel: String
+  publiziert_am: Date
+  publiziert_am_func: date_functions
+
+  """
+  Einsprache- oder Auflagefrist. Die Zahl, die eine Meldung dringend macht — sie gehoert in den Lead.
+  """
+  frist: Date
+  frist_func: date_functions
+
+  """Publizierende Stelle."""
+  amt: String
+
+  """Das amtliche PDF. Vom Code gebaut, nie vom Modell geschrieben."""
+  pdf_url: String
+
+  """
+  Die beschrifteten Angaben aus der Einzelpublikation. Erst gefuellt, wenn jemand die Zeile anfasst.
+  """
+  angaben: JSON
+  angaben_func: count_functions
+
+  """
+  Worauf die Publikation verweist — Plaene, Akten, Karten. "lesbar" sagt, ob wir sie maschinell lesen koennen.
+  """
+  unterlagen: JSON
+  unterlagen_func: count_functions
+
+  """
+  Natuerliche Personen, welche die Publikation nennt. Sie gehen an den Prompt als "nicht nennen" und an die Pruefung.
+  """
+  personen: JSON
+  personen_func: count_functions
+
+  """
+  Was aus den aufgelegten Plaenen hervorgeht, je Befund mit dem Blatt, auf dem er steht.
+  """
+  planbefunde: JSON
+  planbefunde_func: count_functions
+  plan_status: String
+  plan_fazit: String
+
+  """
+  Urteil der Sichtung: lohnt sich ein Blick? Leer heisst "noch nicht beurteilt" — nicht "nein".
+  """
+  vorschlag: Boolean
+  vorschlag_begruendung: String
+  entscheid: String
+  ablehnungsgrund: String
+  ablehnungskommentar: String
+  date_created: Date
+  date_created_func: datetime_functions
+  date_updated: Date
+  date_updated_func: datetime_functions
+  gemeinde(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): gemeinden
+  meldungen(filter: meldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [meldungen]
+}
+
+type amtsblattmeldungen_aggregated {
+  group: JSON
+  countAll: Int
+  count: amtsblattmeldungen_aggregated_count
+  countDistinct: amtsblattmeldungen_aggregated_count
+}
+
+type amtsblattmeldungen_aggregated_count {
+  id: Int
+
+  """
+  Die Identitaet beim Portal. Unique — die Klammer, die einen zweiten Lauf idempotent macht.
+  """
+  publikations_id: Int
+
+  """Amtliche Meldungsnummer, z.B. BP-BL05-0000006880."""
+  publikationsnummer: Int
+
+  """Kantonskuerzel der Publikation."""
+  kanton: Int
+
+  """
+  Wonach die Redaktion sortiert. "personen" ist keine Themen-, sondern eine Eigenschaft: dort werden Privatpersonen genannt.
+  """
+  gruppe: Int
+  rubrik: Int
+  unterrubrik: Int
+
+  """Deutscher Name aus dem Rubrikkatalog des Portals."""
+  rubrik_name: Int
+  titel: Int
+  publiziert_am: Int
+
+  """
+  Einsprache- oder Auflagefrist. Die Zahl, die eine Meldung dringend macht — sie gehoert in den Lead.
+  """
+  frist: Int
+
+  """Publizierende Stelle."""
+  amt: Int
+
+  """Das amtliche PDF. Vom Code gebaut, nie vom Modell geschrieben."""
+  pdf_url: Int
+
+  """
+  Die beschrifteten Angaben aus der Einzelpublikation. Erst gefuellt, wenn jemand die Zeile anfasst.
+  """
+  angaben: Int
+
+  """
+  Worauf die Publikation verweist — Plaene, Akten, Karten. "lesbar" sagt, ob wir sie maschinell lesen koennen.
+  """
+  unterlagen: Int
+
+  """
+  Natuerliche Personen, welche die Publikation nennt. Sie gehen an den Prompt als "nicht nennen" und an die Pruefung.
+  """
+  personen: Int
+
+  """
+  Was aus den aufgelegten Plaenen hervorgeht, je Befund mit dem Blatt, auf dem er steht.
+  """
+  planbefunde: Int
+  plan_status: Int
+  plan_fazit: Int
+
+  """
+  Urteil der Sichtung: lohnt sich ein Blick? Leer heisst "noch nicht beurteilt" — nicht "nein".
+  """
+  vorschlag: Int
+  vorschlag_begruendung: Int
+  entscheid: Int
+  ablehnungsgrund: Int
+  ablehnungskommentar: Int
+  date_created: Int
+  date_updated: Int
+  gemeinde: Int
+}
+
+type amtsblattmeldungen_mutated {
+  key: ID!
+  event: EventEnum
+  data: amtsblattmeldungen
 }
 
 type ankuendigungen {
@@ -1610,6 +1788,11 @@ type gemeinden {
   date_created_func: datetime_functions
   date_updated: Date
   date_updated_func: datetime_functions
+
+  """
+  Postleitzahlen der Gemeinde. Ohne sie bleibt die SHAB-Haelfte still: Handelsregister, Konkurse und Betreibungen sind beim Portal an die Adresse gebunden, nicht an die BFS-Nummer.
+  """
+  plz: [String]
 }
 
 type gemeinden_aggregated {
@@ -1643,6 +1826,11 @@ type gemeinden_aggregated_count {
   aktiv: Int
   date_created: Int
   date_updated: Int
+
+  """
+  Postleitzahlen der Gemeinde. Ohne sie bleibt die SHAB-Haelfte still: Handelsregister, Konkurse und Betreibungen sind beim Portal an die Adresse gebunden, nicht an die BFS-Nummer.
+  """
+  plz: Int
 }
 
 type gemeinden_aggregated_fields {
@@ -1808,6 +1996,7 @@ type meldungen {
   Kopie des Kandidaten-Entscheids für publizierte Presseschau-Meldungen — die Chefredaktion entscheidet am Kandidaten. Nicht publiziert trägt keine Perle.
   """
   perle: Boolean
+  amtsblattmeldung(filter: amtsblattmeldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): amtsblattmeldungen
 }
 
 type meldungen_aggregated {
@@ -1886,6 +2075,11 @@ type meldungen_aggregated_count {
   Kopie des Kandidaten-Entscheids für publizierte Presseschau-Meldungen — die Chefredaktion entscheidet am Kandidaten. Nicht publiziert trägt keine Perle.
   """
   perle: Int
+
+  """
+  Die amtliche Publikation, aus der diese Meldung entstand. Die vierte Art neben lauf, spiel und der Erinnerung.
+  """
+  amtsblattmeldung: Int
 }
 
 type meldungen_aggregated_fields {
@@ -2451,6 +2645,80 @@ type vereine_mutated {
 }
 
 """"""
+type version_amtsblattmeldungen {
+  id: ID
+
+  """
+  Die Identitaet beim Portal. Unique — die Klammer, die einen zweiten Lauf idempotent macht.
+  """
+  publikations_id: String
+
+  """Amtliche Meldungsnummer, z.B. BP-BL05-0000006880."""
+  publikationsnummer: String
+
+  """Kantonskuerzel der Publikation."""
+  kanton: String
+
+  """
+  Wonach die Redaktion sortiert. "personen" ist keine Themen-, sondern eine Eigenschaft: dort werden Privatpersonen genannt.
+  """
+  gruppe: String
+  rubrik: String
+  unterrubrik: String
+
+  """Deutscher Name aus dem Rubrikkatalog des Portals."""
+  rubrik_name: String
+  titel: String
+  publiziert_am: Date
+
+  """
+  Einsprache- oder Auflagefrist. Die Zahl, die eine Meldung dringend macht — sie gehoert in den Lead.
+  """
+  frist: Date
+
+  """Publizierende Stelle."""
+  amt: String
+
+  """Das amtliche PDF. Vom Code gebaut, nie vom Modell geschrieben."""
+  pdf_url: String
+
+  """
+  Die beschrifteten Angaben aus der Einzelpublikation. Erst gefuellt, wenn jemand die Zeile anfasst.
+  """
+  angaben: JSON
+
+  """
+  Worauf die Publikation verweist — Plaene, Akten, Karten. "lesbar" sagt, ob wir sie maschinell lesen koennen.
+  """
+  unterlagen: JSON
+
+  """
+  Natuerliche Personen, welche die Publikation nennt. Sie gehen an den Prompt als "nicht nennen" und an die Pruefung.
+  """
+  personen: JSON
+
+  """
+  Was aus den aufgelegten Plaenen hervorgeht, je Befund mit dem Blatt, auf dem er steht.
+  """
+  planbefunde: JSON
+  plan_status: String
+  plan_fazit: String
+
+  """
+  Urteil der Sichtung: lohnt sich ein Blick? Leer heisst "noch nicht beurteilt" — nicht "nein".
+  """
+  vorschlag: Boolean
+  vorschlag_begruendung: String
+  entscheid: String
+  ablehnungsgrund: String
+  ablehnungskommentar: String
+  date_created: Date
+  date_updated: Date
+  gemeinde: JSON
+  meldungen: JSON
+}
+
+""""""
 type version_ankuendigungen {
   id: ID
   quelle: JSON
@@ -2696,6 +2964,11 @@ type version_gemeinden {
   aktiv: Boolean
   date_created: Date
   date_updated: Date
+
+  """
+  Postleitzahlen der Gemeinde. Ohne sie bleibt die SHAB-Haelfte still: Handelsregister, Konkurse und Betreibungen sind beim Portal an die Adresse gebunden, nicht an die BFS-Nummer.
+  """
+  plz: [String]
 }
 
 """"""
@@ -2786,6 +3059,7 @@ type version_meldungen {
   Kopie des Kandidaten-Entscheids für publizierte Presseschau-Meldungen — die Chefredaktion entscheidet am Kandidaten. Nicht publiziert trägt keine Perle.
   """
   perle: Boolean
+  amtsblattmeldung: JSON
 }
 
 """"""
@@ -3467,6 +3741,47 @@ type wochenblattkandidaten_mutated {
   data: wochenblattkandidaten
 }
 
+input amtsblattmeldungen_filter {
+  id: id_filter_operators
+  publikations_id: string_filter_operators
+  publikationsnummer: string_filter_operators
+  kanton: string_filter_operators
+  gruppe: string_filter_operators
+  rubrik: string_filter_operators
+  unterrubrik: string_filter_operators
+  rubrik_name: string_filter_operators
+  titel: string_filter_operators
+  publiziert_am: date_filter_operators
+  publiziert_am_func: date_function_filter_operators
+  frist: date_filter_operators
+  frist_func: date_function_filter_operators
+  amt: string_filter_operators
+  pdf_url: string_filter_operators
+  angaben: string_filter_operators
+  angaben_func: count_function_filter_operators
+  unterlagen: string_filter_operators
+  unterlagen_func: count_function_filter_operators
+  personen: string_filter_operators
+  personen_func: count_function_filter_operators
+  planbefunde: string_filter_operators
+  planbefunde_func: count_function_filter_operators
+  plan_status: string_filter_operators
+  plan_fazit: string_filter_operators
+  vorschlag: boolean_filter_operators
+  vorschlag_begruendung: string_filter_operators
+  entscheid: string_filter_operators
+  ablehnungsgrund: string_filter_operators
+  ablehnungskommentar: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  gemeinde: gemeinden_filter
+  _and: [amtsblattmeldungen_filter]
+  _or: [amtsblattmeldungen_filter]
+  meldungen: meldungen_quantifier_filter
+}
+
 input ankuendigungen_filter {
   id: id_filter_operators
   quelle: quellen_filter
@@ -3532,6 +3847,79 @@ input chat_nachrichten_filter {
 
 input count_function_filter_operators {
   count: number_filter_operators
+}
+
+input create_amtsblattmeldungen_input {
+  id: ID
+
+  """
+  Die Identitaet beim Portal. Unique — die Klammer, die einen zweiten Lauf idempotent macht.
+  """
+  publikations_id: String!
+
+  """Amtliche Meldungsnummer, z.B. BP-BL05-0000006880."""
+  publikationsnummer: String
+
+  """Kantonskuerzel der Publikation."""
+  kanton: String
+
+  """
+  Wonach die Redaktion sortiert. "personen" ist keine Themen-, sondern eine Eigenschaft: dort werden Privatpersonen genannt.
+  """
+  gruppe: String
+  rubrik: String
+  unterrubrik: String
+
+  """Deutscher Name aus dem Rubrikkatalog des Portals."""
+  rubrik_name: String
+  titel: String
+  publiziert_am: Date
+
+  """
+  Einsprache- oder Auflagefrist. Die Zahl, die eine Meldung dringend macht — sie gehoert in den Lead.
+  """
+  frist: Date
+
+  """Publizierende Stelle."""
+  amt: String
+
+  """Das amtliche PDF. Vom Code gebaut, nie vom Modell geschrieben."""
+  pdf_url: String
+
+  """
+  Die beschrifteten Angaben aus der Einzelpublikation. Erst gefuellt, wenn jemand die Zeile anfasst.
+  """
+  angaben: JSON
+
+  """
+  Worauf die Publikation verweist — Plaene, Akten, Karten. "lesbar" sagt, ob wir sie maschinell lesen koennen.
+  """
+  unterlagen: JSON
+
+  """
+  Natuerliche Personen, welche die Publikation nennt. Sie gehen an den Prompt als "nicht nennen" und an die Pruefung.
+  """
+  personen: JSON
+
+  """
+  Was aus den aufgelegten Plaenen hervorgeht, je Befund mit dem Blatt, auf dem er steht.
+  """
+  planbefunde: JSON
+  plan_status: String
+  plan_fazit: String
+
+  """
+  Urteil der Sichtung: lohnt sich ein Blick? Leer heisst "noch nicht beurteilt" — nicht "nein".
+  """
+  vorschlag: Boolean
+  vorschlag_begruendung: String
+  entscheid: String
+  ablehnungsgrund: String
+  ablehnungskommentar: String
+  date_created: Date
+  date_updated: Date
+  gemeinde: create_gemeinden_input
+  meldungen: [create_meldungen_input]
 }
 
 input create_ankuendigungen_input {
@@ -3884,6 +4272,11 @@ input create_gemeinden_input {
   aktiv: Boolean!
   date_created: Date
   date_updated: Date
+
+  """
+  Postleitzahlen der Gemeinde. Ohne sie bleibt die SHAB-Haelfte still: Handelsregister, Konkurse und Betreibungen sind beim Portal an die Adresse gebunden, nicht an die BFS-Nummer.
+  """
+  plz: [String]
 }
 
 input create_laeufe_input {
@@ -3972,6 +4365,7 @@ input create_meldungen_input {
   Kopie des Kandidaten-Entscheids für publizierte Presseschau-Meldungen — die Chefredaktion entscheidet am Kandidaten. Nicht publiziert trägt keine Perle.
   """
   perle: Boolean
+  amtsblattmeldung: create_amtsblattmeldungen_input
 }
 
 input create_portal_bereiche_input {
@@ -4990,6 +5384,7 @@ input gemeinden_filter {
   date_created_func: datetime_function_filter_operators
   date_updated: date_filter_operators
   date_updated_func: datetime_function_filter_operators
+  plz: string_filter_operators
   _and: [gemeinden_filter]
   _or: [gemeinden_filter]
 }
@@ -5079,8 +5474,52 @@ input meldungen_filter {
   erscheint_am_func: date_function_filter_operators
   kandidat: wochenblattkandidaten_filter
   perle: boolean_filter_operators
+  amtsblattmeldung: amtsblattmeldungen_filter
   _and: [meldungen_filter]
   _or: [meldungen_filter]
+}
+
+""""""
+input meldungen_quantifier_filter {
+  id: id_filter_operators
+  lauf: laeufe_filter
+  gemeinde: gemeinden_filter
+  titel: string_filter_operators
+  lead: string_filter_operators
+  text: string_filter_operators
+  status: string_filter_operators
+  datengrundlage: string_filter_operators
+  datengrundlage_func: count_function_filter_operators
+  zeit_warnungen: string_filter_operators
+  verarbeitung: string_filter_operators
+  anweisung: string_filter_operators
+  versuche: number_filter_operators
+  gesperrt_bis: date_filter_operators
+  gesperrt_bis_func: datetime_function_filter_operators
+  fehler: string_filter_operators
+  freigabe_token_hash: string_filter_operators
+  freigabe_token_ablauf: date_filter_operators
+  freigabe_token_ablauf_func: datetime_function_filter_operators
+  entscheidung: string_filter_operators
+  entscheidung_klartext: string_filter_operators
+  freigegeben_am: date_filter_operators
+  freigegeben_am_func: datetime_function_filter_operators
+  publiziert_am: date_filter_operators
+  publiziert_am_func: datetime_function_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  spiel: spiele_filter
+  erscheint_am: date_filter_operators
+  erscheint_am_func: date_function_filter_operators
+  kandidat: wochenblattkandidaten_filter
+  perle: boolean_filter_operators
+  amtsblattmeldung: amtsblattmeldungen_filter
+  _and: [meldungen_filter]
+  _or: [meldungen_filter]
+  _some: meldungen_filter
+  _none: meldungen_filter
 }
 
 input number_filter_operators {
@@ -5262,6 +5701,79 @@ input string_filter_operators {
   _nnull: Boolean
   _empty: Boolean
   _nempty: Boolean
+}
+
+input update_amtsblattmeldungen_input {
+  id: ID
+
+  """
+  Die Identitaet beim Portal. Unique — die Klammer, die einen zweiten Lauf idempotent macht.
+  """
+  publikations_id: String
+
+  """Amtliche Meldungsnummer, z.B. BP-BL05-0000006880."""
+  publikationsnummer: String
+
+  """Kantonskuerzel der Publikation."""
+  kanton: String
+
+  """
+  Wonach die Redaktion sortiert. "personen" ist keine Themen-, sondern eine Eigenschaft: dort werden Privatpersonen genannt.
+  """
+  gruppe: String
+  rubrik: String
+  unterrubrik: String
+
+  """Deutscher Name aus dem Rubrikkatalog des Portals."""
+  rubrik_name: String
+  titel: String
+  publiziert_am: Date
+
+  """
+  Einsprache- oder Auflagefrist. Die Zahl, die eine Meldung dringend macht — sie gehoert in den Lead.
+  """
+  frist: Date
+
+  """Publizierende Stelle."""
+  amt: String
+
+  """Das amtliche PDF. Vom Code gebaut, nie vom Modell geschrieben."""
+  pdf_url: String
+
+  """
+  Die beschrifteten Angaben aus der Einzelpublikation. Erst gefuellt, wenn jemand die Zeile anfasst.
+  """
+  angaben: JSON
+
+  """
+  Worauf die Publikation verweist — Plaene, Akten, Karten. "lesbar" sagt, ob wir sie maschinell lesen koennen.
+  """
+  unterlagen: JSON
+
+  """
+  Natuerliche Personen, welche die Publikation nennt. Sie gehen an den Prompt als "nicht nennen" und an die Pruefung.
+  """
+  personen: JSON
+
+  """
+  Was aus den aufgelegten Plaenen hervorgeht, je Befund mit dem Blatt, auf dem er steht.
+  """
+  planbefunde: JSON
+  plan_status: String
+  plan_fazit: String
+
+  """
+  Urteil der Sichtung: lohnt sich ein Blick? Leer heisst "noch nicht beurteilt" — nicht "nein".
+  """
+  vorschlag: Boolean
+  vorschlag_begruendung: String
+  entscheid: String
+  ablehnungsgrund: String
+  ablehnungskommentar: String
+  date_created: Date
+  date_updated: Date
+  gemeinde: update_gemeinden_input
+  meldungen: [update_meldungen_input]
 }
 
 input update_ankuendigungen_input {
@@ -5614,6 +6126,11 @@ input update_gemeinden_input {
   aktiv: Boolean
   date_created: Date
   date_updated: Date
+
+  """
+  Postleitzahlen der Gemeinde. Ohne sie bleibt die SHAB-Haelfte still: Handelsregister, Konkurse und Betreibungen sind beim Portal an die Adresse gebunden, nicht an die BFS-Nummer.
+  """
+  plz: [String]
 }
 
 input update_laeufe_input {
@@ -5702,6 +6219,7 @@ input update_meldungen_input {
   Kopie des Kandidaten-Entscheids für publizierte Presseschau-Meldungen — die Chefredaktion entscheidet am Kandidaten. Nicht publiziert trägt keine Perle.
   """
   perle: Boolean
+  amtsblattmeldung: update_amtsblattmeldungen_input
 }
 
 input update_portal_bereiche_input {

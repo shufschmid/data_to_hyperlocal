@@ -400,6 +400,13 @@ export interface GemeindeFelder {
   name: string
   bezirk: string
   bfs_nummer: number
+  /**
+   * The municipality's postcodes. The gazette portal indexes half its
+   * publications by PLACE and the other half by ADDRESS — commercial register,
+   * bankruptcies, payment orders. Without this, that half stays invisible, and
+   * the Gemeinden card says so rather than showing an empty desk.
+   */
+  plz: string[] | null
   aktiv: boolean
 }
 
@@ -414,6 +421,7 @@ export const GEMEINDEN_QUERY = gql`
       name
       bezirk
       bfs_nummer
+      plz
       aktiv
     }
   }
@@ -1046,6 +1054,76 @@ export const OFFENE_PERLEN_QUERY = gql`
           id
           name
         }
+      }
+    }
+  }
+`
+
+// The official gazette desk.
+//
+// Read wholesale rather than paged: a run collects a measured 12–23
+// publications a day over the covered municipalities, and the desk has to be
+// filterable across all of them at once. What the list does NOT carry is the
+// single publication's `angaben` — those are fetched per row when somebody
+// acts on it, which is why they can be null here.
+export interface AmtsblattFelder {
+  id: string
+  publikations_id: string
+  publikationsnummer: string | null
+  kanton: string | null
+  /** `bauen` | `wirtschaft` | `behoerden` | `grundbuch` | `personen`. */
+  gruppe: string | null
+  rubrik_name: string | null
+  titel: string
+  publiziert_am: string | null
+  /** Objection or inspection deadline — the figure that makes an article urgent. */
+  frist: string | null
+  amt: string | null
+  pdf_url: string | null
+  angaben: { bezeichnung: string; wert: string }[] | null
+  unterlagen: { art: string; bezeichnung: string; url: string; lesbar: boolean }[] | null
+  planbefunde: string[] | null
+  /** `offen` | `liest` | `gelesen` | `nicht_lesbar` | `fehler`. */
+  plan_status: string
+  plan_fazit: string | null
+  /** Null means the triage has not judged it — NOT that it said no. */
+  vorschlag: boolean | null
+  vorschlag_begruendung: string | null
+  entscheid: string
+  ablehnungsgrund: string | null
+  gemeinde: { id: string; name: string } | null
+}
+
+export interface AmtsblattErgebnis {
+  amtsblattmeldungen: AmtsblattFelder[]
+}
+
+export const AMTSBLATT_QUERY = gql`
+  query Amtsblattmeldungen {
+    amtsblattmeldungen(sort: ["-publiziert_am", "titel"], limit: -1) {
+      id
+      publikations_id
+      publikationsnummer
+      kanton
+      gruppe
+      rubrik_name
+      titel
+      publiziert_am
+      frist
+      amt
+      pdf_url
+      angaben
+      unterlagen
+      planbefunde
+      plan_status
+      plan_fazit
+      vorschlag
+      vorschlag_begruendung
+      entscheid
+      ablehnungsgrund
+      gemeinde {
+        id
+        name
       }
     }
   }

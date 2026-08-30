@@ -59,6 +59,7 @@ export interface GemeindenAuswahlProps {
   onVerein?: (gemeindeId: string, eingabe: VereinFormular, vereinId: string | null) => Promise<void>
   onBlattZuordnen?: (blattId: string, gemeindeId: string, entfernen: boolean) => Promise<void>
   onZumEntsorgungsTab?: () => void
+  onPlz?: (gemeindeId: string, plz: string[]) => Promise<void>
   laeuft?: boolean
   /** In Tests gesetzt. */
   jahr?: number
@@ -74,6 +75,7 @@ export function GemeindenAuswahl({
   onVerein,
   onBlattZuordnen,
   onZumEntsorgungsTab,
+  onPlz,
   laeuft = false,
   jahr
 }: GemeindenAuswahlProps) {
@@ -146,6 +148,7 @@ export function GemeindenAuswahl({
               })}
           {...(onBlattZuordnen === undefined ? {} : { onBlattAendern: () => setBlattDialog(gemeinde) })}
           {...(onZumEntsorgungsTab === undefined ? {} : { onZumEntsorgungsTab })}
+          {...(onPlz === undefined ? {} : { onPlz })}
         />
       ))}
 
@@ -212,6 +215,7 @@ interface KarteProps {
   onVereinBearbeiten?: (verein: VereinFelder | null) => void
   onBlattAendern?: () => void
   onZumEntsorgungsTab?: () => void
+  onPlz?: (gemeindeId: string, plz: string[]) => Promise<void>
 }
 
 function GemeindeKarte({
@@ -224,9 +228,11 @@ function GemeindeKarte({
   onEntfernen,
   onVereinBearbeiten,
   onBlattAendern,
-  onZumEntsorgungsTab
+  onZumEntsorgungsTab,
+  onPlz
 }: KarteProps) {
   const imKanton = istBaselbiet(gemeinde.bezirk)
+  const [plzEingabe, setPlzEingabe] = useState((gemeinde.plz ?? []).join(', '))
 
   return (
     <Paper sx={{ p: 2 }}>
@@ -262,7 +268,8 @@ function GemeindeKarte({
             // Redaktion auf Meldungen, die nicht kommen koennen.
             <Alert severity="info" sx={{ py: 0 }}>
               Ausserhalb Basel-Landschaft — die kantonalen Statistik-Quellen führen diese Gemeinde nicht.
-              Sport, Abfuhrkalender und Presseschau laufen normal.
+              Amtsblatt, Sport, Abfuhrkalender und Presseschau laufen normal — das Amtsblattportal ist
+              national.
             </Alert>
           )}
         </Abschnitt>
@@ -339,6 +346,50 @@ function GemeindeKarte({
               {blatt.letzter_fehler !== null && (
                 <Chip size="small" color="warning" label="zuletzt nicht gelesen" />
               )}
+            </Stack>
+          )}
+        </Abschnitt>
+
+        <Abschnitt titel="Amtsblatt">
+          {(gemeinde.plz ?? []).length > 0 ? (
+            <Typography variant="body2" color="text.secondary">
+              Läuft über BFS {gemeinde.bfs_nummer} und PLZ {(gemeinde.plz ?? []).join(', ')}.
+            </Typography>
+          ) : (
+            // Ohne PLZ liefert das Portal für diese Gemeinde schlicht nichts
+            // zurück — und das sieht genauso aus wie „es wurde nichts
+            // publiziert". Darum benannt statt verschwiegen.
+            <Alert severity="warning" sx={{ py: 0 }}>
+              Keine Postleitzahl erfasst. Baugesuche und Behördenbeschlüsse kommen trotzdem (über die
+              BFS-Nummer), Handelsregister, Konkurse und Betreibungen aber nicht — die führt das Portal über
+              die Adresse.
+            </Alert>
+          )}
+          {onPlz !== undefined && (
+            <Stack direction="row" spacing={1} sx={{ mt: 1, alignItems: 'flex-start' }}>
+              <TextField
+                size="small"
+                label="Postleitzahlen"
+                placeholder="4147, 4148"
+                value={plzEingabe}
+                onChange={(e) => setPlzEingabe(e.target.value)}
+                sx={{ flex: 1 }}
+              />
+              <Button
+                size="small"
+                disabled={laeuft}
+                onClick={() =>
+                  void onPlz(
+                    gemeinde.id,
+                    plzEingabe
+                      .split(/[\s,;]+/)
+                      .map((t) => t.trim())
+                      .filter((t) => t !== '')
+                  )
+                }
+              >
+                Speichern
+              </Button>
             </Stack>
           )}
         </Abschnitt>

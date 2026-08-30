@@ -33,6 +33,22 @@
   {
     "name": "Pruefen",
     "key": "pruefen",
+    "type": "amtsblatt-pruefen",
+    "position_x": 19,
+    "position_y": 1,
+    "options": {
+      "gemeinden": 20,
+      "plaene": 6,
+      "nachlauf": 2
+    },
+    "resolve": null,
+    "reject": null,
+    "flow": "328e328a-fc63-4b8f-b156-db44ee16b2e6",
+    "_syncId": "2484985f-81ab-406c-b161-dda43b65ff79"
+  },
+  {
+    "name": "Pruefen",
+    "key": "pruefen",
     "type": "wochenblatt-pruefen",
     "position_x": 19,
     "position_y": 1,

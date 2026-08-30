@@ -1,41 +1,41 @@
 {
-  "collection": "quellen",
-  "field": "typ",
+  "collection": "amtsblattmeldungen",
+  "field": "entscheid",
   "type": "string",
   "meta": {
-    "collection": "quellen",
+    "collection": "amtsblattmeldungen",
     "conditions": null,
     "display": "labels",
     "display_options": null,
-    "field": "typ",
+    "field": "entscheid",
     "group": null,
     "hidden": false,
     "interface": "select-dropdown",
-    "note": "Bestimmt, welcher Adapter die Quelle abfragt.",
+    "note": null,
     "options": {
       "choices": [
         {
-          "text": "Opendatasoft-Portal",
-          "value": "ods"
+          "text": "Offen",
+          "value": "offen"
         },
         {
-          "text": "Publikationsagenda (HTML)",
-          "value": "agenda"
+          "text": "Uebernommen",
+          "value": "uebernommen"
         },
         {
-          "text": "Statistik-BL-Tabelle (HTML)",
-          "value": "statbl"
+          "text": "Abgelehnt",
+          "value": "abgelehnt"
         },
         {
-          "text": "Amtsblattportal",
-          "value": "amtsblatt"
+          "text": "An Chefredaktion weitergereicht",
+          "value": "weitergereicht"
         }
       ]
     },
     "readonly": false,
-    "required": true,
+    "required": false,
     "searchable": true,
-    "sort": 3,
+    "sort": 22,
     "special": null,
     "translations": null,
     "validation": null,
@@ -43,11 +43,11 @@
     "width": "half"
   },
   "schema": {
-    "name": "typ",
-    "table": "quellen",
+    "name": "entscheid",
+    "table": "amtsblattmeldungen",
     "data_type": "character varying",
-    "default_value": "ods",
-    "max_length": 32,
+    "default_value": "offen",
+    "max_length": 20,
     "numeric_precision": null,
     "numeric_scale": null,
     "is_nullable": false,

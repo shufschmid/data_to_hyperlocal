@@ -62,6 +62,14 @@
       },
       {
         "type": "operation",
+        "name": "amtsblatt-pruefen",
+        "source": {
+          "app": "src/operations/amtsblatt-pruefen/app.ts",
+          "api": "src/operations/amtsblatt-pruefen/api.ts"
+        }
+      },
+      {
+        "type": "operation",
         "name": "redaktion-abarbeiten",
         "source": {
           "app": "src/operations/redaktion-abarbeiten/app.ts",

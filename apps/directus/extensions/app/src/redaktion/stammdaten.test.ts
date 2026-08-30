@@ -26,9 +26,19 @@ describe('istBaselbiet', () => {
 describe('pruefeGemeinde', () => {
   const gut = { name: 'Dornach', bfs_nummer: 2473, bezirk: 'Dorneck (SO)' }
 
+  // Ohne PLZ bleibt die SHAB-Haelfte des Amtsblatts still — darum geprueft,
+  // aber nie erzwungen: die Gemeinde ist auch ohne sie brauchbar.
+  it('nimmt Postleitzahlen an und weist Unfug zurueck', () => {
+    const p = pruefeGemeinde({ ...gut, plz: ['4143', ' 4143 ', '4144'] }, [])
+    expect(p.ok && p.wert.plz).toEqual(['4143', '4144'])
+
+    const schlecht = pruefeGemeinde({ ...gut, plz: ['041'] }, [])
+    expect(schlecht.ok).toBe(false)
+  })
+
   it('nimmt eine ausserkantonale Gemeinde an', () => {
     const p = pruefeGemeinde(gut, ['Aesch', 'Riehen'])
-    expect(p.ok && p.wert).toEqual(gut)
+    expect(p.ok && p.wert).toEqual({ ...gut, plz: [] })
   })
 
   it('trimmt und verlangt die Pflichtfelder', () => {

@@ -1,41 +1,45 @@
 {
-  "collection": "quellen",
-  "field": "typ",
+  "collection": "amtsblattmeldungen",
+  "field": "plan_status",
   "type": "string",
   "meta": {
-    "collection": "quellen",
+    "collection": "amtsblattmeldungen",
     "conditions": null,
     "display": "labels",
     "display_options": null,
-    "field": "typ",
+    "field": "plan_status",
     "group": null,
     "hidden": false,
     "interface": "select-dropdown",
-    "note": "Bestimmt, welcher Adapter die Quelle abfragt.",
+    "note": null,
     "options": {
       "choices": [
         {
-          "text": "Opendatasoft-Portal",
-          "value": "ods"
+          "text": "Nicht gelesen",
+          "value": "offen"
         },
         {
-          "text": "Publikationsagenda (HTML)",
-          "value": "agenda"
+          "text": "Wird gelesen",
+          "value": "liest"
         },
         {
-          "text": "Statistik-BL-Tabelle (HTML)",
-          "value": "statbl"
+          "text": "Gelesen",
+          "value": "gelesen"
         },
         {
-          "text": "Amtsblattportal",
-          "value": "amtsblatt"
+          "text": "Keine lesbaren Unterlagen",
+          "value": "nicht_lesbar"
+        },
+        {
+          "text": "Fehler",
+          "value": "fehler"
         }
       ]
     },
     "readonly": false,
-    "required": true,
+    "required": false,
     "searchable": true,
-    "sort": 3,
+    "sort": 18,
     "special": null,
     "translations": null,
     "validation": null,
@@ -43,11 +47,11 @@
     "width": "half"
   },
   "schema": {
-    "name": "typ",
-    "table": "quellen",
+    "name": "plan_status",
+    "table": "amtsblattmeldungen",
     "data_type": "character varying",
-    "default_value": "ods",
-    "max_length": 32,
+    "default_value": "offen",
+    "max_length": 20,
     "numeric_precision": null,
     "numeric_scale": null,
     "is_nullable": false,

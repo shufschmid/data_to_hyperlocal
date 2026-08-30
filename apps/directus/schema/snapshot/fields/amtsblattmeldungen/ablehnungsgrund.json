@@ -1,41 +1,49 @@
 {
-  "collection": "quellen",
-  "field": "typ",
+  "collection": "amtsblattmeldungen",
+  "field": "ablehnungsgrund",
   "type": "string",
   "meta": {
-    "collection": "quellen",
+    "collection": "amtsblattmeldungen",
     "conditions": null,
-    "display": "labels",
+    "display": null,
     "display_options": null,
-    "field": "typ",
+    "field": "ablehnungsgrund",
     "group": null,
     "hidden": false,
     "interface": "select-dropdown",
-    "note": "Bestimmt, welcher Adapter die Quelle abfragt.",
+    "note": null,
     "options": {
       "choices": [
         {
-          "text": "Opendatasoft-Portal",
-          "value": "ods"
+          "text": "Nicht relevant",
+          "value": "nicht_relevant"
         },
         {
-          "text": "Publikationsagenda (HTML)",
-          "value": "agenda"
+          "text": "Zu privat",
+          "value": "zu_privat"
         },
         {
-          "text": "Statistik-BL-Tabelle (HTML)",
-          "value": "statbl"
+          "text": "Doublette",
+          "value": "doublette"
         },
         {
-          "text": "Amtsblattportal",
-          "value": "amtsblatt"
+          "text": "Veraltet",
+          "value": "veraltet"
+        },
+        {
+          "text": "Falsche Gemeinde",
+          "value": "falsche_gemeinde"
+        },
+        {
+          "text": "Anderer Grund",
+          "value": "andere"
         }
       ]
     },
     "readonly": false,
-    "required": true,
+    "required": false,
     "searchable": true,
-    "sort": 3,
+    "sort": 23,
     "special": null,
     "translations": null,
     "validation": null,
@@ -43,14 +51,14 @@
     "width": "half"
   },
   "schema": {
-    "name": "typ",
-    "table": "quellen",
+    "name": "ablehnungsgrund",
+    "table": "amtsblattmeldungen",
     "data_type": "character varying",
-    "default_value": "ods",
-    "max_length": 32,
+    "default_value": null,
+    "max_length": 30,
     "numeric_precision": null,
     "numeric_scale": null,
-    "is_nullable": false,
+    "is_nullable": true,
     "is_unique": false,
     "is_indexed": false,
     "is_primary_key": false,

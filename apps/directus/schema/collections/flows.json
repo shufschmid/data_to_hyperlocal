@@ -14,6 +14,20 @@
     "_syncId": "26f86364-b542-4514-b6b0-37fedc68e29a"
   },
   {
+    "name": "Amtsblatt pruefen",
+    "icon": "gavel",
+    "color": null,
+    "description": "Liest jeden Morgen die amtlichen Publikationen der bespielten Gemeinden — kantonal und SHAB. Eine Sichtung sortiert, was einen Blick lohnt; zu den Vorschlaegen werden die aufgelegten Plaene angesehen.",
+    "status": "active",
+    "trigger": "schedule",
+    "accountability": "all",
+    "options": {
+      "cron": "0 7 * * *"
+    },
+    "operation": "2484985f-81ab-406c-b161-dda43b65ff79",
+    "_syncId": "328e328a-fc63-4b8f-b156-db44ee16b2e6"
+  },
+  {
     "name": "Meldungen erzeugen",
     "icon": "edit_note",
     "color": null,

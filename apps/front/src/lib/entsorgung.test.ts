@@ -58,7 +58,15 @@ function meldung(ueber: Partial<AlleMeldungFelder>): AlleMeldungFelder {
 }
 
 function gemeinde(ueber: Partial<GemeindeFelder>): GemeindeFelder {
-  return { id: 'g-1', name: 'Binningen', bezirk: 'Arlesheim', bfs_nummer: 2765, aktiv: true, ...ueber }
+  return {
+    id: 'g-1',
+    name: 'Binningen',
+    bezirk: 'Arlesheim',
+    bfs_nummer: 2765,
+    plz: null,
+    aktiv: true,
+    ...ueber
+  }
 }
 
 function kalender(ueber: Partial<EntsorgungskalenderFelder>): EntsorgungskalenderFelder {

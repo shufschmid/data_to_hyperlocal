@@ -55,7 +55,9 @@ import {
   type PortalBeobachtenErgebnis,
   type PortalErgebnis,
   type QuellenErgebnis,
-  type WissenErgebnis
+  type WissenErgebnis,
+  AMTSBLATT_QUERY,
+  type AmtsblattErgebnis
 } from '@/graphql/redaktion'
 import {
   anzahlBeschaeftigt,
@@ -68,6 +70,8 @@ import {
 } from '@/lib/redaktion'
 import { QuellenLauf } from './QuellenLauf'
 import { Presseschau } from './Presseschau'
+import { Amtsblatt } from './Amtsblatt'
+import { anzahlOffen, liestUnterlagen } from '@/lib/amtsblatt'
 import { Chefredaktion } from './Chefredaktion'
 import { Zeitleiste } from './Zeitleiste'
 import { AuftragDialog, type AuftragZiel } from './AuftragDialog'
@@ -205,6 +209,9 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
     fetchPolicy: LIVE_FETCH_POLICY
   })
   const recherchehinweise = useQuery<RecherchehinweiseErgebnis>(RECHERCHEHINWEISE_QUERY, {
+    fetchPolicy: LIVE_FETCH_POLICY
+  })
+  const amtsblatt = useQuery<AmtsblattErgebnis>(AMTSBLATT_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY
   })
   // Der Perlen-Stapel der Chefredaktion: Kandidaten mit Perlen-Vorschlag,
@@ -592,6 +599,17 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
         <Tab
           label={
             <Badge
+              color="info"
+              badgeContent={anzahlOffen(amtsblatt.data?.amtsblattmeldungen ?? [])}
+              sx={ZAEHLER_IM_REITER}
+            >
+              Amtsblatt
+            </Badge>
+          }
+        />
+        <Tab
+          label={
+            <Badge
               color="warning"
               badgeContent={
                 (recherchehinweise.data?.recherchehinweise ?? []).filter((h) => h.status === 'offen').length +
@@ -884,6 +902,39 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
       {reiter === 4 && (
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
+            Was die Gemeinden amtlich publizieren — kantonal und im SHAB, über das Amtsblattportal des Bundes.
+            Als einzige Quelle deckt es das ganze Gebiet ab, auch Riehen und Dornach. Eine Sichtung sortiert,
+            was einen Blick lohnt; weggeworfen wird nichts. Zu den Vorschlägen sieht sich der Lauf die
+            aufgelegten Baupläne an — bei allen anderen steht der Link da, und ein Klick holt die Unterlagen
+            nach.
+          </Typography>
+          <Amtsblatt
+            eintraege={amtsblatt.data?.amtsblattmeldungen ?? []}
+            gemeinden={gemeinden.data?.gemeinden ?? []}
+            heute={new Date().toISOString().slice(0, 10)}
+            laeuft={sendet || liestUnterlagen(amtsblatt.data?.amtsblattmeldungen ?? [])}
+            onLauf={async () => {
+              await fuehreAus('amtsblatt/pruefen')
+            }}
+            onUebernehmen={async (id) => {
+              await fuehreAus(`amtsblatt/${id}/meldung`)
+            }}
+            onAblehnen={async (id, grund, kommentar) => {
+              await fuehreAus(`amtsblatt/${id}/ablehnen`, { grund, kommentar })
+            }}
+            onWeiterreichen={async (id, begruendung) => {
+              await fuehreAus(`amtsblatt/${id}/weiterreichen`, { begruendung })
+            }}
+            onUnterlagen={async (id) => {
+              await fuehreAus(`amtsblatt/${id}/unterlagen`)
+            }}
+          />
+        </Stack>
+      )}
+
+      {reiter === 5 && (
+        <Stack spacing={2}>
+          <Typography variant="body2" color="text.secondary">
             Der Tisch der Chefredaktion: Recherche-Hinweise (aus Leserbriefen, vom Inventar oder von der
             Redaktion weitergereicht) und die Perlen-Frage zu Beiträgen der Wochenblätter — unabhängig davon,
             ob eine Meldung daraus wird. Beides bleibt liegen, bis es entschieden ist — auch über neue
@@ -910,7 +961,7 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
         </Stack>
       )}
 
-      {reiter === 5 && (
+      {reiter === 6 && (
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
             Alles, was für eine Gemeinde geschrieben wurde — neuste zuerst, gleich ob aus einer Statistik oder
@@ -933,7 +984,7 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
         </Stack>
       )}
 
-      {reiter === 6 && (
+      {reiter === 7 && (
         <Stack spacing={1}>
           <Typography variant="body2" color="text.secondary">
             Regeln, die aus deinen Anweisungen gelernt wurden. Sie fliessen in jede weitere Meldung ein — auch
@@ -951,7 +1002,7 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
         </Stack>
       )}
 
-      {reiter === 7 && (
+      {reiter === 8 && (
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
             Das Redaktionsgebiet: eine Karte je Gemeinde, mit Statistik, Vereinen, Wochenblatt und
@@ -996,6 +1047,9 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
               await wochenblaetter.refetch()
             }}
             onZumEntsorgungsTab={() => setReiter(2)}
+            onPlz={async (id, plz) => {
+              await fuehreAus(`gemeinden/${id}/plz`, { plz })
+            }}
           />
         </Stack>
       )}
