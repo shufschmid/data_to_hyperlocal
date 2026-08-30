@@ -85,6 +85,17 @@ export interface Datensatz {
    */
   lauf_stand: string | null
   /**
+   * The agenda topic this dataset belongs to, where one does.
+   *
+   * A publication of the office routinely spans several datasets — "Bau- und
+   * Wohnbaustatistik 2025" is the newly built flats and the housing stock at
+   * once. All of them point back at the one announcement, which is what lets
+   * the timeline show the topic instead of the same thing three times.
+   * `ankuendigungen.datensatz` names the primary one in the other direction —
+   * the one the "Meldungen erzeugen" button opens a run for.
+   */
+  ankuendigung: string | null
+  /**
    * When the municipality column was checked against real values.
    *
    * The metadata alone cannot tell a district column from a municipality one —

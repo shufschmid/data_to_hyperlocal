@@ -3,7 +3,7 @@
   "info": {
     "title": "Dynamic API Specification",
     "description": "This is a dynamically generated API specification for all endpoints existing on the current project.",
-    "version": "caf7a356d90e53707fc266f0adfc86639852e177"
+    "version": "af9f7461770cc265bbd0b71a59afc62e7601fa23"
   },
   "servers": [
     {
@@ -11011,395 +11011,6 @@
         ]
       }
     },
-    "/items/datensaetze": {
-      "post": {
-        "summary": "Create an Item",
-        "description": "Create a new datensaetze item.",
-        "tags": [
-          "Items",
-          "ItemsDatensaetze"
-        ],
-        "operationId": "createItemsDatensaetze",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Meta"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "oneOf": [
-                  {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/ItemsDatensaetze"
-                    }
-                  },
-                  {
-                    "$ref": "#/components/schemas/ItemsDatensaetze"
-                  }
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/ItemsDatensaetze"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          }
-        }
-      },
-      "get": {
-        "summary": "List Items",
-        "description": "List the datensaetze items.",
-        "tags": [
-          "Items",
-          "ItemsDatensaetze"
-        ],
-        "operationId": "readItemsDatensaetze",
-        "security": [
-          {
-            "Auth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Fields"
-          },
-          {
-            "$ref": "#/components/parameters/Limit"
-          },
-          {
-            "$ref": "#/components/parameters/Meta"
-          },
-          {
-            "$ref": "#/components/parameters/Offset"
-          },
-          {
-            "$ref": "#/components/parameters/Sort"
-          },
-          {
-            "$ref": "#/components/parameters/Filter"
-          },
-          {
-            "$ref": "#/components/parameters/Search"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "$ref": "#/components/schemas/ItemsDatensaetze"
-                      }
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/x-metadata"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          }
-        }
-      },
-      "patch": {
-        "summary": "Update Multiple Items",
-        "description": "Update multiple datensaetze items at the same time.",
-        "tags": [
-          "Items",
-          "ItemsDatensaetze"
-        ],
-        "operationId": "updateItemsDatensaetze",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Fields"
-          },
-          {
-            "$ref": "#/components/parameters/Limit"
-          },
-          {
-            "$ref": "#/components/parameters/Meta"
-          },
-          {
-            "$ref": "#/components/parameters/Offset"
-          },
-          {
-            "$ref": "#/components/parameters/Sort"
-          },
-          {
-            "$ref": "#/components/parameters/Filter"
-          },
-          {
-            "$ref": "#/components/parameters/Search"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "oneOf": [
-                  {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/ItemsDatensaetze"
-                    }
-                  },
-                  {
-                    "$ref": "#/components/schemas/ItemsDatensaetze"
-                  }
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/ItemsDatensaetze"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "summary": "Delete Multiple Items",
-        "description": "Delete multiple existing datensaetze items.",
-        "tags": [
-          "Items",
-          "ItemsDatensaetze"
-        ],
-        "operationId": "deleteItemsDatensaetze",
-        "responses": {
-          "200": {
-            "description": "Successful request"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          }
-        },
-        "parameters": []
-      }
-    },
-    "/items/datensaetze/{id}": {
-      "get": {
-        "summary": "Retrieve an Item",
-        "description": "Retrieve a single datensaetze item by unique identifier.",
-        "tags": [
-          "Items",
-          "ItemsDatensaetze"
-        ],
-        "operationId": "readSingleItemsDatensaetze",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Fields"
-          },
-          {
-            "$ref": "#/components/parameters/Meta"
-          },
-          {
-            "$ref": "#/components/parameters/Version"
-          },
-          {
-            "name": "id",
-            "description": "Index of the item.",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "oneOf": [
-                {
-                  "type": "integer",
-                  "description": "Incremental index of the item.",
-                  "example": 1
-                },
-                {
-                  "type": "string",
-                  "description": "Unique identifier of the item.",
-                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
-                }
-              ]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "object",
-                      "$ref": "#/components/schemas/ItemsDatensaetze"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          }
-        }
-      },
-      "patch": {
-        "summary": "Update an Item",
-        "description": "Update an existing datensaetze item.",
-        "tags": [
-          "Items",
-          "ItemsDatensaetze"
-        ],
-        "operationId": "updateSingleItemsDatensaetze",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Fields"
-          },
-          {
-            "$ref": "#/components/parameters/Meta"
-          },
-          {
-            "name": "id",
-            "description": "Index of the item.",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "oneOf": [
-                {
-                  "type": "integer",
-                  "description": "Incremental index of the item.",
-                  "example": 1
-                },
-                {
-                  "type": "string",
-                  "description": "Unique identifier of the item.",
-                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
-                }
-              ]
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "$ref": "#/components/schemas/ItemsDatensaetze"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "object",
-                      "$ref": "#/components/schemas/ItemsDatensaetze"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          }
-        }
-      },
-      "delete": {
-        "summary": "Delete an Item",
-        "description": "Delete an existing datensaetze item.",
-        "tags": [
-          "Items",
-          "ItemsDatensaetze"
-        ],
-        "operationId": "deleteSingleItemsDatensaetze",
-        "responses": {
-          "200": {
-            "description": "Successful request"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          }
-        },
-        "parameters": [
-          {
-            "name": "id",
-            "description": "Index of the item.",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "oneOf": [
-                {
-                  "type": "integer",
-                  "description": "Incremental index of the item.",
-                  "example": 1
-                },
-                {
-                  "type": "string",
-                  "description": "Unique identifier of the item.",
-                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
-                }
-              ]
-            }
-          }
-        ]
-      }
-    },
     "/items/directus_sync_id_map": {
       "post": {
         "summary": "Create an Item",
@@ -13310,6 +12921,395 @@
           "ItemsEntsorgungstermine"
         ],
         "operationId": "deleteSingleItemsEntsorgungstermine",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "/items/datensaetze": {
+      "post": {
+        "summary": "Create an Item",
+        "description": "Create a new datensaetze item.",
+        "tags": [
+          "Items",
+          "ItemsDatensaetze"
+        ],
+        "operationId": "createItemsDatensaetze",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Meta"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsDatensaetze"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsDatensaetze"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsDatensaetze"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "get": {
+        "summary": "List Items",
+        "description": "List the datensaetze items.",
+        "tags": [
+          "Items",
+          "ItemsDatensaetze"
+        ],
+        "operationId": "readItemsDatensaetze",
+        "security": [
+          {
+            "Auth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "$ref": "#/components/schemas/ItemsDatensaetze"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/x-metadata"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update Multiple Items",
+        "description": "Update multiple datensaetze items at the same time.",
+        "tags": [
+          "Items",
+          "ItemsDatensaetze"
+        ],
+        "operationId": "updateItemsDatensaetze",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsDatensaetze"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsDatensaetze"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsDatensaetze"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Multiple Items",
+        "description": "Delete multiple existing datensaetze items.",
+        "tags": [
+          "Items",
+          "ItemsDatensaetze"
+        ],
+        "operationId": "deleteItemsDatensaetze",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/items/datensaetze/{id}": {
+      "get": {
+        "summary": "Retrieve an Item",
+        "description": "Retrieve a single datensaetze item by unique identifier.",
+        "tags": [
+          "Items",
+          "ItemsDatensaetze"
+        ],
+        "operationId": "readSingleItemsDatensaetze",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Version"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsDatensaetze"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update an Item",
+        "description": "Update an existing datensaetze item.",
+        "tags": [
+          "Items",
+          "ItemsDatensaetze"
+        ],
+        "operationId": "updateSingleItemsDatensaetze",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "$ref": "#/components/schemas/ItemsDatensaetze"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsDatensaetze"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete an Item",
+        "description": "Delete an existing datensaetze item.",
+        "tags": [
+          "Items",
+          "ItemsDatensaetze"
+        ],
+        "operationId": "deleteSingleItemsDatensaetze",
         "responses": {
           "200": {
             "description": "Successful request"
@@ -15460,11 +15460,6 @@
       "description": "Jede besuchte Seite des Statistikportals, mit ihrer Einordnung."
     },
     {
-      "name": "ItemsDatensaetze",
-      "x-collection": "datensaetze",
-      "description": "Auf den Quellen gefundene Datensaetze. \"Relevant\" gibt einen frei, aus dem Meldungen erzeugt werden duerfen."
-    },
-    {
       "name": "ItemsDirectusSyncIDMap",
       "x-collection": "directus_sync_id_map"
     },
@@ -15487,6 +15482,11 @@
       "name": "ItemsEntsorgungstermine",
       "x-collection": "entsorgungstermine",
       "description": "Ein aussergewoehnlicher Abfuhrtermin. Regelmaessige Abfuhren stehen nur im Merkblatt."
+    },
+    {
+      "name": "ItemsDatensaetze",
+      "x-collection": "datensaetze",
+      "description": "Auf den Quellen gefundene Datensaetze. \"Relevant\" gibt einen frei, aus dem Meldungen erzeugt werden duerfen."
     },
     {
       "name": "ItemsWochenblaetter",
@@ -18262,122 +18262,6 @@
           "pfad"
         ]
       },
-      "ItemsDatensaetze": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "nullable": false,
-            "type": "string",
-            "format": "uuid"
-          },
-          "quelle": {
-            "nullable": true,
-            "oneOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "$ref": "#/components/schemas/ItemsQuellen"
-              }
-            ]
-          },
-          "externe_id": {
-            "nullable": false,
-            "description": "Id des Datensatzes im Portal.",
-            "type": "string"
-          },
-          "titel": {
-            "nullable": false,
-            "type": "string"
-          },
-          "beschreibung": {
-            "nullable": true,
-            "type": "string"
-          },
-          "portal_modified": {
-            "nullable": true,
-            "description": "Zeitstempel des Portals. Aendert sich auch bei reinen Metadaten-Korrekturen.",
-            "type": "string",
-            "format": "timestamp"
-          },
-          "felder": {
-            "nullable": true,
-            "description": "Feldliste des Portals."
-          },
-          "hat_gemeinde": {
-            "nullable": false,
-            "description": "Aus den Feld-Metadaten des Portals erkannt, nicht geraten.",
-            "type": "boolean"
-          },
-          "letzter_stand": {
-            "nullable": true,
-            "description": "Fingerabdruck des Inhalts. Erst eine Aenderung hier eroeffnet einen Lauf.",
-            "type": "string"
-          },
-          "status": {
-            "nullable": false,
-            "type": "string"
-          },
-          "bewertung": {
-            "nullable": true,
-            "description": "Einschaetzung der Redaktions-KI, warum der Datensatz relevant ist oder nicht.",
-            "type": "string"
-          },
-          "date_created": {
-            "nullable": true,
-            "type": "string",
-            "format": "timestamp"
-          },
-          "date_updated": {
-            "nullable": true,
-            "type": "string",
-            "format": "timestamp"
-          },
-          "gemeindefeld": {
-            "nullable": true,
-            "description": "Nur setzen, wenn die Gemeindespalte nicht automatisch erkannt wird. Exakter Feldname im Portal.",
-            "type": "string"
-          },
-          "standard_vorgabe": {
-            "nullable": true,
-            "description": "Auftrag, den jeder neue Lauf zu diesem Datensatz erbt — auch der naechstes Jahr.",
-            "type": "string"
-          },
-          "lauf_stand": {
-            "nullable": true,
-            "description": "Stand, fuer den zuletzt ein Lauf eroeffnet wurde. Leeren, um erneut einen Lauf zu erzwingen.",
-            "type": "string"
-          },
-          "gemeinde_geprueft": {
-            "nullable": true,
-            "description": "Wann die Gemeindespalte gegen echte Werte geprueft wurde. Leeren, um erneut zu pruefen.",
-            "type": "string",
-            "format": "timestamp"
-          },
-          "rhythmus": {
-            "nullable": true,
-            "description": "Aktualisierungsrhythmus laut Katalog: annual, daily, irregular …",
-            "type": "string"
-          },
-          "daten_stand": {
-            "nullable": true,
-            "description": "Wann sich die Daten selbst zuletzt geaendert haben — nicht die Beschreibung.",
-            "type": "string",
-            "format": "timestamp"
-          },
-          "zeilen": {
-            "nullable": true,
-            "description": "Zeilen im Portal.",
-            "type": "integer"
-          }
-        },
-        "x-collection": "datensaetze",
-        "required": [
-          "externe_id",
-          "titel"
-        ]
-      },
       "ItemsDirectusSyncIDMap": {
         "type": "object",
         "properties": {
@@ -18781,6 +18665,135 @@
           "kalender",
           "kategorie",
           "datum"
+        ]
+      },
+      "ItemsDatensaetze": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "nullable": false,
+            "type": "string",
+            "format": "uuid"
+          },
+          "quelle": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsQuellen"
+              }
+            ]
+          },
+          "externe_id": {
+            "nullable": false,
+            "description": "Id des Datensatzes im Portal.",
+            "type": "string"
+          },
+          "titel": {
+            "nullable": false,
+            "type": "string"
+          },
+          "beschreibung": {
+            "nullable": true,
+            "type": "string"
+          },
+          "portal_modified": {
+            "nullable": true,
+            "description": "Zeitstempel des Portals. Aendert sich auch bei reinen Metadaten-Korrekturen.",
+            "type": "string",
+            "format": "timestamp"
+          },
+          "felder": {
+            "nullable": true,
+            "description": "Feldliste des Portals."
+          },
+          "hat_gemeinde": {
+            "nullable": false,
+            "description": "Aus den Feld-Metadaten des Portals erkannt, nicht geraten.",
+            "type": "boolean"
+          },
+          "letzter_stand": {
+            "nullable": true,
+            "description": "Fingerabdruck des Inhalts. Erst eine Aenderung hier eroeffnet einen Lauf.",
+            "type": "string"
+          },
+          "status": {
+            "nullable": false,
+            "type": "string"
+          },
+          "bewertung": {
+            "nullable": true,
+            "description": "Einschaetzung der Redaktions-KI, warum der Datensatz relevant ist oder nicht.",
+            "type": "string"
+          },
+          "date_created": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "date_updated": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "gemeindefeld": {
+            "nullable": true,
+            "description": "Nur setzen, wenn die Gemeindespalte nicht automatisch erkannt wird. Exakter Feldname im Portal.",
+            "type": "string"
+          },
+          "standard_vorgabe": {
+            "nullable": true,
+            "description": "Auftrag, den jeder neue Lauf zu diesem Datensatz erbt — auch der naechstes Jahr.",
+            "type": "string"
+          },
+          "lauf_stand": {
+            "nullable": true,
+            "description": "Stand, fuer den zuletzt ein Lauf eroeffnet wurde. Leeren, um erneut einen Lauf zu erzwingen.",
+            "type": "string"
+          },
+          "gemeinde_geprueft": {
+            "nullable": true,
+            "description": "Wann die Gemeindespalte gegen echte Werte geprueft wurde. Leeren, um erneut zu pruefen.",
+            "type": "string",
+            "format": "timestamp"
+          },
+          "rhythmus": {
+            "nullable": true,
+            "description": "Aktualisierungsrhythmus laut Katalog: annual, daily, irregular …",
+            "type": "string"
+          },
+          "daten_stand": {
+            "nullable": true,
+            "description": "Wann sich die Daten selbst zuletzt geaendert haben — nicht die Beschreibung.",
+            "type": "string",
+            "format": "timestamp"
+          },
+          "zeilen": {
+            "nullable": true,
+            "description": "Zeilen im Portal.",
+            "type": "integer"
+          },
+          "ankuendigung": {
+            "nullable": true,
+            "description": "Das Agenda-Thema, zu dem dieser Datensatz gehört. Gesetzt aus den Verweisen im Webartikel des Amts — die Zeitleiste zeigt dann nur den Agenda-Eintrag, nicht zusätzlich diesen Datensatz.",
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsAnkuendigungen"
+              }
+            ]
+          }
+        },
+        "x-collection": "datensaetze",
+        "required": [
+          "externe_id",
+          "titel"
         ]
       },
       "ItemsWochenblaetter": {

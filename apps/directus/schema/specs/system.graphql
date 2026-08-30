@@ -295,12 +295,12 @@ type Subscription {
   entsorgungsdokumente_mutated(event: EventEnum): entsorgungsdokumente_mutated
   portal_bereiche_mutated(event: EventEnum): portal_bereiche_mutated
   portal_seiten_mutated(event: EventEnum): portal_seiten_mutated
-  datensaetze_mutated(event: EventEnum): datensaetze_mutated
   directus_sync_id_map_mutated(event: EventEnum): directus_sync_id_map_mutated
   vereine_mutated(event: EventEnum): vereine_mutated
   spiele_mutated(event: EventEnum): spiele_mutated
   entsorgungskalender_mutated(event: EventEnum): entsorgungskalender_mutated
   entsorgungstermine_mutated(event: EventEnum): entsorgungstermine_mutated
+  datensaetze_mutated(event: EventEnum): datensaetze_mutated
   wochenblaetter_mutated(event: EventEnum): wochenblaetter_mutated
   wochenblattausgaben_mutated(event: EventEnum): wochenblattausgaben_mutated
   recherchehinweise_mutated(event: EventEnum): recherchehinweise_mutated
@@ -530,6 +530,7 @@ type datensaetze {
 
   """Zeilen im Portal."""
   zeilen: Int
+  ankuendigung(filter: ankuendigungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): ankuendigungen
 }
 
 type datensaetze_mutated {
@@ -3153,6 +3154,7 @@ input datensaetze_filter {
   daten_stand: date_filter_operators
   daten_stand_func: datetime_function_filter_operators
   zeilen: number_filter_operators
+  ankuendigung: ankuendigungen_filter
   _and: [datensaetze_filter]
   _or: [datensaetze_filter]
 }

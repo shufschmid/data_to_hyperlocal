@@ -1,4 +1,5 @@
 import { parseAgenda, parseAgendaMarkdown, type AgendaEintrag } from './parse'
+import { parseArtikel, type Artikel } from './artikel'
 
 // Fetching the statistics office's publication agenda.
 //
@@ -23,6 +24,7 @@ import { parseAgenda, parseAgendaMarkdown, type AgendaEintrag } from './parse'
 // than forbidding it.
 
 export * from './parse'
+export * from './artikel'
 
 export type AgendaFetch = (
   url: string,
@@ -202,4 +204,40 @@ async function notfall(
   // published" would quietly stop the feed.
   if (eintraege.length === 0) throw new AgendaChallengeError(url, versuche)
   return eintraege
+}
+
+/**
+ * Fetches one of the office's web articles.
+ *
+ * Same host and the same honest User-Agent as the agenda itself, so this adds
+ * no outbound dependency — only pages an agenda entry already links, at most
+ * one per entry, and only once because the result is stamped. One attempt: an
+ * article is a convenience for the mapping, never the thing the run depends on,
+ * so a refusal costs a fallback to the title and nothing more.
+ */
+export async function fetchWebartikel(
+  url: string,
+  options: { kontakt: string; fetchImpl?: AgendaFetch }
+): Promise<Artikel> {
+  const doFetch = options.fetchImpl ?? defaultAgendaFetch
+  const response = await doFetch(url, {
+    headers: {
+      'User-Agent': buildUserAgent(options.kontakt),
+      Accept: 'text/html',
+      'Accept-Language': 'de-CH,de;q=0.9'
+    }
+  })
+
+  if (!response.ok) {
+    throw new AgendaRequestError(
+      response.status,
+      `Webartikel antwortete mit HTTP ${response.status}.`,
+      url
+    )
+  }
+
+  const html = await response.text()
+  if (istChallenge(html)) throw new AgendaChallengeError(url, 1)
+
+  return parseArtikel(html)
 }

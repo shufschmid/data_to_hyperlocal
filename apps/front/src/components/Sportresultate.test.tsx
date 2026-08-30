@@ -211,6 +211,58 @@ describe('Sportresultate — Meldungen erzeugen', () => {
   })
 })
 
+describe('Sportresultate — alle publizieren', () => {
+  const gespielt = spiel({
+    id: 'g1',
+    datum: '2026-08-19T18:00:00Z',
+    heim: 'FC Reinach',
+    gast: 'FC Amicitia Riehen',
+    tore_heim: 3,
+    tore_gast: 3
+  })
+
+  it('nennt, wie viele Meldungen bereit sind, und stellt sie scharf', async () => {
+    const onAllePublizieren = jest.fn().mockResolvedValue(undefined)
+    render(
+      <Sportresultate
+        spiele={[gespielt]}
+        jetzt={JETZT}
+        berichte={[bericht('g1')]}
+        onAllePublizieren={onAllePublizieren}
+      />
+    )
+
+    expect(screen.getByText(/1 Meldung ist bereit zum Publizieren/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Alle Meldungen publizieren' }))
+    expect(onAllePublizieren).toHaveBeenCalled()
+  })
+
+  it('sperrt den Knopf, wenn nichts zu publizieren ist', () => {
+    render(
+      <Sportresultate
+        spiele={[gespielt]}
+        jetzt={JETZT}
+        berichte={[{ ...bericht('g1'), status: 'publiziert' }]}
+        onAllePublizieren={jest.fn()}
+      />
+    )
+    expect(screen.getByRole('button', { name: 'Alle Meldungen publizieren' })).toBeDisabled()
+  })
+
+  // Eine Meldung beim Gegenlesen gehoert den Pruefenden — sie zaehlt nicht mit.
+  it('zaehlt eine Meldung in Gegenpruefung nicht als bereit', () => {
+    render(
+      <Sportresultate
+        spiele={[gespielt]}
+        jetzt={JETZT}
+        berichte={[{ ...bericht('g1'), status: 'in_pruefung' }]}
+        onAllePublizieren={jest.fn()}
+      />
+    )
+    expect(screen.getByRole('button', { name: 'Alle Meldungen publizieren' })).toBeDisabled()
+  })
+})
+
 describe('Sportresultate — Bericht anzeigen', () => {
   const gespielt = spiel({
     id: 'g1',

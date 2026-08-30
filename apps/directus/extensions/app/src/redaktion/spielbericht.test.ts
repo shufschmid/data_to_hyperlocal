@@ -3,6 +3,7 @@ import {
   absolutesDatum,
   buildSpielberichtPrompt,
   buildSpielberichtRevision,
+  nurDasResultat,
   parseSpielbericht,
   zahlWarnungen,
   zeitWarnungen,
@@ -92,6 +93,51 @@ describe('buildSpielberichtPrompt', () => {
     const p = buildSpielberichtPrompt({ ...FAKTEN, ort: null, notiz: null })
     expect(p).not.toContain('Ort:')
     expect(p).not.toContain('Bedeutung')
+  })
+})
+
+describe('Kuerze, wenn nur das Resultat bekannt ist', () => {
+  // Ohne Liga, ohne Vereinsnotiz, ohne frueheres Spiel hat der Bericht nichts,
+  // woraus er drei Absaetze machen koennte — ausser Erfundenem.
+  const KARG: SpielFakten = {
+    ...FAKTEN,
+    liga: null,
+    notiz: null,
+    ort: null,
+    frueher: []
+  }
+
+  it('erkennt den kargen Fall', () => {
+    expect(nurDasResultat(KARG)).toBe(true)
+  })
+
+  it('erkennt ihn nicht, sobald es etwas zu erzaehlen gibt', () => {
+    expect(nurDasResultat(FAKTEN)).toBe(false)
+    expect(nurDasResultat({ ...KARG, liga: '2. Liga' })).toBe(false)
+    expect(
+      nurDasResultat({
+        ...KARG,
+        frueher: [
+          {
+            datum: '2026-08-12T18:00:00.000Z',
+            heim: 'A',
+            gast: 'B',
+            toreHeim: 1,
+            toreGast: 0
+          }
+        ]
+      })
+    ).toBe(false)
+  })
+
+  it('verlangt im kargen Fall zwei bis drei Saetze', () => {
+    const prompt = buildSpielberichtPrompt(KARG)
+    expect(prompt).toContain('SEHR kurz')
+    expect(prompt).toContain('zwei bis drei Saetzen')
+  })
+
+  it('sagt sonst nichts von Kuerze — der Normalfall bleibt unveraendert', () => {
+    expect(buildSpielberichtPrompt(FAKTEN)).not.toContain('SEHR kurz')
   })
 })
 

@@ -33,6 +33,8 @@ export interface DatensatzFelder {
   /** `annual`, `daily`, `irregular` … — what the catalogue declares. */
   rhythmus: string | null
   zeilen: number | null
+  /** Das Agenda-Thema, zu dem der Datensatz gehoert — dann zeigt die Zeitleiste nur dieses. */
+  ankuendigung: { id: string } | null
 }
 
 export interface DatensaetzeErgebnis {
@@ -64,6 +66,9 @@ export const DATENSAETZE_QUERY = gql`
       daten_stand
       rhythmus
       zeilen
+      ankuendigung {
+        id
+      }
     }
   }
 `

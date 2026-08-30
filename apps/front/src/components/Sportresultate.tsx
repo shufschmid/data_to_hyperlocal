@@ -34,6 +34,8 @@ export interface SportresultateProps {
   berichte?: readonly AlleMeldungFelder[]
   /** Writes a report for every result that has none yet. */
   onMeldungenErzeugen?: () => Promise<void>
+  /** Stellt alle fertigen Spielberichte auf einmal scharf. */
+  onAllePublizieren?: () => Promise<void>
   onChat?: (id: string, anweisung: string) => Promise<void>
   onAktion?: (id: string, aktion: MeldungAktion) => Promise<void>
   laeuft?: boolean
@@ -45,6 +47,7 @@ export function Sportresultate({
   jetzt,
   berichte = [],
   onMeldungenErzeugen,
+  onAllePublizieren,
   onChat,
   onAktion,
   laeuft = false
@@ -99,6 +102,13 @@ export function Sportresultate({
       ).length,
     [spiele, nachSpiel]
   )
+  // Was ein Klick scharf stellen wuerde. „in_pruefung“ zaehlt bewusst nicht mit:
+  // eine Meldung beim Gegenlesen darf nicht hinter dem Ruecken der Pruefenden
+  // publiziert werden — der Endpoint lehnt sie ohnehin ab.
+  const bereit = useMemo(
+    () => berichte.filter((b) => b.status === 'entwurf' || b.status === 'freigegeben').length,
+    [berichte]
+  )
 
   return (
     <Stack spacing={2}>
@@ -109,19 +119,28 @@ export function Sportresultate({
         </Alert>
       )}
 
-      {onMeldungenErzeugen !== undefined && (
+      {(onMeldungenErzeugen !== undefined || onAllePublizieren !== undefined) && (
         <Stack direction="row" spacing={2} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-          <Button
-            variant="contained"
-            disabled={laeuft || offen === 0}
-            onClick={() => void onMeldungenErzeugen()}
-          >
-            {laeuft ? 'Wird geschrieben …' : 'Meldungen erzeugen'}
-          </Button>
+          {onMeldungenErzeugen !== undefined && (
+            <Button
+              variant="contained"
+              disabled={laeuft || offen === 0}
+              onClick={() => void onMeldungenErzeugen()}
+            >
+              {laeuft ? 'Wird geschrieben …' : 'Meldungen erzeugen'}
+            </Button>
+          )}
+          {onAllePublizieren !== undefined && (
+            <Button disabled={laeuft || bereit === 0} onClick={() => void onAllePublizieren()}>
+              Alle Meldungen publizieren
+            </Button>
+          )}
           <Typography variant="body2" color="text.secondary">
             {offen === 0
               ? 'Alle vorliegenden Resultate haben eine Meldung.'
               : `${offen} ${offen === 1 ? 'Resultat wartet' : 'Resultate warten'} auf eine Meldung.`}
+            {bereit > 0 &&
+              ` ${bereit} ${bereit === 1 ? 'Meldung ist' : 'Meldungen sind'} bereit zum Publizieren.`}
           </Typography>
         </Stack>
       )}

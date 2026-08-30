@@ -5,13 +5,13 @@ import { completeChatJson, completeJson } from '../../shared/claude'
 import { isAuthenticated, type ApiRequest } from '../../shared/http'
 import { drain, eroeffneLaeufe, type DrainKontext } from '../../redaktion/drain'
 import {
-  buildSpielberichtPrompt,
   buildSpielberichtRevision,
   parseSpielbericht,
   SPIELBERICHT_SYSTEM_PROMPT,
   zahlWarnungen,
   zeitWarnungen
 } from '../../redaktion/spielbericht'
+import { schreibeSpielberichte } from '../../redaktion/spielberichte'
 import {
   buildWissenPrompt,
   parseWissen,
@@ -100,24 +100,6 @@ import type { Datensatz, Lauf, Meldung } from '../../types/schema'
 // Endpoints are mounted before the permission layer, so every one of them says
 // out loud who may call it. That is the most common security hole in a Directus
 // extension.
-
-interface SpielZeile {
-  id: string
-  datum: string
-  heim: string
-  gast: string
-  tore_heim: number | null
-  tore_gast: number | null
-  wettbewerb: string
-  ort: string | null
-  gemeinde: { id: string; name: string }
-  verein: {
-    id: string
-    name: string
-    liga: string | null
-    notiz: string | null
-  }
-}
 
 const NichtAngemeldet = createError('FORBIDDEN', 'Anmeldung erforderlich.', 401)
 const UngueltigeId = createError('INVALID_ID', 'Ungueltige Id.', 400)
@@ -1879,136 +1861,76 @@ export default defineEndpoint(
           accountability: req.accountability
         })
 
-        const hoechstens = 10
+        try {
+          // Same function the 06:30 scrape calls, so a report written by hand
+          // and one written by the run are the same article.
+          const ergebnis = await schreibeSpielberichte({
+            spiele: spieleService,
+            meldungen: meldungenService,
+            logger
+          })
+
+          if (ergebnis.offen === 0) return next(new NichtsZuTun())
+
+          res.json({ data: ergebnis })
+        } catch (error) {
+          logger.error(error, 'redaktion: Spielberichte fehlgeschlagen')
+          next(error)
+        }
+      }
+    )
+
+    // Every draft match report at once — the counterpart to the button that
+    // wrote them. Same shape as the run-wide publish below: one item at a time,
+    // a refused transition never costs the others theirs.
+    router.post(
+      '/spielberichte/publizieren',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
 
         try {
-          const beschrieben = (await meldungenService.readByQuery({
-            filter: { spiel: { _nnull: true } },
-            fields: ['spiel'],
-            limit: -1
-          })) as Array<{ spiel: string }>
-          const schonBeschrieben = new Set(beschrieben.map((m) => m.spiel))
+          const meldungen = new ItemsService('meldungen', {
+            schema: await getSchema(),
+            accountability: req.accountability
+          })
 
-          const mitResultat = (await spieleService.readByQuery({
-            filter: { tore_heim: { _nnull: true } },
-            fields: [
-              'id',
-              'datum',
-              'heim',
-              'gast',
-              'tore_heim',
-              'tore_gast',
-              'wettbewerb',
-              'ort',
-              // Ask for the ids explicitly: requesting `gemeinde` alongside
-              // `gemeinde.name` yields an object carrying only the name, and the
-              // write then fails validation on a field that looks present.
-              'gemeinde.id',
-              'gemeinde.name',
-              'verein.id',
-              'verein.name',
-              'verein.liga',
-              'verein.notiz'
-            ],
-            sort: ['-datum'],
+          // Only what may legitimately become published: `in_pruefung` is
+          // deliberately excluded — an article out for counter-check must not
+          // be published behind the checker's back.
+          const offen = (await meldungen.readByQuery({
+            filter: {
+              _and: [
+                { spiel: { _nnull: true } },
+                { status: { _in: ['entwurf', 'freigegeben'] } }
+              ]
+            },
+            fields: ['id'],
             limit: -1
-          })) as SpielZeile[]
-
-          const offen = mitResultat
-            .filter((spiel) => !schonBeschrieben.has(spiel.id))
-            .slice(0, hoechstens)
+          })) as Array<{ id: string }>
 
           if (offen.length === 0) return next(new NichtsZuTun())
 
-          let erzeugt = 0
-          const fehlgeschlagen: string[] = []
+          const erledigt: string[] = []
+          const abgelehnt: Array<{ id: string; grund: string }> = []
 
-          for (const spiel of offen) {
+          for (const meldung of offen) {
             try {
-              // The club's own earlier results — the memory this project keeps.
-              const frueher = mitResultat
-                .filter(
-                  (a) =>
-                    a.verein.id === spiel.verein.id &&
-                    a.id !== spiel.id &&
-                    a.datum < spiel.datum
-                )
-                .slice(0, 5)
-                .map((a) => ({
-                  datum: a.datum,
-                  heim: a.heim,
-                  gast: a.gast,
-                  toreHeim: a.tore_heim as number,
-                  toreGast: a.tore_gast as number
-                }))
-
-              const fakten = {
-                heim: spiel.heim,
-                gast: spiel.gast,
-                toreHeim: spiel.tore_heim as number,
-                toreGast: spiel.tore_gast as number,
-                wettbewerb: spiel.wettbewerb,
-                datum: spiel.datum,
-                ort: spiel.ort,
-                verein: spiel.verein.name,
-                gemeinde: spiel.gemeinde.name,
-                liga: spiel.verein.liga,
-                notiz: spiel.verein.notiz,
-                frueher
-              }
-
-              const antwort = await completeJson<unknown>({
-                system: SPIELBERICHT_SYSTEM_PROMPT,
-                prompt: buildSpielberichtPrompt(fakten),
-                maxTokens: 1200
-              })
-              const bericht = parseSpielbericht(antwort)
-
-              const warnungen = [
-                ...zeitWarnungen(
-                  `${bericht.titel} ${bericht.lead} ${bericht.text}`
-                ),
-                ...zahlWarnungen(
-                  `${bericht.titel} ${bericht.lead} ${bericht.text}`,
-                  fakten
-                )
-              ]
-
-              await meldungenService.createOne({
-                spiel: spiel.id,
-                gemeinde: spiel.gemeinde.id,
-                titel: bericht.titel,
-                lead: bericht.lead,
-                text: bericht.text,
-                status: 'entwurf',
-                verarbeitung: 'idle',
-                zeit_warnungen: warnungen.length > 0 ? warnungen : null,
-                // Provenance, so the figures in the article can be checked
-                // against what was handed over.
-                datengrundlage: {
-                  quelle: 'matchcenter',
-                  heim: spiel.heim,
-                  gast: spiel.gast,
-                  tore_heim: spiel.tore_heim,
-                  tore_gast: spiel.tore_gast,
-                  wettbewerb: spiel.wettbewerb,
-                  datum: spiel.datum
-                }
-              })
-              erzeugt += 1
+              await meldungen.updateOne(meldung.id, { status: 'publiziert' })
+              erledigt.push(meldung.id)
             } catch (fehler) {
-              // One bad match must not cost the others their report.
-              logger.warn(
-                fehler,
-                `redaktion: Spielbericht fuer ${spiel.heim} – ${spiel.gast} fehlgeschlagen`
-              )
-              fehlgeschlagen.push(`${spiel.heim} – ${spiel.gast}`)
+              abgelehnt.push({
+                id: meldung.id,
+                grund: fehler instanceof Error ? fehler.message : String(fehler)
+              })
             }
           }
 
-          res.json({ data: { erzeugt, offen: offen.length, fehlgeschlagen } })
+          res.json({ data: { erledigt: erledigt.length, abgelehnt } })
         } catch (error) {
-          logger.error(error, 'redaktion: Spielberichte fehlgeschlagen')
+          logger.error(
+            error,
+            'redaktion: Spielberichte publizieren fehlgeschlagen'
+          )
           next(error)
         }
       }

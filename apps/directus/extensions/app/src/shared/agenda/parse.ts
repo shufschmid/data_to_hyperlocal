@@ -108,6 +108,31 @@ function istTitel(value: string): boolean {
   )
 }
 
+// Calls to action the agenda page carries between its entries. They pass every
+// shape test — short, dated by proximity, wrapped in a link — and only their
+// wording gives them away.
+const NAVIGATIONSTITEL =
+  /^(zur|zum)\s+(anmeldung|newsletter|uebersicht|übersicht|archiv|abonnement)\b|^(anmelden|abonnieren|newsletter|mehr\s+erfahren|weitere\s+informationen|zurueck|zurück)\b/i
+const NAVIGATIONSLINK =
+  /\/(newsletter[-\w]*anmeldung|anmeldung|abo|subscribe|newsletter)(\/|$|\?)/i
+
+/**
+ * Whether a row is a link into the site rather than an announcement.
+ *
+ * „Zur Anmeldung" sat in the agenda as a published entry for weeks: it is four
+ * characters past the minimum, carries no date of its own, and its link points
+ * at the newsletter sign-up. Nothing about its *shape* is wrong — the check has
+ * to be about what it says and where it points, and it is deliberately a narrow
+ * list rather than a guess at intent.
+ */
+export function istNavigationszeile(
+  titel: string,
+  link: string | null
+): boolean {
+  if (NAVIGATIONSTITEL.test(titel.trim())) return true
+  return link !== null && NAVIGATIONSLINK.test(link)
+}
+
 export function parseAgenda(html: string, basisUrl: string): AgendaEintrag[] {
   const eintraege: AgendaEintrag[] = []
   const gesehen = new Set<string>()
@@ -140,11 +165,13 @@ export function parseAgenda(html: string, basisUrl: string): AgendaEintrag[] {
       if (datiert !== null) {
         const titel = reinerText(datiert[5] ?? '')
         if (titel === '') continue
+        const link = absolut(datiert[4] ?? '', basisUrl)
+        if (istNavigationszeile(titel, link)) continue
         merke({
           datum: `${datiert[3]}-${datiert[2]}-${datiert[1]}`,
           quartal,
           titel,
-          link: absolut(datiert[4] ?? '', basisUrl),
+          link,
           status: 'publiziert'
         })
         continue
@@ -152,6 +179,7 @@ export function parseAgenda(html: string, basisUrl: string): AgendaEintrag[] {
 
       const titel = reinerText(zeile)
       if (!istTitel(titel)) continue
+      if (istNavigationszeile(titel, null)) continue
 
       merke({ datum: null, quartal, titel, link: null, status: 'geplant' })
     }
@@ -213,6 +241,11 @@ export function parseAgendaMarkdown(markdown: string): AgendaEintrag[] {
 
     const titel = MD_TITEL.exec(zeile)
     if (titel !== null && titel[1] !== undefined && titel[2] !== undefined) {
+      // A sign-up link is skipped WITHOUT eating the pending date: it sits
+      // between the date and the entry it belongs to, and consuming the date
+      // here would leave the real announcement undated.
+      if (istNavigationszeile(titel[1].trim(), titel[2].trim())) continue
+
       eintraege.push({
         datum,
         quartal,

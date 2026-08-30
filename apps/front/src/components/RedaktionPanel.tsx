@@ -694,8 +694,15 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
             berichte={spielBerichte}
             laeuft={sendet}
             onMeldungenErzeugen={async () => {
-              await aktion(`spielberichte`)
+              // Ueber fuehreAus, nicht an ihm vorbei: sonst bleibt der Knopf
+              // stumm („Wird geschrieben …“ erschien nie) und ein Fehler
+              // landete nirgends.
+              await fuehreAus('spielberichte')
               await Promise.all([spiele.refetch(), alleMeldungen.refetch()])
+            }}
+            onAllePublizieren={async () => {
+              await fuehreAus('spielberichte/publizieren')
+              await alleMeldungen.refetch()
             }}
             onChat={async (id, anweisung) => {
               await fuehreAus(`meldungen/${id}/chat`, { anweisung })
@@ -854,9 +861,13 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
             blogs={blogs}
             laedt={alleMeldungen.loading}
             auswahl={blogGemeinde}
+            laeuft={sendet}
             onAuswahl={(slug) => {
               setBlogGemeinde(slug)
               schreibeGemeindeInUrl(slug)
+            }}
+            onPublizieren={async (id) => {
+              await fuehreAus(`meldungen/${id}/publizieren`)
             }}
           />
         </Stack>

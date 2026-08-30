@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   agendaSchluessel,
   decodeEntities,
+  istNavigationszeile,
   parseAgenda,
   parseAgendaMarkdown
 } from './parse'
@@ -152,6 +153,68 @@ describe('parseAgenda — geplante Eintraege', () => {
     expect(geplant.map((e) => e.titel)).not.toContain(
       '4. Quartal: Oktober–Dezember'
     )
+  })
+})
+
+describe('Navigationszeilen', () => {
+  // Wortlaut und Ziel aus der echten Seite: der Eintrag stand wochenlang als
+  // publizierte Ankuendigung vom 21.08.2026 in der Zeitleiste.
+  const ANMELDUNG = `
+<p><span class="text-nowrap">
+<br>21.08.2026 <a href="/politik-und-behorden/direktionen/finanz-und-kirchendirektion/daten-statistik/abteilung-statistik/publikationen-und-statistiken/bau-und-boden/webartikel-vom-21-08-2026-bau-und-wohnbaustatistik-2025">Bau- und Wohnbaustatistik 2025</a>
+<br>21.08.2026 <a href="/politik-und-behorden/direktionen/finanz-und-kirchendirektion/daten-statistik/newsletter-anmeldung">Zur Anmeldung</a>
+<br></span></p>
+`
+
+  it('erkennt sie am Wortlaut und am Ziel', () => {
+    expect(istNavigationszeile('Zur Anmeldung', null)).toBe(true)
+    expect(istNavigationszeile('Newsletter', null)).toBe(true)
+    expect(
+      istNavigationszeile(
+        'Irgendein Titel',
+        'https://www.baselland.ch/…/newsletter-anmeldung'
+      )
+    ).toBe(true)
+  })
+
+  it('haelt echte Ankuendigungen fuer echt', () => {
+    expect(
+      istNavigationszeile(
+        'Bau- und Wohnbaustatistik 2025',
+        '/…/webartikel-vom-21-08-2026'
+      )
+    ).toBe(false)
+    expect(
+      istNavigationszeile(
+        'Abfallstatistik 2025',
+        'https://statistik.bl.ch/web_portal/2_9'
+      )
+    ).toBe(false)
+  })
+
+  it('laesst den Anmelde-Link nicht in die Agenda', () => {
+    const eintraege = parseAgenda(ANMELDUNG, BASIS)
+
+    expect(eintraege.map((e) => e.titel)).toEqual([
+      'Bau- und Wohnbaustatistik 2025'
+    ])
+  })
+
+  // Im Markdown-Pfad stand der Anmelde-Link ZWISCHEN Datum und Eintrag und hat
+  // das Datum mitgenommen — die echte Ankuendigung blieb undatiert liegen.
+  it('nimmt dem echten Eintrag im Markdown-Pfad das Datum nicht weg', () => {
+    const eintraege = parseAgendaMarkdown(
+      [
+        '**21.08.2026**',
+        '[Zur Anmeldung](/daten-statistik/newsletter-anmeldung)',
+        '[Leerstandserhebung 2026](/webartikel-leerstand)'
+      ].join('\n')
+    )
+
+    expect(eintraege).toHaveLength(1)
+    expect(eintraege[0]?.titel).toBe('Leerstandserhebung 2026')
+    expect(eintraege[0]?.datum).toBe('2026-08-21')
+    expect(eintraege[0]?.status).toBe('publiziert')
   })
 })
 

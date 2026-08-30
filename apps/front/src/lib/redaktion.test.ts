@@ -396,6 +396,65 @@ describe('zeitleiste', () => {
     expect(datiert[0]?.herkunft).toBe('agenda')
   })
 
+  // Ein Agenda-Thema umfasst oft mehrere Datensaetze — „Bau- und
+  // Wohnbaustatistik“ sind die neu erstellten Wohnungen UND der
+  // Wohnungsbestand. Alle zeigen auf die Ankuendigung, die Leiste zeigt das
+  // Thema einmal.
+  it('versteckt auch die weiteren Datensaetze eines Agenda-Themas', () => {
+    const { datiert } = zeitleiste(
+      quellen({
+        ankuendigungen: [agenda({ id: 'a1', datensatz: { id: 'd1', hat_gemeinde: true } })],
+        datensaetze: [
+          datensatz({ id: 'd1', ankuendigung: { id: 'a1' } }),
+          datensatz({ id: 'd2', titel: 'Wohnungsbestand', ankuendigung: { id: 'a1' } }),
+          // Ohne Agenda-Thema — und juenger, damit die Reihenfolge eindeutig ist.
+          datensatz({ id: 'd3', titel: 'Gemeindekennzahlen', portal_modified: '2026-08-20' })
+        ]
+      })
+    )
+
+    expect(datiert.map((e) => e.titel)).toEqual(['Gemeindekennzahlen', 'Abfallstatistik 2025'])
+  })
+
+  // Der Abfall-Fall: Ankuendigung vom 7. Juli, Zahlen vom 13. August. Ohne
+  // Anhebung stuende die Ankuendigung weit unten, die Zahlen oben.
+  it('hebt den Agenda-Eintrag auf den Stand seiner Zahlen', () => {
+    const { datiert } = zeitleiste(
+      quellen({
+        ankuendigungen: [agenda({ id: 'a1', datum: '2026-07-07' })],
+        datensaetze: [datensatz({ id: 'd1', ankuendigung: { id: 'a1' }, daten_stand: '2026-08-13' })]
+      })
+    )
+
+    expect(datiert).toHaveLength(1)
+    expect(datiert[0]?.datum).toBe('2026-08-13')
+  })
+
+  it('haelt das Datum der Ankuendigung, wenn es das juengere ist', () => {
+    const { datiert } = zeitleiste(
+      quellen({
+        ankuendigungen: [agenda({ id: 'a1', datum: '2026-08-21' })],
+        datensaetze: [datensatz({ id: 'd1', ankuendigung: { id: 'a1' }, daten_stand: '2026-08-13' })]
+      })
+    )
+
+    expect(datiert[0]?.datum).toBe('2026-08-21')
+  })
+
+  // Angekuendigt ohne Termin, aber die Zahlen sind schon da: das ist der
+  // Moment, in dem der Eintrag von unten nach oben gehoert.
+  it('datiert einen undatierten Eintrag ueber seine Zahlen', () => {
+    const ergebnis = zeitleiste(
+      quellen({
+        ankuendigungen: [agenda({ id: 'a1', datum: null })],
+        datensaetze: [datensatz({ id: 'd1', ankuendigung: { id: 'a1' }, daten_stand: '2026-08-13' })]
+      })
+    )
+
+    expect(ergebnis.ohneDatum).toHaveLength(0)
+    expect(ergebnis.datiert[0]?.datum).toBe('2026-08-13')
+  })
+
   it('verknuepft die Zeile mit einem bestehenden Lauf', () => {
     const { datiert } = zeitleiste(
       quellen({

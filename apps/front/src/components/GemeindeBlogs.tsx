@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
 import MenuItem from '@mui/material/MenuItem'
 import Paper from '@mui/material/Paper'
@@ -30,9 +31,25 @@ export interface GemeindeBlogsProps {
   auswahl?: string | null
   /** Meldet die Wahl nach oben, damit die URL mitgeht. */
   onAuswahl?: (slug: string | null) => void
+  /**
+   * Stellt einen einzelnen Beitrag scharf.
+   *
+   * Der zweite Weg zum selben Ziel: publiziert wird dort, wo der Beitrag
+   * entstanden ist (Statistik, Sport) — und hier, wo man ihn als Gemeinde
+   * liest. Beim Durchsehen eines Gemeindeblogs ist das der kuerzere Weg.
+   */
+  onPublizieren?: (id: string) => Promise<void>
+  laeuft?: boolean
 }
 
-export function GemeindeBlogs({ blogs, laedt = false, auswahl = null, onAuswahl }: GemeindeBlogsProps) {
+export function GemeindeBlogs({
+  blogs,
+  laedt = false,
+  auswahl = null,
+  onAuswahl,
+  onPublizieren,
+  laeuft = false
+}: GemeindeBlogsProps) {
   // Unkontrolliert nutzbar (Tests), kontrolliert im Panel — dort haelt die URL
   // die Wahl, damit ein Link wie ?gemeinde=riehen direkt den Blog oeffnet.
   const [intern, setIntern] = useState<string | null>(auswahl)
@@ -92,7 +109,12 @@ export function GemeindeBlogs({ blogs, laedt = false, auswahl = null, onAuswahl 
 
             <Stack divider={<Box sx={{ borderBottom: 1, borderColor: 'divider' }} />} spacing={1.5}>
               {blog.beitraege.map((beitrag) => (
-                <Beitrag key={beitrag.id} beitrag={beitrag} />
+                <Beitrag
+                  key={beitrag.id}
+                  beitrag={beitrag}
+                  {...(onPublizieren === undefined ? {} : { onPublizieren })}
+                  laeuft={laeuft}
+                />
               ))}
             </Stack>
           </Stack>
@@ -102,7 +124,15 @@ export function GemeindeBlogs({ blogs, laedt = false, auswahl = null, onAuswahl 
   )
 }
 
-function Beitrag({ beitrag }: { beitrag: AlleMeldungFelder }) {
+function Beitrag({
+  beitrag,
+  onPublizieren,
+  laeuft = false
+}: {
+  beitrag: AlleMeldungFelder
+  onPublizieren?: (id: string) => Promise<void>
+  laeuft?: boolean
+}) {
   // Woher der Beitrag stammt, steht als Herkunftszeile darunter — nicht als
   // Trennung, sondern als Beleg.
   const herkunft =
@@ -110,14 +140,28 @@ function Beitrag({ beitrag }: { beitrag: AlleMeldungFelder }) {
       ? `${beitrag.spiel.sportart} · ${beitrag.spiel.heim} – ${beitrag.spiel.gast}`
       : 'Statistik'
 
+  // Nur was auch publiziert werden darf: „in_pruefung“ gehoert den
+  // Gegenlesenden, „verworfen“ ist entschieden.
+  const scharfstellbar = beitrag.status === 'entwurf' || beitrag.status === 'freigegeben'
+
   return (
     <Box sx={{ pt: 0.5 }}>
-      <Stack direction="row" spacing={1} sx={{ alignItems: 'baseline', flexWrap: 'wrap' }}>
+      <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
         <Typography variant="caption" color="text.secondary">
           {formatiereDatum(blogDatum(beitrag))}
         </Typography>
         <Chip size="small" color={statusFarbe(beitrag.status)} label={statusText(beitrag.status)} />
         <Chip size="small" variant="outlined" label={herkunft} />
+        {onPublizieren !== undefined && scharfstellbar && (
+          <Button
+            size="small"
+            variant="outlined"
+            disabled={laeuft}
+            onClick={() => void onPublizieren(beitrag.id)}
+          >
+            Publizieren
+          </Button>
+        )}
       </Stack>
 
       <Typography variant="body2" sx={{ fontWeight: 700, mt: 0.5 }}>

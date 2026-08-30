@@ -338,6 +338,8 @@ export interface ZeitleistenQuellen {
     zeilen?: number | null
     beschreibung?: string | null
     bewertung: string | null
+    /** Das Agenda-Thema, zu dem dieser Datensatz gehoert — sofern eines da ist. */
+    ankuendigung?: { id: string } | null
   }[]
   laeufe: readonly { id: string; datensatz: { id: string } | null }[]
 }
@@ -354,9 +356,16 @@ export interface ZeitleistenErgebnis {
 /**
  * Mischt die drei Quellen zu einer Liste.
  *
- * Ein Datensatz, der schon an einem Agenda-Eintrag haengt, erscheint nur dort —
- * sonst stuende dieselbe Statistik zweimal untereinander, einmal mit dem Titel
- * des Amts und einmal mit dem des Portals.
+ * Ein Datensatz, der zu einem Agenda-Thema gehoert, erscheint nur dort — sonst
+ * stuende dieselbe Statistik mehrfach untereinander, einmal mit dem Titel des
+ * Amts und ein- bis dreimal mit denen des Portals. Die Agenda hat Vorrang, weil
+ * sie das Thema benennt, das die Redaktion meint.
+ *
+ * Und sie rueckt mit ihren Daten nach oben: ein Eintrag traegt das Datum seiner
+ * Ankuendigung, solange nichts da ist, und das des juengsten zugehoerigen
+ * Datensatzes, sobald die Zahlen eintreffen. Sonst stuende die Ankuendigung vom
+ * 7. Juli weit unten, waehrend die Zahlen vom 13. August oben stehen — dieselbe
+ * Sache, zweimal, in falscher Reihenfolge.
  */
 export function zeitleiste(quellen: ZeitleistenQuellen, hoechstens = 40): ZeitleistenErgebnis {
   const laufZu = new Map<string, string>()
@@ -366,16 +375,34 @@ export function zeitleiste(quellen: ZeitleistenQuellen, hoechstens = 40): Zeitle
     }
   }
 
+  // Beide Richtungen: der primaere Datensatz haengt an der Ankuendigung, die
+  // weiteren zeigen selbst auf sie.
   const ausAgenda = new Set<string>()
+  for (const a of quellen.ankuendigungen) {
+    if (a.datensatz !== null) ausAgenda.add(a.datensatz.id)
+  }
+  const themenStand = new Map<string, string>()
+  for (const d of quellen.datensaetze) {
+    const thema = d.ankuendigung?.id
+    if (thema === undefined) continue
+    ausAgenda.add(d.id)
+    const stand = d.daten_stand ?? d.portal_modified
+    if (stand === null || stand === undefined) continue
+    const bisher = themenStand.get(thema)
+    if (bisher === undefined || stand > bisher) themenStand.set(thema, stand)
+  }
+
   const eintraege: ZeitleistenEintrag[] = []
 
   for (const a of quellen.ankuendigungen) {
-    if (a.datensatz !== null) ausAgenda.add(a.datensatz.id)
+    const zahlenStand = themenStand.get(a.id) ?? null
+    const datum =
+      a.datum === null ? zahlenStand : zahlenStand !== null && zahlenStand > a.datum ? zahlenStand : a.datum
 
     eintraege.push({
       id: `agenda-${a.id}`,
       herkunft: 'agenda',
-      datum: a.datum,
+      datum,
       titel: a.titel,
       hinweis: a.zuordnung_hinweis,
       datensatzId: a.datensatz?.id ?? null,

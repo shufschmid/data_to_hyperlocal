@@ -111,10 +111,36 @@ function faktenZeilen(fakten: SpielFakten): string[] {
   return zeilen
 }
 
+/**
+ * Whether the result is genuinely all we know.
+ *
+ * No league, no note on what the club means to the place, no earlier matches to
+ * put it against: everything the system prompt asks for — context, meaning,
+ * a line of development — has nothing to draw on. Padding a bare 2:2 out to
+ * three paragraphs can only be done by inventing, so the length shrinks with
+ * the facts instead.
+ */
+export function nurDasResultat(fakten: SpielFakten): boolean {
+  return (
+    fakten.liga === null && fakten.notiz === null && fakten.frueher.length === 0
+  )
+}
+
 export function buildSpielberichtPrompt(fakten: SpielFakten): string {
   return [
     ...faktenZeilen(fakten),
     '',
+    // In the USER turn, never in the system prompt: that one has to stay
+    // byte-identical across a run for the prompt cache, and the revision path
+    // reuses it unchanged.
+    ...(nurDasResultat(fakten)
+      ? [
+          'Mehr als das Resultat ist nicht bekannt. Halte dich deshalb SEHR kurz:',
+          'Titel, Lead und EIN Absatz mit zwei bis drei Saetzen. Kein Ausschmuecken,',
+          'keine Vermutungen ueber Spielverlauf, Tragweite oder Tabellenstand.',
+          ''
+        ]
+      : []),
     'Schreibe den Spielbericht. Verwende ausschliesslich diese Angaben.'
   ].join('\n')
 }

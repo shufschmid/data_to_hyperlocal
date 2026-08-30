@@ -53,6 +53,9 @@ import {
   LEASE_MS
 } from './queue'
 import { korrekturHinweis, pruefeZeitbezug } from './zeitbezug'
+import { attributionsKorrektur, fehlendeAttribution } from './attribution'
+import { fetchWebartikel, istWebartikel } from '../shared/agenda'
+import { optionalEnv } from '../shared/env'
 import {
   erlaubteProzentangaben,
   unbelegteProzentangaben,
@@ -313,7 +316,9 @@ async function erstelleBriefing(
       'titel',
       'beschreibung',
       'felder',
-      'gemeindefeld'
+      'gemeindefeld',
+      'ankuendigung.link',
+      'ankuendigung.titel'
     ]
   })) as Pick<
     Datensatz,
@@ -324,7 +329,7 @@ async function erstelleBriefing(
     | 'beschreibung'
     | 'felder'
     | 'gemeindefeld'
-  >
+  > & { ankuendigung: { link: string | null; titel: string } | null }
 
   const felder = datensatz.felder ?? []
   const gemeindeFelder = detectMunicipalityFields(
@@ -389,6 +394,7 @@ async function erstelleBriefing(
 
   const regeln = await ladeRegeln(kontext, datensatz.id, datensatz.quelle)
   const frueher = await ladeFruehereLaeufe(kontext, datensatz.id, lauf.id)
+  const webartikel = await ladeWebartikel(kontext, datensatz.ankuendigung)
 
   const antwort = await completeJson<unknown>(
     {
@@ -404,7 +410,8 @@ async function erstelleBriefing(
             : beschreibeKantonZeitreihe(verlaufZeilen, periodenFeld),
         vorgabe: lauf.vorgabe,
         regeln,
-        frueher
+        frueher,
+        webartikel
       }),
       model: briefingModell,
       maxTokens: 4000,
@@ -740,15 +747,18 @@ async function schreibeMeldung(
   ): {
     zeit: ReturnType<typeof pruefeZeitbezug>
     unbelegt: number[]
+    ohneQuelle: boolean
     bestanden: boolean
   } => {
     const ganzerText = `${a.titel} ${a.lead} ${a.text}`
     const zeit = pruefeZeitbezug(ganzerText, material.briefing.jahr)
     const unbelegt = unbelegteProzentangaben(ganzerText, erlaubteProzente)
+    const ohneQuelle = fehlendeAttribution(ganzerText)
     return {
       zeit,
       unbelegt,
-      bestanden: zeit.bestanden && unbelegt.length === 0
+      ohneQuelle,
+      bestanden: zeit.bestanden && unbelegt.length === 0 && !ohneQuelle
     }
   }
 
@@ -767,7 +777,8 @@ async function schreibeMeldung(
 
     const korrektur = [
       korrekturHinweis(pruefung.zeit, material.briefing.jahr),
-      zahlenKorrekturHinweis(pruefung.unbelegt)
+      zahlenKorrekturHinweis(pruefung.unbelegt),
+      pruefung.ohneQuelle ? attributionsKorrektur() : ''
     ]
       .filter((teil) => teil !== '')
       .join(' ')
@@ -798,7 +809,8 @@ async function schreibeMeldung(
     ...(pruefung.zeit.bestanden
       ? pruefung.zeit.weich
       : [...pruefung.zeit.hart, ...pruefung.zeit.weich]),
-    ...pruefung.unbelegt.map((z) => `ungepruefte Prozentangabe: ${z}%`)
+    ...pruefung.unbelegt.map((z) => `ungepruefte Prozentangabe: ${z}%`),
+    ...(pruefung.ohneQuelle ? ['Quelle nicht im Text genannt'] : [])
   ]
 
   await new ItemsService('meldungen', { schema }).updateOne(
@@ -866,6 +878,37 @@ async function ladeRegeln(
     // Bounded so the cached prefix cannot grow without limit as memory builds.
     limit: 30
   })) as Pick<Redaktionswissen, 'regel'>[]
+}
+
+/**
+ * The office's own article about this publication, where there is one.
+ *
+ * A statistics table says what the values are; the article says what was
+ * counted, over which period and what the office itself found remarkable. That
+ * is the framing a municipality article otherwise has to do without — and the
+ * one thing the dataset genuinely cannot supply.
+ *
+ * Never load-bearing: no announcement, no article link, a refusal or a changed
+ * layout all end the same way, with the briefing written from the figures
+ * alone exactly as before.
+ */
+async function ladeWebartikel(
+  kontext: DrainKontext,
+  ankuendigung: { link: string | null; titel: string } | null
+): Promise<string | null> {
+  if (ankuendigung === null || !istWebartikel(ankuendigung.link)) return null
+
+  try {
+    const artikel = await fetchWebartikel(ankuendigung.link as string, {
+      kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch')
+    })
+    return artikel.text === '' ? null : artikel.text
+  } catch (fehler) {
+    kontext.logger.info(
+      `drain: Webartikel zu "${ankuendigung.titel}" nicht gelesen (${fehler instanceof Error ? fehler.message : String(fehler)})`
+    )
+    return null
+  }
 }
 
 /** Titles and leads of what this dataset produced in earlier periods. */

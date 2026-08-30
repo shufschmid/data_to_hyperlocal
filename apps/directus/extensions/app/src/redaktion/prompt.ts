@@ -105,6 +105,11 @@ export interface BriefingEingabe {
   regeln: readonly Pick<Redaktionswissen, 'regel'>[]
   /** Titles and leads of what was published from this dataset before. */
   frueher: readonly { periode: string; titel: string; lead: string | null }[]
+  /**
+   * The office's own article about this publication, where the agenda links
+   * one. Framing only — every figure still comes from the dataset.
+   */
+  webartikel?: string | null
 }
 
 export function buildBriefingPrompt(eingabe: BriefingEingabe): string {
@@ -128,6 +133,26 @@ export function buildBriefingPrompt(eingabe: BriefingEingabe): string {
       '',
       'Kantonale Entwicklung ueber die Perioden:',
       eingabe.kantonsverlauf
+    )
+  }
+
+  // What the office itself said about this publication. It explains what was
+  // counted and why it matters — the part a table cannot carry. The boundary is
+  // stated outright, because an article full of cantonal figures is exactly the
+  // place a municipality article could pick up a number that is not its own.
+  if (
+    eingabe.webartikel !== undefined &&
+    eingabe.webartikel !== null &&
+    eingabe.webartikel.trim() !== ''
+  ) {
+    teile.push(
+      '',
+      'Webartikel des Statistischen Amts zu dieser Publikation:',
+      eingabe.webartikel.trim(),
+      '',
+      'Nutze ihn fuer Rahmen, Begriffe und Einordnung. Die Zahlen der Meldungen',
+      'kommen ausschliesslich aus dem Datensatz — uebernimm keine Zahl aus diesem',
+      'Text.'
     )
   }
 
@@ -233,6 +258,11 @@ export function buildArtikelSystemPrompt(
     '  Prozentzahl ist der Fehler, den beim Gegenlesen niemand bemerkt.',
     '- Sag pro Zahl nur eine Richtung: entweder darueber oder darunter. Wenn du',
     '  beides schreibst, ist der Satz falsch.',
+    '- Nenne die Herkunft der Zahlen genau einmal, in einem natuerlichen Satz und',
+    '  am besten im Lead oder im ersten Absatz: "wie das Statistische Amt',
+    '  Basel-Landschaft meldet", "nach Angaben des Statistischen Amts",',
+    '  "das Statistische Amt Basel-Landschaft hat neue Zahlen publiziert".',
+    '  Die Leserin muss sehen, woher die Zahlen kommen.',
     '- Schreibe Schweizer Hochdeutsch: "ss" statt "ß".',
     '',
     'Der Text muss in Jahren noch stimmen:',

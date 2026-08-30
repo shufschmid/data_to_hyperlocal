@@ -79,7 +79,7 @@ them is wrong even if it works.
    | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
    | `api.anthropic.com`            | every LLM call                                                                                                                                                                                                                                                                                                                                        | `shared/claude.ts`    |
    | `data.bl.ch`                   | open-data catalogue and records (no auth, documented API)                                                                                                                                                                                                                                                                                             | `shared/ods/`         |
-   | `www.baselland.ch`             | the publication agenda — announcements the API cannot give                                                                                                                                                                                                                                                                                            | `shared/agenda/`      |
+   | `www.baselland.ch`             | the publication agenda — announcements the API cannot give — and the office's own web article behind an entry, read once per announcement for the mapping and the briefing                                                                                                                                                                            | `shared/agenda/`      |
    | `statistik.bl.ch`              | tables the open-data portal does not carry                                                                                                                                                                                                                                                                                                            | `shared/statbl/`      |
    | `crawler.wepublish.dev`        | renders sport pages that refuse a plain request                                                                                                                                                                                                                                                                                                       | `shared/crawler/`     |
    | `www.binninger-wochenblatt.ch` | the first registered weekly-paper archive — one host per Blatt, only archives an editor registered, read once a day                                                                                                                                                                                                                                   | `shared/wochenblatt/` |
@@ -265,7 +265,7 @@ them is wrong even if it works.
 | something that must run nightly/hourly        | Flow with a Schedule trigger + a custom operation in the bundle                                                                                                                                                                          |
 | a screen, a form, a list, a chart             | [apps/front](apps/front/) — MUI components, Apollo for data                                                                                                                                                                              |
 | a new query the UI needs                      | `apps/front/src/graphql/*.ts`                                                                                                                                                                                                            |
-| a new rule about what an article may say      | the prompt in `redaktion/prompt.ts` **and** a check next to it — a prompt is a request, a check is a rule                                                                                                                                |
+| a new rule about what an article may say      | the prompt in `redaktion/prompt.ts` **and** a check next to it — a prompt is a request, a check is a rule (`zeitbezug.ts`, `zahlen.ts`, `attribution.ts`)                                                                                |
 | a table on statistik.bl.ch the newsroom wants | paste its URL in the workspace — „statistik.bl" → „Auftrag …" — it becomes an ordinary dataset                                                                                                                                           |
 | a club whose results the newsroom wants       | a row in `vereine` with its `ergebnis_url`, then a connector for that `quelle`                                                                                                                                                           |
 | a new rule about what a match report may say  | `redaktion/spielbericht.ts` — the prompt **and** the check next to it                                                                                                                                                                    |
@@ -345,7 +345,18 @@ Flow "Quellen taeglich pruefen"  (0 6 * * *)
        ├─ shared/agenda/  → the office's agenda: what is coming?
        │                    writes datensaetze + ankuendigungen
        └─ agenda/zuordnung  1× Sonnet per published agenda entry:
-                            which portal dataset is this? (catalogue cached)
+                            which portal datasets is this? (catalogue cached)
+                            Where the entry links one of the office's web
+                            articles, that article is read first
+                            (shared/agenda/artikel.ts) and goes into the user
+                            turn — three words of agenda title against 188
+                            catalogue titles is a coin toss between the three
+                            housing datasets, the article says what was
+                            counted. It also answers with a LIST: a topic
+                            routinely spans several datasets, they all get
+                            `datensaetze.ankuendigung`, and the timeline then
+                            shows the topic once instead of the same thing
+                            three times.
 
 editor marks a dataset relevant  ─────────────┐
   or, from the agenda: picks the dataset       │
@@ -402,7 +413,16 @@ Flow "Sportresultate holen"  (0 30 6 * * *)
        │                 prints a real ISO instant, so no month names and no
        │                 timezone arithmetic. But an unplayed fixture shows
        │                 "0 - 0", so a score is only read once the match is past.
-       └─ everything else — skipped, and the sports are named in the log
+       ├─ everything else — skipped, and the sports are named in the log
+       └─ schreibeSpielberichte()  every new result gets its draft in the SAME
+                          run (redaktion/spielberichte.ts, shared with the
+                          button): the editor finds a written report, not a
+                          fixture to press a button on. Bounded at 10 per pass;
+                          a backlog is worked off over several mornings. Where
+                          the result is genuinely all we know — no league, no
+                          club note, no earlier match — the article shrinks to
+                          two or three sentences (`nurDasResultat`), because
+                          padding a bare 2:2 can only be done by inventing.
 
 editor registers an Abfuhrkalender (PDF address or file)  ── endpoints/redaktion
   one calendar per municipality+year, one or more DOCUMENTS below it —
@@ -500,7 +520,7 @@ whether Pratteln won 4:2 or lost 2:4. The "what's on" page names both teams in
 playing order and puts the venue at the first-named team's ground, verified by
 joining the two on `Spielnummer`. Read results from there, or not at all.
 
-**Four things a change here must not break:**
+**Five things a change here must not break:**
 
 1. **`buildArtikelSystemPrompt` is byte-identical across a run.** It is what the
    prompt cache carries. Interpolating anything municipality-specific into it is
@@ -517,6 +537,11 @@ joining the two on `Spielnummer`. Read results from there, or not at all.
 4. **The state machine lives in a hook, not in the endpoints.** An administrator
    can edit a message directly in the admin UI, so a rule checked only where we
    call it is not a rule.
+5. **The web article frames, the dataset counts.** `ladeWebartikel` hands the
+   office's own prose to the briefing, and it is full of cantonal and district
+   figures. Every number in a municipality article still comes from that
+   municipality's rows — the briefing prompt says so outright, and the
+   percentage check (`zahlen.ts`) is what catches it when it does not.
 
 ## Where the memory lives
 
@@ -528,11 +553,18 @@ joining the two on `Spielnummer`. Read results from there, or not at all.
 - `datensaetze.gemeindefeld` — the municipality column, when an editor names it
   because the portal's metadata does not. Automatic detection stays in charge
   everywhere else; this only fills the gap it leaves.
-- `ankuendigungen.datensatz` — which portal dataset an agenda entry means. The
-  agenda says "Abfallstatistik 2025", the portal says "Abfallmengen nach
-  Kategorie, Gemeinde und Jahr (seit 2017)"; a model bridges that once and
-  `zuordnung_geprueft` stops it from being asked again. That link is what turns
-  an agenda row into a "Meldungen erzeugen" button.
+- `ankuendigungen.datensatz` + `datensaetze.ankuendigung` — which portal datasets
+  an agenda entry means, in both directions. The agenda says "Abfallstatistik
+  2025", the portal says "Abfallmengen nach Kategorie, Gemeinde und Jahr (seit
+  2017)"; a model bridges that once and `zuordnung_geprueft` stops it from being
+  asked again. `ankuendigungen.datensatz` is the PRIMARY one — the "Meldungen
+  erzeugen" button — while `datensaetze.ankuendigung` marks every dataset of the
+  topic, because a publication routinely spans several ("Bau- und
+  Wohnbaustatistik" is the new flats and the housing stock). **The agenda has
+  priority in the timeline:** a dataset carrying an `ankuendigung` is not shown
+  again on its own, and the entry's date rises to its newest dataset's
+  `daten_stand`, so the topic sits where its numbers are rather than at the
+  announcement's date weeks earlier.
 - `redaktionswissen` — durable rules distilled from the editor's chat by a small
   classification call. Scoped to a dataset, a source or globally, and visible in
   the workspace so a wrong one can be switched off.

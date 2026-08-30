@@ -23,13 +23,19 @@ import {
   agendaSchluessel,
   AgendaChallengeError,
   fetchAgenda,
+  fetchWebartikel,
+  istWebartikel,
   type AgendaEintrag
 } from '../../shared/agenda'
 import {
+  buildArtikelZuordnungPrompt,
   buildKatalogSystem,
   buildZuordnungPrompt,
+  mehrfachHinweis,
+  parseMehrfachZuordnung,
   parseZuordnung,
   zuordnungHinweis,
+  ZUORDNUNG_MEHRFACH_SCHEMA,
   ZUORDNUNG_SCHEMA,
   type KatalogEintrag
 } from '../../shared/agenda/zuordnung'
@@ -939,6 +945,11 @@ export default defineOperationApi<Options>({
           : STANDARD_ZUORDNUNGEN
       if (budget === 0) return
 
+      type AgendaZeile = Pick<
+        Ankuendigung,
+        'id' | 'titel' | 'datum' | 'quartal' | 'link' | 'datensatz'
+      >
+
       const offene = (await ankuendigungenService.readByQuery({
         filter: {
           status: { _eq: 'publiziert' },
@@ -948,11 +959,53 @@ export default defineOperationApi<Options>({
         // Newest first: a statistic published last week is the one an editor is
         // waiting for, and the budget may not reach the end of the year.
         sort: ['-datum'],
-        fields: ['id', 'titel', 'datum', 'quartal'],
+        fields: ['id', 'titel', 'datum', 'quartal', 'link', 'datensatz'],
         limit: budget
-      })) as Array<Pick<Ankuendigung, 'id' | 'titel' | 'datum' | 'quartal'>>
+      })) as AgendaZeile[]
 
-      if (offene.length === 0) return
+      // Entries that already found their primary dataset but whose topic was
+      // never opened out — everything mapped before the article was read, and
+      // everything an editor assigned by hand. Their further datasets still
+      // stand in the timeline as separate rows saying the same thing. Asked
+      // once: the back-link on the primary is what marks a topic as expanded.
+      const erweitert = new Set(
+        (
+          (await datensaetzeService.readByQuery({
+            filter: { ankuendigung: { _nnull: true } },
+            fields: ['ankuendigung'],
+            limit: -1
+          })) as Array<{ ankuendigung: string }>
+        ).map((d) => d.ankuendigung)
+      )
+
+      const platz = Math.max(budget - offene.length, 0)
+      const unerweitert =
+        platz === 0
+          ? []
+          : (
+              (await ankuendigungenService.readByQuery({
+                filter: {
+                  status: { _eq: 'publiziert' },
+                  datensatz: { _nnull: true },
+                  link: { _contains: 'webartikel' }
+                },
+                sort: ['-datum'],
+                fields: [
+                  'id',
+                  'titel',
+                  'datum',
+                  'quartal',
+                  'link',
+                  'datensatz'
+                ],
+                limit: -1
+              })) as AgendaZeile[]
+            )
+              .filter((e) => !erweitert.has(e.id))
+              .slice(0, platz)
+
+      const zuOrdnen = [...offene, ...unerweitert]
+      if (zuOrdnen.length === 0) return
 
       const katalog = (await datensaetzeService.readByQuery({
         fields: ['id', 'externe_id', 'titel', 'hat_gemeinde'],
@@ -963,8 +1016,87 @@ export default defineOperationApi<Options>({
 
       const system = cacheableSystem(buildKatalogSystem(katalog))
 
-      for (const eintrag of offene) {
+      // Entries in the second group already have their primary; a run that
+      // finds nothing must not take it away from them.
+      const schonZugeordnet = new Set(unerweitert.map((e) => e.id))
+
+      for (const eintrag of zuOrdnen) {
         try {
+          // The office's own article, where the entry links one. Three words of
+          // agenda title against 188 catalogue titles is a coin toss between
+          // the three housing datasets; the article says what was counted.
+          const artikel = istWebartikel(eintrag.link)
+            ? await fetchWebartikel(eintrag.link as string, {
+                kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch')
+              }).catch((fehler) => {
+                logger.info(
+                  `quellen-pruefen: Webartikel zu "${eintrag.titel}" nicht gelesen (${fehler instanceof Error ? fehler.message : String(fehler)})`
+                )
+                return null
+              })
+            : null
+
+          if (artikel !== null && artikel.text !== '') {
+            // A topic routinely spans several datasets — "Bau- und
+            // Wohnbaustatistik" is the new flats AND the housing stock. All of
+            // them get the announcement, so the timeline shows the topic once
+            // instead of the same thing three times.
+            const antwort = await completeJson<unknown>({
+              system,
+              prompt: buildArtikelZuordnungPrompt({
+                titel: eintrag.titel,
+                datum: eintrag.datum,
+                quartal: eintrag.quartal,
+                text: artikel.text,
+                tabellen: artikel.tabellen,
+                suchbegriffe: artikel.suchbegriffe
+              }),
+              schema: ZUORDNUNG_MEHRFACH_SCHEMA,
+              maxTokens: 700,
+              thinking: 'disabled',
+              effort: 'low',
+              ...(model ? { model } : {})
+            })
+
+            const zuordnung = parseMehrfachZuordnung(antwort, katalog)
+            // The primary one drives the "Meldungen erzeugen" button, so it is
+            // the first that actually has municipality figures.
+            const primaer =
+              zuordnung.datensaetze.find((d) => d.hat_gemeinde) ??
+              zuordnung.datensaetze[0] ??
+              null
+
+            await ankuendigungenService.updateOne(eintrag.id, {
+              // An entry that already had one keeps it: this pass is here to
+              // open the topic out, not to reopen a settled question — least
+              // of all one an editor answered by hand.
+              ...(primaer === null && schonZugeordnet.has(eintrag.id)
+                ? {}
+                : { datensatz: primaer?.id ?? null }),
+              zuordnung_geprueft: new Date().toISOString(),
+              zuordnung_hinweis: mehrfachHinweis(zuordnung)
+            })
+
+            const anzuhaengen =
+              zuordnung.datensaetze.length > 0
+                ? zuordnung.datensaetze.map((d) => d.id)
+                : // Nothing found for an entry that already has its primary:
+                  // link that one anyway, so the topic counts as opened and
+                  // tomorrow's run does not ask again.
+                  eintrag.datensatz === null
+                  ? []
+                  : [eintrag.datensatz]
+
+            for (const datensatzId of anzuhaengen) {
+              await datensaetzeService.updateOne(datensatzId, {
+                ankuendigung: eintrag.id
+              })
+            }
+
+            if (primaer !== null) ergebnis.zugeordnet += 1
+            continue
+          }
+
           const antwort = await completeJson<unknown>({
             system,
             prompt: buildZuordnungPrompt(eintrag),
@@ -986,7 +1118,12 @@ export default defineOperationApi<Options>({
             zuordnung_hinweis: zuordnungHinweis(zuordnung)
           })
 
-          if (zuordnung.datensatz !== null) ergebnis.zugeordnet += 1
+          if (zuordnung.datensatz !== null) {
+            await datensaetzeService.updateOne(zuordnung.datensatz.id, {
+              ankuendigung: eintrag.id
+            })
+            ergebnis.zugeordnet += 1
+          }
         } catch (error) {
           // Left unchecked on purpose: a failed call is not an answer, and the
           // next run should ask again.

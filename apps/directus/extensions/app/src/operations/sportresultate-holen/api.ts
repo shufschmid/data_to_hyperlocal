@@ -8,6 +8,7 @@ import {
 } from '../../shared/matchcenter/parse'
 import { parseGameCenter } from '../../shared/swissvolley/parse'
 import { parseHandball } from '../../shared/handball/parse'
+import { schreibeSpielberichte } from '../../redaktion/spielberichte'
 
 // Reads the Match Center once a day and records what our clubs are playing.
 //
@@ -338,12 +339,31 @@ export default defineOperationApi<Optionen>({
     }
     logger.info(`sportresultate: ${neu} neu, ${aktualisiert} aktualisiert.`)
 
+    // A result without an article is work nobody asked for twice: every new
+    // score gets its draft in the same run, so the editor finds a written
+    // report rather than a fixture to press a button on. Bounded like every
+    // other scheduled call — a backlog is worked off over several mornings.
+    const berichte = await schreibeSpielberichte({
+      spiele: spieleService,
+      meldungen: new ItemsService('meldungen', { schema, knex: database }),
+      logger
+    })
+    if (berichte.offen > 0) {
+      logger.info(
+        `sportresultate: ${berichte.erzeugt} von ${berichte.offen} Spielberichten geschrieben.`
+      )
+    }
+    for (const gescheitert of berichte.fehlgeschlagen) {
+      fehler.push(`Spielbericht ${gescheitert}`)
+    }
+
     return {
       vereine: vereine.length,
       gefunden: zeilen.length,
       neu,
       aktualisiert,
       nachgetragen,
+      berichte: berichte.erzeugt,
       ohneKonnektor,
       fehler
     }

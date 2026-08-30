@@ -154,3 +154,134 @@ export function zuordnungHinweis(zuordnung: Zuordnung): string {
     ? `Kein passender Datensatz: ${zuordnung.begruendung}`
     : `${zuordnung.datensatz.titel}: ${zuordnung.begruendung}`
 }
+
+// --- with the office's own article ------------------------------------------
+//
+// An agenda entry whose link is a web article can be asked far better: the
+// article says what was counted and over which period, and a topic routinely
+// spans SEVERAL datasets — "Bau- und Wohnbaustatistik 2025" is at once the
+// newly built flats and the housing stock. Both then belong to the one entry,
+// and the timeline shows the topic instead of three rows saying the same thing.
+//
+// The catalogue prefix is shared with the single-answer call above, byte for
+// byte, so the cache carries both.
+
+export interface ArtikelFrage extends ZuordnungFrage {
+  /** Readable text of the article, already capped by the caller. */
+  text: string
+  /** Portal tables the article links — a hint at the subject. */
+  tabellen: readonly string[]
+  /** Search terms from its open-data links. */
+  suchbegriffe: readonly string[]
+}
+
+export function buildArtikelZuordnungPrompt(frage: ArtikelFrage): string {
+  const zeilen = [
+    `Agenda-Eintrag: ${frage.titel}`,
+    `Publiziert am: ${frage.datum ?? '(noch nicht publiziert)'}`,
+    `Quartal: ${frage.quartal ?? '(keines)'}`
+  ]
+
+  if (frage.tabellen.length > 0) {
+    zeilen.push(
+      `Im Artikel verlinkte Portaltabellen: ${frage.tabellen.join(', ')}`
+    )
+  }
+  if (frage.suchbegriffe.length > 0) {
+    zeilen.push(
+      `Im Artikel verlinkte Portalsuche nach: ${frage.suchbegriffe.join(', ')}`
+    )
+  }
+
+  zeilen.push(
+    '',
+    'Webartikel des Amts zu diesem Eintrag:',
+    frage.text,
+    '',
+    'Welche Datensaetze gehoeren zu dieser Publikation? Nenne den wichtigsten',
+    'zuerst — den, der die Zahlen je Gemeinde traegt.',
+    '',
+    'Eine Publikation besteht in der Regel aus MEHREREN Datensaetzen, die',
+    'dieselbe Erhebung verschieden schneiden: Bestand und die daraus',
+    'abgeleitete Quote, Zugang und Bestand, nach Zimmerzahl und nach',
+    'Kategorie. Die gehoeren alle dazu — sie sind Sichten auf dieselbe',
+    'Erhebung, nicht eigene Themen.',
+    '',
+    'Der Zweifel gilt einem ANDEREN Thema: ein Datensatz, der etwas anderes',
+    'zaehlt, gehoert nicht dazu, auch wenn er benachbart wirkt.'
+  )
+
+  return zeilen.join('\n')
+}
+
+export const ZUORDNUNG_MEHRFACH_SCHEMA: Record<string, unknown> = {
+  type: 'object',
+  properties: {
+    externe_ids: {
+      type: 'array',
+      items: { type: 'string' },
+      description:
+        'IDs der passenden Datensaetze, wichtigster zuerst. Leer, wenn keiner passt.'
+    },
+    begruendung: { type: 'string' }
+  },
+  required: ['externe_ids', 'begruendung'],
+  additionalProperties: false
+}
+
+export interface MehrfachZuordnung {
+  /** The matching datasets, most important first. Empty when none matched. */
+  datensaetze: KatalogEintrag[]
+  begruendung: string
+}
+
+/** How many datasets one agenda topic may claim. A topic is not a category. */
+const MAX_ZUORDNUNGEN = 4
+
+/**
+ * Validates the answer against the catalogue that was actually offered.
+ *
+ * Same guarantee as the single-answer version: an invented id never becomes a
+ * link. Unknown ids are dropped silently and the rest still counts — the model
+ * naming three real datasets and one imagined should not cost the three.
+ */
+export function parseMehrfachZuordnung(
+  value: unknown,
+  katalog: readonly KatalogEintrag[]
+): MehrfachZuordnung {
+  if (typeof value !== 'object' || value === null) {
+    throw new Error('Claude-Antwort zur Zuordnung ist kein Objekt.')
+  }
+
+  const kandidat = value as { externe_ids?: unknown; begruendung?: unknown }
+
+  const begruendung =
+    typeof kandidat.begruendung === 'string' &&
+    kandidat.begruendung.trim() !== ''
+      ? kandidat.begruendung.trim().slice(0, MAX_BEGRUENDUNG)
+      : 'Ohne Begruendung.'
+
+  if (!Array.isArray(kandidat.externe_ids)) {
+    return { datensaetze: [], begruendung }
+  }
+
+  const gefunden: KatalogEintrag[] = []
+  for (const roh of kandidat.externe_ids) {
+    if (typeof roh !== 'string' || roh.trim() === '') continue
+    const treffer = katalog.find((eintrag) => eintrag.externe_id === roh.trim())
+    if (treffer === undefined) continue
+    if (gefunden.some((e) => e.id === treffer.id)) continue
+    gefunden.push(treffer)
+    if (gefunden.length === MAX_ZUORDNUNGEN) break
+  }
+
+  return { datensaetze: gefunden, begruendung }
+}
+
+/** The note stored on the announcement when several datasets belong to it. */
+export function mehrfachHinweis(zuordnung: MehrfachZuordnung): string {
+  if (zuordnung.datensaetze.length === 0) {
+    return `Kein passender Datensatz: ${zuordnung.begruendung}`
+  }
+  return `${zuordnung.datensaetze.map((d) => d.titel).join(' · ')}: ${zuordnung.begruendung}`
+}
