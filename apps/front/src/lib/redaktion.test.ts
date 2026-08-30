@@ -3,6 +3,9 @@ import {
   absaetze,
   anzahlBeschaeftigt,
   berichtenswerteSpiele,
+  blattJeGemeinde,
+  istBaselbiet,
+  kalenderJeGemeinde,
   bleibtAufDemTisch,
   formatiereDatum,
   fortschritt,
@@ -759,5 +762,33 @@ describe('berichtenswerteSpiele', () => {
 
   it('vertraegt eine leere Liste', () => {
     expect(berichtenswerteSpiele([]).size).toBe(0)
+  })
+})
+
+describe('istBaselbiet / blattJeGemeinde / kalenderJeGemeinde', () => {
+  it('trennt Baselbiet von ausserkantonal', () => {
+    expect(istBaselbiet('Sissach')).toBe(true)
+    expect(istBaselbiet('Basel-Stadt')).toBe(false)
+    expect(istBaselbiet('Dorneck (SO)')).toBe(false)
+  })
+
+  // Ein Blatt deckt mehrere Gemeinden ab; gesucht wird von der Gemeinde aus.
+  it('findet das Blatt fuer Haupt- und Nebengemeinde', () => {
+    const blatt = {
+      id: 'w1',
+      gemeinde: { id: 'g-muttenz' },
+      abdeckungen: [{ gemeinde: { id: 'g-muttenz' } }, { gemeinde: { id: 'g-pratteln' } }]
+    }
+    const nach = blattJeGemeinde([blatt])
+    expect(nach.get('g-muttenz')).toBe(blatt)
+    expect(nach.get('g-pratteln')).toBe(blatt)
+    expect(nach.has('g-aesch')).toBe(false)
+  })
+
+  it('nimmt den Kalender des gefragten Jahres', () => {
+    const alt = { jahr: 2025, gemeinde: { id: 'g1' } }
+    const neu = { jahr: 2026, gemeinde: { id: 'g1' } }
+    expect(kalenderJeGemeinde([alt, neu], 2026).get('g1')).toBe(neu)
+    expect(kalenderJeGemeinde([alt], 2026).has('g1')).toBe(false)
   })
 })

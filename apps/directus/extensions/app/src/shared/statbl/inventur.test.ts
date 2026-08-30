@@ -237,13 +237,21 @@ describe('parseAbdeckung', () => {
 describe('abdeckungHinweis', () => {
   it('sagt bei fehlender Gemeindegliederung, wie viele Gemeinden getroffen wurden', () => {
     expect(
-      abdeckungHinweis({ gemeindeebene: false, treffer: 3 }, null)
+      abdeckungHinweis({ gemeindeebene: false, treffer: 3, bekannt: 86 }, null)
     ).toContain('3 von 86')
+  })
+
+  // Die Bezugszahl reist mit dem Befund: die Liste gehoert der Redaktion und
+  // waechst, sobald eine ausserkantonale Gemeinde dazukommt.
+  it('rechnet mit der tatsaechlichen Listenlaenge, nicht mit einer festen 86', () => {
+    expect(
+      abdeckungHinweis({ gemeindeebene: false, treffer: 3, bekannt: 91 }, null)
+    ).toContain('3 von 91')
   })
 
   it('nennt den abdeckenden Datensatz', () => {
     const hinweis = abdeckungHinweis(
-      { gemeindeebene: true, treffer: 86 },
+      { gemeindeebene: true, treffer: 86, bekannt: 86 },
       {
         datensatz: '12070',
         ankuendigung: null,
@@ -257,7 +265,7 @@ describe('abdeckungHinweis', () => {
 
   it('sagt es, wenn es die Tabelle nur hier gibt', () => {
     const hinweis = abdeckungHinweis(
-      { gemeindeebene: true, treffer: 86 },
+      { gemeindeebene: true, treffer: 86, bekannt: 86 },
       {
         datensatz: null,
         ankuendigung: null,
@@ -300,7 +308,12 @@ describe('Vorschau-Seiten', () => {
   it('nennt im Hinweis, wem die Tabelle gehoert', () => {
     expect(
       abdeckungHinweis(
-        { gemeindeebene: false, treffer: 0, zeigtTabelleVon: '1_4_5_1' },
+        {
+          gemeindeebene: false,
+          treffer: 0,
+          bekannt: 86,
+          zeigtTabelleVon: '1_4_5_1'
+        },
         null
       )
     ).toContain('1_4_5_1')

@@ -1594,6 +1594,10 @@ type gemeinden {
   """
   bfs_nummer: Int!
   name: String!
+
+  """
+  Bezirk. Bei Gemeinden ausserhalb Basel-Landschaft mit Kantonskürzel, etwa "Dorneck (SO)" — die fünf BL-Bezirke steuern, ob die kantonalen Statistik-Quellen etwas liefern können.
+  """
   bezirk: String!
 
   """Nur aktive Gemeinden bekommen Meldungen."""
@@ -1625,6 +1629,10 @@ type gemeinden_aggregated_count {
   """
   bfs_nummer: Int
   name: Int
+
+  """
+  Bezirk. Bei Gemeinden ausserhalb Basel-Landschaft mit Kantonskürzel, etwa "Dorneck (SO)" — die fünf BL-Bezirke steuern, ob die kantonalen Statistik-Quellen etwas liefern können.
+  """
   bezirk: Int
 
   """Nur aktive Gemeinden bekommen Meldungen."""
@@ -2672,6 +2680,10 @@ type version_gemeinden {
   """
   bfs_nummer: Int
   name: String
+
+  """
+  Bezirk. Bei Gemeinden ausserhalb Basel-Landschaft mit Kantonskürzel, etwa "Dorneck (SO)" — die fünf BL-Bezirke steuern, ob die kantonalen Statistik-Quellen etwas liefern können.
+  """
   bezirk: String
 
   """Nur aktive Gemeinden bekommen Meldungen."""
@@ -3854,6 +3866,10 @@ input create_gemeinden_input {
   """
   bfs_nummer: Int!
   name: String!
+
+  """
+  Bezirk. Bei Gemeinden ausserhalb Basel-Landschaft mit Kantonskürzel, etwa "Dorneck (SO)" — die fünf BL-Bezirke steuern, ob die kantonalen Statistik-Quellen etwas liefern können.
+  """
   bezirk: String!
 
   """Nur aktive Gemeinden bekommen Meldungen."""
@@ -5578,6 +5594,10 @@ input update_gemeinden_input {
   """
   bfs_nummer: Int
   name: String
+
+  """
+  Bezirk. Bei Gemeinden ausserhalb Basel-Landschaft mit Kantonskürzel, etwa "Dorneck (SO)" — die fünf BL-Bezirke steuern, ob die kantonalen Statistik-Quellen etwas liefern können.
+  """
   bezirk: String
 
   """Nur aktive Gemeinden bekommen Meldungen."""

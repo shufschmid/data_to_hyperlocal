@@ -2049,6 +2049,10 @@ type gemeinden {
   """
   bfs_nummer: Int!
   name: String!
+
+  """
+  Bezirk. Bei Gemeinden ausserhalb Basel-Landschaft mit Kantonskürzel, etwa "Dorneck (SO)" — die fünf BL-Bezirke steuern, ob die kantonalen Statistik-Quellen etwas liefern können.
+  """
   bezirk: String!
 
   """Nur aktive Gemeinden bekommen Meldungen."""

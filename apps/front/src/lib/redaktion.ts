@@ -778,3 +778,63 @@ export function berichtenswerteSpiele<
 
   return behalten
 }
+
+// --- Was zu einer Gemeinde gehoert ------------------------------------------
+//
+// Der Gemeinden-Reiter ist das Cockpit je Gemeinde: Statistik, Sport,
+// Wochenblatt, Entsorgung an einem Ort. Die Zuordnungen liegen verstreut in
+// vier Abfragen, die die Ansicht ohnehin schon laedt — hier werden sie zu je
+// einer Map je Gemeinde, damit die Karte nichts mehr suchen muss.
+
+/** Die fuenf Baselbieter Bezirke. Alles andere ist ausserkantonal. */
+const BL_BEZIRKE = new Set(['Arlesheim', 'Laufen', 'Liestal', 'Sissach', 'Waldenburg'])
+
+/**
+ * Ob die Statistik-Quellen ueber diese Gemeinde ueberhaupt etwas sagen koennen.
+ *
+ * Keine Formalie: beide Portale sind kantonal, eine Gemeinde ausserhalb
+ * Basel-Landschaft kommt in ihren Zeilen schlicht nicht vor. Sport,
+ * Abfuhrkalender und Presseschau laufen normal — die Statistik bleibt still.
+ * Riehen lebt seit je so; das auf der Karte zu sagen ist besser, als den
+ * Redaktor auf Meldungen warten zu lassen, die nicht kommen koennen.
+ */
+export function istBaselbiet(bezirk: string): boolean {
+  return BL_BEZIRKE.has(bezirk.trim())
+}
+
+/** Das Blatt, das eine Gemeinde abdeckt — Haupt- wie Nebengemeinde. */
+export function blattJeGemeinde<
+  T extends {
+    gemeinde: { id: string } | null
+    abdeckungen: ReadonlyArray<{ gemeinde: { id: string } | null }>
+  }
+>(blaetter: readonly T[]): Map<string, T> {
+  const nach = new Map<string, T>()
+  for (const blatt of blaetter) {
+    for (const id of [blatt.gemeinde?.id, ...blatt.abdeckungen.map((a) => a.gemeinde?.id)]) {
+      if (id !== undefined && id !== null && !nach.has(id)) nach.set(id, blatt)
+    }
+  }
+  return nach
+}
+
+/**
+ * Der Abfuhrkalender eines Jahres je Gemeinde.
+ *
+ * Bewusst nicht `fehlendeKalender` aus lib/entsorgung: das antwortet nur im
+ * Januar und beantwortet die andere Frage („wem fehlt einer?"). Hier geht es
+ * ganzjaehrig um „welcher haengt an dieser Gemeinde".
+ */
+export function kalenderJeGemeinde<T extends { jahr: number; gemeinde: { id: string } | null }>(
+  kalender: readonly T[],
+  jahr: number
+): Map<string, T> {
+  const nach = new Map<string, T>()
+  for (const eintrag of kalender) {
+    const id = eintrag.gemeinde?.id
+    if (eintrag.jahr === jahr && id !== undefined && !nach.has(id)) {
+      nach.set(id, eintrag)
+    }
+  }
+  return nach
+}

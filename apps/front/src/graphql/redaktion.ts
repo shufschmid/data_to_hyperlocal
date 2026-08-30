@@ -419,10 +419,13 @@ export const GEMEINDEN_QUERY = gql`
   }
 `
 
-// The clubs a municipality is known for. Read-only in the workspace: adding and
-// editing happens in the Directus admin until the football connector exists,
-// because a proposed club needs a confirm/reject affordance rather than a blank
-// form, and building the form twice would be waste.
+// The clubs a municipality is known for.
+//
+// Written from the Gemeinden tab through the extension endpoint (`POST
+// /redaktion/vereine`), not through a mutation: the rules that matter — an
+// `ergebnis_url` is mandatory for the sources read one request per team —
+// belong on the server, where they also hold when someone edits the row in the
+// Directus admin.
 export interface VereinFelder {
   id: string
   name: string
@@ -432,6 +435,12 @@ export interface VereinFelder {
   /** A snapshot: placements change every season. Never authoritative on its own. */
   liga: string | null
   spielort: string | null
+  /** `manuell`, `fvnws`, `swissvolley`, `handball`, `swissunihockey`. */
+  quelle: string | null
+  /** Bei swissvolley und handball zwingend: dort wird pro Mannschaft gelesen. */
+  ergebnis_url: string | null
+  /** Warum der Verein fuer die Gemeinde zaehlt — geht in den Spielbericht. */
+  notiz: string | null
   /** False while the club is only a proposal from a source. */
   zuordnung_geprueft: boolean
   aktiv: boolean
@@ -454,6 +463,9 @@ export const VEREINE_QUERY = gql`
       bedeutung
       liga
       spielort
+      quelle
+      ergebnis_url
+      notiz
       zuordnung_geprueft
       aktiv
       gemeinde {

@@ -361,7 +361,11 @@ export interface Verein {
   quelle: VereinsQuelle
   externe_id: string | null
   ergebnis_url: string | null
-  /** Clubs proposed by a connector arrive false — confirm once, like agenda entries. */
+  /**
+   * False only for clubs a connector proposed. Nothing proposes yet — every
+   * club today is either seeded or typed in from the Gemeinden tab, and both
+   * arrive confirmed. The flag is the affordance waiting for that connector.
+   */
   zuordnung_geprueft: boolean
   aktiv: boolean
   date_created: string | null

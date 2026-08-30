@@ -866,7 +866,7 @@ export default defineOperationApi<Options>({
             await ankuendigungenService.updateOne(eintrag.id, {
               link_geprueft: new Date().toISOString(),
               zuordnung_geprueft: new Date().toISOString(),
-              zuordnung_hinweis: `Verlinkte Tabelle ${seite.pfad} hat keine Gliederung nach Gemeinde (${einordnung.treffer} von 86 genannt).`
+              zuordnung_hinweis: `Verlinkte Tabelle ${seite.pfad} hat keine Gliederung nach Gemeinde (${einordnung.treffer} von ${einordnung.bekannt} genannt).`
             })
             continue
           }

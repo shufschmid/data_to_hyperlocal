@@ -5,42 +5,17 @@
   "meta": {
     "collection": "gemeinden",
     "conditions": null,
-    "display": "labels",
+    "display": null,
     "display_options": null,
     "field": "bezirk",
     "group": null,
     "hidden": false,
-    "interface": "select-dropdown",
-    "note": null,
+    "interface": "input",
+    "note": "Bezirk. Bei Gemeinden ausserhalb Basel-Landschaft mit Kantonskürzel, etwa \"Dorneck (SO)\" — die fünf BL-Bezirke steuern, ob die kantonalen Statistik-Quellen etwas liefern können.",
     "options": {
-      "choices": [
-        {
-          "text": "Arlesheim",
-          "value": "Arlesheim"
-        },
-        {
-          "text": "Basel-Stadt",
-          "value": "Basel-Stadt"
-        },
-        {
-          "text": "Laufen",
-          "value": "Laufen"
-        },
-        {
-          "text": "Liestal",
-          "value": "Liestal"
-        },
-        {
-          "text": "Sissach",
-          "value": "Sissach"
-        },
-        {
-          "text": "Waldenburg",
-          "value": "Waldenburg"
-        }
-      ]
+      "placeholder": "Arlesheim — bei ausserkantonalen mit Kürzel, etwa Dorneck (SO)"
     },
-    "readonly": true,
+    "readonly": false,
     "required": false,
     "searchable": true,
     "sort": 4,

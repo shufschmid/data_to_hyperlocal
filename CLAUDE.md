@@ -212,8 +212,15 @@ them is wrong even if it works.
    districts were dropped because they hid what they organised: Riehen, the
    first municipality outside the five Basel-Landschaft districts, arrived as
    its own collapsed one-item accordion and was simply overlooked. Each active
-   municipality also lists its `vereine`, Aushängeschild before Breitensport,
-   read-only for now.
+   municipality also carries its own card: whether the statistics feed can say
+   anything at all (the portals are cantonal — an out-of-canton municipality
+   like Riehen gets sport, waste and the press review, and silence from the
+   statistics side, which the card says outright), its `vereine` with
+   Aushängeschild before Breitensport and both writable here, the paper that
+   covers it, and whether this year's Abfuhrkalender exists. The list shows the
+   REDAKTIONSGEBIET, not the directory: all 87 rows stay in the table, because
+   the source detection matches portal pages against those names — thinning it
+   would quietly stop every municipality table from being recognised.
    „statistik.bl" — until this change called „Datenquellen" — is one
    chronological list fed by all three watchers — the
    agenda, the watched portal branches, and changes in the data.bl.ch catalogue.
@@ -272,7 +279,7 @@ them is wrong even if it works.
 | a new query the UI needs                      | `apps/front/src/graphql/*.ts`                                                                                                                                                                                                            |
 | a new rule about what an article may say      | the prompt in `redaktion/prompt.ts` **and** a check next to it — a prompt is a request, a check is a rule (`zeitbezug.ts`, `zahlen.ts`, `attribution.ts`, `quelle.ts`)                                                                   |
 | a table on statistik.bl.ch the newsroom wants | paste its URL in the workspace — „statistik.bl" → „Auftrag …" — it becomes an ordinary dataset                                                                                                                                           |
-| a club whose results the newsroom wants       | a row in `vereine` with its `ergebnis_url`, then a connector for that `quelle`                                                                                                                                                           |
+| a club whose results the newsroom wants       | „Gemeinden" → die Karte der Gemeinde → „Verein erfassen"; ohne Konnektor für die `quelle` bleibt er still erfasst                                                                                                                        |
 | a new rule about what a match report may say  | `redaktion/spielbericht.ts` — the prompt **and** the check next to it                                                                                                                                                                    |
 | which of a club's teams gets a report         | `redaktion/mannschaft.ts` — the first team only, mirrored in the workspace's counter (`berichtenswerteSpiele`)                                                                                                                           |
 | an Abfuhrkalender the newsroom wants          | paste the PDF's address in the workspace — „Entsorgung" → „Abfuhrkalender erfassen"; one PDF per zone (Riehen) registers zone by zone into the same calendar                                                                             |
@@ -281,6 +288,8 @@ them is wrong even if it works.
 | a new rule about what a reminder may say      | `redaktion/erinnerung.ts` — the prompt **and** the check next to it                                                                                                                                                                      |
 | a one-off data repair or backfill             | rows only: a one-shot Flow, else `apps/directus/migrations/*.mts` as a last resort                                                                                                                                                       |
 | an agenda entry the crawler could not fetch   | the banner in the workspace → „Eintrag von Hand erfassen"                                                                                                                                                                                |
+| a municipality the newsroom covers            | „Gemeinden" → „Gemeinde hinzufügen" — aus dem Verzeichnis, oder ausserkantonal neu erfasst (Name, BFS-Nummer, Bezirk)                                                                                                                    |
+| which municipalities a weekly paper covers    | „Gemeinden" → die Karte → „Zuordnung ändern"; ein NEUES Blatt weiterhin im Reiter „Wochenblätter"                                                                                                                                        |
 | a new environment variable                    | `apps/directus/.env.example` **and** root `.env.example` **and** docker-compose.yml                                                                                                                                                      |
 
 A change that spans both apps starts in `apps/directus` — data model first, then the
@@ -597,7 +606,11 @@ joining the two on `Spielnummer`. Read results from there, or not at all.
 - `redaktionswissen` — durable rules distilled from the editor's chat by a small
   classification call. Scoped to a dataset, a source or globally, and visible in
   the workspace so a wrong one can be switched off.
-- `vereine` — which clubs speak for a municipality, and why. `bedeutung` splits
+- `vereine` — which clubs speak for a municipality, and why. Recorded from the
+  Gemeinden tab through `POST /redaktion/vereine`, whose one rule with teeth is
+  that `swissvolley` and `handball` need an `ergebnis_url`: those two are read
+  one request per team, and without it the morning run skips the club with a log
+  line nobody reads. `bedeutung` splits
   them the way the newsroom does: `aushaengeschild` carries regional reach,
   `breitensport` is the village itself, and that changes how a result is framed.
   `notiz` holds the editor's own reasoning and belongs in the **user turn** of an

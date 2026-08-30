@@ -3,7 +3,7 @@
   "info": {
     "title": "Dynamic API Specification",
     "description": "This is a dynamically generated API specification for all endpoints existing on the current project.",
-    "version": "af9f7461770cc265bbd0b71a59afc62e7601fa23"
+    "version": "d6b93fca04d0a74a54786d974968c862332e46cd"
   },
   "servers": [
     {
@@ -17790,6 +17790,7 @@
           },
           "bezirk": {
             "nullable": false,
+            "description": "Bezirk. Bei Gemeinden ausserhalb Basel-Landschaft mit Kantonskürzel, etwa \"Dorneck (SO)\" — die fünf BL-Bezirke steuern, ob die kantonalen Statistik-Quellen etwas liefern können.",
             "type": "string"
           },
           "aktiv": {

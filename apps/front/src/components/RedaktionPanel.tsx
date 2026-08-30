@@ -924,8 +924,9 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
       {reiter === 7 && (
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
-            Für welche Gemeinden ein Lauf Meldungen schreibt. Gilt ab dem nächsten Lauf; bereits erzeugte
-            Meldungen bleiben, wie sie sind.
+            Das Redaktionsgebiet: eine Karte je Gemeinde, mit Statistik, Vereinen, Wochenblatt und
+            Abfuhrkalender an einem Ort. Änderungen gelten ab dem nächsten Lauf; bereits erzeugte Meldungen
+            bleiben, wie sie sind.
           </Typography>
           <QuellenLauf
             status={quellenLaufStatus}
@@ -939,8 +940,32 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
           <GemeindenAuswahl
             gemeinden={gemeinden.data?.gemeinden ?? []}
             vereine={vereine.data?.vereine ?? []}
+            blaetter={wochenblaetter.data?.wochenblaetter ?? []}
+            kalender={kalender.data?.entsorgungskalender ?? []}
             laeuft={sendet}
             onUmschalten={(id, aktiv) => schalteGemeinden([id], aktiv)}
+            onGemeindeErfassen={async (eingabe) => {
+              await fuehreAus('gemeinden', eingabe)
+              await gemeinden.refetch()
+            }}
+            onVerein={async (gemeindeId, eingabe, vereinId) => {
+              // Ein Endpoint statt einer Mutation: die Regel, dass swissvolley
+              // und handball eine Ergebnis-Adresse brauchen, muss auch gelten,
+              // wenn jemand die Zeile im Directus-Admin anfasst.
+              await fuehreAus(vereinId === null ? 'vereine' : `vereine/${vereinId}`, {
+                ...eingabe,
+                ...(vereinId === null ? { gemeinde: gemeindeId } : {})
+              })
+              await vereine.refetch()
+            }}
+            onBlattZuordnen={async (blattId, gemeindeId, entfernen) => {
+              await fuehreAus(`wochenblaetter/${blattId}/gemeinden`, {
+                gemeinde: gemeindeId,
+                ...(entfernen ? { entfernen: true } : {})
+              })
+              await wochenblaetter.refetch()
+            }}
+            onZumEntsorgungsTab={() => setReiter(2)}
           />
         </Stack>
       )}

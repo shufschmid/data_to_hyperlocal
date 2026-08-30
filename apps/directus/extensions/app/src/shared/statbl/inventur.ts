@@ -28,8 +28,10 @@ export interface Einordnung {
   /** Null when the page carries no table at all. */
   tabelle: StatblTabelle | null
   gemeindeebene: boolean
-  /** How many of the 86 municipalities the first column matched. */
+  /** How many of the known municipalities the first column matched. */
   treffer: number
+  /** How many were on the list — the reference the hit count is read against. */
+  bekannt: number
   titel: string
   /** Set when the table shown here belongs to another page. */
   zeigtTabelleVon: string | null
@@ -59,6 +61,7 @@ export function ordneSeiteEin(
       tabelle: null,
       gemeindeebene: false,
       treffer: 0,
+      bekannt: gemeinden.length,
       titel: '',
       zeigtTabelleVon: null
     }
@@ -73,6 +76,7 @@ export function ordneSeiteEin(
       tabelle: null,
       gemeindeebene: false,
       treffer: 0,
+      bekannt: gemeinden.length,
       titel: tabelle.titel,
       zeigtTabelleVon: tabellenBesitzer(html, pfad)
     }
@@ -90,6 +94,7 @@ export function ordneSeiteEin(
     tabelle,
     gemeindeebene: genannt.size >= MIN_GEMEINDEN,
     treffer: genannt.size,
+    bekannt: bekannt.size,
     titel: tabelle.titel,
     zeigtTabelleVon: null
   }
@@ -261,7 +266,7 @@ export function parseAbdeckung(
 
 /** The note stored on the page, phrased in one place. */
 export function abdeckungHinweis(
-  einordnung: Pick<Einordnung, 'gemeindeebene' | 'treffer'> &
+  einordnung: Pick<Einordnung, 'gemeindeebene' | 'treffer' | 'bekannt'> &
     Partial<Pick<Einordnung, 'zeigtTabelleVon'>>,
   abdeckung: Abdeckung | null
 ): string {
@@ -272,7 +277,10 @@ export function abdeckungHinweis(
     return `Zeigt die Tabelle von ${einordnung.zeigtTabelleVon}.`
   }
   if (!einordnung.gemeindeebene) {
-    return `Keine Gemeindegliederung (${einordnung.treffer} von 86 Gemeinden genannt).`
+    // The reference count travels with the finding rather than being written
+    // into the sentence: the list is the newsroom's, and it grows the day a
+    // municipality from another canton is added.
+    return `Keine Gemeindegliederung (${einordnung.treffer} von ${einordnung.bekannt} Gemeinden genannt).`
   }
   if (abdeckung === null) return 'Noch nicht auf Abdeckung geprueft.'
 

@@ -259,6 +259,15 @@ export default defineOperationApi<Options>({
      * run pays for them and the rest read them back.
      */
     async function pruefeAbdeckung(): Promise<void> {
+      // Die Bezugszahl fuer den Hinweistext: wie viele Gemeinden die Redaktion
+      // fuehrt. Waechst mit, sobald eine ausserkantonale dazukommt.
+      const bekannteGemeinden = (
+        (await gemeindenService.readByQuery({
+          fields: ['id'],
+          limit: -1
+        })) as unknown[]
+      ).length
+
       if (abdeckungsBudget === 0) return
 
       const offene = (await seitenService.readByQuery({
@@ -340,7 +349,11 @@ export default defineOperationApi<Options>({
             ankuendigung: eintrag?.id ?? null,
             beobachten: abdeckung.beobachten,
             hinweis: abdeckungHinweis(
-              { gemeindeebene: true, treffer: seite.treffer },
+              {
+                gemeindeebene: true,
+                treffer: seite.treffer,
+                bekannt: bekannteGemeinden
+              },
               abdeckung
             ),
             geprueft_am: new Date().toISOString()

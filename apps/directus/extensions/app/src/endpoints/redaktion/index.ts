@@ -12,6 +12,7 @@ import {
   zeitWarnungen
 } from '../../redaktion/spielbericht'
 import { schreibeSpielberichte } from '../../redaktion/spielberichte'
+import { pruefeGemeinde, pruefeVerein } from '../../redaktion/stammdaten'
 import {
   buildWissenPrompt,
   parseWissen,
@@ -223,6 +224,21 @@ const KandidatSchonUebernommen = createError(
   'Zu diesem Kandidaten gibt es schon eine Meldung.',
   409
 )
+// The master-data endpoints answer with the reason itself: unlike a status
+// transition, every refusal here is something the editor can fix in the form
+// they are looking at, so a generic message would only send them guessing.
+const UngueltigeStammdaten = createError<{ grund: string }>(
+  'UNGUELTIGE_STAMMDATEN',
+  ({ grund }) => grund,
+  400
+)
+
+const HauptgemeindeBleibt = createError(
+  'HAUPTGEMEINDE',
+  'Die Hauptgemeinde eines Blatts kann hier nicht entfernt werden. Erfasse das Blatt neu, wenn es umziehen soll.',
+  409
+)
+
 const UngueltigerAblehnungsgrund = createError(
   'INVALID_REASON',
   'Unbekannter Ablehnungsgrund.',
@@ -1017,6 +1033,196 @@ export default defineEndpoint(
           }
 
           return res.json({ data: { id, perle: koerper.perle } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    // --- master data: municipalities and clubs --------------------------------
+    //
+    // Both were Directus-admin work until the newsroom asked for the Gemeinden
+    // tab to become one place per municipality. The rules are pure functions in
+    // `redaktion/stammdaten.ts`; these routes are doors, nothing more.
+
+    router.post(
+      '/gemeinden',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        try {
+          const gemeinden = new ItemsService('gemeinden', {
+            schema: await getSchema(),
+            accountability: req.accountability
+          })
+
+          // The name is checked against every row, active or not: the list is
+          // also the gazetteer the source detection matches against, so a
+          // duplicate would sit in it invisibly.
+          const vorhandene = (await gemeinden.readByQuery({
+            fields: ['name'],
+            limit: -1
+          })) as { name: string }[]
+
+          const geprueft = pruefeGemeinde(
+            (req.body ?? {}) as Record<string, unknown>,
+            vorhandene.map((g) => g.name)
+          )
+          if (!geprueft.ok) {
+            return next(new UngueltigeStammdaten({ grund: geprueft.grund }))
+          }
+
+          // Added by hand means wanted: it goes straight into the newsroom's
+          // area rather than waiting to be switched on afterwards.
+          const id = (await gemeinden.createOne({
+            ...geprueft.wert,
+            aktiv: true
+          })) as string
+
+          return res.json({ data: { gemeinde: id } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    router.post(
+      '/vereine',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        const koerper = (req.body ?? {}) as Record<string, unknown>
+        const gemeinde = koerper['gemeinde']
+        if (typeof gemeinde !== 'string' || !UUID.test(gemeinde)) {
+          return next(new UngueltigeId())
+        }
+
+        try {
+          const geprueft = pruefeVerein(koerper)
+          if (!geprueft.ok) {
+            return next(new UngueltigeStammdaten({ grund: geprueft.grund }))
+          }
+
+          const vereine = new ItemsService('vereine', {
+            schema: await getSchema(),
+            accountability: req.accountability
+          })
+
+          // A club an editor typed in is confirmed by definition — the flag
+          // exists for clubs a connector proposes, and nothing proposes yet.
+          const id = (await vereine.createOne({
+            ...geprueft.wert,
+            gemeinde,
+            zuordnung_geprueft: true
+          })) as string
+
+          return res.json({ data: { verein: id } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    router.post(
+      '/vereine/:id',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const geprueft = pruefeVerein(
+            (req.body ?? {}) as Record<string, unknown>
+          )
+          if (!geprueft.ok) {
+            return next(new UngueltigeStammdaten({ grund: geprueft.grund }))
+          }
+
+          const vereine = new ItemsService('vereine', {
+            schema: await getSchema(),
+            accountability: req.accountability
+          })
+
+          // Editing confirms too: whatever a connector once proposed, a human
+          // has now looked at it.
+          await vereine.updateOne(id, {
+            ...geprueft.wert,
+            zuordnung_geprueft: true
+          })
+
+          return res.json({ data: { verein: id } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    router.post(
+      '/wochenblaetter/:id/gemeinden',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        const koerper = (req.body ?? {}) as {
+          gemeinde?: unknown
+          entfernen?: unknown
+        }
+        if (
+          typeof koerper.gemeinde !== 'string' ||
+          !UUID.test(koerper.gemeinde)
+        ) {
+          return next(new UngueltigeId())
+        }
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const schema = await getSchema()
+          const blaetter = new ItemsService('wochenblaetter', {
+            schema,
+            accountability: req.accountability
+          })
+          const abdeckungen = new ItemsService('wochenblattgemeinden', {
+            schema,
+            accountability: req.accountability
+          })
+
+          const blatt = (await blaetter.readOne(id, {
+            fields: ['id', 'gemeinde']
+          })) as { id: string; gemeinde: string }
+
+          const vorhanden = (await abdeckungen.readByQuery({
+            filter: {
+              _and: [
+                { wochenblatt: { _eq: id } },
+                { gemeinde: { _eq: koerper.gemeinde } }
+              ]
+            },
+            fields: ['id'],
+            limit: 1
+          })) as { id: string }[]
+
+          if (koerper.entfernen === true) {
+            // `wochenblaetter.gemeinde` is a unique m2o and the paper's anchor;
+            // dropping its junction row would leave the two halves disagreeing.
+            if (blatt.gemeinde === koerper.gemeinde) {
+              return next(new HauptgemeindeBleibt())
+            }
+            for (const zeile of vorhanden) await abdeckungen.deleteOne(zeile.id)
+            return res.json({
+              data: { wochenblatt: id, entfernt: vorhanden.length }
+            })
+          }
+
+          // Idempotent on purpose: a double click is not an error, and the
+          // unique index would answer with something unreadable.
+          if (vorhanden.length === 0) {
+            await abdeckungen.createOne({
+              wochenblatt: id,
+              gemeinde: koerper.gemeinde
+            })
+          }
+
+          return res.json({
+            data: { wochenblatt: id, gemeinde: koerper.gemeinde }
+          })
         } catch (error) {
           return next(uebersetze(error))
         }
