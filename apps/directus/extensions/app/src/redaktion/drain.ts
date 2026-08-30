@@ -53,6 +53,12 @@ import {
   LEASE_MS
 } from './queue'
 import { korrekturHinweis, pruefeZeitbezug } from './zeitbezug'
+import {
+  quellenlink,
+  quellenlinkWarnung,
+  repariereQuellenlink,
+  type Quellenlink
+} from './quelle'
 import { attributionsKorrektur, fehlendeAttribution } from './attribution'
 import { fetchWebartikel, istWebartikel } from '../shared/agenda'
 import { optionalEnv } from '../shared/env'
@@ -641,6 +647,8 @@ interface LaufMaterial {
   briefing: Briefing
   periode: string
   datensatzId: string
+  /** Where this run's figures can be verified — null when nothing is on record. */
+  quelle: Quellenlink | null
   /** Built once per run — this exact string is what the prompt cache carries. */
   systemPrompt: string
   alleZeilen: OdsRecord[]
@@ -668,11 +676,34 @@ async function ladeLaufMaterial(
   const regeln = await ladeRegeln(kontext, lauf.datensatz, null)
   const kontextDaten = (lauf.kontext ?? {}) as { alle_zeilen?: unknown }
 
+  // Where the figures can be verified. Per run, so it rides in the cached half
+  // of the prompt — and it is looked up here rather than left to the model,
+  // which answered the same request with the bare host of the office.
+  const datensatz = (await new ItemsService('datensaetze', { schema }).readOne(
+    lauf.datensatz,
+    { fields: ['externe_id', 'quelle.typ', 'ankuendigung.link'] }
+  )) as {
+    externe_id: string | null
+    quelle: { typ: string } | null
+    ankuendigung: { link: string | null } | null
+  }
+  const quelle = quellenlink({
+    ankuendigungLink: datensatz.ankuendigung?.link ?? null,
+    quelleTyp: datensatz.quelle?.typ ?? null,
+    externeId: datensatz.externe_id
+  })
+
   return {
     briefing,
     periode: lauf.periode,
     datensatzId: lauf.datensatz,
-    systemPrompt: buildArtikelSystemPrompt(briefing, regeln, lauf.vorgabe),
+    quelle,
+    systemPrompt: buildArtikelSystemPrompt(
+      briefing,
+      regeln,
+      lauf.vorgabe,
+      quelle
+    ),
     alleZeilen: Array.isArray(kontextDaten.alle_zeilen)
       ? (kontextDaten.alle_zeilen as OdsRecord[])
       : []
@@ -748,17 +779,26 @@ async function schreibeMeldung(
     zeit: ReturnType<typeof pruefeZeitbezug>
     unbelegt: number[]
     ohneQuelle: boolean
+    linkFehler: string | null
     bestanden: boolean
   } => {
     const ganzerText = `${a.titel} ${a.lead} ${a.text}`
     const zeit = pruefeZeitbezug(ganzerText, material.briefing.jahr)
     const unbelegt = unbelegteProzentangaben(ganzerText, erlaubteProzente)
     const ohneQuelle = fehlendeAttribution(ganzerText)
+    // Only the body carries the link; a title with markup in it would be wrong
+    // everywhere it is shown.
+    const linkFehler = quellenlinkWarnung(a.text, material.quelle)
     return {
       zeit,
       unbelegt,
       ohneQuelle,
-      bestanden: zeit.bestanden && unbelegt.length === 0 && !ohneQuelle
+      linkFehler,
+      bestanden:
+        zeit.bestanden &&
+        unbelegt.length === 0 &&
+        !ohneQuelle &&
+        linkFehler === null
     }
   }
 
@@ -778,7 +818,8 @@ async function schreibeMeldung(
     const korrektur = [
       korrekturHinweis(pruefung.zeit, material.briefing.jahr),
       zahlenKorrekturHinweis(pruefung.unbelegt),
-      pruefung.ohneQuelle ? attributionsKorrektur() : ''
+      pruefung.ohneQuelle ? attributionsKorrektur() : '',
+      pruefung.linkFehler ?? ''
     ]
       .filter((teil) => teil !== '')
       .join(' ')
@@ -810,12 +851,21 @@ async function schreibeMeldung(
       ? pruefung.zeit.weich
       : [...pruefung.zeit.hart, ...pruefung.zeit.weich]),
     ...pruefung.unbelegt.map((z) => `ungepruefte Prozentangabe: ${z}%`),
-    ...(pruefung.ohneQuelle ? ['Quelle nicht im Text genannt'] : [])
+    ...(pruefung.ohneQuelle ? ['Quelle nicht im Text genannt'] : []),
+    ...(pruefung.linkFehler === null ? [] : [pruefung.linkFehler])
   ]
+
+  // The last line of defence. A wrong address is the one error a reader can
+  // neither see nor check, so no anchor ever ships pointing anywhere but the
+  // source we actually looked up — whatever the model wrote.
+  const gesichert = {
+    ...artikel,
+    text: repariereQuellenlink(artikel.text, material.quelle)
+  }
 
   await new ItemsService('meldungen', { schema }).updateOne(
     meldung.id,
-    artikelFelder(artikel, warnungen)
+    artikelFelder(gesichert, warnungen)
   )
 }
 

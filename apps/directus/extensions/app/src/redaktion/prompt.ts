@@ -1,4 +1,5 @@
 import type { Redaktionswissen } from '../types/schema'
+import type { Quellenlink } from './quelle'
 
 // Prompt building and answer validation for the two-stage generation.
 //
@@ -236,7 +237,13 @@ export function buildArtikelSystemPrompt(
    * The editor's instruction for this run. Per run, never per municipality —
    * that is what keeps this string identical across the N calls.
    */
-  vorgabe?: string | null
+  vorgabe?: string | null,
+  /**
+   * Where this run's figures can be verified. Per run like the briefing, so it
+   * belongs in the cached half — and it is handed over rather than left to the
+   * model, because a link is a claim about verifiability, not a phrase.
+   */
+  quelle?: Quellenlink | null
 ): string {
   const teile = [
     'Du schreibst fuer ein Lokalmedium im Kanton Basel-Landschaft eine Meldung',
@@ -297,6 +304,27 @@ export function buildArtikelSystemPrompt(
       'Der Auftrag sagt, worum es geht — die Regeln oben sagen, was du dabei nicht',
       'darfst. Fehlt eine verlangte Zahl in den Daten dieser Gemeinde, schreibe',
       'stattdessen, dass sie nicht vorliegt.'
+    )
+  }
+
+  // Asked for a source without being given one, the model wrote
+  // `<a href="https://www.statistik.bl.ch">…</a>` — plausible, generic, and the
+  // source of nothing. So the address is dictated here, and `quelle.ts` forces
+  // it afterwards.
+  if (quelle !== undefined && quelle !== null) {
+    teile.push(
+      '',
+      'Quellenangabe — Pflicht in jeder Meldung:',
+      `- Nenne ${quelle.bezeichnung} genau einmal im Fliesstext, in einem`,
+      '  natuerlichen Satz ("wie das Statistische Amt Basel-Landschaft meldet",',
+      '  "Das Statistische Amt hat neue Zahlen publiziert").',
+      `- Verlinke dabei GENAU diese Adresse: <a href="${quelle.url}">…</a>`,
+      '- Der verlinkte Teil ist die Erwaehnung des Amts, nicht das ganze Wort',
+      '  "hier" und nicht der ganze Absatz.',
+      '- Erfinde KEINE andere Adresse und nenne sonst keine URL. Genau ein Link.',
+      quelle.webartikel
+        ? '- Die Adresse fuehrt auf den Webartikel des Amts zu dieser Statistik.'
+        : '- Die Adresse fuehrt auf den Datensatz, aus dem die Zahlen stammen.'
     )
   }
 

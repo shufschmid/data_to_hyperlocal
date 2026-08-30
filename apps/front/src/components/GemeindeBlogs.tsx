@@ -11,8 +11,9 @@ import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import type { AlleMeldungFelder } from '@/graphql/redaktion'
-import { absaetze, blogDatum, formatiereDatum, gemeindeSlug, statusFarbe, statusText } from '@/lib/redaktion'
+import { blogDatum, formatiereDatum, gemeindeSlug, statusFarbe, statusText } from '@/lib/redaktion'
 import type { GemeindeBlog } from '@/lib/redaktion'
+import { Artikeltext } from './Artikeltext'
 
 // Ein Blog je Gemeinde.
 //
@@ -172,11 +173,7 @@ function Beitrag({
           {beitrag.lead}
         </Typography>
       )}
-      {absaetze(beitrag.text).map((absatz, i) => (
-        <Typography key={i} variant="body2" sx={{ mb: 0.5 }}>
-          {absatz}
-        </Typography>
-      ))}
+      <Artikeltext text={beitrag.text} abstand={0.5} />
     </Box>
   )
 }

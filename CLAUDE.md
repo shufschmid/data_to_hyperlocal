@@ -265,7 +265,7 @@ them is wrong even if it works.
 | something that must run nightly/hourly        | Flow with a Schedule trigger + a custom operation in the bundle                                                                                                                                                                          |
 | a screen, a form, a list, a chart             | [apps/front](apps/front/) — MUI components, Apollo for data                                                                                                                                                                              |
 | a new query the UI needs                      | `apps/front/src/graphql/*.ts`                                                                                                                                                                                                            |
-| a new rule about what an article may say      | the prompt in `redaktion/prompt.ts` **and** a check next to it — a prompt is a request, a check is a rule (`zeitbezug.ts`, `zahlen.ts`, `attribution.ts`)                                                                                |
+| a new rule about what an article may say      | the prompt in `redaktion/prompt.ts` **and** a check next to it — a prompt is a request, a check is a rule (`zeitbezug.ts`, `zahlen.ts`, `attribution.ts`, `quelle.ts`)                                                                   |
 | a table on statistik.bl.ch the newsroom wants | paste its URL in the workspace — „statistik.bl" → „Auftrag …" — it becomes an ordinary dataset                                                                                                                                           |
 | a club whose results the newsroom wants       | a row in `vereine` with its `ergebnis_url`, then a connector for that `quelle`                                                                                                                                                           |
 | a new rule about what a match report may say  | `redaktion/spielbericht.ts` — the prompt **and** the check next to it                                                                                                                                                                    |
@@ -542,6 +542,17 @@ joining the two on `Spielnummer`. Read results from there, or not at all.
    figures. Every number in a municipality article still comes from that
    municipality's rows — the briefing prompt says so outright, and the
    percentage check (`zahlen.ts`) is what catches it when it does not.
+
+6. **The source link is built, never written.** Asked for a link without being
+   given one, the model produced `<a href="https://www.statistik.bl.ch">` — the
+   bare host, the source of nothing. `redaktion/quelle.ts` derives the address
+   (the office's web article when the agenda links one, otherwise
+   `data.bl.ch/explore/dataset/<id>/` or `statistik.bl.ch/web_portal/<id>`),
+   the prompt dictates it, a check reports any other URL, and
+   `repariereQuellenlink` forces every anchor onto it before the article is
+   stored. A wrong address is the one error a reader can neither see nor check.
+   The frontend renders that one anchor through `textStuecke`/`Artikeltext` —
+   parsed, never `dangerouslySetInnerHTML`, so nothing else can become markup.
 
 ## Where the memory lives
 

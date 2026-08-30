@@ -11,8 +11,9 @@ import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import type { MeldungFelder } from '@/graphql/redaktion'
-import { absaetze, statusFarbe, statusText, warnungen } from '@/lib/redaktion'
+import { statusFarbe, statusText, warnungen } from '@/lib/redaktion'
 import { langesDatum } from '@/lib/entsorgung'
+import { Artikeltext } from './Artikeltext'
 
 // One article. Presentational: props in, callbacks out, so it can be tested
 // without a network or a router.
@@ -96,11 +97,7 @@ export function MeldungKarte({
             <Typography variant="body1" sx={{ fontWeight: 500 }}>
               {meldung.lead}
             </Typography>
-            {absaetze(meldung.text).map((a, i) => (
-              <Typography key={i} variant="body2">
-                {a}
-              </Typography>
-            ))}
+            <Artikeltext text={meldung.text} abstand={0} />
           </>
         )}
 

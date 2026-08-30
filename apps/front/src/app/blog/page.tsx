@@ -7,7 +7,8 @@ import Link from '@mui/material/Link'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import { holeBlog, type BlogBeitrag } from '@/lib/public.server'
-import { absaetze, formatiereDatum, gemeindeSlug } from '@/lib/redaktion'
+import { formatiereDatum, gemeindeSlug } from '@/lib/redaktion'
+import { Artikeltext } from '@/components/Artikeltext'
 
 // The public blog — published articles only, no account needed.
 //
@@ -124,11 +125,7 @@ function Beitrag({ beitrag }: { beitrag: BlogBeitrag }) {
           {beitrag.lead}
         </Typography>
       )}
-      {absaetze(beitrag.text).map((absatz, i) => (
-        <Typography key={i} variant="body2" sx={{ mt: 1 }}>
-          {absatz}
-        </Typography>
-      ))}
+      <Artikeltext text={beitrag.text} />
     </Box>
   )
 }

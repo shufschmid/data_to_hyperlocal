@@ -20,6 +20,7 @@ import {
   nachQuartal,
   statusFarbe,
   statusText,
+  textStuecke,
   warnungen,
   zeitleiste,
   type ZeitleistenQuellen
@@ -684,5 +685,39 @@ describe('anzahlBeschaeftigt', () => {
   // Strukturell getypt, damit beide Meldungsformen der Oberflaeche passen.
   it('nimmt jede Form mit einem Verarbeitungsstand', () => {
     expect(istBeschaeftigt([{ verarbeitung: 'laeuft' }])).toBe(true)
+  })
+})
+
+describe('textStuecke', () => {
+  // Der Quellen-Link kommt vom Backend und zeigt auf die geprueste Adresse.
+  // Gerendert wird er, indem GENAU diese Form geparst und alles andere als
+  // Text behandelt wird — nie ueber dangerouslySetInnerHTML.
+  it('trennt Prosa und Quellen-Link', () => {
+    const absatz =
+      'In Pratteln entstanden 22 Wohnungen, wie das <a href="https://data.bl.ch/explore/dataset/10230/">Statistische Amt meldet</a>.'
+    expect(textStuecke(absatz)).toEqual([
+      { art: 'text', inhalt: 'In Pratteln entstanden 22 Wohnungen, wie das ' },
+      {
+        art: 'link',
+        inhalt: 'Statistische Amt meldet',
+        url: 'https://data.bl.ch/explore/dataset/10230/'
+      },
+      { art: 'text', inhalt: '.' }
+    ])
+  })
+
+  it('laesst einen Absatz ohne Link unangetastet', () => {
+    expect(textStuecke('Ein Satz ohne alles.')).toEqual([{ art: 'text', inhalt: 'Ein Satz ohne alles.' }])
+  })
+
+  // Der Sicherheitspunkt: alles ausser der einen erlaubten Form bleibt Text,
+  // und weil der Aufrufer nur Daten bekommt, kann nichts als Auszeichnung enden.
+  it('macht aus fremden Tags keine Auszeichnung', () => {
+    const boese = 'Hallo <script>alert(1)</script> und <a href="javascript:x">klick</a>'
+    expect(textStuecke(boese)).toEqual([{ art: 'text', inhalt: boese }])
+  })
+
+  it('vertraegt einen leeren Absatz', () => {
+    expect(textStuecke('')).toEqual([])
   })
 })

@@ -97,6 +97,46 @@ export function formatiereDatum(wert: string | null): string {
   })
 }
 
+/**
+ * One piece of a paragraph: plain prose, or the source link.
+ *
+ * Articles carry exactly one anchor — the source, put there by the backend and
+ * forced onto the verified address (`redaktion/quelle.ts`). Rendering it needs
+ * markup, and the safe way to get markup out of model-written text is NOT to
+ * hand the string to `dangerouslySetInnerHTML`: it is to parse the one shape we
+ * allow and let React escape everything else. Nothing here can inject markup,
+ * because nothing here produces markup — only data the caller renders.
+ */
+export type TextStueck = { art: 'text'; inhalt: string } | { art: 'link'; inhalt: string; url: string }
+
+// Deliberately narrow: a double-quoted http(s) href and no other attribute.
+// Anything else stays prose and shows up as the literal characters it is.
+const QUELLEN_ANKER = /<a\s+href="(https?:\/\/[^"\s]+)"\s*>([\s\S]*?)<\/a>/gi
+
+/** Splits one paragraph into prose and at most a few links. */
+export function textStuecke(absatz: string): TextStueck[] {
+  const stuecke: TextStueck[] = []
+  let zuletzt = 0
+
+  for (const treffer of absatz.matchAll(QUELLEN_ANKER)) {
+    const start = treffer.index ?? 0
+    if (start > zuletzt) {
+      stuecke.push({ art: 'text', inhalt: absatz.slice(zuletzt, start) })
+    }
+    stuecke.push({
+      art: 'link',
+      inhalt: (treffer[2] ?? '').replace(/<[^>]*>/g, ''),
+      url: treffer[1] ?? ''
+    })
+    zuletzt = start + treffer[0].length
+  }
+
+  if (zuletzt < absatz.length) {
+    stuecke.push({ art: 'text', inhalt: absatz.slice(zuletzt) })
+  }
+  return stuecke
+}
+
 /** Splits an article body into paragraphs for rendering. */
 export function absaetze(text: string | null): string[] {
   if (text === null) return []
