@@ -459,6 +459,12 @@ editor registers an Abfuhrkalender (PDF address or file)  ── endpoints/redak
        └─ per-zone documents      the zone is forced in code; a broken Zone-1
                                   PDF never costs Zone 2 its year
   └─ POST /entsorgung/kalender/:id/meldungen   after the editor confirmed
+       answers 202 and runs detached — one model call per newsletter day, so a
+       year takes minutes. Progress lives on the record (status 'schreibt'),
+       the workspace polls and says so; reloading interrupts nothing. A day
+       that already carries a reminder is skipped, and the skip condition is
+       the same as the partial unique index (`status <> 'verworfen'`), so a
+       second click fills gaps and can never double.
        └─ planeErinnerungen()   anchor = Anmeldeschluss ?? Datum
             → erscheint_am = last newsletter day before it (Mon–Fri, no BS
               holiday); dates sharing a day become ONE Meldung

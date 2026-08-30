@@ -213,14 +213,26 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
   // The PDF extraction runs detached on the server and takes minutes. While a
   // calendar reports 'liest', poll so the editor sees it finish; the termine
   // only change at the very end, so one refetch on the falling edge is enough.
+  // „liest" ist das Auslesen des PDF, „schreibt" das Verfassen der
+  // Erinnerungen — beides laeuft losgeloest von der Anfrage weiter und dauert
+  // Minuten. Ohne Polling sah der Redaktor bis zum naechsten Neuladen nichts
+  // und wusste nicht, ob er den Lauf damit abbricht.
   const wirdAusgelesen = (kalender.data?.entsorgungskalender ?? []).some(
-    (eintrag) => eintrag.status === 'liest'
+    (eintrag) => eintrag.status === 'liest' || eintrag.status === 'schreibt'
+  )
+  const schreibtErinnerungen = (kalender.data?.entsorgungskalender ?? []).filter(
+    (eintrag) => eintrag.status === 'schreibt'
   )
   const { startPolling, stopPolling } = kalender
   const termineNeuLaden = termine.refetch
   const warAusgelesen = useRef(false)
   useEffect(() => {
-    if (warAusgelesen.current && !wirdAusgelesen) void termineNeuLaden()
+    if (warAusgelesen.current && !wirdAusgelesen) {
+      void termineNeuLaden()
+      // Die Erinnerungen sind das Ergebnis des Schreibens — ohne dieses
+      // Nachladen stuenden sie erst beim naechsten Klick da.
+      void alleMeldungen.refetch()
+    }
     warAusgelesen.current = wirdAusgelesen
     if (!wirdAusgelesen) return
     startPolling(10_000)
@@ -487,6 +499,14 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
 
   return (
     <Stack spacing={3}>
+      {schreibtErinnerungen.length > 0 && (
+        <Alert severity="info" icon={<CircularProgress size={18} />}>
+          {schreibtErinnerungen.length === 1
+            ? `Für ${schreibtErinnerungen[0]?.gemeinde?.name ?? 'eine Gemeinde'} werden die Erinnerungen fürs Jahr geschrieben — das dauert einige Minuten. Neu laden bricht nichts ab.`
+            : `Für ${schreibtErinnerungen.length} Gemeinden werden die Erinnerungen fürs Jahr geschrieben — das dauert einige Minuten. Neu laden bricht nichts ab.`}
+        </Alert>
+      )}
+
       {wirdGeschrieben && (
         <Alert severity="info" icon={<CircularProgress size={18} />}>
           {offeneMeldungen === 1

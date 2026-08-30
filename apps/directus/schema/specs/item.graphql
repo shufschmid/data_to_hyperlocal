@@ -1411,7 +1411,9 @@ type entsorgungskalender {
   """Kalenderjahr, wie es auf dem PDF steht."""
   jahr: Int!
 
-  """Hochgeladen → ausgelesen → geprueft. Erst danach entstehen Meldungen."""
+  """
+  Hochgeladen → ausgelesen → geprueft. Erst danach entstehen Meldungen; waehrend die geschrieben werden, steht hier "schreibt".
+  """
   status: String
 
   """
@@ -1448,7 +1450,9 @@ type entsorgungskalender_aggregated_count {
   """Kalenderjahr, wie es auf dem PDF steht."""
   jahr: Int
 
-  """Hochgeladen → ausgelesen → geprueft. Erst danach entstehen Meldungen."""
+  """
+  Hochgeladen → ausgelesen → geprueft. Erst danach entstehen Meldungen; waehrend die geschrieben werden, steht hier "schreibt".
+  """
   status: Int
 
   """
@@ -2614,7 +2618,9 @@ type version_entsorgungskalender {
   """Kalenderjahr, wie es auf dem PDF steht."""
   jahr: Int
 
-  """Hochgeladen → ausgelesen → geprueft. Erst danach entstehen Meldungen."""
+  """
+  Hochgeladen → ausgelesen → geprueft. Erst danach entstehen Meldungen; waehrend die geschrieben werden, steht hier "schreibt".
+  """
   status: String
 
   """
@@ -3802,7 +3808,9 @@ input create_entsorgungskalender_input {
   """Kalenderjahr, wie es auf dem PDF steht."""
   jahr: Int!
 
-  """Hochgeladen → ausgelesen → geprueft. Erst danach entstehen Meldungen."""
+  """
+  Hochgeladen → ausgelesen → geprueft. Erst danach entstehen Meldungen; waehrend die geschrieben werden, steht hier "schreibt".
+  """
   status: String
 
   """
@@ -5530,7 +5538,9 @@ input update_entsorgungskalender_input {
   """Kalenderjahr, wie es auf dem PDF steht."""
   jahr: Int
 
-  """Hochgeladen → ausgelesen → geprueft. Erst danach entstehen Meldungen."""
+  """
+  Hochgeladen → ausgelesen → geprueft. Erst danach entstehen Meldungen; waehrend die geschrieben werden, steht hier "schreibt".
+  """
   status: String
 
   """

@@ -11,7 +11,7 @@
     "group": null,
     "hidden": false,
     "interface": "select-dropdown",
-    "note": "Hochgeladen → ausgelesen → geprueft. Erst danach entstehen Meldungen.",
+    "note": "Hochgeladen → ausgelesen → geprueft. Erst danach entstehen Meldungen; waehrend die geschrieben werden, steht hier \"schreibt\".",
     "options": {
       "choices": [
         {
@@ -29,6 +29,10 @@
         {
           "text": "Geprueft",
           "value": "geprueft"
+        },
+        {
+          "text": "Meldungen werden geschrieben",
+          "value": "schreibt"
         },
         {
           "text": "Fehler",

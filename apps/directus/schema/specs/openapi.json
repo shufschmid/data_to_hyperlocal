@@ -3,7 +3,7 @@
   "info": {
     "title": "Dynamic API Specification",
     "description": "This is a dynamically generated API specification for all endpoints existing on the current project.",
-    "version": "d6b93fca04d0a74a54786d974968c862332e46cd"
+    "version": "31c438238c59de44bb09e478aa4e4599ca9aa44d"
   },
   "servers": [
     {
@@ -18514,7 +18514,7 @@
           },
           "status": {
             "nullable": false,
-            "description": "Hochgeladen → ausgelesen → geprueft. Erst danach entstehen Meldungen.",
+            "description": "Hochgeladen → ausgelesen → geprueft. Erst danach entstehen Meldungen; waehrend die geschrieben werden, steht hier \"schreibt\".",
             "type": "string"
           },
           "merkblatt": {

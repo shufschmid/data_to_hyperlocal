@@ -184,6 +184,12 @@ const KeinPdfAmKalender = createError(
   'Zu diesem Kalender ist kein PDF hinterlegt.',
   400
 )
+const ErinnerungenLaufenBereits = createError(
+  'ERINNERUNGEN_LAUFEN',
+  'Fuer diesen Kalender werden bereits Meldungen geschrieben.',
+  409
+)
+
 const ExtraktionLaeuftBereits = createError(
   'EXTRACTION_RUNNING',
   'Dieser Kalender wird gerade ausgelesen.',
@@ -254,6 +260,11 @@ const UUID = /^[0-9a-f-]{36}$/i
 // reading a dense year grid with Opus outlives any proxy timeout — so the brake
 // has to live in the process, not in the connection.
 const laufendeExtraktionen = new Set<string>()
+
+// Dasselbe fuer das Schreiben der Erinnerungen: ein Modellaufruf je
+// Newsletter-Tag, rund zehn je Kalender, also Minuten. Zwei Laeufe auf
+// demselben Kalender wuerden um dieselben Erscheinungstage konkurrieren.
+const laufendeErinnerungen = new Set<string>()
 
 export default defineEndpoint(
   (router, { services, database, getSchema, logger }) => {
@@ -2634,9 +2645,14 @@ export default defineEndpoint(
           accountability: req.accountability
         })
 
+        let id: string
         try {
-          const id = pruefeId(req.params['id'])
+          id = pruefeId(req.params['id'])
+        } catch (error) {
+          return next(uebersetze(error))
+        }
 
+        try {
           const kalender = (await kalenderService.readOne(id, {
             fields: ['id', 'jahr', 'status', 'gemeinde.id', 'gemeinde.name']
           })) as {
@@ -2646,7 +2662,16 @@ export default defineEndpoint(
             gemeinde: { id: string; name: string }
           }
 
-          if (kalender.status !== 'geprueft') throw new NochNichtGeprueft()
+          // „schreibt" ist ein geprueter Kalender, an dem gerade gearbeitet
+          // wird — sonst antwortete ein zweiter Klick mit „bestaetigen Sie
+          // zuerst die Termine", was schlicht nicht stimmt. Die richtige
+          // Auskunft gibt der Single-Flight ein paar Zeilen weiter unten.
+          if (
+            kalender.status !== 'geprueft' &&
+            kalender.status !== 'schreibt'
+          ) {
+            throw new NochNichtGeprueft()
+          }
 
           // The source link and the zone note travel with each Termin's own
           // document — for Riehen that is the zone's PDF, the one the reader
@@ -2685,6 +2710,10 @@ export default defineEndpoint(
             return next(new NichtsZuTun())
           }
 
+          if (laufendeErinnerungen.has(id)) {
+            return next(new ErinnerungenLaufenBereits())
+          }
+
           // Erscheinungstage that already carry a reminder are skipped, so a
           // second run fills gaps instead of colliding with the partial unique.
           const vorhanden = (await meldungenService.readByQuery({
@@ -2696,68 +2725,151 @@ export default defineEndpoint(
             fields: ['erscheint_am'],
             limit: -1
           })) as Array<{ erscheint_am: string }>
+          // Ein Erscheinungstag, der schon eine Meldung traegt, wird
+          // uebersprungen — ein zweiter Klick fuellt Luecken, statt zu
+          // verdoppeln. Dieselbe Bedingung wie der partielle Unique-Index in
+          // der Datenbank (`status <> 'verworfen'`), damit Anwendung und
+          // Datenbank nicht auseinanderlaufen.
           const belegt = new Set(vorhanden.map((m) => m.erscheint_am))
+          const schonDa = plan.gruppen.filter((g) =>
+            belegt.has(g.erscheintAm)
+          ).length
+          const offeneTage = plan.gruppen.length - schonDa
 
-          let erzeugt = 0
-          let uebersprungen = 0
-          const fehlgeschlagen: string[] = []
-
-          for (const gruppe of plan.gruppen) {
-            if (belegt.has(gruppe.erscheintAm)) {
-              uebersprungen += 1
-              continue
-            }
-
-            try {
-              const fakten = baueFakten(
-                gruppe,
-                alle,
-                kalender.gemeinde.name,
-                kalender.jahr
-              )
-              const { erinnerung, warnungen } = await schreibeErinnerung(fakten)
-
-              const meldungId = (await meldungenService.createOne({
-                gemeinde: kalender.gemeinde.id,
-                erscheint_am: gruppe.erscheintAm,
-                titel: erinnerung.titel,
-                lead: erinnerung.lead,
-                text: erinnerung.text,
-                status: 'entwurf',
-                // Stored finished: the statistics queue only ever picks up rows
-                // it marked `geplant` itself.
-                verarbeitung: 'idle',
-                zeit_warnungen: warnungen.length > 0 ? warnungen : null,
-                datengrundlage: datengrundlageErinnerung(fakten)
-              })) as string
-
-              for (const termin of gruppe.termine) {
-                await termineService.updateOne(termin.id, {
-                  meldung: meldungId
-                })
+          // Alles schon geschrieben: dann gibt es nichts zu starten, und der
+          // Redaktor bekommt es sofort gesagt, statt auf einen Lauf zu warten,
+          // der nur uebersprungene Tage zaehlt.
+          if (offeneTage === 0) {
+            return res.json({
+              data: {
+                geplant: 0,
+                uebersprungen: schonDa,
+                hinweise: [
+                  schonDa === 0
+                    ? 'Es gibt keine Erscheinungstage, fuer die eine Erinnerung fehlt.'
+                    : `Alle ${schonDa} Erscheinungstage haben bereits eine Meldung — es gab nichts nachzutragen.`
+                ]
               }
-              erzeugt += 1
-            } catch (fehler) {
-              // One bad edition must not cost the rest of the year.
-              logger.warn(
-                fehler,
-                `redaktion: Erinnerung fuer ${kalender.gemeinde.name} am ${gruppe.erscheintAm} fehlgeschlagen`
-              )
-              fehlgeschlagen.push(gruppe.erscheintAm)
-            }
+            })
           }
 
-          return res.json({
-            data: {
-              erzeugt,
-              uebersprungen,
-              // Named, not swallowed: a calendar uploaded in March has lost
-              // January and February, and the editor should learn that here.
-              verpasst: plan.verpasst.length,
-              fehlgeschlagen
+          // Ein Modellaufruf je Newsletter-Tag, nacheinander — rund zehn je
+          // Kalender, also Minuten. Das ist laenger, als eine Antwort warten
+          // sollte, und der Redaktor sah bisher nichts: kein Fortschritt, kein
+          // Ende, und beim Neuladen die Sorge, den Lauf abzubrechen. Also wie
+          // beim Auslesen: Antwort sofort, Fortschritt am Datensatz.
+          laufendeErinnerungen.add(id)
+          try {
+            await kalenderService.updateOne(id, { status: 'schreibt' })
+          } catch (error) {
+            laufendeErinnerungen.delete(id)
+            return next(uebersetze(error))
+          }
+
+          const schreiben = async (): Promise<void> => {
+            let erzeugt = 0
+            let uebersprungen = 0
+            const fehlgeschlagen: string[] = []
+
+            for (const gruppe of plan.gruppen) {
+              if (belegt.has(gruppe.erscheintAm)) {
+                uebersprungen += 1
+                continue
+              }
+
+              try {
+                const fakten = baueFakten(
+                  gruppe,
+                  alle,
+                  kalender.gemeinde.name,
+                  kalender.jahr
+                )
+                const { erinnerung, warnungen } =
+                  await schreibeErinnerung(fakten)
+
+                const meldungId = (await meldungenService.createOne({
+                  gemeinde: kalender.gemeinde.id,
+                  erscheint_am: gruppe.erscheintAm,
+                  titel: erinnerung.titel,
+                  lead: erinnerung.lead,
+                  text: erinnerung.text,
+                  status: 'entwurf',
+                  // Stored finished: the statistics queue only ever picks up rows
+                  // it marked `geplant` itself.
+                  verarbeitung: 'idle',
+                  zeit_warnungen: warnungen.length > 0 ? warnungen : null,
+                  datengrundlage: datengrundlageErinnerung(fakten)
+                })) as string
+
+                for (const termin of gruppe.termine) {
+                  await termineService.updateOne(termin.id, {
+                    meldung: meldungId
+                  })
+                }
+                erzeugt += 1
+              } catch (fehler) {
+                // One bad edition must not cost the rest of the year.
+                logger.warn(
+                  fehler,
+                  `redaktion: Erinnerung fuer ${kalender.gemeinde.name} am ${gruppe.erscheintAm} fehlgeschlagen`
+                )
+                fehlgeschlagen.push(gruppe.erscheintAm)
+              }
             }
+
+            logger.info(
+              `entsorgung: ${erzeugt} Erinnerungen geschrieben, ${uebersprungen} uebersprungen` +
+                (fehlgeschlagen.length > 0
+                  ? `, ${fehlgeschlagen.length} fehlgeschlagen`
+                  : '')
+            )
+          }
+
+          void schreiben()
+            .catch((error: unknown) => {
+              logger.error(error, 'entsorgung: Erinnerungen fehlgeschlagen')
+            })
+            .finally(() => {
+              laufendeErinnerungen.delete(id)
+              // Zurueck auf den Stand, von dem aus geschrieben wurde. Der
+              // Kalender selbst hat sich nicht veraendert — nur die Meldungen
+              // sind dazugekommen.
+              void kalenderService
+                .updateOne(id, { status: 'geprueft' })
+                .catch(() => undefined)
+            })
+
+          // 202: die Arbeit laeuft weiter, auch wenn der Browser neu laedt.
+          //
+          // `hinweise` ist der Kanal, den der Arbeitsbereich tatsaechlich
+          // anzeigt — die frueheren Zaehler standen zwar in der Antwort, wurden
+          // aber nirgends gelesen. Deshalb sah der Redaktor nichts.
+          const hinweise: string[] = []
+          if (offeneTage > 0) {
+            hinweise.push(
+              offeneTage === 1
+                ? 'Eine Erinnerung wird geschrieben — das dauert etwa eine halbe Minute.'
+                : `${offeneTage} Erinnerungen werden geschrieben — das dauert einige Minuten. Die Ansicht aktualisiert sich von selbst.`
+            )
+          }
+          if (schonDa > 0) {
+            hinweise.push(
+              `${schonDa} Erscheinungstage haben bereits eine Meldung und bleiben unberuehrt.`
+            )
+          }
+          if (plan.verpasst.length > 0) {
+            // Named, not swallowed: a calendar uploaded in March has lost
+            // January and February, and the editor should learn that here.
+            hinweise.push(
+              `${plan.verpasst.length} Termine liegen zu nah oder in der Vergangenheit — dafuer gibt es keine Erinnerung mehr.`
+            )
+          }
+
+          return res.status(202).json({
+            data: { geplant: offeneTage, uebersprungen: schonDa, hinweise }
           })
         } catch (error) {
+          laufendeErinnerungen.delete(id)
           return next(uebersetze(error))
         }
       }

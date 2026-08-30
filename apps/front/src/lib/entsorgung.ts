@@ -181,6 +181,7 @@ const KALENDER_STATUS: Record<string, string> = {
   liest: 'Wird ausgelesen',
   extrahiert: 'Ausgelesen',
   geprueft: 'Geprüft',
+  schreibt: 'Meldungen werden geschrieben',
   fehler: 'Fehler'
 }
 
@@ -191,6 +192,7 @@ export function kalenderStatusText(status: string): string {
 export function kalenderStatusFarbe(status: string): 'default' | 'info' | 'success' | 'error' {
   switch (status) {
     case 'liest':
+    case 'schreibt':
     case 'extrahiert':
       return 'info'
     case 'geprueft':
