@@ -274,6 +274,7 @@ them is wrong even if it works.
 | a table on statistik.bl.ch the newsroom wants | paste its URL in the workspace — „statistik.bl" → „Auftrag …" — it becomes an ordinary dataset                                                                                                                                           |
 | a club whose results the newsroom wants       | a row in `vereine` with its `ergebnis_url`, then a connector for that `quelle`                                                                                                                                                           |
 | a new rule about what a match report may say  | `redaktion/spielbericht.ts` — the prompt **and** the check next to it                                                                                                                                                                    |
+| which of a club's teams gets a report         | `redaktion/mannschaft.ts` — the first team only, mirrored in the workspace's counter (`berichtenswerteSpiele`)                                                                                                                           |
 | an Abfuhrkalender the newsroom wants          | paste the PDF's address in the workspace — „Entsorgung" → „Abfuhrkalender erfassen"; one PDF per zone (Riehen) registers zone by zone into the same calendar                                                                             |
 | a weekly paper the newsroom wants read        | „Presseschau" → „Wochenblatt erfassen" with its archive URL; the platform decides the parser (`konnektor`: WordPress-Archivliste, lokalzeitungen.ch, issuu or Localpoint) — a fifth platform gets its own value in `shared/wochenblatt/` |
 | a new rule about what a press review may say  | `redaktion/presseschau.ts` — the prompt **and** the checks next to it (attribution, digits, verbatim overlap)                                                                                                                            |
@@ -490,6 +491,18 @@ means knowing which side the club played on, and that is arithmetic the model
 must not do. Afterwards every figure in the text is checked against what was
 handed over — a stray "Rang 7" is flagged, because a table position is exactly
 the kind of number that quietly turns out wrong.
+
+**Only the first team gets a report.** A village club fields four: SC Binningen
+played four times on 29 August 2026 — 2. Liga interregional, a 4th-league side,
+a 5th-league side and a women's team, and the rows say only „SC Binningen" for
+all of them. Three articles about the same club losing 0:2 and 0:12 and winning
+7:0 on one Saturday are noise, so `redaktion/mannschaft.ts` keeps the club's
+highest league (derived from its own matches, because `vereine.liga` is an
+editor's free text — measured values include „3. und 4. Liga" and null). Women's
+sides are not reported as the club — **except where the club's registered team
+IS one**: Sm'Aesch Pfeffingen plays Nationalliga A der Damen and is the flagship
+of Aesch, and a blunt rule would have silenced it. Fixtures are all still stored
+and shown; this is only about what gets written.
 
 **Three sports have connectors: football, volleyball, handball.** Basketball,
 chess, Schwingen, swimming, American football and curling are recorded as clubs

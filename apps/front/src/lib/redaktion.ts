@@ -707,3 +707,74 @@ export function bleibtAufDemTisch(entscheid: string, meldungStatus: string | nul
   if (meldungStatus === null) return false
   return meldungStatus !== 'publiziert' && meldungStatus !== 'verworfen'
 }
+
+// --- Welche Spiele einen Bericht bekommen -----------------------------------
+//
+// Spiegelt `redaktion/mannschaft.ts` im Backend, das die Regel besitzt. Die
+// Kopie steht hier, weil der Zaehler im Sport-Reiter sonst dauerhaft Spiele
+// mitzaehlt, die nie einen Bericht bekommen — der Knopf bliebe aktiv und
+// meldete jedes Mal „nichts zu tun". Dieselbe Doppelung wie bei `seitenLink`,
+// und derselbe Auftrag: aendert sich die eine Seite, aendert sich die andere.
+
+const FRAUEN_WETTBEWERB = /\b(frauen|damen|faew|ff-\d)\b/i
+
+const LIGA_RANGFOLGE: readonly RegExp[] = [
+  /nationalliga\s*a|\bnla\b/i,
+  /nationalliga\s*b|\bnlb\b/i,
+  /1\.\s*liga\s*(promotion|classic)/i,
+  /1\.\s*liga/i,
+  /2\.\s*liga\s*interregional/i,
+  /2\.\s*liga/i,
+  /3\.\s*liga/i,
+  /4\.\s*liga/i,
+  /5\.\s*liga/i
+]
+
+function ligaRang(wettbewerb: string): number | null {
+  const index = LIGA_RANGFOLGE.findIndex((muster) => muster.test(wettbewerb))
+  return index === -1 ? null : index
+}
+
+/**
+ * Die Spiele, aus denen ueberhaupt eine Meldung entstehen kann.
+ *
+ * Nur die erste Mannschaft je Verein — ein Dorfverein stellt vier, und drei
+ * Meldungen ueber denselben Verein an einem Samstag sind kein Bericht. Eine
+ * Damenmannschaft bleibt, wo sie die eigene Mannschaft des Vereins ist
+ * (Sm'Aesch Pfeffingen spielt Nationalliga A der Damen).
+ */
+export function berichtenswerteSpiele<
+  T extends { wettbewerb: string; verein: { id: string; liga?: string | null } | null }
+>(spiele: readonly T[]): Set<T> {
+  const jeVerein = new Map<string, T[]>()
+  for (const spiel of spiele) {
+    if (spiel.verein === null) continue
+    const bisher = jeVerein.get(spiel.verein.id)
+    if (bisher === undefined) jeVerein.set(spiel.verein.id, [spiel])
+    else bisher.push(spiel)
+  }
+
+  const behalten = new Set<T>()
+  for (const [, liste] of jeVerein) {
+    const liga = liste[0]?.verein?.liga ?? null
+    const frauenverein = liga != null && FRAUEN_WETTBEWERB.test(liga)
+    const infrage = frauenverein ? liste : liste.filter((s) => !FRAUEN_WETTBEWERB.test(s.wettbewerb))
+    if (infrage.length === 0) continue
+
+    const raenge = infrage.map((s) => ligaRang(s.wettbewerb)).filter((r): r is number => r !== null)
+    if (raenge.length === 0) {
+      for (const s of infrage) behalten.add(s)
+      continue
+    }
+
+    const bester = Math.min(...raenge)
+    for (const s of infrage) {
+      const rang = ligaRang(s.wettbewerb)
+      if (rang === bester || (rang === null && /\bcup\b/i.test(s.wettbewerb))) {
+        behalten.add(s)
+      }
+    }
+  }
+
+  return behalten
+}

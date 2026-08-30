@@ -17,7 +17,7 @@ function spiel(ueber: Partial<SpielFelder>): SpielFelder {
     status: null,
     sportart: 'Fussball',
     gemeinde: { id: 'g1', name: 'Pratteln' },
-    verein: { id: 'v1', name: 'FC Pratteln' },
+    verein: { id: 'v1', name: 'FC Pratteln', liga: '2. Liga interregional' },
     ...ueber
   }
 }
@@ -64,7 +64,7 @@ const spiele = [
     tore_heim: 1,
     tore_gast: 3,
     gemeinde: { id: 'g2', name: 'Riehen' },
-    verein: { id: 'v2', name: 'FC Amicitia Riehen' }
+    verein: { id: 'v2', name: 'FC Amicitia Riehen', liga: '2. Liga interregional' }
   }),
   spiel({
     id: 'b',
@@ -79,7 +79,7 @@ const spiele = [
     gast: 'Volley Düdingen',
     sportart: 'Volleyball',
     gemeinde: { id: 'g3', name: 'Aesch' },
-    verein: { id: 'v3', name: "Sm'Aesch Pfeffingen" }
+    verein: { id: 'v3', name: "Sm'Aesch Pfeffingen", liga: 'Nationalliga A (Damen)' }
   })
 ]
 

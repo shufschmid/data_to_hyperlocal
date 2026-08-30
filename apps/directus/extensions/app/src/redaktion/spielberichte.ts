@@ -7,6 +7,7 @@ import {
   zeitWarnungen
 } from './spielbericht'
 
+import { ersteMannschaft } from './mannschaft'
 // One match report per result that has none yet.
 //
 // Shared by the two doors on purpose: the editor's button and the 06:30 scrape
@@ -104,8 +105,30 @@ export async function schreibeSpielberichte(
     limit: -1
   })) as SpielZeile[]
 
+  // Only the first team gets an article. A village club fields four, and three
+  // reports about "SC Binningen" on one Saturday — 0:2, 0:12, 7:0 — are noise,
+  // not reporting; nothing in the data even says which team is which. The
+  // fixtures stay stored and visible, this is about what gets written.
+  //
+  // Decided per club over ALL its stored matches, not per pass: which league is
+  // the club's best cannot be read off the handful that happen to be waiting.
+  const jeVerein = new Map<string, SpielZeile[]>()
+  for (const spiel of mitResultat) {
+    const bisher = jeVerein.get(spiel.verein.id)
+    if (bisher === undefined) jeVerein.set(spiel.verein.id, [spiel])
+    else bisher.push(spiel)
+  }
+
+  const berichtenswert = new Set<string>()
+  for (const [, spiele] of jeVerein) {
+    const liga = spiele[0]?.verein.liga ?? null
+    for (const spiel of ersteMannschaft(spiele, liga))
+      berichtenswert.add(spiel.id)
+  }
+
   const offen = mitResultat
     .filter((spiel) => !schonBeschrieben.has(spiel.id))
+    .filter((spiel) => berichtenswert.has(spiel.id))
     .slice(0, Math.max(hoechstens, 0))
 
   let erzeugt = 0

@@ -2,6 +2,7 @@ import type { AnkuendigungFelder, MeldungFelder } from '@/graphql/redaktion'
 import {
   absaetze,
   anzahlBeschaeftigt,
+  berichtenswerteSpiele,
   bleibtAufDemTisch,
   formatiereDatum,
   fortschritt,
@@ -719,5 +720,44 @@ describe('textStuecke', () => {
 
   it('vertraegt einen leeren Absatz', () => {
     expect(textStuecke('')).toEqual([])
+  })
+})
+
+describe('berichtenswerteSpiele', () => {
+  // Spiegelt redaktion/mannschaft.ts im Backend — der Zaehler im Sport-Reiter
+  // muss dieselbe Antwort geben wie der Schreiber, sonst zeigt der Knopf
+  // dauerhaft offene Spiele an und meldet beim Druecken „nichts zu tun".
+  const spiel = (id: string, wettbewerb: string, vereinId: string, liga: string | null) => ({
+    id,
+    wettbewerb,
+    verein: { id: vereinId, name: 'Verein', liga }
+  })
+
+  it('nimmt vom Verein nur die erste Mannschaft', () => {
+    const alle = [
+      spiel('a', 'Meisterschaft - 2. Liga interregional / Gruppe 3', 'v1', '2. Liga interregional'),
+      spiel('b', 'Meisterschaft - 2. Liga (FAEW)', 'v1', '2. Liga interregional'),
+      spiel('c', 'Meisterschaft - 5. Liga / Vorrunde / Gruppe 2', 'v1', '2. Liga interregional')
+    ]
+    const behalten = berichtenswerteSpiele(alle)
+    expect([...behalten].map((s) => s.id)).toEqual(['a'])
+  })
+
+  // Sm'Aesch Pfeffingen ist eine Damenmannschaft und das Aushaengeschild.
+  it('behaelt einen Verein, dessen eigene Mannschaft eine Damenmannschaft ist', () => {
+    const alle = [spiel('a', 'Nationalliga A (Damen)', 'v2', 'Nationalliga A (Damen)')]
+    expect(berichtenswerteSpiele(alle).size).toBe(1)
+  })
+
+  it('kommt ohne Liga-Angabe aus', () => {
+    const alle = [
+      spiel('a', 'Meisterschaft - 3. Liga / Gruppe 2', 'v3', null),
+      spiel('b', 'Meisterschaft - 4. Liga / Gruppe 3', 'v3', null)
+    ]
+    expect([...berichtenswerteSpiele(alle)].map((s) => s.id)).toEqual(['a'])
+  })
+
+  it('vertraegt eine leere Liste', () => {
+    expect(berichtenswerteSpiele([]).size).toBe(0)
   })
 })

@@ -11,7 +11,13 @@ import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import type { AlleMeldungFelder, MeldungFelder, SpielFelder } from '@/graphql/redaktion'
-import { formatiereZeitpunkt, resultat, statusText, teileSpiele } from '@/lib/redaktion'
+import {
+  berichtenswerteSpiele,
+  formatiereZeitpunkt,
+  resultat,
+  statusText,
+  teileSpiele
+} from '@/lib/redaktion'
 import { MeldungKarte, type MeldungAktion } from './MeldungKarte'
 
 // Results and fixtures of the clubs the newsroom follows.
@@ -95,13 +101,19 @@ export function Sportresultate({
     }
     return karte
   }, [berichte])
-  const offen = useMemo(
-    () =>
-      spiele.filter(
-        (spiel) => spiel.tore_heim !== null && spiel.tore_gast !== null && !nachSpiel.has(spiel.id)
-      ).length,
-    [spiele, nachSpiel]
-  )
+  // Nur was ueberhaupt einen Bericht bekaeme: die erste Mannschaft je Verein.
+  // Ohne diese Einschraenkung zaehlte der Knopf dauerhaft Spiele mit, die das
+  // Backend nie schreibt — er blieb aktiv und meldete jedes Mal „nichts zu tun".
+  const offen = useMemo(() => {
+    const berichtenswert = berichtenswerteSpiele(spiele)
+    return spiele.filter(
+      (spiel) =>
+        spiel.tore_heim !== null &&
+        spiel.tore_gast !== null &&
+        !nachSpiel.has(spiel.id) &&
+        berichtenswert.has(spiel)
+    ).length
+  }, [spiele, nachSpiel])
   // Was ein Klick scharf stellen wuerde. „in_pruefung“ zaehlt bewusst nicht mit:
   // eine Meldung beim Gegenlesen darf nicht hinter dem Ruecken der Pruefenden
   // publiziert werden — der Endpoint lehnt sie ohnehin ab.

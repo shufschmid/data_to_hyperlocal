@@ -481,7 +481,8 @@ export interface SpielFelder {
   status: string | null
   sportart: string
   gemeinde: { id: string; name: string } | null
-  verein: { id: string; name: string } | null
+  /** `liga` kommt mit, damit der Sport-Reiter die erste Mannschaft erkennt. */
+  verein: { id: string; name: string; liga: string | null } | null
 }
 
 export interface SpieleErgebnis {
@@ -512,6 +513,7 @@ export const SPIELE_QUERY = gql`
       verein {
         id
         name
+        liga
       }
     }
   }
