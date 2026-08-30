@@ -134,6 +134,16 @@ async function aktion(pfad: string, body?: unknown): Promise<AktionErgebnis> {
 // Der Blog ist ueber die Adresse ansteuerbar: ?gemeinde=riehen oeffnet ihn
 // gefiltert. Gelesen wird einmal beim Aufbau — die Komponente rendert nur im
 // Browser (AppShell prueft erst die Session), der Guard schuetzt den Test-DOM.
+// Der Zaehler laeuft bis „99+“, und ein frei schwebender Badge waechst mit
+// seiner Zahl nach rechts aus dem Reiter heraus: MUI setzt ihn nicht nur auf
+// den `right`-Wert, sondern schiebt ihn zusaetzlich um seine halbe Breite
+// (`translate(50%)`). Gemessen sind das bei „99+“ 31px statt der gesetzten 14 —
+// und `MuiTab-root` kappt mit `overflow: hidden`, also war die Zahl angeschnitten.
+// Jede Breite braeuchte ein anderes Polster; im Textfluss braucht sie keines.
+const ZAEHLER_IM_REITER = {
+  '& .MuiBadge-badge': { position: 'static', transform: 'none', alignSelf: 'center', ml: 0.75 }
+} as const
+
 function gemeindeAusUrl(): string | null {
   if (typeof window === 'undefined') return null
   return new URLSearchParams(window.location.search).get('gemeinde')
@@ -573,7 +583,7 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
                   .filter((k) => bleibtAufDemTisch(k.entscheid, meldungStatusJeKandidat.get(k.id) ?? null))
                   .length
               }
-              sx={{ '& .MuiBadge-badge': { right: -12 } }}
+              sx={ZAEHLER_IM_REITER}
             >
               Wochenblätter
             </Badge>
@@ -587,7 +597,7 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
                 (recherchehinweise.data?.recherchehinweise ?? []).filter((h) => h.status === 'offen').length +
                 (offenePerlen.data?.wochenblattkandidaten ?? []).length
               }
-              sx={{ '& .MuiBadge-badge': { right: -12 } }}
+              sx={ZAEHLER_IM_REITER}
             >
               Chefredaktion
             </Badge>
