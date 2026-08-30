@@ -73,8 +73,27 @@ const WEICHE_MUSTER: readonly string[] = [
   'zuletzt',
   'künftig',
   'fortan',
-  'neu',
   'nun'
+]
+
+/**
+ * Words that are only a time reference in some grammatical roles.
+ *
+ * "neu" is the case that forced this: as an adverb it means "as of now" and
+ * dates the sentence ("Neu gilt der Ansatz"), but attributively it belongs to
+ * the thing, not to the clock — and "neu erstellte Wohnungen" is the official
+ * name of a Basel-Landschaft statistic, so every article about that dataset
+ * carried a warning about its own subject.
+ *
+ * The distinction is visible in what follows, and German spelling makes it
+ * cheap to see: attributively, "neu" precedes a participle or adjective AND
+ * then a noun — and nouns are capitalised. "neu erstellte Wohnungen" fits;
+ * "Neu gilt der Ansatz" and "gilt neu fuer alle Gemeinden" do not, and stay
+ * reportable. Anchored to the very next words, or any adjective later in the
+ * sentence would call it off.
+ */
+const WEICHE_MIT_KONTEXT: readonly { wort: string; nichtVor: RegExp }[] = [
+  { wort: 'neu', nichtVor: /^\s+\p{Ll}+(?:e|en|er|es|em)\s+\p{Lu}/u }
 ]
 
 // \b does not understand umlauts in JavaScript, so a German-aware boundary is
@@ -104,10 +123,29 @@ export interface Zeitbefund {
   weich: string[]
 }
 
+/** The context-dependent half: matched, then discarded where the role is wrong. */
+function findeMitKontext(text: string): string[] {
+  const treffer: string[] = []
+
+  for (const { wort, nichtVor } of WEICHE_MIT_KONTEXT) {
+    const regex = new RegExp(
+      `${VOR}${escapeRegExp(wort)}${NACH}(.{0,24})`,
+      'giu'
+    )
+    for (const fund of text.matchAll(regex)) {
+      if (nichtVor.test(fund[1] ?? '')) continue
+      treffer.push(wort)
+      break
+    }
+  }
+
+  return treffer
+}
+
 export function findeRelativeZeitangaben(text: string): Zeitbefund {
   return {
     hart: findeMuster(text, HARTE_MUSTER),
-    weich: findeMuster(text, WEICHE_MUSTER)
+    weich: [...findeMuster(text, WEICHE_MUSTER), ...findeMitKontext(text)]
   }
 }
 

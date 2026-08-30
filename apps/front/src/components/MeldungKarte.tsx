@@ -34,6 +34,12 @@ export interface MeldungKarteProps {
    * Freitag ist Papierabfuhr" in front of readers in September.
    */
   erscheintAm?: string | null
+  /**
+   * Offer "publish now" beside the approval — only for the reminders that are
+   * actually next in line. Publishing weeks early would put a reminder into the
+   * wrong newsletter, which is why it is not the default.
+   */
+  sofortPublizierbar?: boolean
 }
 
 export function MeldungKarte({
@@ -41,7 +47,8 @@ export function MeldungKarte({
   onChat,
   onAktion,
   laeuft = false,
-  erscheintAm = null
+  erscheintAm = null,
+  sofortPublizierbar = false
 }: MeldungKarteProps) {
   const [anweisung, setAnweisung] = useState('')
   const [offen, setOffen] = useState(false)
@@ -122,14 +129,25 @@ export function MeldungKarte({
               Publizieren
             </Button>
           ) : (
-            <Button
-              size="small"
-              variant="contained"
-              onClick={() => void onAktion(meldung.id, 'freigeben')}
-              disabled={beschaeftigt || meldung.titel === null}
-            >
-              Freigeben
-            </Button>
+            <>
+              <Button
+                size="small"
+                variant="contained"
+                onClick={() => void onAktion(meldung.id, 'freigeben')}
+                disabled={beschaeftigt || meldung.titel === null}
+              >
+                Freigeben
+              </Button>
+              {sofortPublizierbar && (
+                <Button
+                  size="small"
+                  onClick={() => void onAktion(meldung.id, 'publizieren')}
+                  disabled={beschaeftigt || meldung.titel === null}
+                >
+                  Jetzt publizieren
+                </Button>
+              )}
+            </>
           )}
           <Button
             size="small"
@@ -143,7 +161,8 @@ export function MeldungKarte({
 
         {erscheintAm !== null && (
           <Typography variant="caption" color="text.secondary">
-            Erscheint am {langesDatum(erscheintAm)} · wird am Vortag automatisch publiziert
+            Erscheint am {langesDatum(erscheintAm)} · der Tageslauf publiziert sie am Vorabend, sobald sie
+            freigegeben ist
           </Typography>
         )}
 

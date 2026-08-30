@@ -14,6 +14,7 @@ import type { AlleMeldungFelder } from '@/graphql/redaktion'
 import { blogDatum, formatiereDatum, gemeindeSlug, statusFarbe, statusText } from '@/lib/redaktion'
 import type { GemeindeBlog } from '@/lib/redaktion'
 import { Artikeltext } from './Artikeltext'
+import { blogOhneErinnerungsflut } from '@/lib/entsorgung'
 
 // Ein Blog je Gemeinde.
 //
@@ -41,6 +42,8 @@ export interface GemeindeBlogsProps {
    */
   onPublizieren?: (id: string) => Promise<void>
   laeuft?: boolean
+  /** Injected in tests. */
+  jetzt?: Date
 }
 
 export function GemeindeBlogs({
@@ -49,7 +52,8 @@ export function GemeindeBlogs({
   auswahl = null,
   onAuswahl,
   onPublizieren,
-  laeuft = false
+  laeuft = false,
+  jetzt
 }: GemeindeBlogsProps) {
   // Unkontrolliert nutzbar (Tests), kontrolliert im Panel — dort haelt die URL
   // die Wahl, damit ein Link wie ?gemeinde=riehen direkt den Blog oeffnet.
@@ -108,19 +112,63 @@ export function GemeindeBlogs({
               />
             </Stack>
 
-            <Stack divider={<Box sx={{ borderBottom: 1, borderColor: 'divider' }} />} spacing={1.5}>
-              {blog.beitraege.map((beitrag) => (
-                <Beitrag
-                  key={beitrag.id}
-                  beitrag={beitrag}
-                  {...(onPublizieren === undefined ? {} : { onPublizieren })}
-                  laeuft={laeuft}
-                />
-              ))}
-            </Stack>
+            <BeitragsListe
+              beitraege={blog.beitraege}
+              jetzt={jetzt}
+              {...(onPublizieren === undefined ? {} : { onPublizieren })}
+              laeuft={laeuft}
+            />
           </Stack>
         </Paper>
       ))}
+    </Stack>
+  )
+}
+
+/**
+ * The posts of one municipality — with the pending reminders thinned out.
+ *
+ * A confirmed waste calendar writes a year of reminders in one go, all created
+ * the same day, so all of them sort to the top and bury the journalism. Only
+ * the next two that still need a decision are shown; the rest stay one click
+ * away. Published reminders are ordinary posts and are never folded.
+ */
+function BeitragsListe({
+  beitraege,
+  jetzt,
+  onPublizieren,
+  laeuft = false
+}: {
+  beitraege: readonly AlleMeldungFelder[]
+  jetzt?: Date
+  onPublizieren?: (id: string) => Promise<void>
+  laeuft?: boolean
+}) {
+  const [alleZeigen, setAlleZeigen] = useState(false)
+  const { sichtbar, versteckt } = blogOhneErinnerungsflut(beitraege, jetzt ?? new Date())
+  const liste = alleZeigen ? beitraege : sichtbar
+
+  return (
+    <Stack spacing={1.5}>
+      <Stack divider={<Box sx={{ borderBottom: 1, borderColor: 'divider' }} />} spacing={1.5}>
+        {liste.map((beitrag) => (
+          <Beitrag
+            key={beitrag.id}
+            beitrag={beitrag}
+            {...(onPublizieren === undefined ? {} : { onPublizieren })}
+            laeuft={laeuft}
+          />
+        ))}
+      </Stack>
+      {versteckt > 0 && (
+        <Box>
+          <Button size="small" onClick={() => setAlleZeigen((a) => !a)} sx={{ px: 0 }}>
+            {alleZeigen
+              ? 'Wartende Abfuhr-Erinnerungen wieder ausblenden'
+              : `${versteckt} wartende Abfuhr-Erinnerungen anzeigen`}
+          </Button>
+        </Box>
+      )}
     </Stack>
   )
 }

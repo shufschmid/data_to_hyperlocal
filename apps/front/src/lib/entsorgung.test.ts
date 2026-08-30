@@ -7,7 +7,9 @@ import {
   kurzesDatum,
   langesDatum,
   termineNachMonat,
-  vorgeschlagenesJahr
+  vorgeschlagenesJahr,
+  naechsteErinnerungen,
+  blogOhneErinnerungsflut
 } from './entsorgung'
 import type {
   AlleMeldungFelder,
@@ -214,5 +216,93 @@ describe('kalenderStatusText', () => {
     expect(kalenderStatusText('extrahiert')).toBe('Ausgelesen')
     expect(kalenderStatusText('geprueft')).toBe('Geprüft')
     expect(kalenderStatusText('liest')).toBe('Wird ausgelesen')
+  })
+})
+
+describe('naechsteErinnerungen', () => {
+  const heute = new Date('2026-08-30T09:00:00Z')
+  const e = (erscheint_am: string, status = 'entwurf') => ({ erscheint_am, status })
+
+  it('nimmt die naechsten zwei anstehenden, aelteste zuerst', () => {
+    const { naechste } = naechsteErinnerungen(
+      [e('2026-09-04'), e('2026-08-31'), e('2026-09-01'), e('2026-12-24')],
+      heute
+    )
+    expect(naechste.map((m) => m.erscheint_am)).toEqual(['2026-08-31', '2026-09-01'])
+  })
+
+  it('legt alles Uebrige beiseite, ohne etwas zu verlieren', () => {
+    const alle = [e('2026-08-31'), e('2026-09-01'), e('2026-12-24')]
+    const { naechste, weitere } = naechsteErinnerungen(alle, heute)
+    expect(naechste.length + weitere.length).toBe(alle.length)
+    expect(weitere.map((m) => m.erscheint_am)).toEqual(['2026-12-24'])
+  })
+
+  // Publiziertes und Verworfenes wartet auf nichts mehr.
+  it('zaehlt nur Entwuerfe und Freigegebenes als anstehend', () => {
+    const { naechste } = naechsteErinnerungen(
+      [e('2026-08-31', 'publiziert'), e('2026-09-01', 'verworfen'), e('2026-09-02', 'freigegeben')],
+      heute
+    )
+    expect(naechste.map((m) => m.erscheint_am)).toEqual(['2026-09-02'])
+  })
+
+  // Ein verpasster Termin ist nicht „als naechstes dran".
+  it('haelt Vergangenes heraus', () => {
+    const { naechste, weitere } = naechsteErinnerungen([e('2026-08-01'), e('2026-09-05')], heute)
+    expect(naechste.map((m) => m.erscheint_am)).toEqual(['2026-09-05'])
+    expect(weitere.map((m) => m.erscheint_am)).toEqual(['2026-08-01'])
+  })
+
+  it('vertraegt eine leere Liste', () => {
+    expect(naechsteErinnerungen([], heute)).toEqual({ naechste: [], weitere: [] })
+  })
+})
+
+describe('blogOhneErinnerungsflut', () => {
+  const heute = new Date('2026-08-30T09:00:00Z')
+  const artikel = (id: string) => ({ id, erscheint_am: null, status: 'publiziert' })
+  const erinnerung = (id: string, erscheint_am: string, status = 'entwurf') => ({
+    id,
+    erscheint_am,
+    status
+  })
+
+  it('laesst gewoehnliche Beitraege unangetastet', () => {
+    const nur = [artikel('a'), artikel('b')]
+    expect(blogOhneErinnerungsflut(nur, heute)).toEqual({ sichtbar: nur, versteckt: 0 })
+  })
+
+  // Der Fall aus der Produktion: ein bestaetigter Kalender kippt ein ganzes
+  // Jahr in den Blog, alle am selben Tag erzeugt — und begraebt die Journalismus.
+  it('duennt die wartenden Erinnerungen auf die naechsten zwei aus', () => {
+    const alle = [
+      artikel('a'),
+      erinnerung('e1', '2026-08-31'),
+      erinnerung('e2', '2026-09-01'),
+      erinnerung('e3', '2026-09-15'),
+      erinnerung('e4', '2026-12-24')
+    ]
+    const { sichtbar, versteckt } = blogOhneErinnerungsflut(alle, heute)
+    expect(sichtbar.map((b) => b.id)).toEqual(['a', 'e1', 'e2'])
+    expect(versteckt).toBe(2)
+  })
+
+  // Publiziertes ist Teil des Blogs und wird nie weggeraeumt.
+  it('behaelt publizierte Erinnerungen', () => {
+    const alle = [
+      erinnerung('alt', '2026-08-01', 'publiziert'),
+      erinnerung('e1', '2026-09-01'),
+      erinnerung('e2', '2026-09-02'),
+      erinnerung('e3', '2026-09-03')
+    ]
+    const { sichtbar, versteckt } = blogOhneErinnerungsflut(alle, heute)
+    expect(sichtbar.map((b) => b.id)).toEqual(['alt', 'e1', 'e2'])
+    expect(versteckt).toBe(1)
+  })
+
+  it('behaelt die Reihenfolge der Liste bei', () => {
+    const alle = [erinnerung('e1', '2026-09-01'), artikel('a'), erinnerung('e2', '2026-09-02')]
+    expect(blogOhneErinnerungsflut(alle, heute).sichtbar.map((b) => b.id)).toEqual(['e1', 'a', 'e2'])
   })
 })

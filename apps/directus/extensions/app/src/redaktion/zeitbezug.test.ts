@@ -168,3 +168,33 @@ describe('korrekturHinweis', () => {
     expect(hinweis).toContain('2026')
   })
 })
+
+describe('neu — Zeitangabe oder Eigenschaft', () => {
+  // Der Fall aus der Produktion: „neu erstellte Wohnungen" ist der amtliche
+  // Name einer Statistik des Kantons. Jede Meldung dieses Datensatzes trug
+  // deshalb eine Warnung ueber ihren eigenen Gegenstand.
+  it('warnt nicht, wo neu zur Sache gehoert', () => {
+    for (const satz of [
+      'Im Jahr 2025 wurden in Binningen 41 neu erstellte Wohnungen gezaehlt.',
+      'Die Zahl neu zugelassener Fahrzeuge stieg 2024.',
+      'Es entstanden 12 neu gebaute Haeuser.'
+    ]) {
+      expect(findeRelativeZeitangaben(satz).weich).not.toContain('neu')
+    }
+  })
+
+  // Adverbial datiert es den Satz und bleibt meldepflichtig.
+  it('warnt weiterhin, wo neu den Satz datiert', () => {
+    for (const satz of [
+      'Neu gilt der hoehere Ansatz.',
+      'Das ist neu.',
+      'Die Regel gilt neu fuer alle Gemeinden.'
+    ]) {
+      expect(findeRelativeZeitangaben(satz).weich).toContain('neu')
+    }
+  })
+
+  it('bleibt eine weiche Warnung, blockiert also nie', () => {
+    expect(findeRelativeZeitangaben('Das ist neu.').hart).toEqual([])
+  })
+})

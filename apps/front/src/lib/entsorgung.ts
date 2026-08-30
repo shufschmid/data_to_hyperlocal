@@ -208,3 +208,75 @@ export function vorgeschlagenesJahr(heute: Date): number {
   // that is the one an editor is holding.
   return heute.getMonth() >= 9 ? heute.getFullYear() + 1 : heute.getFullYear()
 }
+
+export interface ErinnerungsAuswahl<T> {
+  /** The ones an editor should look at now — soonest first. */
+  naechste: T[]
+  /** Everything else, kept but folded away. */
+  weitere: T[]
+}
+
+/**
+ * The next reminders due, and the rest.
+ *
+ * A confirmed calendar produces a year of reminders in one go — 72 of them in
+ * the first municipalities. Listing all of them buries the two that actually
+ * need a decision this week, and in the municipality blog it buries the
+ * journalism as well. So the view shows what is next and folds the rest away;
+ * nothing is dropped, because a year is exactly what the editor asked the
+ * calendar to produce.
+ *
+ * Already published or discarded reminders are not pending: they never count
+ * as "next", whatever their date.
+ */
+export function naechsteErinnerungen<T extends { erscheint_am: string | null; status: string }>(
+  meldungen: readonly T[],
+  heute: Date,
+  anzahl = 2
+): ErinnerungsAuswahl<T> {
+  const heuteIso = heute.toISOString().slice(0, 10)
+
+  const offen = meldungen
+    .filter((m) => m.erscheint_am !== null && (m.status === 'entwurf' || m.status === 'freigegeben'))
+    .sort((a, b) => (a.erscheint_am ?? '').localeCompare(b.erscheint_am ?? ''))
+
+  // A reminder whose day has passed is not "next" — it is a miss, and the
+  // scheduled run records it as one. It belongs to the folded rest.
+  const kommend = offen.filter((m) => (m.erscheint_am ?? '') >= heuteIso)
+  const naechste = kommend.slice(0, Math.max(anzahl, 0))
+  const gewaehlt = new Set(naechste)
+
+  return {
+    naechste,
+    weitere: meldungen.filter((m) => !gewaehlt.has(m))
+  }
+}
+
+/**
+ * A municipality blog without the flood of pending reminders.
+ *
+ * The blog is meant to read like a blog: what was written for this place,
+ * newest first. A confirmed calendar drops a year of reminders into it at once
+ * — all created on the same day, so all of them sort to the top and push the
+ * journalism out of sight. Published reminders stay exactly where they belong;
+ * only the ones still waiting are thinned to the next few, and the count of
+ * what was folded away is returned so the view can say so.
+ */
+export function blogOhneErinnerungsflut<T extends { erscheint_am: string | null; status: string }>(
+  beitraege: readonly T[],
+  heute: Date,
+  anzahl = 2
+): { sichtbar: T[]; versteckt: number } {
+  const ausstehend = new Set(
+    beitraege.filter((b) => b.erscheint_am !== null && (b.status === 'entwurf' || b.status === 'freigegeben'))
+  )
+  if (ausstehend.size === 0) return { sichtbar: [...beitraege], versteckt: 0 }
+
+  const { naechste } = naechsteErinnerungen([...ausstehend], heute, anzahl)
+  const behalten = new Set(naechste)
+
+  return {
+    sichtbar: beitraege.filter((b) => !ausstehend.has(b) || behalten.has(b)),
+    versteckt: ausstehend.size - behalten.size
+  }
+}

@@ -139,7 +139,12 @@ them is wrong even if it works.
    source has not published yet is exactly the one an editor is waiting for.
    „Entsorgung" is the third feed and the only one nobody watches: the printed
    Abfuhrkalender is registered once a year per municipality, read in one pass,
-   and produces the whole year's reminders in advance. Its unit of work is one
+   and produces the whole year's reminders in advance — seventy-odd articles at
+   a stroke, so the desk shows only the **next two** (`naechsteErinnerungen`)
+   with „Jetzt publizieren" beside the usual „Freigeben", and folds the year
+   away behind one click. The municipality blog thins the same flood
+   (`blogOhneErinnerungsflut`): all of them are created on the same day, so all
+   of them would otherwise sort above the journalism. Its unit of work is one
    calendar — pick it, read it, confirm its dates, write its year — so the tab
    shows one at a time rather than a directory of eighty-seven.
    „Wochenblätter" (the press review, `presseschau` in code) is the fourth

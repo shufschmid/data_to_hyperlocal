@@ -28,12 +28,15 @@ function meldung(ueber: Partial<AlleMeldungFelder>): AlleMeldungFelder {
 const JETZT = new Date('2026-06-01T12:00:00Z')
 
 describe('EntsorgungMeldungen', () => {
-  it('gruppiert nach dem Monat des Erscheinungstags', () => {
+  it('zeigt nur die naechsten zwei und klappt den Rest weg', async () => {
+    // Ein bestaetigter Kalender schreibt ein ganzes Jahr auf einmal. Alle zu
+    // zeigen begrub die zwei, die tatsaechlich anstehen.
     render(
       <EntsorgungMeldungen
         meldungen={[
           meldung({ id: 'a', erscheint_am: '2026-06-11' }),
-          meldung({ id: 'b', erscheint_am: '2026-09-03' })
+          meldung({ id: 'b', erscheint_am: '2026-07-02' }),
+          meldung({ id: 'c', erscheint_am: '2026-09-03' })
         ]}
         onChat={jest.fn()}
         onAktion={jest.fn()}
@@ -41,11 +44,15 @@ describe('EntsorgungMeldungen', () => {
       />
     )
 
+    expect(screen.getByText(/Als Naechstes dran/)).toBeInTheDocument()
+    expect(screen.queryByText(/^September 2026$/)).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: /Uebrige 1 Erinnerungen/ }))
+
     // Die Monatsueberschrift traegt die Zahl der Erinnerungen — daran ist sie
     // von den Datumsangaben in den Karten zu unterscheiden.
-    expect(screen.getByText(/^Juni 2026$/)).toBeInTheDocument()
     expect(screen.getByText(/^September 2026$/)).toBeInTheDocument()
-    expect(screen.getAllByText(/— 1 Erinnerung$/)).toHaveLength(2)
+    expect(screen.getAllByText(/— 1 Erinnerung$/)).toHaveLength(1)
   })
 
   it('bietet Freigeben statt Publizieren an', async () => {
@@ -67,6 +74,23 @@ describe('EntsorgungMeldungen', () => {
     expect(onAktion).toHaveBeenCalledWith('m-7', 'freigeben')
   })
 
+  // Fuer die naechsten zwei gibt es zusaetzlich den direkten Weg — die Redaktion
+  // will nicht auf den Tageslauf warten muessen.
+  it('bietet den anstehenden Erinnerungen „Jetzt publizieren" an', async () => {
+    const onAktion = jest.fn().mockResolvedValue(undefined)
+    render(
+      <EntsorgungMeldungen
+        meldungen={[meldung({ id: 'm-9' })]}
+        onChat={jest.fn()}
+        onAktion={onAktion}
+        jetzt={JETZT}
+      />
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: 'Jetzt publizieren' }))
+    expect(onAktion).toHaveBeenCalledWith('m-9', 'publizieren')
+  })
+
   it('nennt den Erscheinungstag an der Karte', () => {
     render(
       <EntsorgungMeldungen
@@ -78,7 +102,7 @@ describe('EntsorgungMeldungen', () => {
     )
 
     expect(screen.getByText(/Erscheint am Donnerstag, 11. Juni 2026/)).toBeInTheDocument()
-    expect(screen.getByText(/am Vortag automatisch publiziert/)).toBeInTheDocument()
+    expect(screen.getByText(/publiziert sie am Vorabend/)).toBeInTheDocument()
   })
 
   it('warnt vor Entwuerfen, deren Tag naht', () => {
