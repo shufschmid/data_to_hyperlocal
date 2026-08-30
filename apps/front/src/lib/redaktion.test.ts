@@ -1,6 +1,7 @@
 import type { AnkuendigungFelder, MeldungFelder } from '@/graphql/redaktion'
 import {
   absaetze,
+  anzahlBeschaeftigt,
   bleibtAufDemTisch,
   formatiereDatum,
   fortschritt,
@@ -664,5 +665,24 @@ describe('bleibtAufDemTisch', () => {
   it('zeigt eine uebernommene Meldung nicht mehr, wenn sie verschwunden ist', () => {
     // Ein Admin-Delete der Meldung laesst nichts zu tun uebrig.
     expect(bleibtAufDemTisch('uebernommen', null)).toBe(false)
+  })
+})
+
+describe('anzahlBeschaeftigt', () => {
+  // Der Grund, warum es das gibt: nach „alle neu formulieren" laufen die
+  // Meldungen im Hintergrund weiter. Ohne dieses Signal pollte die Ansicht
+  // nicht — der Redaktor sah minutenlang den alten Text und hielt es fuer
+  // einen haengenden Lauf. Die Zahl steht jetzt im Banner.
+  const m = (verarbeitung: string) => ({ verarbeitung })
+
+  it('zaehlt, wie viele noch unterwegs sind', () => {
+    expect(anzahlBeschaeftigt([m('geplant'), m('laeuft'), m('idle')])).toBe(2)
+    expect(anzahlBeschaeftigt([m('idle')])).toBe(0)
+    expect(anzahlBeschaeftigt([])).toBe(0)
+  })
+
+  // Strukturell getypt, damit beide Meldungsformen der Oberflaeche passen.
+  it('nimmt jede Form mit einem Verarbeitungsstand', () => {
+    expect(istBeschaeftigt([{ verarbeitung: 'laeuft' }])).toBe(true)
   })
 })

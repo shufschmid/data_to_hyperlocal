@@ -36,6 +36,22 @@ export function getClaude(): Anthropic {
 }
 
 /**
+ * How long a request may take before it is given up on — per shape, not global.
+ *
+ * `drain` deliberately runs one pass at a time, so a single sticky call holds up
+ * every article and every revision queued behind it; from the workspace that is
+ * indistinguishable from a hung queue. The SDK's own default is ten minutes and
+ * `maxRetries: 3` multiplies it, which is far too much slack for an article.
+ *
+ * But the limit cannot be one number. The streaming path exists precisely
+ * because some work legitimately runs long: a dense waste calendar takes Opus
+ * eight to ten minutes, and cutting that off at four would break a feature that
+ * works today. So the short leash goes on the ordinary path only.
+ */
+const TIMEOUT_KURZ_MS = 4 * 60 * 1000
+const TIMEOUT_STROM_MS = 20 * 60 * 1000
+
+/**
  * Above this budget the request streams under the hood.
  *
  * The SDK refuses a plain request whose `max_tokens` implies a run longer than
@@ -49,8 +65,10 @@ const STREAMEN_AB_TOKENS = 8192
 
 export const sendToClaude: MessageSender = (body) =>
   body.max_tokens >= STREAMEN_AB_TOKENS
-    ? getClaude().messages.stream(body).finalMessage()
-    : getClaude().messages.create(body)
+    ? getClaude()
+        .messages.stream(body, { timeout: TIMEOUT_STROM_MS })
+        .finalMessage()
+    : getClaude().messages.create(body, { timeout: TIMEOUT_KURZ_MS })
 
 /** How much the model may deliberate. Defaults to `high` when unset. */
 export type ClaudeEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max'

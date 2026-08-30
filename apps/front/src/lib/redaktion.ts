@@ -38,9 +38,19 @@ export function laufStatusText(status: string): string {
   return LAUF_TEXT[status] ?? status
 }
 
-/** Whether anything is still being worked on — drives the polling. */
-export function istBeschaeftigt(meldungen: readonly MeldungFelder[]): boolean {
+/**
+ * Whether anything is still being worked on — drives the polling.
+ *
+ * Structural on purpose: the workspace holds `AlleMeldungFelder`, the run view
+ * `MeldungFelder`, and both answer the only question asked here.
+ */
+export function istBeschaeftigt(meldungen: readonly { verarbeitung: string }[]): boolean {
   return meldungen.some((m) => m.verarbeitung === 'geplant' || m.verarbeitung === 'laeuft')
+}
+
+/** How many articles are queued or being written right now. */
+export function anzahlBeschaeftigt(meldungen: readonly { verarbeitung: string }[]): number {
+  return meldungen.filter((m) => m.verarbeitung === 'geplant' || m.verarbeitung === 'laeuft').length
 }
 
 export interface Fortschritt {

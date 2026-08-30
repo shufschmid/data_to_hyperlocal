@@ -58,8 +58,10 @@ import {
   type WissenErgebnis
 } from '@/graphql/redaktion'
 import {
+  anzahlBeschaeftigt,
   bleibtAufDemTisch,
   blogNachGemeinde,
+  istBeschaeftigt,
   meldungenNachLauf,
   zeitleiste,
   type QuellenLaufStatus
@@ -259,6 +261,25 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
   const [zeilen, setZeilen] = useState(40)
 
   const meldungenAlle = alleMeldungen.data?.meldungen ?? []
+  // Schreiben und Ueberarbeiten laufen im Hintergrund weiter, nachdem der
+  // Endpoint mit 202 geantwortet hat. Ohne dieses Polling lud die Ansicht genau
+  // einmal neu — sofort, also bevor irgendetwas fertig sein konnte — und zeigte
+  // danach den alten Text, bis jemand die Seite neu lud. Das sah aus wie ein
+  // haengender Lauf und war keiner.
+  const wirdGeschrieben = istBeschaeftigt(meldungenAlle)
+  const offeneMeldungen = anzahlBeschaeftigt(meldungenAlle)
+  const { startPolling: meldungPollingStart, stopPolling: meldungPollingStop } = alleMeldungen
+  const laeufeNeuLaden = laeufe.refetch
+  const warBeschaeftigt = useRef(false)
+  useEffect(() => {
+    // Der Laufstatus ("bereit") dreht erst mit der letzten Meldung — ein
+    // Nachladen auf der fallenden Flanke haelt die Zeitleiste ehrlich.
+    if (warBeschaeftigt.current && !wirdGeschrieben) void laeufeNeuLaden()
+    warBeschaeftigt.current = wirdGeschrieben
+    if (!wirdGeschrieben) return
+    meldungPollingStart(5_000)
+    return () => meldungPollingStop()
+  }, [wirdGeschrieben, meldungPollingStart, meldungPollingStop, laeufeNeuLaden])
   const berichteZuLauf = meldungenNachLauf(meldungenAlle)
   const laufStatus = new Map((laeufe.data?.laeufe ?? []).map((l) => [l.id, l.status]))
   const blogs = blogNachGemeinde(meldungenAlle)
@@ -466,6 +487,14 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
 
   return (
     <Stack spacing={3}>
+      {wirdGeschrieben && (
+        <Alert severity="info" icon={<CircularProgress size={18} />}>
+          {offeneMeldungen === 1
+            ? 'Eine Meldung wird gerade geschrieben oder überarbeitet — die Ansicht aktualisiert sich von selbst.'
+            : `${offeneMeldungen} Meldungen werden gerade geschrieben oder überarbeitet — die Ansicht aktualisiert sich von selbst.`}
+        </Alert>
+      )}
+
       {fehler !== null && (
         // Not always an error: a run that already exists arrives here too.
         <Alert severity="info" onClose={() => setFehler(null)}>
