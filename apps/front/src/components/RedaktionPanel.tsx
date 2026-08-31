@@ -1076,10 +1076,28 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             kandidaten={alleKandidaten.filter((k) => k.quelle === reiter)}
             meldungen={meldungenAlle}
             laeuft={sendet}
+            // Die Antwort wird gebraucht, nicht weggeworfen: der Tisch sagt,
+            // wie viele Dossiers kamen, und verarbeitet sie danach einzeln.
             onPostfach={async () => {
-              const pfad = reiter === 'punkt6' ? 'punkt6-dossiers/ingest' : 'dossiers/ingest'
-              await fetch(`/api/${pfad}`, { method: 'POST' })
-              await allesNeuLaden()
+              const pfad = reiter === 'punkt6' ? 'punkt6-dossiers' : 'dossiers'
+              const antwort = await fetch(`/api/${pfad}/ingest`, { method: 'POST' })
+              if (!antwort.ok) return null
+              const inhalt = (await antwort.json().catch(() => null)) as {
+                data?: { created?: number; dossierIds?: string[] }
+              } | null
+              return {
+                created: inhalt?.data?.created ?? 0,
+                dossierIds: inhalt?.data?.dossierIds ?? []
+              }
+            }}
+            onVerarbeiten={async (dossierId) => {
+              const pfad = reiter === 'punkt6' ? 'punkt6-dossiers' : 'dossiers'
+              const antwort = await fetch(`/api/${pfad}/${dossierId}/process`, { method: 'POST' })
+              if (!antwort.ok) return false
+              const inhalt = (await antwort.json().catch(() => null)) as {
+                data?: { status?: string }
+              } | null
+              return inhalt?.data?.status === 'processed'
             }}
             onMeldung={async (id) => {
               await fuehreAus(`sendungen/${id}/meldung`)
