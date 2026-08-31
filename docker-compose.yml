@@ -88,6 +88,7 @@ services:
       # Postfach, bleiben die beiden Reiter leer und sagen es.
       IMAP_HOST: ${IMAP_HOST:-}
       IMAP_PORT: ${IMAP_PORT:-993}
+      IMAP_SECURE: ${IMAP_SECURE:-true}
       IMAP_USER: ${IMAP_USER:-}
       IMAP_PASSWORD: ${IMAP_PASSWORD:-}
       IMAP_MAILBOX: ${IMAP_MAILBOX:-INBOX}
