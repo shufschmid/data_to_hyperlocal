@@ -20,6 +20,7 @@ function meldung(ueber: Partial<AlleMeldungFelder>): AlleMeldungFelder {
     lauf: null,
     spiel: null,
     kandidat: null,
+    amtsblattmeldung: null,
     perle: null,
     ...ueber
   }

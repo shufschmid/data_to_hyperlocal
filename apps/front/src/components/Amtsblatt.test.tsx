@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { AmtsblattFelder, GemeindeFelder } from '@/graphql/redaktion'
+import type { AlleMeldungFelder, AmtsblattFelder, GemeindeFelder } from '@/graphql/redaktion'
 import { Amtsblatt } from './Amtsblatt'
 
 function eintrag(ueber: Partial<AmtsblattFelder> = {}): AmtsblattFelder {
@@ -36,7 +36,60 @@ const GEMEINDEN: GemeindeFelder[] = [
 
 const HEUTE = '2026-08-31'
 
+function meldung(ueber: Partial<AlleMeldungFelder> = {}): AlleMeldungFelder {
+  return {
+    id: 'm-1',
+    titel: 'Baugesuch für vier Mehrfamilienhäuser am Holeeweg',
+    lead: 'Einsprache bis zum 7. September 2026.',
+    text: 'Text.',
+    status: 'entwurf',
+    verarbeitung: 'idle',
+    zeit_warnungen: null,
+    fehler: null,
+    publiziert_am: null,
+    erscheint_am: null,
+    date_created: '2026-08-31',
+    gemeinde: { id: 'g1', name: 'Aesch', bezirk: 'Arlesheim' },
+    lauf: null,
+    spiel: null,
+    kandidat: null,
+    amtsblattmeldung: { id: 'a' },
+    perle: null,
+    ...ueber
+  }
+}
+
 describe('Amtsblatt', () => {
+  // Der gemeldete Fehler: nach „Meldung schreiben" war die Zeile weg, und
+  // nichts sagte, wo der Artikel geblieben war. Er wird hier redigiert.
+  it('haelt die Zeile und zeigt die Meldung, sobald sie geschrieben ist', () => {
+    render(
+      <Amtsblatt
+        eintraege={[eintrag({ entscheid: 'uebernommen' })]}
+        gemeinden={GEMEINDEN}
+        meldungen={[meldung()]}
+        heute={HEUTE}
+      />
+    )
+
+    expect(screen.getByText('Baugesuch - Solaranlage, Aesch')).toBeInTheDocument()
+    expect(screen.getByText('Baugesuch für vier Mehrfamilienhäuser am Holeeweg')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Meldung schreiben' })).not.toBeInTheDocument()
+  })
+
+  it('laesst die Zeile gehen, sobald die Meldung publiziert ist', () => {
+    render(
+      <Amtsblatt
+        eintraege={[eintrag({ entscheid: 'uebernommen' })]}
+        gemeinden={GEMEINDEN}
+        meldungen={[meldung({ status: 'publiziert' })]}
+        heute={HEUTE}
+      />
+    )
+
+    expect(screen.getByText(/Nichts auf dem Tisch/)).toBeInTheDocument()
+  })
+
   it('zeigt Titel, Amt und die Frist absolut', () => {
     render(<Amtsblatt eintraege={[eintrag()]} gemeinden={GEMEINDEN} heute={HEUTE} />)
 

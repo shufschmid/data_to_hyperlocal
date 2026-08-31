@@ -254,8 +254,14 @@ them is wrong even if it works.
    For everything the triage did not propose, the editor gets the link and a
    button that reads the documents on demand — the same function either way.
    Three decisions like the press review (übernehmen · ablehnen mit Grund ·
-   an die Chefredaktion), all three teach the next triage, and a decided row
-   leaves the desk. **No Meldung is written without a person's decision.**
+   an die Chefredaktion), all three teach the next triage. **No Meldung is
+   written without a person's decision.** And the desk shows WORK, not history:
+   a taken-over publication STAYS, with its Meldung rendered on the row, until
+   that Meldung is published or discarded — because that is where it is edited
+   (`bleibtAufDemTisch` takes the Meldung's status, exactly as the press
+   review's does). Dropping the row the moment the article existed made it
+   vanish under the editor's hands with nothing on screen to say where the
+   article had gone.
    Two things the articles do that nothing else does: they carry TWO built
    links (the official PDF and the documents), and they keep the names of
    natural persons OUT by default — an official publication may name a private

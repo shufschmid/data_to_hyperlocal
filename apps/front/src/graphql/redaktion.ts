@@ -217,6 +217,8 @@ export interface AlleMeldungFelder {
   } | null
   /** Only set on press-review articles: the Wochenblatt candidate behind them. */
   kandidat: { id: string } | null
+  /** Set for articles written from an official gazette publication. */
+  amtsblattmeldung: { id: string } | null
   /** Decided at publish time on press reviews: interesting for the city too. */
   perle: boolean | null
 }
@@ -256,6 +258,9 @@ export const ALLE_MELDUNGEN_QUERY = gql`
         wettbewerb
       }
       kandidat {
+        id
+      }
+      amtsblattmeldung {
         id
       }
       perle

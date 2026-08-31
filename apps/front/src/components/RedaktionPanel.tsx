@@ -315,6 +315,13 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
   const spielBerichte = meldungenAlle.filter((m) => m.spiel !== null)
   // Der Tisch der Redaktorin zählt, was noch Arbeit ist — dieselbe Regel wie
   // die Presseschau-Ansicht, damit Badge und Karten nie auseinanderlaufen.
+  // Wie beim Kandidaten: eine uebernommene Publikation bleibt auf dem Tisch,
+  // solange ihre Meldung redigiert wird — dort wird sie ja redigiert.
+  const meldungStatusJeAmtsblatt = new Map(
+    meldungenAlle.flatMap((m) =>
+      m.amtsblattmeldung === null ? [] : [[m.amtsblattmeldung.id, m.status] as const]
+    )
+  )
   const meldungStatusJeKandidat = new Map(
     meldungenAlle.flatMap((m) => (m.kandidat === null ? [] : [[m.kandidat.id, m.status] as const]))
   )
@@ -600,7 +607,7 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
           label={
             <Badge
               color="info"
-              badgeContent={anzahlOffen(amtsblatt.data?.amtsblattmeldungen ?? [])}
+              badgeContent={anzahlOffen(amtsblatt.data?.amtsblattmeldungen ?? [], meldungStatusJeAmtsblatt)}
               sx={ZAEHLER_IM_REITER}
             >
               Amtsblatt
@@ -911,6 +918,13 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
           <Amtsblatt
             eintraege={amtsblatt.data?.amtsblattmeldungen ?? []}
             gemeinden={gemeinden.data?.gemeinden ?? []}
+            meldungen={meldungenAlle}
+            onChat={async (id, anweisung) => {
+              await fuehreAus(`meldungen/${id}/chat`, { anweisung })
+            }}
+            onAktion={async (id, was) => {
+              await fuehreAus(`meldungen/${id}/${was}`)
+            }}
             heute={new Date().toISOString().slice(0, 10)}
             laeuft={sendet || liestUnterlagen(amtsblatt.data?.amtsblattmeldungen ?? [])}
             onLauf={async () => {

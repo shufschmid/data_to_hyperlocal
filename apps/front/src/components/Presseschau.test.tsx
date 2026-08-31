@@ -74,6 +74,7 @@ function meldung(ueber: Partial<AlleMeldungFelder>): AlleMeldungFelder {
     lauf: null,
     spiel: null,
     kandidat: { id: 'k-1' },
+    amtsblattmeldung: null,
     perle: null,
     ...ueber
   }

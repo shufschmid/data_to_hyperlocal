@@ -27,13 +27,21 @@ export const ABLEHNUNGSGRUENDE: { wert: string; text: string }[] = [
 /**
  * What stays on the desk.
  *
- * Finished work leaves immediately, exactly as in the press review: a
- * publication that became a Meldung, was rejected or was handed up is done
- * here. The decided rows are not deleted — they are this feed's memory — they
- * simply stop competing for attention.
+ * The desk shows WORK, not history — the same rule as the press review, and it
+ * has to be the same rule: a taken-over publication whose Meldung is still
+ * being edited belongs here, because the editing happens here. Dropping it the
+ * moment the Meldung existed made the row vanish under the editor's hands with
+ * nothing on screen to say where the article had gone.
+ *
+ * Rejected and handed-up rows leave at once; so does a Meldung that is
+ * published or discarded. The rows themselves stay in the database — they are
+ * this feed's memory.
  */
-export function bleibtAufDemTisch(eintrag: AmtsblattFelder): boolean {
-  return eintrag.entscheid === 'offen'
+export function bleibtAufDemTisch(eintrag: AmtsblattFelder, meldungStatus: string | null = null): boolean {
+  if (eintrag.entscheid === 'offen') return true
+  if (eintrag.entscheid !== 'uebernommen') return false
+  if (meldungStatus === null) return false
+  return meldungStatus !== 'publiziert' && meldungStatus !== 'verworfen'
 }
 
 /**
@@ -88,17 +96,42 @@ export interface Tisch {
  * and not with the proposals: undecided is not a recommendation. It is also not
  * a rejection, which is why nothing is ever dropped here.
  */
-export function tisch(eintraege: readonly AmtsblattFelder[], filter: Filter): Tisch {
-  const offen = sortiere(eintraege.filter((e) => bleibtAufDemTisch(e) && passt(e, filter)))
+export function tisch(
+  eintraege: readonly AmtsblattFelder[],
+  filter: Filter,
+  meldungStatus: ReadonlyMap<string, string> = new Map()
+): Tisch {
+  const offen = sortiere(
+    eintraege.filter((e) => bleibtAufDemTisch(e, meldungStatus.get(e.id) ?? null) && passt(e, filter))
+  )
   return {
     vorschlaege: offen.filter((e) => e.vorschlag === true),
     uebrige: offen.filter((e) => e.vorschlag !== true)
   }
 }
 
-/** The badge on the tab: what still waits for a decision. */
-export function anzahlOffen(eintraege: readonly AmtsblattFelder[]): number {
-  return eintraege.filter(bleibtAufDemTisch).length
+/** The badge on the tab: what the desk actually shows. */
+export function anzahlOffen(
+  eintraege: readonly AmtsblattFelder[],
+  meldungStatus: ReadonlyMap<string, string> = new Map()
+): number {
+  return eintraege.filter((e) => bleibtAufDemTisch(e, meldungStatus.get(e.id) ?? null)).length
+}
+
+/**
+ * Which article belongs to which publication.
+ *
+ * Keyed by the publication, not the article: the desk asks "is there one for
+ * this row", and a discarded article must not hide a later one.
+ */
+export function meldungJePublikation<T extends { amtsblattmeldung: { id: string } | null }>(
+  meldungen: readonly T[]
+): Map<string, T> {
+  const karte = new Map<string, T>()
+  for (const meldung of meldungen) {
+    if (meldung.amtsblattmeldung !== null) karte.set(meldung.amtsblattmeldung.id, meldung)
+  }
+  return karte
 }
 
 /**

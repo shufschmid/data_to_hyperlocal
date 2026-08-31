@@ -20,7 +20,8 @@ import Typography from '@mui/material/Typography'
 import ArticleOutlined from '@mui/icons-material/ArticleOutlined'
 import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined'
 import MapOutlined from '@mui/icons-material/MapOutlined'
-import type { AmtsblattFelder, GemeindeFelder } from '@/graphql/redaktion'
+import type { AlleMeldungFelder, AmtsblattFelder, GemeindeFelder } from '@/graphql/redaktion'
+import { MeldungKarte, type MeldungAktion } from './MeldungKarte'
 import {
   ABLEHNUNGSGRUENDE,
   GRUPPEN,
@@ -28,6 +29,7 @@ import {
   gruppenText,
   kannUnterlagenLesen,
   karte,
+  meldungJePublikation,
   ohnePlz,
   planStatusText,
   tageBisFrist,
@@ -40,8 +42,12 @@ import {
 export interface AmtsblattProps {
   eintraege: AmtsblattFelder[]
   gemeinden: GemeindeFelder[]
+  /** Alle Meldungen — die uebernommenen werden hier redigiert, nicht anderswo. */
+  meldungen?: readonly AlleMeldungFelder[]
   heute: string
   laeuft?: boolean
+  onChat?: (id: string, anweisung: string) => Promise<void>
+  onAktion?: (id: string, aktion: MeldungAktion) => Promise<void>
   onLauf?: () => Promise<void> | void
   onUebernehmen?: (id: string) => Promise<void> | void
   onAblehnen?: (id: string, grund: string, kommentar: string | null) => Promise<void> | void
@@ -62,8 +68,11 @@ export interface AmtsblattProps {
 export function Amtsblatt({
   eintraege,
   gemeinden,
+  meldungen = [],
   heute,
   laeuft = false,
+  onChat,
+  onAktion,
   onLauf,
   onUebernehmen,
   onAblehnen,
@@ -81,7 +90,15 @@ export function Amtsblatt({
   const [kommentar, setKommentar] = useState('')
   const [beschaeftigt, setBeschaeftigt] = useState<string | null>(null)
 
-  const { vorschlaege, uebrige } = useMemo(() => tisch(eintraege, filter), [eintraege, filter])
+  const meldungZu = useMemo(() => meldungJePublikation(meldungen), [meldungen])
+  const statusJePublikation = useMemo(
+    () => new Map([...meldungZu].map(([id, m]) => [id, m.status] as const)),
+    [meldungZu]
+  )
+  const { vorschlaege, uebrige } = useMemo(
+    () => tisch(eintraege, filter, statusJePublikation),
+    [eintraege, filter, statusJePublikation]
+  )
   const fehlendePlz = useMemo(() => ohnePlz(gemeinden), [gemeinden])
   const aktive = useMemo(() => gemeinden.filter((g) => g.aktiv), [gemeinden])
 
@@ -96,6 +113,7 @@ export function Amtsblatt({
 
   function Zeile({ eintrag }: { eintrag: AmtsblattFelder }) {
     const [offen, setOffen] = useState(false)
+    const meldung = meldungZu.get(eintrag.id)
     const doku = unterlage(eintrag)
     const lage = karte(eintrag)
     const tage = tageBisFrist(eintrag.frist, heute)
@@ -208,49 +226,61 @@ export function Amtsblatt({
 
           <Divider />
 
-          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
-            <Button
-              size="small"
-              variant="contained"
-              disabled={beschaeftigt === eintrag.id}
-              onClick={() => fuehreAus(eintrag.id, () => onUebernehmen?.(eintrag.id))}
-            >
-              Meldung schreiben
-            </Button>
-            {kannUnterlagenLesen(eintrag) && (
+          {/* Sobald eine Meldung da ist, wird sie HIER redigiert — der Tisch
+              zeigt Arbeit, nicht Geschichte. Die Zeile verschwindet erst, wenn
+              die Meldung publiziert oder verworfen ist. */}
+          {meldung !== undefined ? (
+            <MeldungKarte
+              meldung={meldung}
+              onChat={onChat ?? (async () => {})}
+              onAktion={onAktion ?? (async () => {})}
+              laeuft={laeuft}
+            />
+          ) : (
+            <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
               <Button
                 size="small"
-                variant="outlined"
+                variant="contained"
                 disabled={beschaeftigt === eintrag.id}
-                onClick={() => fuehreAus(eintrag.id, () => onUnterlagen?.(eintrag.id))}
+                onClick={() => fuehreAus(eintrag.id, () => onUebernehmen?.(eintrag.id))}
               >
-                Unterlagen lesen und einbeziehen
+                Meldung schreiben
               </Button>
-            )}
-            <Button
-              size="small"
-              disabled={beschaeftigt === eintrag.id}
-              onClick={() => {
-                setAblehnung(eintrag)
-                setGrund('nicht_relevant')
-                setKommentar('')
-              }}
-            >
-              Ablehnen
-            </Button>
-            <Button
-              size="small"
-              disabled={beschaeftigt === eintrag.id}
-              onClick={() => fuehreAus(eintrag.id, () => onWeiterreichen?.(eintrag.id, null))}
-            >
-              An Chefredaktion
-            </Button>
-            {eintrag.plan_status !== 'offen' && eintrag.plan_status !== 'gelesen' && (
-              <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>
-                {planStatusText(eintrag.plan_status)}
-              </Typography>
-            )}
-          </Stack>
+              {kannUnterlagenLesen(eintrag) && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  disabled={beschaeftigt === eintrag.id}
+                  onClick={() => fuehreAus(eintrag.id, () => onUnterlagen?.(eintrag.id))}
+                >
+                  Unterlagen lesen und einbeziehen
+                </Button>
+              )}
+              <Button
+                size="small"
+                disabled={beschaeftigt === eintrag.id}
+                onClick={() => {
+                  setAblehnung(eintrag)
+                  setGrund('nicht_relevant')
+                  setKommentar('')
+                }}
+              >
+                Ablehnen
+              </Button>
+              <Button
+                size="small"
+                disabled={beschaeftigt === eintrag.id}
+                onClick={() => fuehreAus(eintrag.id, () => onWeiterreichen?.(eintrag.id, null))}
+              >
+                An Chefredaktion
+              </Button>
+              {eintrag.plan_status !== 'offen' && eintrag.plan_status !== 'gelesen' && (
+                <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>
+                  {planStatusText(eintrag.plan_status)}
+                </Typography>
+              )}
+            </Stack>
+          )}
         </Stack>
       </Paper>
     )

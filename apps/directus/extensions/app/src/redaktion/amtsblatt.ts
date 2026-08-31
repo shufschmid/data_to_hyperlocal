@@ -480,7 +480,10 @@ export function unterlagenText(art: Unterlage['art']): string {
  * The source line, appended by code — never left to the model.
  *
  * Two addresses where there are two: the official publication, and the
- * documents behind it. Both are built here from values the connector resolved,
+ * documents behind it — each its own paragraph, because the renderer splits on
+ * a BLANK line (`/
+{2,}/`) and a single newline would run the two together
+ * into one unreadable blob. Both are built here from values the connector resolved,
  * so no model-written URL can enter an article. Asked for a link without being
  * given one, a model produces the bare host — that lesson is in `quelle.ts` and
  * applies here unchanged.
@@ -490,7 +493,7 @@ export function quelleZeile(fakten: AmtsblattFakten): string {
     `Quelle: Amtliche Publikation vom ${datumDeutsch(fakten.publiziertAm)}, ` +
     fakten.pdfUrl
   if (fakten.unterlage === null) return kopf
-  return `${kopf}\n${unterlagenText(fakten.unterlage.art)}: ${fakten.unterlage.url}`
+  return `${kopf}\n\n${unterlagenText(fakten.unterlage.art)}: ${fakten.unterlage.url}`
 }
 
 export function mitQuelle(text: string, fakten: AmtsblattFakten): string {

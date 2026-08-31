@@ -43,6 +43,7 @@ function bericht(spielId: string) {
     gemeinde: { id: 'g1', name: 'Pratteln', bezirk: 'Liestal' },
     lauf: null,
     kandidat: null,
+    amtsblattmeldung: null,
     perle: null,
     spiel: {
       id: spielId,

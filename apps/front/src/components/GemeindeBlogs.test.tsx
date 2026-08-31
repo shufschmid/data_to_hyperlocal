@@ -21,6 +21,7 @@ function beitrag(ueber: Partial<AlleMeldungFelder>): AlleMeldungFelder {
     lauf: { id: 'l-1' },
     spiel: null,
     kandidat: null,
+    amtsblattmeldung: null,
     perle: null,
     ...ueber
   }

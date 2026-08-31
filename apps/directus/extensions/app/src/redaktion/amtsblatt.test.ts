@@ -281,6 +281,9 @@ describe('Meldung', () => {
     expect(zeile).toContain(
       'Baugesuchspläne: https://bgauflage.bl.ch/pages/1197_2026.html'
     )
+    // Eigener Absatz: die Darstellung trennt an einer LEERZEILE, ein einfacher
+    // Umbruch liesse die beiden Adressen zu einem Block zusammenlaufen.
+    expect(zeile.split('\n\n')).toHaveLength(2)
   })
 
   it('haengt die Quelle an, mit deutschem Datum', () => {

@@ -6,6 +6,7 @@ import {
   gruppenText,
   kannUnterlagenLesen,
   karte,
+  meldungJePublikation,
   ohnePlz,
   passt,
   sortiere,
@@ -44,17 +45,47 @@ function eintrag(ueber: Partial<AmtsblattFelder> = {}): AmtsblattFelder {
 const OHNE_FILTER = { gemeinde: null, gruppe: null, suche: '' }
 
 describe('bleibtAufDemTisch', () => {
-  // Finished work leaves the view immediately, exactly as in the press review.
-  // The rows stay in the database — they are this feed's memory.
-  it('laesst nur Unentschiedenes liegen', () => {
+  it('laesst Unentschiedenes liegen und Abgelehntes gehen', () => {
     expect(bleibtAufDemTisch(eintrag({ entscheid: 'offen' }))).toBe(true)
-    for (const entscheid of ['uebernommen', 'abgelehnt', 'weitergereicht']) {
-      expect(bleibtAufDemTisch(eintrag({ entscheid }))).toBe(false)
-    }
+    expect(bleibtAufDemTisch(eintrag({ entscheid: 'abgelehnt' }))).toBe(false)
+    expect(bleibtAufDemTisch(eintrag({ entscheid: 'weitergereicht' }))).toBe(false)
   })
 
-  it('zaehlt fuer das Reiter-Abzeichen, was noch wartet', () => {
-    expect(anzahlOffen([eintrag({ id: '1' }), eintrag({ id: '2', entscheid: 'abgelehnt' })])).toBe(1)
+  // Der Fehler, für den diese Regel existiert: nach „Meldung schreiben"
+  // verschwand die Zeile unter der Hand der Redaktorin, und nichts auf dem
+  // Bildschirm sagte, wo der Artikel geblieben war. Redigiert wird er hier.
+  it('haelt eine uebernommene Publikation, solange ihre Meldung redigiert wird', () => {
+    const uebernommen = eintrag({ entscheid: 'uebernommen' })
+
+    expect(bleibtAufDemTisch(uebernommen, 'entwurf')).toBe(true)
+    expect(bleibtAufDemTisch(uebernommen, 'in_pruefung')).toBe(true)
+    expect(bleibtAufDemTisch(uebernommen, 'publiziert')).toBe(false)
+    expect(bleibtAufDemTisch(uebernommen, 'verworfen')).toBe(false)
+    // Uebernommen, aber keine Meldung dazu: nichts zu tun, weg vom Tisch.
+    expect(bleibtAufDemTisch(uebernommen, null)).toBe(false)
+  })
+
+  it('zaehlt fuer das Reiter-Abzeichen, was der Tisch zeigt', () => {
+    const eintraege = [
+      eintrag({ id: '1' }),
+      eintrag({ id: '2', entscheid: 'abgelehnt' }),
+      eintrag({ id: '3', entscheid: 'uebernommen' })
+    ]
+
+    expect(anzahlOffen(eintraege)).toBe(1)
+    expect(anzahlOffen(eintraege, new Map([['3', 'entwurf']]))).toBe(2)
+  })
+})
+
+describe('meldungJePublikation', () => {
+  it('ordnet die Meldungen ihren Publikationen zu', () => {
+    const karte = meldungJePublikation([
+      { id: 'm1', amtsblattmeldung: { id: 'a' } },
+      { id: 'm2', amtsblattmeldung: null }
+    ])
+
+    expect(karte.get('a')?.id).toBe('m1')
+    expect(karte.size).toBe(1)
   })
 })
 
@@ -104,14 +135,11 @@ describe('tisch', () => {
     expect(vorschlaege).toHaveLength(0)
   })
 
-  it('laesst Entschiedenes ganz weg', () => {
-    const { vorschlaege, uebrige } = tisch(
-      [eintrag({ vorschlag: true, entscheid: 'uebernommen' })],
-      OHNE_FILTER
-    )
+  it('laesst Erledigtes weg, haelt aber die Meldung im Redigat', () => {
+    const uebernommen = [eintrag({ vorschlag: true, entscheid: 'uebernommen' })]
 
-    expect(vorschlaege).toHaveLength(0)
-    expect(uebrige).toHaveLength(0)
+    expect(tisch(uebernommen, OHNE_FILTER).vorschlaege).toHaveLength(0)
+    expect(tisch(uebernommen, OHNE_FILTER, new Map([['a', 'entwurf']])).vorschlaege).toHaveLength(1)
   })
 })
 
