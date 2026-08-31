@@ -1,0 +1,25 @@
+{
+  "collection": "punkt6_editions",
+  "field": "dossier",
+  "related_collection": "punkt6_dossiers",
+  "meta": {
+    "junction_field": null,
+    "many_collection": "punkt6_editions",
+    "many_field": "dossier",
+    "one_allowed_collections": null,
+    "one_collection": "punkt6_dossiers",
+    "one_collection_field": null,
+    "one_deselect_action": "nullify",
+    "one_field": "editions",
+    "sort_field": null
+  },
+  "schema": {
+    "table": "punkt6_editions",
+    "column": "dossier",
+    "foreign_key_table": "punkt6_dossiers",
+    "foreign_key_column": "id",
+    "constraint_name": "punkt6_editions_dossier_foreign",
+    "on_update": "NO ACTION",
+    "on_delete": "CASCADE"
+  }
+}

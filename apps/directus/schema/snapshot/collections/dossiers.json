@@ -1,0 +1,28 @@
+{
+  "collection": "dossiers",
+  "meta": {
+    "accountability": "all",
+    "archive_app_filter": true,
+    "archive_field": null,
+    "archive_value": null,
+    "collapse": "open",
+    "collection": "dossiers",
+    "color": null,
+    "display_template": "{{source_subject}}",
+    "group": null,
+    "hidden": false,
+    "icon": "picture_as_pdf",
+    "item_duplication_fields": null,
+    "note": "Ein eingegangenes SMD-Dossier-PDF des SRF Regionaljournals. pending -> processing -> processed/failed.",
+    "preview_url": null,
+    "singleton": false,
+    "sort": null,
+    "sort_field": null,
+    "translations": null,
+    "unarchive_value": null,
+    "versioning": false
+  },
+  "schema": {
+    "name": "dossiers"
+  }
+}

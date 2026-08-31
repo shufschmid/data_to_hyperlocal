@@ -100,6 +100,58 @@
         "type": "hook",
         "name": "entsorgung-termin",
         "source": "src/hooks/entsorgung-termin/index.ts"
+      },
+      {
+        "type": "endpoint",
+        "name": "dossier-process",
+        "source": "src/endpoints/dossier-process/index.ts"
+      },
+      {
+        "type": "endpoint",
+        "name": "dossiers-ingest",
+        "source": "src/endpoints/dossiers-ingest/index.ts"
+      },
+      {
+        "type": "endpoint",
+        "name": "punkt6-dossier-process",
+        "source": "src/endpoints/punkt6-dossier-process/index.ts"
+      },
+      {
+        "type": "endpoint",
+        "name": "punkt6-dossiers-ingest",
+        "source": "src/endpoints/punkt6-dossiers-ingest/index.ts"
+      },
+      {
+        "type": "operation",
+        "name": "dossiers-ingest-imap",
+        "source": {
+          "app": "src/operations/dossiers-ingest-imap/app.ts",
+          "api": "src/operations/dossiers-ingest-imap/api.ts"
+        }
+      },
+      {
+        "type": "operation",
+        "name": "dossiers-process-pending",
+        "source": {
+          "app": "src/operations/dossiers-process-pending/app.ts",
+          "api": "src/operations/dossiers-process-pending/api.ts"
+        }
+      },
+      {
+        "type": "operation",
+        "name": "punkt6-dossiers-ingest-imap",
+        "source": {
+          "app": "src/operations/punkt6-dossiers-ingest-imap/app.ts",
+          "api": "src/operations/punkt6-dossiers-ingest-imap/api.ts"
+        }
+      },
+      {
+        "type": "operation",
+        "name": "punkt6-dossiers-process-pending",
+        "source": {
+          "app": "src/operations/punkt6-dossiers-process-pending/app.ts",
+          "api": "src/operations/punkt6-dossiers-process-pending/api.ts"
+        }
       }
     ],
     "host": "^11.0.0"
@@ -117,12 +169,16 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",
     "@directus/errors": "^2.1.0",
+    "imapflow": "^1.0.191",
+    "mailparser": "^3.7.4",
+    "pdfjs-dist": "^5.4.149",
     "unpdf": "^1.8.1"
   },
   "devDependencies": {
     "@directus/extensions-sdk": "17.1.4",
     "@directus/types": "13.4.0",
     "@types/express": "4.17.21",
+    "@types/mailparser": "^3.4.6",
     "@types/node": "^22.15.30",
     "typescript": "^5.9.3",
     "vitest": "^4.1.4",

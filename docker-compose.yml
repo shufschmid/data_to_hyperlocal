@@ -84,6 +84,18 @@ services:
       AGENDA_KONTAKT: ${AGENDA_KONTAKT:-it@bajour.ch}
       CRAWLER_URL: ${CRAWLER_URL:-https://crawler.wepublish.dev}
       CRAWLER_KEY: ${CRAWLER_KEY:-}
+      # Die zwei Sendungen — ein Postfach, zwei Betreff-Filter. Fehlt das
+      # Postfach, bleiben die beiden Reiter leer und sagen es.
+      IMAP_HOST: ${IMAP_HOST:-}
+      IMAP_PORT: ${IMAP_PORT:-993}
+      IMAP_USER: ${IMAP_USER:-}
+      IMAP_PASSWORD: ${IMAP_PASSWORD:-}
+      IMAP_MAILBOX: ${IMAP_MAILBOX:-INBOX}
+      IMAP_SUBJECT_FILTER: ${IMAP_SUBJECT_FILTER:-}
+      PUNKT6_IMAP_SUBJECT_FILTER: ${PUNKT6_IMAP_SUBJECT_FILTER:-}
+      SRGSSR_CLIENT_ID: ${SRGSSR_CLIENT_ID:-}
+      SRGSSR_CLIENT_SECRET: ${SRGSSR_CLIENT_SECRET:-}
+      SRGSSR_SHOW_ID: ${SRGSSR_SHOW_ID:-}
       CRAWLER_TIMEOUT_MS: ${CRAWLER_TIMEOUT_MS:-90000}
 
       EXTENSIONS_PATH: ./extensions

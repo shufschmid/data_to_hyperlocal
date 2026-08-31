@@ -1,0 +1,28 @@
+{
+  "collection": "editions",
+  "meta": {
+    "accountability": "all",
+    "archive_app_filter": true,
+    "archive_field": null,
+    "archive_value": null,
+    "collapse": "open",
+    "collection": "editions",
+    "color": null,
+    "display_template": "{{headline}}",
+    "group": null,
+    "hidden": false,
+    "icon": "podcasts",
+    "item_duplication_fields": null,
+    "note": "Ein Beitrag einer Regionaljournal-Sendung. Bewusst OHNE Publizieren-Status: publizieren heisst im Dashboard eine Sache — eine Meldung geht zum Dorfkoenig.",
+    "preview_url": null,
+    "singleton": false,
+    "sort": null,
+    "sort_field": null,
+    "translations": null,
+    "unarchive_value": null,
+    "versioning": false
+  },
+  "schema": {
+    "name": "editions"
+  }
+}

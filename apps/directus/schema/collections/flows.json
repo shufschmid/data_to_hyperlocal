@@ -14,6 +14,20 @@
     "_syncId": "26f86364-b542-4514-b6b0-37fedc68e29a"
   },
   {
+    "name": "punkt6 holen",
+    "icon": "live_tv",
+    "color": null,
+    "description": "Holt die punkt6-Dossiers aus dem Postfach. Legt nur pending-Zeilen an.",
+    "status": "active",
+    "trigger": "schedule",
+    "accountability": "all",
+    "options": {
+      "cron": "0 19 * * *"
+    },
+    "operation": "527a023b-88c7-427f-ae8c-07a8fe818e81",
+    "_syncId": "2e456128-2553-4333-ac55-bd283f3c45c0"
+  },
+  {
     "name": "Amtsblatt pruefen",
     "icon": "gavel",
     "color": null,
@@ -41,6 +55,34 @@
     },
     "operation": "a7c54ed8-f762-431b-9716-39a268d20733",
     "_syncId": "4549b1ea-55df-4a72-a2a0-19b0c4fc7979"
+  },
+  {
+    "name": "punkt6 verarbeiten",
+    "icon": "live_tv",
+    "color": null,
+    "description": "Verarbeitet die pending punkt6-Dossiers und sichtet die Beitraege auf Gemeinde-Vorschlaege.",
+    "status": "active",
+    "trigger": "schedule",
+    "accountability": "all",
+    "options": {
+      "cron": "15 19 * * *"
+    },
+    "operation": "db229a49-35c3-4114-bcdb-704a85be6435",
+    "_syncId": "4b3e1ec5-2071-4a3b-aa1f-07ca82bbb655"
+  },
+  {
+    "name": "Regionaljournal verarbeiten",
+    "icon": "podcasts",
+    "color": null,
+    "description": "Verarbeitet die pending Regionaljournal-Dossiers und sichtet die Beitraege auf Gemeinde-Vorschlaege.",
+    "status": "active",
+    "trigger": "schedule",
+    "accountability": "all",
+    "options": {
+      "cron": "45 20 * * *"
+    },
+    "operation": "d672acc4-5748-46a9-a226-1d6c1f8bb208",
+    "_syncId": "55cd59e6-a1e1-48d2-83ea-d34c19c9b63c"
   },
   {
     "name": "Portal inventarisieren",
@@ -99,5 +141,19 @@
     },
     "operation": "72c6e871-2ba9-4348-bfa8-fa1d6f7c6f84",
     "_syncId": "9bfef9c8-6baf-4dc2-a801-30374bdd1e4e"
+  },
+  {
+    "name": "Regionaljournal holen",
+    "icon": "podcasts",
+    "color": null,
+    "description": "Holt die Regionaljournal-Dossiers aus dem Postfach. Legt nur pending-Zeilen an.",
+    "status": "active",
+    "trigger": "schedule",
+    "accountability": "all",
+    "options": {
+      "cron": "30 20 * * *"
+    },
+    "operation": "54faa99b-58af-4c50-8645-951d334cf255",
+    "_syncId": "da8f13bc-82db-471e-8dcf-08fe36562c43"
   }
 ]

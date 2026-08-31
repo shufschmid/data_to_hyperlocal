@@ -3,7 +3,7 @@
   "info": {
     "title": "Dynamic API Specification",
     "description": "This is a dynamically generated API specification for all endpoints existing on the current project.",
-    "version": "c6721b284880283b75ec91e228c8479e5e555f4c"
+    "version": "c3115fd83202817fdcbbf886230de2ad7b36ce18"
   },
   "servers": [
     {
@@ -7899,6 +7899,395 @@
         ]
       }
     },
+    "/items/meldungen": {
+      "post": {
+        "summary": "Create an Item",
+        "description": "Create a new meldungen item.",
+        "tags": [
+          "Items",
+          "ItemsMeldungen"
+        ],
+        "operationId": "createItemsMeldungen",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Meta"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsMeldungen"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsMeldungen"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsMeldungen"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "get": {
+        "summary": "List Items",
+        "description": "List the meldungen items.",
+        "tags": [
+          "Items",
+          "ItemsMeldungen"
+        ],
+        "operationId": "readItemsMeldungen",
+        "security": [
+          {
+            "Auth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "$ref": "#/components/schemas/ItemsMeldungen"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/x-metadata"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update Multiple Items",
+        "description": "Update multiple meldungen items at the same time.",
+        "tags": [
+          "Items",
+          "ItemsMeldungen"
+        ],
+        "operationId": "updateItemsMeldungen",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsMeldungen"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsMeldungen"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsMeldungen"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Multiple Items",
+        "description": "Delete multiple existing meldungen items.",
+        "tags": [
+          "Items",
+          "ItemsMeldungen"
+        ],
+        "operationId": "deleteItemsMeldungen",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/items/meldungen/{id}": {
+      "get": {
+        "summary": "Retrieve an Item",
+        "description": "Retrieve a single meldungen item by unique identifier.",
+        "tags": [
+          "Items",
+          "ItemsMeldungen"
+        ],
+        "operationId": "readSingleItemsMeldungen",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Version"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsMeldungen"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update an Item",
+        "description": "Update an existing meldungen item.",
+        "tags": [
+          "Items",
+          "ItemsMeldungen"
+        ],
+        "operationId": "updateSingleItemsMeldungen",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "$ref": "#/components/schemas/ItemsMeldungen"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsMeldungen"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete an Item",
+        "description": "Delete an existing meldungen item.",
+        "tags": [
+          "Items",
+          "ItemsMeldungen"
+        ],
+        "operationId": "deleteSingleItemsMeldungen",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
     "/items/chat_nachrichten": {
       "post": {
         "summary": "Create an Item",
@@ -9420,395 +9809,6 @@
           "ItemsEntsorgungsdokumente"
         ],
         "operationId": "deleteSingleItemsEntsorgungsdokumente",
-        "responses": {
-          "200": {
-            "description": "Successful request"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          }
-        },
-        "parameters": [
-          {
-            "name": "id",
-            "description": "Index of the item.",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "oneOf": [
-                {
-                  "type": "integer",
-                  "description": "Incremental index of the item.",
-                  "example": 1
-                },
-                {
-                  "type": "string",
-                  "description": "Unique identifier of the item.",
-                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
-                }
-              ]
-            }
-          }
-        ]
-      }
-    },
-    "/items/meldungen": {
-      "post": {
-        "summary": "Create an Item",
-        "description": "Create a new meldungen item.",
-        "tags": [
-          "Items",
-          "ItemsMeldungen"
-        ],
-        "operationId": "createItemsMeldungen",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Meta"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "oneOf": [
-                  {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/ItemsMeldungen"
-                    }
-                  },
-                  {
-                    "$ref": "#/components/schemas/ItemsMeldungen"
-                  }
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/ItemsMeldungen"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          }
-        }
-      },
-      "get": {
-        "summary": "List Items",
-        "description": "List the meldungen items.",
-        "tags": [
-          "Items",
-          "ItemsMeldungen"
-        ],
-        "operationId": "readItemsMeldungen",
-        "security": [
-          {
-            "Auth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Fields"
-          },
-          {
-            "$ref": "#/components/parameters/Limit"
-          },
-          {
-            "$ref": "#/components/parameters/Meta"
-          },
-          {
-            "$ref": "#/components/parameters/Offset"
-          },
-          {
-            "$ref": "#/components/parameters/Sort"
-          },
-          {
-            "$ref": "#/components/parameters/Filter"
-          },
-          {
-            "$ref": "#/components/parameters/Search"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "$ref": "#/components/schemas/ItemsMeldungen"
-                      }
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/x-metadata"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          }
-        }
-      },
-      "patch": {
-        "summary": "Update Multiple Items",
-        "description": "Update multiple meldungen items at the same time.",
-        "tags": [
-          "Items",
-          "ItemsMeldungen"
-        ],
-        "operationId": "updateItemsMeldungen",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Fields"
-          },
-          {
-            "$ref": "#/components/parameters/Limit"
-          },
-          {
-            "$ref": "#/components/parameters/Meta"
-          },
-          {
-            "$ref": "#/components/parameters/Offset"
-          },
-          {
-            "$ref": "#/components/parameters/Sort"
-          },
-          {
-            "$ref": "#/components/parameters/Filter"
-          },
-          {
-            "$ref": "#/components/parameters/Search"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "oneOf": [
-                  {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/ItemsMeldungen"
-                    }
-                  },
-                  {
-                    "$ref": "#/components/schemas/ItemsMeldungen"
-                  }
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/ItemsMeldungen"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "summary": "Delete Multiple Items",
-        "description": "Delete multiple existing meldungen items.",
-        "tags": [
-          "Items",
-          "ItemsMeldungen"
-        ],
-        "operationId": "deleteItemsMeldungen",
-        "responses": {
-          "200": {
-            "description": "Successful request"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          }
-        },
-        "parameters": []
-      }
-    },
-    "/items/meldungen/{id}": {
-      "get": {
-        "summary": "Retrieve an Item",
-        "description": "Retrieve a single meldungen item by unique identifier.",
-        "tags": [
-          "Items",
-          "ItemsMeldungen"
-        ],
-        "operationId": "readSingleItemsMeldungen",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Fields"
-          },
-          {
-            "$ref": "#/components/parameters/Meta"
-          },
-          {
-            "$ref": "#/components/parameters/Version"
-          },
-          {
-            "name": "id",
-            "description": "Index of the item.",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "oneOf": [
-                {
-                  "type": "integer",
-                  "description": "Incremental index of the item.",
-                  "example": 1
-                },
-                {
-                  "type": "string",
-                  "description": "Unique identifier of the item.",
-                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
-                }
-              ]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "object",
-                      "$ref": "#/components/schemas/ItemsMeldungen"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          }
-        }
-      },
-      "patch": {
-        "summary": "Update an Item",
-        "description": "Update an existing meldungen item.",
-        "tags": [
-          "Items",
-          "ItemsMeldungen"
-        ],
-        "operationId": "updateSingleItemsMeldungen",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Fields"
-          },
-          {
-            "$ref": "#/components/parameters/Meta"
-          },
-          {
-            "name": "id",
-            "description": "Index of the item.",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "oneOf": [
-                {
-                  "type": "integer",
-                  "description": "Incremental index of the item.",
-                  "example": 1
-                },
-                {
-                  "type": "string",
-                  "description": "Unique identifier of the item.",
-                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
-                }
-              ]
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "$ref": "#/components/schemas/ItemsMeldungen"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "object",
-                      "$ref": "#/components/schemas/ItemsMeldungen"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          }
-        }
-      },
-      "delete": {
-        "summary": "Delete an Item",
-        "description": "Delete an existing meldungen item.",
-        "tags": [
-          "Items",
-          "ItemsMeldungen"
-        ],
-        "operationId": "deleteSingleItemsMeldungen",
         "responses": {
           "200": {
             "description": "Successful request"
@@ -12956,6 +12956,395 @@
         ]
       }
     },
+    "/items/dossiers": {
+      "post": {
+        "summary": "Create an Item",
+        "description": "Create a new dossiers item.",
+        "tags": [
+          "Items",
+          "ItemsDossiers"
+        ],
+        "operationId": "createItemsDossiers",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Meta"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsDossiers"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsDossiers"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsDossiers"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "get": {
+        "summary": "List Items",
+        "description": "List the dossiers items.",
+        "tags": [
+          "Items",
+          "ItemsDossiers"
+        ],
+        "operationId": "readItemsDossiers",
+        "security": [
+          {
+            "Auth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "$ref": "#/components/schemas/ItemsDossiers"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/x-metadata"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update Multiple Items",
+        "description": "Update multiple dossiers items at the same time.",
+        "tags": [
+          "Items",
+          "ItemsDossiers"
+        ],
+        "operationId": "updateItemsDossiers",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsDossiers"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsDossiers"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsDossiers"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Multiple Items",
+        "description": "Delete multiple existing dossiers items.",
+        "tags": [
+          "Items",
+          "ItemsDossiers"
+        ],
+        "operationId": "deleteItemsDossiers",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/items/dossiers/{id}": {
+      "get": {
+        "summary": "Retrieve an Item",
+        "description": "Retrieve a single dossiers item by unique identifier.",
+        "tags": [
+          "Items",
+          "ItemsDossiers"
+        ],
+        "operationId": "readSingleItemsDossiers",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Version"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsDossiers"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update an Item",
+        "description": "Update an existing dossiers item.",
+        "tags": [
+          "Items",
+          "ItemsDossiers"
+        ],
+        "operationId": "updateSingleItemsDossiers",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "$ref": "#/components/schemas/ItemsDossiers"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsDossiers"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete an Item",
+        "description": "Delete an existing dossiers item.",
+        "tags": [
+          "Items",
+          "ItemsDossiers"
+        ],
+        "operationId": "deleteSingleItemsDossiers",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
     "/items/wochenblaetter": {
       "post": {
         "summary": "Create an Item",
@@ -15678,6 +16067,1562 @@
           }
         ]
       }
+    },
+    "/items/editions": {
+      "post": {
+        "summary": "Create an Item",
+        "description": "Create a new editions item.",
+        "tags": [
+          "Items",
+          "ItemsEditions"
+        ],
+        "operationId": "createItemsEditions",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Meta"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsEditions"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsEditions"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsEditions"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "get": {
+        "summary": "List Items",
+        "description": "List the editions items.",
+        "tags": [
+          "Items",
+          "ItemsEditions"
+        ],
+        "operationId": "readItemsEditions",
+        "security": [
+          {
+            "Auth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "$ref": "#/components/schemas/ItemsEditions"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/x-metadata"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update Multiple Items",
+        "description": "Update multiple editions items at the same time.",
+        "tags": [
+          "Items",
+          "ItemsEditions"
+        ],
+        "operationId": "updateItemsEditions",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsEditions"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsEditions"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsEditions"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Multiple Items",
+        "description": "Delete multiple existing editions items.",
+        "tags": [
+          "Items",
+          "ItemsEditions"
+        ],
+        "operationId": "deleteItemsEditions",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/items/editions/{id}": {
+      "get": {
+        "summary": "Retrieve an Item",
+        "description": "Retrieve a single editions item by unique identifier.",
+        "tags": [
+          "Items",
+          "ItemsEditions"
+        ],
+        "operationId": "readSingleItemsEditions",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Version"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsEditions"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update an Item",
+        "description": "Update an existing editions item.",
+        "tags": [
+          "Items",
+          "ItemsEditions"
+        ],
+        "operationId": "updateSingleItemsEditions",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "$ref": "#/components/schemas/ItemsEditions"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsEditions"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete an Item",
+        "description": "Delete an existing editions item.",
+        "tags": [
+          "Items",
+          "ItemsEditions"
+        ],
+        "operationId": "deleteSingleItemsEditions",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "/items/punkt6_dossiers": {
+      "post": {
+        "summary": "Create an Item",
+        "description": "Create a new punkt6_dossiers item.",
+        "tags": [
+          "Items",
+          "ItemsPunkt6Dossiers"
+        ],
+        "operationId": "createItemsPunkt6Dossiers",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Meta"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsPunkt6Dossiers"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsPunkt6Dossiers"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsPunkt6Dossiers"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "get": {
+        "summary": "List Items",
+        "description": "List the punkt6_dossiers items.",
+        "tags": [
+          "Items",
+          "ItemsPunkt6Dossiers"
+        ],
+        "operationId": "readItemsPunkt6Dossiers",
+        "security": [
+          {
+            "Auth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "$ref": "#/components/schemas/ItemsPunkt6Dossiers"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/x-metadata"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update Multiple Items",
+        "description": "Update multiple punkt6_dossiers items at the same time.",
+        "tags": [
+          "Items",
+          "ItemsPunkt6Dossiers"
+        ],
+        "operationId": "updateItemsPunkt6Dossiers",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsPunkt6Dossiers"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsPunkt6Dossiers"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsPunkt6Dossiers"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Multiple Items",
+        "description": "Delete multiple existing punkt6_dossiers items.",
+        "tags": [
+          "Items",
+          "ItemsPunkt6Dossiers"
+        ],
+        "operationId": "deleteItemsPunkt6Dossiers",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/items/punkt6_dossiers/{id}": {
+      "get": {
+        "summary": "Retrieve an Item",
+        "description": "Retrieve a single punkt6_dossiers item by unique identifier.",
+        "tags": [
+          "Items",
+          "ItemsPunkt6Dossiers"
+        ],
+        "operationId": "readSingleItemsPunkt6Dossiers",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Version"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsPunkt6Dossiers"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update an Item",
+        "description": "Update an existing punkt6_dossiers item.",
+        "tags": [
+          "Items",
+          "ItemsPunkt6Dossiers"
+        ],
+        "operationId": "updateSingleItemsPunkt6Dossiers",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "$ref": "#/components/schemas/ItemsPunkt6Dossiers"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsPunkt6Dossiers"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete an Item",
+        "description": "Delete an existing punkt6_dossiers item.",
+        "tags": [
+          "Items",
+          "ItemsPunkt6Dossiers"
+        ],
+        "operationId": "deleteSingleItemsPunkt6Dossiers",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "/items/punkt6_editions": {
+      "post": {
+        "summary": "Create an Item",
+        "description": "Create a new punkt6_editions item.",
+        "tags": [
+          "Items",
+          "ItemsPunkt6Editions"
+        ],
+        "operationId": "createItemsPunkt6Editions",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Meta"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsPunkt6Editions"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsPunkt6Editions"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsPunkt6Editions"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "get": {
+        "summary": "List Items",
+        "description": "List the punkt6_editions items.",
+        "tags": [
+          "Items",
+          "ItemsPunkt6Editions"
+        ],
+        "operationId": "readItemsPunkt6Editions",
+        "security": [
+          {
+            "Auth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "$ref": "#/components/schemas/ItemsPunkt6Editions"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/x-metadata"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update Multiple Items",
+        "description": "Update multiple punkt6_editions items at the same time.",
+        "tags": [
+          "Items",
+          "ItemsPunkt6Editions"
+        ],
+        "operationId": "updateItemsPunkt6Editions",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsPunkt6Editions"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsPunkt6Editions"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsPunkt6Editions"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Multiple Items",
+        "description": "Delete multiple existing punkt6_editions items.",
+        "tags": [
+          "Items",
+          "ItemsPunkt6Editions"
+        ],
+        "operationId": "deleteItemsPunkt6Editions",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/items/punkt6_editions/{id}": {
+      "get": {
+        "summary": "Retrieve an Item",
+        "description": "Retrieve a single punkt6_editions item by unique identifier.",
+        "tags": [
+          "Items",
+          "ItemsPunkt6Editions"
+        ],
+        "operationId": "readSingleItemsPunkt6Editions",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Version"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsPunkt6Editions"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update an Item",
+        "description": "Update an existing punkt6_editions item.",
+        "tags": [
+          "Items",
+          "ItemsPunkt6Editions"
+        ],
+        "operationId": "updateSingleItemsPunkt6Editions",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "$ref": "#/components/schemas/ItemsPunkt6Editions"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsPunkt6Editions"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete an Item",
+        "description": "Delete an existing punkt6_editions item.",
+        "tags": [
+          "Items",
+          "ItemsPunkt6Editions"
+        ],
+        "operationId": "deleteSingleItemsPunkt6Editions",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "/items/sendungskandidaten": {
+      "post": {
+        "summary": "Create an Item",
+        "description": "Create a new sendungskandidaten item.",
+        "tags": [
+          "Items",
+          "ItemsSendungskandidaten"
+        ],
+        "operationId": "createItemsSendungskandidaten",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Meta"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsSendungskandidaten"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsSendungskandidaten"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsSendungskandidaten"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "get": {
+        "summary": "List Items",
+        "description": "List the sendungskandidaten items.",
+        "tags": [
+          "Items",
+          "ItemsSendungskandidaten"
+        ],
+        "operationId": "readItemsSendungskandidaten",
+        "security": [
+          {
+            "Auth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "$ref": "#/components/schemas/ItemsSendungskandidaten"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/x-metadata"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update Multiple Items",
+        "description": "Update multiple sendungskandidaten items at the same time.",
+        "tags": [
+          "Items",
+          "ItemsSendungskandidaten"
+        ],
+        "operationId": "updateItemsSendungskandidaten",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsSendungskandidaten"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsSendungskandidaten"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsSendungskandidaten"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Multiple Items",
+        "description": "Delete multiple existing sendungskandidaten items.",
+        "tags": [
+          "Items",
+          "ItemsSendungskandidaten"
+        ],
+        "operationId": "deleteItemsSendungskandidaten",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/items/sendungskandidaten/{id}": {
+      "get": {
+        "summary": "Retrieve an Item",
+        "description": "Retrieve a single sendungskandidaten item by unique identifier.",
+        "tags": [
+          "Items",
+          "ItemsSendungskandidaten"
+        ],
+        "operationId": "readSingleItemsSendungskandidaten",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Version"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsSendungskandidaten"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update an Item",
+        "description": "Update an existing sendungskandidaten item.",
+        "tags": [
+          "Items",
+          "ItemsSendungskandidaten"
+        ],
+        "operationId": "updateSingleItemsSendungskandidaten",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "$ref": "#/components/schemas/ItemsSendungskandidaten"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsSendungskandidaten"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete an Item",
+        "description": "Delete an existing sendungskandidaten item.",
+        "tags": [
+          "Items",
+          "ItemsSendungskandidaten"
+        ],
+        "operationId": "deleteSingleItemsSendungskandidaten",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ]
+      }
     }
   },
   "tags": [
@@ -15809,6 +17754,11 @@
       "description": "Angekuendigte und publizierte Statistiken aus der Agenda des Amts fuer Daten und Statistik."
     },
     {
+      "name": "ItemsMeldungen",
+      "x-collection": "meldungen",
+      "description": "Die redaktionellen Meldungen. Publizierte Meldungen liest der Dorfkoenig als Quelle."
+    },
+    {
       "name": "ItemsChatNachrichten",
       "x-collection": "chat_nachrichten",
       "description": "Verlauf der Redaktionsgespraeche. Quelle fuer das Gedaechtnis in redaktionswissen."
@@ -15827,11 +17777,6 @@
       "name": "ItemsEntsorgungsdokumente",
       "x-collection": "entsorgungsdokumente",
       "description": "Ein PDF eines Abfuhrkalenders. Gemeinden wie Riehen drucken je Zone ein eigenes Dokument."
-    },
-    {
-      "name": "ItemsMeldungen",
-      "x-collection": "meldungen",
-      "description": "Die redaktionellen Meldungen. Publizierte Meldungen liest der Dorfkoenig als Quelle."
     },
     {
       "name": "ItemsPortalBereiche",
@@ -15873,6 +17818,11 @@
       "description": "Auf den Quellen gefundene Datensaetze. \"Relevant\" gibt einen frei, aus dem Meldungen erzeugt werden duerfen."
     },
     {
+      "name": "ItemsDossiers",
+      "x-collection": "dossiers",
+      "description": "Ein eingegangenes SMD-Dossier-PDF des SRF Regionaljournals. pending -> processing -> processed/failed."
+    },
+    {
       "name": "ItemsWochenblaetter",
       "x-collection": "wochenblaetter",
       "description": "Die Wochenzeitung einer Gemeinde und ihr PDF-Archiv. Taeglich um 9 Uhr auf neue Ausgaben geprueft."
@@ -15906,6 +17856,26 @@
       "name": "ItemsGemeinden",
       "x-collection": "gemeinden",
       "description": "Gemeinden, ueber die berichtet wird — Basel-Landschaft vollstaendig, dazu Riehen (BS) fuer den Sport. \"Aktiv\" steuert, fuer welche Gemeinden Meldungen erzeugt werden."
+    },
+    {
+      "name": "ItemsEditions",
+      "x-collection": "editions",
+      "description": "Ein Beitrag einer Regionaljournal-Sendung. Bewusst OHNE Publizieren-Status: publizieren heisst im Dashboard eine Sache — eine Meldung geht zum Dorfkoenig."
+    },
+    {
+      "name": "ItemsPunkt6Dossiers",
+      "x-collection": "punkt6_dossiers",
+      "description": "Ein eingegangenes SMD-Dossier-PDF von punkt6 (Telebasel). Gleiches Postfach wie das Regionaljournal, anderer Betreff-Filter."
+    },
+    {
+      "name": "ItemsPunkt6Editions",
+      "x-collection": "punkt6_editions",
+      "description": "Eine punkt6-Sendung. Ein PDF ist immer EINE durchgehende Episode — anders als beim Regionaljournal, wo ein Dossier mehrere Sendungen buendeln kann."
+    },
+    {
+      "name": "ItemsSendungskandidaten",
+      "x-collection": "sendungskandidaten",
+      "description": "Ein Beitrag, der von einer bespielten Gemeinde handelt. Die Entscheide sind das Gedaechtnis: sie reiten als Beispiele in die naechste Sichtung DIESER Sendung."
     }
   ],
   "components": {
@@ -17997,6 +19967,200 @@
           "titel"
         ]
       },
+      "ItemsMeldungen": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "nullable": false,
+            "type": "string",
+            "format": "uuid"
+          },
+          "lauf": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsLaeufe"
+              }
+            ]
+          },
+          "gemeinde": {
+            "nullable": false,
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsGemeinden"
+              }
+            ]
+          },
+          "titel": {
+            "nullable": true,
+            "type": "string"
+          },
+          "lead": {
+            "nullable": true,
+            "description": "Anreisser. Der Dorfkoenig kann ihn einzeln weiterverwenden.",
+            "type": "string"
+          },
+          "text": {
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "nullable": false,
+            "description": "Der Uebergang wird von einem Hook geprueft — auch beim Bearbeiten hier im Adminbereich.",
+            "type": "string"
+          },
+          "datengrundlage": {
+            "nullable": true,
+            "description": "Die Zahlen, auf denen die Meldung beruht."
+          },
+          "zeit_warnungen": {
+            "nullable": true,
+            "description": "Relative Zeitangaben, die im Text stehen. Der Text soll auch in Jahren noch stimmen.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "verarbeitung": {
+            "nullable": false,
+            "description": "Zustand der Warteschlange, nicht der Redaktion.",
+            "type": "string"
+          },
+          "anweisung": {
+            "nullable": true,
+            "description": "Offene Ueberarbeitung, die beim naechsten Durchlauf angewendet wird.",
+            "type": "string"
+          },
+          "versuche": {
+            "nullable": false,
+            "type": "integer"
+          },
+          "gesperrt_bis": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "fehler": {
+            "nullable": true,
+            "type": "string"
+          },
+          "freigabe_token_hash": {
+            "nullable": true,
+            "description": "SHA-256 des Freigabe-Tokens. Gehoert in keine Leseberechtigung.",
+            "type": "string"
+          },
+          "freigabe_token_ablauf": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "entscheidung": {
+            "nullable": true,
+            "description": "\"Unklar\" gilt nie als Freigabe.",
+            "type": "string"
+          },
+          "entscheidung_klartext": {
+            "nullable": true,
+            "description": "Wortlaut der Rueckmeldung aus der Gegenpruefung.",
+            "type": "string"
+          },
+          "freigegeben_am": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "publiziert_am": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "date_created": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "date_updated": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "spiel": {
+            "nullable": true,
+            "description": "Gesetzt, wenn die Meldung ein Spielbericht ist. Dann ist \"Lauf\" leer.",
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsSpiele"
+              }
+            ]
+          },
+          "erscheint_am": {
+            "nullable": true,
+            "description": "Nur bei Entsorgungserinnerungen: der Newsletter-Tag. Publiziert wird am Vortag.",
+            "type": "string",
+            "format": "date"
+          },
+          "kandidat": {
+            "nullable": true,
+            "description": "Gesetzt, wenn diese Meldung eine Presseschau aus einem Wochenblatt-Beitrag ist.",
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsWochenblattkandidaten"
+              }
+            ]
+          },
+          "perle": {
+            "nullable": true,
+            "description": "Kopie des Kandidaten-Entscheids für publizierte Presseschau-Meldungen — die Chefredaktion entscheidet am Kandidaten. Nicht publiziert trägt keine Perle.",
+            "type": "boolean"
+          },
+          "amtsblattmeldung": {
+            "nullable": true,
+            "description": "Die amtliche Publikation, aus der diese Meldung entstand. Die vierte Art neben lauf, spiel und der Erinnerung.",
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsAmtsblattmeldungen"
+              }
+            ]
+          },
+          "sendungskandidat": {
+            "nullable": true,
+            "description": "Der Sendungsbeitrag, aus dem diese Meldung entstand. Die fuenfte Art neben lauf, spiel, kandidat und amtsblattmeldung.",
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsSendungskandidaten"
+              }
+            ]
+          }
+        },
+        "x-collection": "meldungen",
+        "required": [
+          "gemeinde"
+        ]
+      },
       "ItemsChatNachrichten": {
         "type": "object",
         "properties": {
@@ -18273,187 +20437,6 @@
         "required": [
           "id",
           "kalender"
-        ]
-      },
-      "ItemsMeldungen": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "nullable": false,
-            "type": "string",
-            "format": "uuid"
-          },
-          "lauf": {
-            "nullable": true,
-            "oneOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "$ref": "#/components/schemas/ItemsLaeufe"
-              }
-            ]
-          },
-          "gemeinde": {
-            "nullable": false,
-            "oneOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "$ref": "#/components/schemas/ItemsGemeinden"
-              }
-            ]
-          },
-          "titel": {
-            "nullable": true,
-            "type": "string"
-          },
-          "lead": {
-            "nullable": true,
-            "description": "Anreisser. Der Dorfkoenig kann ihn einzeln weiterverwenden.",
-            "type": "string"
-          },
-          "text": {
-            "nullable": true,
-            "type": "string"
-          },
-          "status": {
-            "nullable": false,
-            "description": "Der Uebergang wird von einem Hook geprueft — auch beim Bearbeiten hier im Adminbereich.",
-            "type": "string"
-          },
-          "datengrundlage": {
-            "nullable": true,
-            "description": "Die Zahlen, auf denen die Meldung beruht."
-          },
-          "zeit_warnungen": {
-            "nullable": true,
-            "description": "Relative Zeitangaben, die im Text stehen. Der Text soll auch in Jahren noch stimmen.",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "verarbeitung": {
-            "nullable": false,
-            "description": "Zustand der Warteschlange, nicht der Redaktion.",
-            "type": "string"
-          },
-          "anweisung": {
-            "nullable": true,
-            "description": "Offene Ueberarbeitung, die beim naechsten Durchlauf angewendet wird.",
-            "type": "string"
-          },
-          "versuche": {
-            "nullable": false,
-            "type": "integer"
-          },
-          "gesperrt_bis": {
-            "nullable": true,
-            "type": "string",
-            "format": "timestamp"
-          },
-          "fehler": {
-            "nullable": true,
-            "type": "string"
-          },
-          "freigabe_token_hash": {
-            "nullable": true,
-            "description": "SHA-256 des Freigabe-Tokens. Gehoert in keine Leseberechtigung.",
-            "type": "string"
-          },
-          "freigabe_token_ablauf": {
-            "nullable": true,
-            "type": "string",
-            "format": "timestamp"
-          },
-          "entscheidung": {
-            "nullable": true,
-            "description": "\"Unklar\" gilt nie als Freigabe.",
-            "type": "string"
-          },
-          "entscheidung_klartext": {
-            "nullable": true,
-            "description": "Wortlaut der Rueckmeldung aus der Gegenpruefung.",
-            "type": "string"
-          },
-          "freigegeben_am": {
-            "nullable": true,
-            "type": "string",
-            "format": "timestamp"
-          },
-          "publiziert_am": {
-            "nullable": true,
-            "type": "string",
-            "format": "timestamp"
-          },
-          "date_created": {
-            "nullable": true,
-            "type": "string",
-            "format": "timestamp"
-          },
-          "date_updated": {
-            "nullable": true,
-            "type": "string",
-            "format": "timestamp"
-          },
-          "spiel": {
-            "nullable": true,
-            "description": "Gesetzt, wenn die Meldung ein Spielbericht ist. Dann ist \"Lauf\" leer.",
-            "oneOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "$ref": "#/components/schemas/ItemsSpiele"
-              }
-            ]
-          },
-          "erscheint_am": {
-            "nullable": true,
-            "description": "Nur bei Entsorgungserinnerungen: der Newsletter-Tag. Publiziert wird am Vortag.",
-            "type": "string",
-            "format": "date"
-          },
-          "kandidat": {
-            "nullable": true,
-            "description": "Gesetzt, wenn diese Meldung eine Presseschau aus einem Wochenblatt-Beitrag ist.",
-            "oneOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "$ref": "#/components/schemas/ItemsWochenblattkandidaten"
-              }
-            ]
-          },
-          "perle": {
-            "nullable": true,
-            "description": "Kopie des Kandidaten-Entscheids für publizierte Presseschau-Meldungen — die Chefredaktion entscheidet am Kandidaten. Nicht publiziert trägt keine Perle.",
-            "type": "boolean"
-          },
-          "amtsblattmeldung": {
-            "nullable": true,
-            "description": "Die amtliche Publikation, aus der diese Meldung entstand. Die vierte Art neben lauf, spiel und der Erinnerung.",
-            "oneOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "$ref": "#/components/schemas/ItemsAmtsblattmeldungen"
-              }
-            ]
-          }
-        },
-        "x-collection": "meldungen",
-        "required": [
-          "gemeinde"
         ]
       },
       "ItemsPortalBereiche": {
@@ -19159,6 +21142,66 @@
           "titel"
         ]
       },
+      "ItemsDossiers": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "nullable": false,
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "nullable": false,
+            "type": "string"
+          },
+          "source_file": {
+            "nullable": false,
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/Files"
+              }
+            ]
+          },
+          "source_message_id": {
+            "nullable": true,
+            "description": "IMAP Message-ID. Null bei Handupload.",
+            "type": "string"
+          },
+          "source_subject": {
+            "nullable": true,
+            "description": "Der Betreff — er ist zugleich der Dedup-Schluessel dieser Instanz.",
+            "type": "string"
+          },
+          "error_message": {
+            "nullable": true,
+            "type": "string"
+          },
+          "processed_at": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "date_created": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "date_updated": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          }
+        },
+        "x-collection": "dossiers",
+        "required": [
+          "id",
+          "source_file"
+        ]
+      },
       "ItemsWochenblaetter": {
         "type": "object",
         "properties": {
@@ -19387,7 +21430,7 @@
             "format": "uuid"
           },
           "ausgabe": {
-            "nullable": false,
+            "nullable": true,
             "oneOf": [
               {
                 "type": "string",
@@ -19457,7 +21500,6 @@
         "x-collection": "recherchehinweise",
         "required": [
           "id",
-          "ausgabe",
           "titel"
         ]
       },
@@ -19809,6 +21851,332 @@
           "bfs_nummer",
           "name",
           "bezirk"
+        ]
+      },
+      "ItemsEditions": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "nullable": false,
+            "type": "string",
+            "format": "uuid"
+          },
+          "dossier": {
+            "nullable": false,
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsDossiers"
+              }
+            ]
+          },
+          "broadcast_date": {
+            "nullable": false,
+            "type": "string",
+            "format": "date"
+          },
+          "edition_label": {
+            "nullable": true,
+            "description": "Aus der Stunde der SRGSSR-Episode abgeleitet.",
+            "type": "string"
+          },
+          "broadcast_at": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "headline": {
+            "nullable": true,
+            "type": "string"
+          },
+          "lead": {
+            "nullable": true,
+            "type": "string"
+          },
+          "teaser_blocks": {
+            "nullable": true,
+            "description": "Freier Prosatext, darum cast-json und nicht cast-csv — Kommas wuerden ihn zerreissen."
+          },
+          "audio_url": {
+            "nullable": true,
+            "description": "SRGSSR podcastHdUrl — eine direkte, oeffentliche MP3.",
+            "type": "string"
+          },
+          "srgssr_urn": {
+            "nullable": true,
+            "type": "string"
+          },
+          "transcript": {
+            "nullable": true,
+            "description": "Absaetze mit Zeitmarke."
+          },
+          "extra_topics": {
+            "nullable": true,
+            "description": "Weitere Themen der Sendung, je mit Zeitmarke."
+          },
+          "resolution_error": {
+            "nullable": true,
+            "description": "Je Beitrag gesetzt, wenn die SRGSSR-Aufloesung scheitert — der Beitrag entsteht trotzdem, nur ohne Audio.",
+            "type": "string"
+          },
+          "date_created": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "date_updated": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          }
+        },
+        "x-collection": "editions",
+        "required": [
+          "id",
+          "dossier",
+          "broadcast_date"
+        ]
+      },
+      "ItemsPunkt6Dossiers": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "nullable": false,
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "nullable": false,
+            "type": "string"
+          },
+          "source_file": {
+            "nullable": false,
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/Files"
+              }
+            ]
+          },
+          "source_message_id": {
+            "nullable": true,
+            "description": "IMAP Message-ID. Null bei Handupload.",
+            "type": "string"
+          },
+          "source_subject": {
+            "nullable": true,
+            "description": "Der Betreff — er ist zugleich der Dedup-Schluessel dieser Instanz.",
+            "type": "string"
+          },
+          "error_message": {
+            "nullable": true,
+            "type": "string"
+          },
+          "processed_at": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "date_created": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "date_updated": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          }
+        },
+        "x-collection": "punkt6_dossiers",
+        "required": [
+          "id",
+          "source_file"
+        ]
+      },
+      "ItemsPunkt6Editions": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "nullable": false,
+            "type": "string",
+            "format": "uuid"
+          },
+          "dossier": {
+            "nullable": false,
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsPunkt6Dossiers"
+              }
+            ]
+          },
+          "broadcast_date": {
+            "nullable": false,
+            "type": "string",
+            "format": "date"
+          },
+          "headline": {
+            "nullable": true,
+            "description": "Titel des Hauptbeitrags, aus dem ersten Clip von telebasel.ch.",
+            "type": "string"
+          },
+          "lead": {
+            "nullable": true,
+            "type": "string"
+          },
+          "transcript": {
+            "nullable": true,
+            "description": "Das Transkript der GANZEN Episode, nicht nur des Hauptbeitrags."
+          },
+          "main_start_seconds": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "main_end_seconds": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "extra_topics": {
+            "nullable": true,
+            "description": "Jeder weitere Beitrag der Sendung, mit exakten Grenzen von telebasel.ch."
+          },
+          "video_url": {
+            "nullable": true,
+            "description": "Video der ganzen Episode, von allen Beitraegen geteilt.",
+            "type": "string"
+          },
+          "episode_url": {
+            "nullable": true,
+            "description": "Die telebasel.ch-Seite der Episode.",
+            "type": "string"
+          },
+          "resolution_error": {
+            "nullable": true,
+            "type": "string"
+          },
+          "date_created": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "date_updated": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          }
+        },
+        "x-collection": "punkt6_editions",
+        "required": [
+          "id",
+          "dossier",
+          "broadcast_date"
+        ]
+      },
+      "ItemsSendungskandidaten": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "nullable": false,
+            "type": "string",
+            "format": "uuid"
+          },
+          "quelle": {
+            "nullable": false,
+            "type": "string"
+          },
+          "titel": {
+            "nullable": true,
+            "type": "string"
+          },
+          "zusammenfassung": {
+            "nullable": true,
+            "description": "Die Faktenliste — die EINZIGE Quelle des Meldungs-Prompts. Nie das Transkript selbst.",
+            "type": "string"
+          },
+          "zeitmarke_sekunden": {
+            "nullable": true,
+            "description": "Wo der Beitrag in der Sendung beginnt.",
+            "type": "integer"
+          },
+          "begruendung": {
+            "nullable": true,
+            "description": "Warum die Sichtung das fuer die Gemeinde relevant haelt.",
+            "type": "string"
+          },
+          "entscheid": {
+            "nullable": false,
+            "type": "string"
+          },
+          "ablehnungsgrund": {
+            "nullable": true,
+            "type": "string"
+          },
+          "ablehnungskommentar": {
+            "nullable": true,
+            "type": "string"
+          },
+          "date_created": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "date_updated": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "edition": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsEditions"
+              }
+            ]
+          },
+          "punkt6_edition": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsPunkt6Editions"
+              }
+            ]
+          },
+          "gemeinde": {
+            "nullable": false,
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsGemeinden"
+              }
+            ]
+          }
+        },
+        "x-collection": "sendungskandidaten",
+        "required": [
+          "id",
+          "quelle",
+          "gemeinde"
         ]
       }
     },

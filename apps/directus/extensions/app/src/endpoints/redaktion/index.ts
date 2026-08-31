@@ -77,6 +77,19 @@ import {
   type Unterlage
 } from '../../shared/amtsblatt'
 import {
+  attributionsWarnung as sendungAttributionsWarnung,
+  buildSendungPrompt,
+  buildSendungRevision,
+  mitQuelle as mitSendungsQuelle,
+  parseSendungMeldung,
+  SENDUNG_SYSTEM_PROMPT,
+  SENDUNGEN,
+  ueberlappungsWarnungen as sendungUeberlappung,
+  zahlWarnungen as zahlWarnungenSendung,
+  type SendungsFakten,
+  type SendungsQuelle
+} from '../../redaktion/sendung'
+import {
   attributionsWarnung,
   brauchtTextTransport,
   buildInventarMessages,
@@ -288,6 +301,12 @@ const laufendeExtraktionen = new Set<string>()
 // Newsletter-Tag, rund zehn je Kalender, also Minuten. Zwei Laeufe auf
 // demselben Kalender wuerden um dieselben Erscheinungstage konkurrieren.
 const laufendeErinnerungen = new Set<string>()
+
+const KandidatSchonEntschieden = createError(
+  'ALREADY_DECIDED',
+  'Ueber diesen Beitrag ist bereits entschieden.',
+  409
+)
 
 const AmtsblattLaufLaeuftBereits = createError(
   'RUN_IN_PROGRESS',
@@ -834,6 +853,352 @@ export default defineEndpoint(
         })
 
         return res.status(202).json({ data: { gestartet: true } })
+      }
+    )
+
+    // --- the two broadcasts: Regionaljournal and punkt6 -----------------------
+    //
+    // The shows themselves are reviewed on their own tabs, in the form they were
+    // ported in — not every user of that view is responsible for municipality
+    // news. What the newsroom added sits ON the contribution's card: where a
+    // piece is ABOUT a covered municipality, it is highlighted and carries the
+    // three decisions. Everything below is that half.
+
+    interface SendungsRohzeile {
+      id: string
+      quelle: SendungsQuelle
+      titel: string
+      zusammenfassung: string | null
+      begruendung: string | null
+      zeitmarke_sekunden: number | null
+      entscheid: string
+      gemeinde: { id: string; name: string }
+      edition: {
+        id: string
+        broadcast_date: string
+        audio_url: string | null
+        transcript: { text: string }[] | null
+      } | null
+      punkt6_edition: {
+        id: string
+        broadcast_date: string
+        episode_url: string | null
+        transcript: { text: string }[] | null
+      } | null
+    }
+
+    const SENDUNG_FELDER = [
+      'id',
+      'quelle',
+      'titel',
+      'zusammenfassung',
+      'begruendung',
+      'zeitmarke_sekunden',
+      'entscheid',
+      'gemeinde.id',
+      'gemeinde.name',
+      'edition.id',
+      'edition.broadcast_date',
+      'edition.audio_url',
+      'edition.transcript',
+      'punkt6_edition.id',
+      'punkt6_edition.broadcast_date',
+      'punkt6_edition.episode_url',
+      'punkt6_edition.transcript'
+    ]
+
+    async function ladeSendungsZeile(
+      id: string,
+      accountability: ApiRequest['accountability']
+    ): Promise<SendungsRohzeile> {
+      const service = new ItemsService('sendungskandidaten', {
+        schema: await getSchema(),
+        accountability
+      })
+      return (await service.readOne(id, {
+        fields: SENDUNG_FELDER
+      })) as SendungsRohzeile
+    }
+
+    function sendungsFakten(zeile: SendungsRohzeile): SendungsFakten {
+      const beitrag = zeile.edition ?? zeile.punkt6_edition
+      return {
+        gemeinde: zeile.gemeinde.name,
+        sendung: zeile.quelle,
+        datum: beitrag?.broadcast_date ?? '',
+        titel: zeile.titel,
+        zusammenfassung: zeile.zusammenfassung ?? '',
+        zeitmarkeSekunden: zeile.zeitmarke_sekunden,
+        quellUrl:
+          zeile.edition?.audio_url ?? zeile.punkt6_edition?.episode_url ?? null
+      }
+    }
+
+    /** The show's own words, for the verbatim-overlap check. */
+    function sendungsVolltext(zeile: SendungsRohzeile): string {
+      const absaetze =
+        zeile.edition?.transcript ?? zeile.punkt6_edition?.transcript ?? []
+      return absaetze.map((p) => p.text).join('\n')
+    }
+
+    async function sendungMitChecks(
+      fakten: SendungsFakten,
+      volltext: string,
+      prompt: string
+    ): Promise<{
+      bericht: { titel: string; lead: string; text: string }
+      warnungen: string[]
+    }> {
+      let bericht = parseSendungMeldung(
+        await completeJson<unknown>({
+          system: SENDUNG_SYSTEM_PROMPT,
+          prompt,
+          maxTokens: 1500
+        })
+      )
+
+      let attribution = sendungAttributionsWarnung(
+        `${bericht.lead} ${bericht.text}`,
+        fakten
+      )
+      if (attribution !== null) {
+        bericht = parseSendungMeldung(
+          await completeJson<unknown>({
+            system: SENDUNG_SYSTEM_PROMPT,
+            prompt: buildSendungRevision(
+              fakten,
+              bericht,
+              `Nenne die Quelle im Fliesstext: "${SENDUNGEN[fakten.sendung].attribution}".`
+            ),
+            maxTokens: 1500
+          })
+        )
+        attribution = sendungAttributionsWarnung(
+          `${bericht.lead} ${bericht.text}`,
+          fakten
+        )
+      }
+
+      const alles = `${bericht.titel} ${bericht.lead} ${bericht.text}`
+      const warnungen = [
+        ...zeitWarnungen(alles),
+        ...zahlWarnungenSendung(alles, fakten),
+        ...(attribution === null ? [] : [attribution]),
+        // Against the show's OWN transcript: a broadcast is somebody else's
+        // work, and repeating its sentences is the one thing a press review
+        // must not do. Same 8-gram check as the Wochenblatt.
+        ...(volltext.trim().length >= 50
+          ? sendungUeberlappung(alles, volltext)
+          : ['Transkript fehlt — Ueberlappungs-Check uebersprungen.'])
+      ]
+
+      return { bericht, warnungen }
+    }
+
+    async function ueberarbeiteSendung(
+      meldung: {
+        id: string
+        titel: string | null
+        lead: string | null
+        text: string | null
+      },
+      kandidatId: string,
+      anweisung: string
+    ): Promise<string[]> {
+      const schema = await getSchema()
+      const meldungen = new ItemsService('meldungen', { schema })
+
+      const zeile = await ladeSendungsZeile(kandidatId, undefined)
+      const fakten = sendungsFakten(zeile)
+      const { bericht, warnungen } = await sendungMitChecks(
+        fakten,
+        sendungsVolltext(zeile),
+        buildSendungRevision(fakten, meldung, anweisung)
+      )
+
+      await meldungen.updateOne(meldung.id, {
+        titel: bericht.titel,
+        lead: bericht.lead,
+        text: mitSendungsQuelle(bericht.text, fakten),
+        zeit_warnungen: warnungen.length > 0 ? warnungen : null,
+        verarbeitung: 'idle',
+        anweisung: null,
+        fehler: null
+      })
+
+      return warnungen
+    }
+
+    router.post(
+      '/sendungen/:id/meldung',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const schema = await getSchema()
+          const kandidaten = new ItemsService('sendungskandidaten', {
+            schema,
+            accountability: req.accountability
+          })
+          const meldungenService = new ItemsService('meldungen', {
+            schema,
+            accountability: req.accountability
+          })
+
+          const zeile = await ladeSendungsZeile(id, req.accountability)
+
+          const vorhandene = (await meldungenService.readByQuery({
+            filter: {
+              sendungskandidat: { _eq: id },
+              status: { _neq: 'verworfen' }
+            },
+            fields: ['id'],
+            limit: 1
+          })) as { id: string }[]
+          if (vorhandene.length > 0) return next(new KandidatSchonEntschieden())
+
+          const fakten = sendungsFakten(zeile)
+          const { bericht, warnungen } = await sendungMitChecks(
+            fakten,
+            sendungsVolltext(zeile),
+            buildSendungPrompt(fakten)
+          )
+
+          const meldungId = (await meldungenService.createOne({
+            sendungskandidat: id,
+            gemeinde: zeile.gemeinde.id,
+            titel: bericht.titel,
+            lead: bericht.lead,
+            text: mitSendungsQuelle(bericht.text, fakten),
+            status: 'entwurf',
+            verarbeitung: 'idle',
+            zeit_warnungen: warnungen.length > 0 ? warnungen : null,
+            datengrundlage: {
+              quelle: zeile.quelle,
+              sendung: SENDUNGEN[zeile.quelle].name,
+              datum: fakten.datum,
+              beitrag: zeile.titel,
+              zeitmarke_sekunden: zeile.zeitmarke_sekunden,
+              quell_url: fakten.quellUrl
+            }
+          })) as string
+
+          await kandidaten.updateOne(id, { entscheid: 'uebernommen' })
+
+          return res.json({ data: { meldung: meldungId, warnungen } })
+        } catch (error) {
+          const status = (error as { status?: unknown }).status
+          if (
+            status === 403 ||
+            status === 404 ||
+            status === 400 ||
+            status === 409
+          ) {
+            return next(uebersetze(error))
+          }
+          logger.error(error, 'redaktion: Sendungs-Meldung fehlgeschlagen')
+          return next(new UeberarbeitungFehlgeschlagen())
+        }
+      }
+    )
+
+    router.post(
+      '/sendungen/:id/ablehnen',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        const GRUENDE = [
+          'nicht_relevant',
+          'nur_erwaehnt',
+          'doublette',
+          'veraltet',
+          'falsche_gemeinde',
+          'andere'
+        ]
+        const koerper = (req.body ?? {}) as {
+          grund?: unknown
+          kommentar?: unknown
+        }
+        if (
+          typeof koerper.grund !== 'string' ||
+          !GRUENDE.includes(koerper.grund)
+        ) {
+          return next(new UngueltigerAblehnungsgrund())
+        }
+        const kommentar =
+          typeof koerper.kommentar === 'string' &&
+          koerper.kommentar.trim() !== ''
+            ? koerper.kommentar.trim()
+            : null
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const kandidaten = new ItemsService('sendungskandidaten', {
+            schema: await getSchema(),
+            accountability: req.accountability
+          })
+
+          // The learning signal: "nur_erwaehnt" in particular is what teaches
+          // the next inventory the difference the prompt asks it to make.
+          await kandidaten.updateOne(id, {
+            entscheid: 'abgelehnt',
+            ablehnungsgrund: koerper.grund,
+            ablehnungskommentar: kommentar
+          })
+
+          return res.json({ data: { kandidat: id, entscheid: 'abgelehnt' } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    router.post(
+      '/sendungen/:id/weiterreichen',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        const koerper = (req.body ?? {}) as { begruendung?: unknown }
+        const begruendung =
+          typeof koerper.begruendung === 'string' &&
+          koerper.begruendung.trim() !== ''
+            ? koerper.begruendung.trim()
+            : null
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const schema = await getSchema()
+          const kandidaten = new ItemsService('sendungskandidaten', {
+            schema,
+            accountability: req.accountability
+          })
+          const hinweiseService = new ItemsService('recherchehinweise', {
+            schema,
+            accountability: req.accountability
+          })
+
+          const zeile = await ladeSendungsZeile(id, req.accountability)
+          if (zeile.entscheid !== 'offen')
+            return next(new KandidatSchonEntschieden())
+
+          // The facts travel with the lead in `quelltext`, so it outlives the
+          // broadcast row the daily cleanup will eventually delete.
+          const hinweisId = (await hinweiseService.createOne({
+            gemeinde: zeile.gemeinde.id,
+            titel: zeile.titel,
+            fundort: `${SENDUNGEN[zeile.quelle].name} vom ${sendungsFakten(zeile).datum}`,
+            begruendung: begruendung ?? zeile.begruendung,
+            quelltext: zeile.zusammenfassung,
+            status: 'offen'
+          })) as string
+
+          await kandidaten.updateOne(id, { entscheid: 'weitergereicht' })
+
+          return res.json({ data: { hinweis: hinweisId } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
       }
     )
 
@@ -2277,6 +2642,7 @@ export default defineEndpoint(
               'erscheint_am',
               'kandidat',
               'amtsblattmeldung',
+              'sendungskandidat',
               'titel',
               'lead',
               'text'
@@ -2287,6 +2653,7 @@ export default defineEndpoint(
             erscheint_am: string | null
             kandidat: string | null
             amtsblattmeldung: string | null
+            sendungskandidat: string | null
             titel: string | null
             lead: string | null
             text: string | null
@@ -2432,6 +2799,41 @@ export default defineEndpoint(
               logger.error(
                 fehler,
                 'redaktion: Amtsblatt-Ueberarbeitung fehlgeschlagen'
+              )
+              throw new UeberarbeitungFehlgeschlagen()
+            }
+          }
+
+          // A broadcast article is revised here too — the fifth kind without a
+          // `lauf`, and therefore the fifth that the statistics queue cannot
+          // carry. Forgetting this branch is how the gazette articles sat at
+          // `geplant` for ever; the list of exceptions is now the rule.
+          if (meldung.sendungskandidat !== null) {
+            await meldungen.updateOne(id, { verarbeitung: 'laeuft', anweisung })
+            try {
+              const warnungen = await ueberarbeiteSendung(
+                meldung,
+                meldung.sendungskandidat,
+                anweisung
+              )
+              await chat.createOne({
+                meldung: id,
+                rolle: 'assistant',
+                inhalt:
+                  warnungen.length === 0
+                    ? 'Neu formuliert.'
+                    : `Neu formuliert — mit Hinweisen: ${warnungen.join(' · ')}`,
+                position: position + 1
+              })
+              return res.json({ data: { meldung: id, warnungen } })
+            } catch (fehler) {
+              await meldungen.updateOne(id, {
+                verarbeitung: 'idle',
+                fehler: fehlerText(fehler)
+              })
+              logger.error(
+                fehler,
+                'redaktion: Sendungs-Ueberarbeitung fehlgeschlagen'
               )
               throw new UeberarbeitungFehlgeschlagen()
             }

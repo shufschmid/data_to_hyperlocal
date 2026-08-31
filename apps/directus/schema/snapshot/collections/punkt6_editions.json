@@ -1,0 +1,28 @@
+{
+  "collection": "punkt6_editions",
+  "meta": {
+    "accountability": "all",
+    "archive_app_filter": true,
+    "archive_field": null,
+    "archive_value": null,
+    "collapse": "open",
+    "collection": "punkt6_editions",
+    "color": null,
+    "display_template": "{{headline}}",
+    "group": null,
+    "hidden": false,
+    "icon": "live_tv",
+    "item_duplication_fields": null,
+    "note": "Eine punkt6-Sendung. Ein PDF ist immer EINE durchgehende Episode — anders als beim Regionaljournal, wo ein Dossier mehrere Sendungen buendeln kann.",
+    "preview_url": null,
+    "singleton": false,
+    "sort": null,
+    "sort_field": null,
+    "translations": null,
+    "unarchive_value": null,
+    "versioning": false
+  },
+  "schema": {
+    "name": "punkt6_editions"
+  }
+}

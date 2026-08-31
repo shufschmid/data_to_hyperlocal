@@ -7,6 +7,10 @@ type Query {
   ankuendigungen_by_id(id: ID!, version: String): ankuendigungen
   ankuendigungen_aggregated(groupBy: [String], filter: ankuendigungen_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [ankuendigungen_aggregated!]!
   ankuendigungen_by_version(version: String!, id: ID!): version_ankuendigungen
+  meldungen(filter: meldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [meldungen!]!
+  meldungen_by_id(id: ID!, version: String): meldungen
+  meldungen_aggregated(groupBy: [String], filter: meldungen_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [meldungen_aggregated!]!
+  meldungen_by_version(version: String!, id: ID!): version_meldungen
   chat_nachrichten(filter: chat_nachrichten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [chat_nachrichten!]!
   chat_nachrichten_by_id(id: ID!, version: String): chat_nachrichten
   chat_nachrichten_aggregated(groupBy: [String], filter: chat_nachrichten_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [chat_nachrichten_aggregated!]!
@@ -23,10 +27,6 @@ type Query {
   entsorgungsdokumente_by_id(id: ID!, version: String): entsorgungsdokumente
   entsorgungsdokumente_aggregated(groupBy: [String], filter: entsorgungsdokumente_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [entsorgungsdokumente_aggregated!]!
   entsorgungsdokumente_by_version(version: String!, id: ID!): version_entsorgungsdokumente
-  meldungen(filter: meldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [meldungen!]!
-  meldungen_by_id(id: ID!, version: String): meldungen
-  meldungen_aggregated(groupBy: [String], filter: meldungen_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [meldungen_aggregated!]!
-  meldungen_by_version(version: String!, id: ID!): version_meldungen
   portal_bereiche(filter: portal_bereiche_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [portal_bereiche!]!
   portal_bereiche_by_id(id: ID!, version: String): portal_bereiche
   portal_bereiche_aggregated(groupBy: [String], filter: portal_bereiche_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [portal_bereiche_aggregated!]!
@@ -59,6 +59,10 @@ type Query {
   datensaetze_by_id(id: ID!, version: String): datensaetze
   datensaetze_aggregated(groupBy: [String], filter: datensaetze_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [datensaetze_aggregated!]!
   datensaetze_by_version(version: String!, id: ID!): version_datensaetze
+  dossiers(filter: dossiers_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [dossiers!]!
+  dossiers_by_id(id: ID!, version: String): dossiers
+  dossiers_aggregated(groupBy: [String], filter: dossiers_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [dossiers_aggregated!]!
+  dossiers_by_version(version: String!, id: ID!): version_dossiers
   wochenblaetter(filter: wochenblaetter_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [wochenblaetter!]!
   wochenblaetter_by_id(id: ID!, version: String): wochenblaetter
   wochenblaetter_aggregated(groupBy: [String], filter: wochenblaetter_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [wochenblaetter_aggregated!]!
@@ -87,6 +91,22 @@ type Query {
   gemeinden_by_id(id: ID!, version: String): gemeinden
   gemeinden_aggregated(groupBy: [String], filter: gemeinden_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [gemeinden_aggregated!]!
   gemeinden_by_version(version: String!, id: ID!): version_gemeinden
+  editions(filter: editions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [editions!]!
+  editions_by_id(id: ID!, version: String): editions
+  editions_aggregated(groupBy: [String], filter: editions_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [editions_aggregated!]!
+  editions_by_version(version: String!, id: ID!): version_editions
+  punkt6_dossiers(filter: punkt6_dossiers_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [punkt6_dossiers!]!
+  punkt6_dossiers_by_id(id: ID!, version: String): punkt6_dossiers
+  punkt6_dossiers_aggregated(groupBy: [String], filter: punkt6_dossiers_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [punkt6_dossiers_aggregated!]!
+  punkt6_dossiers_by_version(version: String!, id: ID!): version_punkt6_dossiers
+  punkt6_editions(filter: punkt6_editions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [punkt6_editions!]!
+  punkt6_editions_by_id(id: ID!, version: String): punkt6_editions
+  punkt6_editions_aggregated(groupBy: [String], filter: punkt6_editions_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [punkt6_editions_aggregated!]!
+  punkt6_editions_by_version(version: String!, id: ID!): version_punkt6_editions
+  sendungskandidaten(filter: sendungskandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [sendungskandidaten!]!
+  sendungskandidaten_by_id(id: ID!, version: String): sendungskandidaten
+  sendungskandidaten_aggregated(groupBy: [String], filter: sendungskandidaten_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [sendungskandidaten_aggregated!]!
+  sendungskandidaten_by_version(version: String!, id: ID!): version_sendungskandidaten
 }
 
 type Mutation {
@@ -94,6 +114,8 @@ type Mutation {
   create_quellen_item(data: create_quellen_input!): quellen
   create_ankuendigungen_items(filter: ankuendigungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_ankuendigungen_input!]): [ankuendigungen!]!
   create_ankuendigungen_item(data: create_ankuendigungen_input!): ankuendigungen
+  create_meldungen_items(filter: meldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_meldungen_input!]): [meldungen!]!
+  create_meldungen_item(data: create_meldungen_input!): meldungen
   create_chat_nachrichten_items(filter: chat_nachrichten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_chat_nachrichten_input!]): [chat_nachrichten!]!
   create_chat_nachrichten_item(data: create_chat_nachrichten_input!): chat_nachrichten
   create_laeufe_items(filter: laeufe_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_laeufe_input!]): [laeufe!]!
@@ -102,8 +124,6 @@ type Mutation {
   create_redaktionswissen_item(data: create_redaktionswissen_input!): redaktionswissen
   create_entsorgungsdokumente_items(filter: entsorgungsdokumente_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_entsorgungsdokumente_input!]): [entsorgungsdokumente!]!
   create_entsorgungsdokumente_item(data: create_entsorgungsdokumente_input!): entsorgungsdokumente
-  create_meldungen_items(filter: meldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_meldungen_input!]): [meldungen!]!
-  create_meldungen_item(data: create_meldungen_input!): meldungen
   create_portal_bereiche_items(filter: portal_bereiche_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_portal_bereiche_input!]): [portal_bereiche!]!
   create_portal_bereiche_item(data: create_portal_bereiche_input!): portal_bereiche
   create_portal_seiten_items(filter: portal_seiten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_portal_seiten_input!]): [portal_seiten!]!
@@ -120,6 +140,8 @@ type Mutation {
   create_entsorgungstermine_item(data: create_entsorgungstermine_input!): entsorgungstermine
   create_datensaetze_items(filter: datensaetze_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_datensaetze_input!]): [datensaetze!]!
   create_datensaetze_item(data: create_datensaetze_input!): datensaetze
+  create_dossiers_items(filter: dossiers_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_dossiers_input!]): [dossiers!]!
+  create_dossiers_item(data: create_dossiers_input!): dossiers
   create_wochenblaetter_items(filter: wochenblaetter_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_wochenblaetter_input!]): [wochenblaetter!]!
   create_wochenblaetter_item(data: create_wochenblaetter_input!): wochenblaetter
   create_wochenblattausgaben_items(filter: wochenblattausgaben_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_wochenblattausgaben_input!]): [wochenblattausgaben!]!
@@ -134,12 +156,23 @@ type Mutation {
   create_amtsblattmeldungen_item(data: create_amtsblattmeldungen_input!): amtsblattmeldungen
   create_gemeinden_items(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_gemeinden_input!]): [gemeinden!]!
   create_gemeinden_item(data: create_gemeinden_input!): gemeinden
+  create_editions_items(filter: editions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_editions_input!]): [editions!]!
+  create_editions_item(data: create_editions_input!): editions
+  create_punkt6_dossiers_items(filter: punkt6_dossiers_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_punkt6_dossiers_input!]): [punkt6_dossiers!]!
+  create_punkt6_dossiers_item(data: create_punkt6_dossiers_input!): punkt6_dossiers
+  create_punkt6_editions_items(filter: punkt6_editions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_punkt6_editions_input!]): [punkt6_editions!]!
+  create_punkt6_editions_item(data: create_punkt6_editions_input!): punkt6_editions
+  create_sendungskandidaten_items(filter: sendungskandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_sendungskandidaten_input!]): [sendungskandidaten!]!
+  create_sendungskandidaten_item(data: create_sendungskandidaten_input!): sendungskandidaten
   update_quellen_items(filter: quellen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_quellen_input!): [quellen!]!
   update_quellen_batch(filter: quellen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_quellen_input!]): [quellen!]!
   update_quellen_item(id: ID!, data: update_quellen_input!): quellen
   update_ankuendigungen_items(filter: ankuendigungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_ankuendigungen_input!): [ankuendigungen!]!
   update_ankuendigungen_batch(filter: ankuendigungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_ankuendigungen_input!]): [ankuendigungen!]!
   update_ankuendigungen_item(id: ID!, data: update_ankuendigungen_input!): ankuendigungen
+  update_meldungen_items(filter: meldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_meldungen_input!): [meldungen!]!
+  update_meldungen_batch(filter: meldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_meldungen_input!]): [meldungen!]!
+  update_meldungen_item(id: ID!, data: update_meldungen_input!): meldungen
   update_chat_nachrichten_items(filter: chat_nachrichten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_chat_nachrichten_input!): [chat_nachrichten!]!
   update_chat_nachrichten_batch(filter: chat_nachrichten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_chat_nachrichten_input!]): [chat_nachrichten!]!
   update_chat_nachrichten_item(id: ID!, data: update_chat_nachrichten_input!): chat_nachrichten
@@ -152,9 +185,6 @@ type Mutation {
   update_entsorgungsdokumente_items(filter: entsorgungsdokumente_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_entsorgungsdokumente_input!): [entsorgungsdokumente!]!
   update_entsorgungsdokumente_batch(filter: entsorgungsdokumente_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_entsorgungsdokumente_input!]): [entsorgungsdokumente!]!
   update_entsorgungsdokumente_item(id: ID!, data: update_entsorgungsdokumente_input!): entsorgungsdokumente
-  update_meldungen_items(filter: meldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_meldungen_input!): [meldungen!]!
-  update_meldungen_batch(filter: meldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_meldungen_input!]): [meldungen!]!
-  update_meldungen_item(id: ID!, data: update_meldungen_input!): meldungen
   update_portal_bereiche_items(filter: portal_bereiche_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_portal_bereiche_input!): [portal_bereiche!]!
   update_portal_bereiche_batch(filter: portal_bereiche_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_portal_bereiche_input!]): [portal_bereiche!]!
   update_portal_bereiche_item(id: ID!, data: update_portal_bereiche_input!): portal_bereiche
@@ -179,6 +209,9 @@ type Mutation {
   update_datensaetze_items(filter: datensaetze_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_datensaetze_input!): [datensaetze!]!
   update_datensaetze_batch(filter: datensaetze_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_datensaetze_input!]): [datensaetze!]!
   update_datensaetze_item(id: ID!, data: update_datensaetze_input!): datensaetze
+  update_dossiers_items(filter: dossiers_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_dossiers_input!): [dossiers!]!
+  update_dossiers_batch(filter: dossiers_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_dossiers_input!]): [dossiers!]!
+  update_dossiers_item(id: ID!, data: update_dossiers_input!): dossiers
   update_wochenblaetter_items(filter: wochenblaetter_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_wochenblaetter_input!): [wochenblaetter!]!
   update_wochenblaetter_batch(filter: wochenblaetter_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_wochenblaetter_input!]): [wochenblaetter!]!
   update_wochenblaetter_item(id: ID!, data: update_wochenblaetter_input!): wochenblaetter
@@ -200,10 +233,24 @@ type Mutation {
   update_gemeinden_items(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_gemeinden_input!): [gemeinden!]!
   update_gemeinden_batch(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_gemeinden_input!]): [gemeinden!]!
   update_gemeinden_item(id: ID!, data: update_gemeinden_input!): gemeinden
+  update_editions_items(filter: editions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_editions_input!): [editions!]!
+  update_editions_batch(filter: editions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_editions_input!]): [editions!]!
+  update_editions_item(id: ID!, data: update_editions_input!): editions
+  update_punkt6_dossiers_items(filter: punkt6_dossiers_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_punkt6_dossiers_input!): [punkt6_dossiers!]!
+  update_punkt6_dossiers_batch(filter: punkt6_dossiers_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_punkt6_dossiers_input!]): [punkt6_dossiers!]!
+  update_punkt6_dossiers_item(id: ID!, data: update_punkt6_dossiers_input!): punkt6_dossiers
+  update_punkt6_editions_items(filter: punkt6_editions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_punkt6_editions_input!): [punkt6_editions!]!
+  update_punkt6_editions_batch(filter: punkt6_editions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_punkt6_editions_input!]): [punkt6_editions!]!
+  update_punkt6_editions_item(id: ID!, data: update_punkt6_editions_input!): punkt6_editions
+  update_sendungskandidaten_items(filter: sendungskandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_sendungskandidaten_input!): [sendungskandidaten!]!
+  update_sendungskandidaten_batch(filter: sendungskandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_sendungskandidaten_input!]): [sendungskandidaten!]!
+  update_sendungskandidaten_item(id: ID!, data: update_sendungskandidaten_input!): sendungskandidaten
   delete_quellen_items(ids: [ID]!): delete_many
   delete_quellen_item(id: ID!): delete_one
   delete_ankuendigungen_items(ids: [ID]!): delete_many
   delete_ankuendigungen_item(id: ID!): delete_one
+  delete_meldungen_items(ids: [ID]!): delete_many
+  delete_meldungen_item(id: ID!): delete_one
   delete_chat_nachrichten_items(ids: [ID]!): delete_many
   delete_chat_nachrichten_item(id: ID!): delete_one
   delete_laeufe_items(ids: [ID]!): delete_many
@@ -212,8 +259,6 @@ type Mutation {
   delete_redaktionswissen_item(id: ID!): delete_one
   delete_entsorgungsdokumente_items(ids: [ID]!): delete_many
   delete_entsorgungsdokumente_item(id: ID!): delete_one
-  delete_meldungen_items(ids: [ID]!): delete_many
-  delete_meldungen_item(id: ID!): delete_one
   delete_portal_bereiche_items(ids: [ID]!): delete_many
   delete_portal_bereiche_item(id: ID!): delete_one
   delete_portal_seiten_items(ids: [ID]!): delete_many
@@ -230,6 +275,8 @@ type Mutation {
   delete_entsorgungstermine_item(id: ID!): delete_one
   delete_datensaetze_items(ids: [ID]!): delete_many
   delete_datensaetze_item(id: ID!): delete_one
+  delete_dossiers_items(ids: [ID]!): delete_many
+  delete_dossiers_item(id: ID!): delete_one
   delete_wochenblaetter_items(ids: [ID]!): delete_many
   delete_wochenblaetter_item(id: ID!): delete_one
   delete_wochenblattausgaben_items(ids: [ID]!): delete_many
@@ -244,6 +291,14 @@ type Mutation {
   delete_amtsblattmeldungen_item(id: ID!): delete_one
   delete_gemeinden_items(ids: [ID]!): delete_many
   delete_gemeinden_item(id: ID!): delete_one
+  delete_editions_items(ids: [ID]!): delete_many
+  delete_editions_item(id: ID!): delete_one
+  delete_punkt6_dossiers_items(ids: [ID]!): delete_many
+  delete_punkt6_dossiers_item(id: ID!): delete_one
+  delete_punkt6_editions_items(ids: [ID]!): delete_many
+  delete_punkt6_editions_item(id: ID!): delete_one
+  delete_sendungskandidaten_items(ids: [ID]!): delete_many
+  delete_sendungskandidaten_item(id: ID!): delete_one
 }
 
 type Subscription {
@@ -272,11 +327,11 @@ type Subscription {
   directus_deployment_runs_mutated(event: EventEnum): directus_deployment_runs_mutated
   quellen_mutated(event: EventEnum): quellen_mutated
   ankuendigungen_mutated(event: EventEnum): ankuendigungen_mutated
+  meldungen_mutated(event: EventEnum): meldungen_mutated
   chat_nachrichten_mutated(event: EventEnum): chat_nachrichten_mutated
   laeufe_mutated(event: EventEnum): laeufe_mutated
   redaktionswissen_mutated(event: EventEnum): redaktionswissen_mutated
   entsorgungsdokumente_mutated(event: EventEnum): entsorgungsdokumente_mutated
-  meldungen_mutated(event: EventEnum): meldungen_mutated
   portal_bereiche_mutated(event: EventEnum): portal_bereiche_mutated
   portal_seiten_mutated(event: EventEnum): portal_seiten_mutated
   directus_sync_id_map_mutated(event: EventEnum): directus_sync_id_map_mutated
@@ -285,6 +340,7 @@ type Subscription {
   entsorgungskalender_mutated(event: EventEnum): entsorgungskalender_mutated
   entsorgungstermine_mutated(event: EventEnum): entsorgungstermine_mutated
   datensaetze_mutated(event: EventEnum): datensaetze_mutated
+  dossiers_mutated(event: EventEnum): dossiers_mutated
   wochenblaetter_mutated(event: EventEnum): wochenblaetter_mutated
   wochenblattausgaben_mutated(event: EventEnum): wochenblattausgaben_mutated
   recherchehinweise_mutated(event: EventEnum): recherchehinweise_mutated
@@ -292,6 +348,10 @@ type Subscription {
   wochenblattgemeinden_mutated(event: EventEnum): wochenblattgemeinden_mutated
   amtsblattmeldungen_mutated(event: EventEnum): amtsblattmeldungen_mutated
   gemeinden_mutated(event: EventEnum): gemeinden_mutated
+  editions_mutated(event: EventEnum): editions_mutated
+  punkt6_dossiers_mutated(event: EventEnum): punkt6_dossiers_mutated
+  punkt6_editions_mutated(event: EventEnum): punkt6_editions_mutated
+  sendungskandidaten_mutated(event: EventEnum): sendungskandidaten_mutated
 }
 
 """The `Boolean` scalar type represents `true` or `false`."""
@@ -1508,6 +1568,144 @@ type directus_versions_mutated {
   data: directus_versions
 }
 
+type dossiers {
+  id: ID!
+  status: String
+  source_file(filter: directus_files_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): directus_files
+
+  """IMAP Message-ID. Null bei Handupload."""
+  source_message_id: String
+
+  """Der Betreff — er ist zugleich der Dedup-Schluessel dieser Instanz."""
+  source_subject: String
+  error_message: String
+  processed_at: Date
+  processed_at_func: datetime_functions
+  date_created: Date
+  date_created_func: datetime_functions
+  date_updated: Date
+  date_updated_func: datetime_functions
+  editions(filter: editions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [editions]
+}
+
+type dossiers_aggregated {
+  group: JSON
+  countAll: Int
+  count: dossiers_aggregated_count
+  countDistinct: dossiers_aggregated_count
+}
+
+type dossiers_aggregated_count {
+  id: Int
+  status: Int
+  source_file: Int
+
+  """IMAP Message-ID. Null bei Handupload."""
+  source_message_id: Int
+
+  """Der Betreff — er ist zugleich der Dedup-Schluessel dieser Instanz."""
+  source_subject: Int
+  error_message: Int
+  processed_at: Int
+  date_created: Int
+  date_updated: Int
+}
+
+type dossiers_mutated {
+  key: ID!
+  event: EventEnum
+  data: dossiers
+}
+
+type editions {
+  id: ID!
+  dossier(filter: dossiers_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): dossiers
+  broadcast_date: Date!
+  broadcast_date_func: date_functions
+
+  """Aus der Stunde der SRGSSR-Episode abgeleitet."""
+  edition_label: String
+  broadcast_at: Date
+  broadcast_at_func: datetime_functions
+  headline: String
+  lead: String
+
+  """
+  Freier Prosatext, darum cast-json und nicht cast-csv — Kommas wuerden ihn zerreissen.
+  """
+  teaser_blocks: JSON
+  teaser_blocks_func: count_functions
+
+  """SRGSSR podcastHdUrl — eine direkte, oeffentliche MP3."""
+  audio_url: String
+  srgssr_urn: String
+
+  """Absaetze mit Zeitmarke."""
+  transcript: JSON
+  transcript_func: count_functions
+
+  """Weitere Themen der Sendung, je mit Zeitmarke."""
+  extra_topics: JSON
+  extra_topics_func: count_functions
+
+  """
+  Je Beitrag gesetzt, wenn die SRGSSR-Aufloesung scheitert — der Beitrag entsteht trotzdem, nur ohne Audio.
+  """
+  resolution_error: String
+  date_created: Date
+  date_created_func: datetime_functions
+  date_updated: Date
+  date_updated_func: datetime_functions
+  kandidaten(filter: sendungskandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [sendungskandidaten]
+}
+
+type editions_aggregated {
+  group: JSON
+  countAll: Int
+  count: editions_aggregated_count
+  countDistinct: editions_aggregated_count
+}
+
+type editions_aggregated_count {
+  id: Int
+  dossier: Int
+  broadcast_date: Int
+
+  """Aus der Stunde der SRGSSR-Episode abgeleitet."""
+  edition_label: Int
+  broadcast_at: Int
+  headline: Int
+  lead: Int
+
+  """
+  Freier Prosatext, darum cast-json und nicht cast-csv — Kommas wuerden ihn zerreissen.
+  """
+  teaser_blocks: Int
+
+  """SRGSSR podcastHdUrl — eine direkte, oeffentliche MP3."""
+  audio_url: Int
+  srgssr_urn: Int
+
+  """Absaetze mit Zeitmarke."""
+  transcript: Int
+
+  """Weitere Themen der Sendung, je mit Zeitmarke."""
+  extra_topics: Int
+
+  """
+  Je Beitrag gesetzt, wenn die SRGSSR-Aufloesung scheitert — der Beitrag entsteht trotzdem, nur ohne Audio.
+  """
+  resolution_error: Int
+  date_created: Int
+  date_updated: Int
+}
+
+type editions_mutated {
+  key: ID!
+  event: EventEnum
+  data: editions
+}
+
 type entsorgungsdokumente {
   id: ID!
   kalender(filter: entsorgungskalender_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): entsorgungskalender
@@ -1997,6 +2195,7 @@ type meldungen {
   """
   perle: Boolean
   amtsblattmeldung(filter: amtsblattmeldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): amtsblattmeldungen
+  sendungskandidat(filter: sendungskandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): sendungskandidaten
 }
 
 type meldungen_aggregated {
@@ -2080,6 +2279,11 @@ type meldungen_aggregated_count {
   Die amtliche Publikation, aus der diese Meldung entstand. Die vierte Art neben lauf, spiel und der Erinnerung.
   """
   amtsblattmeldung: Int
+
+  """
+  Der Sendungsbeitrag, aus dem diese Meldung entstand. Die fuenfte Art neben lauf, spiel, kandidat und amtsblattmeldung.
+  """
+  sendungskandidat: Int
 }
 
 type meldungen_aggregated_fields {
@@ -2253,6 +2457,143 @@ type portal_seiten_mutated {
   key: ID!
   event: EventEnum
   data: portal_seiten
+}
+
+type punkt6_dossiers {
+  id: ID!
+  status: String
+  source_file(filter: directus_files_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): directus_files
+
+  """IMAP Message-ID. Null bei Handupload."""
+  source_message_id: String
+
+  """Der Betreff — er ist zugleich der Dedup-Schluessel dieser Instanz."""
+  source_subject: String
+  error_message: String
+  processed_at: Date
+  processed_at_func: datetime_functions
+  date_created: Date
+  date_created_func: datetime_functions
+  date_updated: Date
+  date_updated_func: datetime_functions
+  editions(filter: punkt6_editions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [punkt6_editions]
+}
+
+type punkt6_dossiers_aggregated {
+  group: JSON
+  countAll: Int
+  count: punkt6_dossiers_aggregated_count
+  countDistinct: punkt6_dossiers_aggregated_count
+}
+
+type punkt6_dossiers_aggregated_count {
+  id: Int
+  status: Int
+  source_file: Int
+
+  """IMAP Message-ID. Null bei Handupload."""
+  source_message_id: Int
+
+  """Der Betreff — er ist zugleich der Dedup-Schluessel dieser Instanz."""
+  source_subject: Int
+  error_message: Int
+  processed_at: Int
+  date_created: Int
+  date_updated: Int
+}
+
+type punkt6_dossiers_mutated {
+  key: ID!
+  event: EventEnum
+  data: punkt6_dossiers
+}
+
+type punkt6_editions {
+  id: ID!
+  dossier(filter: punkt6_dossiers_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): punkt6_dossiers
+  broadcast_date: Date!
+  broadcast_date_func: date_functions
+
+  """Titel des Hauptbeitrags, aus dem ersten Clip von telebasel.ch."""
+  headline: String
+  lead: String
+
+  """Das Transkript der GANZEN Episode, nicht nur des Hauptbeitrags."""
+  transcript: JSON
+  transcript_func: count_functions
+  main_start_seconds: Int
+  main_end_seconds: Int
+
+  """
+  Jeder weitere Beitrag der Sendung, mit exakten Grenzen von telebasel.ch.
+  """
+  extra_topics: JSON
+  extra_topics_func: count_functions
+
+  """Video der ganzen Episode, von allen Beitraegen geteilt."""
+  video_url: String
+
+  """Die telebasel.ch-Seite der Episode."""
+  episode_url: String
+  resolution_error: String
+  date_created: Date
+  date_created_func: datetime_functions
+  date_updated: Date
+  date_updated_func: datetime_functions
+  kandidaten(filter: sendungskandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [sendungskandidaten]
+}
+
+type punkt6_editions_aggregated {
+  group: JSON
+  countAll: Int
+  count: punkt6_editions_aggregated_count
+  countDistinct: punkt6_editions_aggregated_count
+  avg: punkt6_editions_aggregated_fields
+  sum: punkt6_editions_aggregated_fields
+  avgDistinct: punkt6_editions_aggregated_fields
+  sumDistinct: punkt6_editions_aggregated_fields
+  min: punkt6_editions_aggregated_fields
+  max: punkt6_editions_aggregated_fields
+}
+
+type punkt6_editions_aggregated_count {
+  id: Int
+  dossier: Int
+  broadcast_date: Int
+
+  """Titel des Hauptbeitrags, aus dem ersten Clip von telebasel.ch."""
+  headline: Int
+  lead: Int
+
+  """Das Transkript der GANZEN Episode, nicht nur des Hauptbeitrags."""
+  transcript: Int
+  main_start_seconds: Int
+  main_end_seconds: Int
+
+  """
+  Jeder weitere Beitrag der Sendung, mit exakten Grenzen von telebasel.ch.
+  """
+  extra_topics: Int
+
+  """Video der ganzen Episode, von allen Beitraegen geteilt."""
+  video_url: Int
+
+  """Die telebasel.ch-Seite der Episode."""
+  episode_url: Int
+  resolution_error: Int
+  date_created: Int
+  date_updated: Int
+}
+
+type punkt6_editions_aggregated_fields {
+  main_start_seconds: Float
+  main_end_seconds: Float
+}
+
+type punkt6_editions_mutated {
+  key: ID!
+  event: EventEnum
+  data: punkt6_editions
 }
 
 type quellen {
@@ -2469,6 +2810,83 @@ type redaktionswissen_mutated {
   key: ID!
   event: EventEnum
   data: redaktionswissen
+}
+
+type sendungskandidaten {
+  id: ID!
+  quelle: String!
+  titel: String
+
+  """
+  Die Faktenliste — die EINZIGE Quelle des Meldungs-Prompts. Nie das Transkript selbst.
+  """
+  zusammenfassung: String
+
+  """Wo der Beitrag in der Sendung beginnt."""
+  zeitmarke_sekunden: Int
+
+  """Warum die Sichtung das fuer die Gemeinde relevant haelt."""
+  begruendung: String
+  entscheid: String
+  ablehnungsgrund: String
+  ablehnungskommentar: String
+  date_created: Date
+  date_created_func: datetime_functions
+  date_updated: Date
+  date_updated_func: datetime_functions
+  edition(filter: editions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): editions
+  punkt6_edition(filter: punkt6_editions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): punkt6_editions
+  gemeinde(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): gemeinden
+  meldungen(filter: meldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [meldungen]
+}
+
+type sendungskandidaten_aggregated {
+  group: JSON
+  countAll: Int
+  count: sendungskandidaten_aggregated_count
+  countDistinct: sendungskandidaten_aggregated_count
+  avg: sendungskandidaten_aggregated_fields
+  sum: sendungskandidaten_aggregated_fields
+  avgDistinct: sendungskandidaten_aggregated_fields
+  sumDistinct: sendungskandidaten_aggregated_fields
+  min: sendungskandidaten_aggregated_fields
+  max: sendungskandidaten_aggregated_fields
+}
+
+type sendungskandidaten_aggregated_count {
+  id: Int
+  quelle: Int
+  titel: Int
+
+  """
+  Die Faktenliste — die EINZIGE Quelle des Meldungs-Prompts. Nie das Transkript selbst.
+  """
+  zusammenfassung: Int
+
+  """Wo der Beitrag in der Sendung beginnt."""
+  zeitmarke_sekunden: Int
+
+  """Warum die Sichtung das fuer die Gemeinde relevant haelt."""
+  begruendung: Int
+  entscheid: Int
+  ablehnungsgrund: Int
+  ablehnungskommentar: Int
+  date_created: Int
+  date_updated: Int
+  edition: Int
+  punkt6_edition: Int
+  gemeinde: Int
+}
+
+type sendungskandidaten_aggregated_fields {
+  """Wo der Beitrag in der Sendung beginnt."""
+  zeitmarke_sekunden: Float
+}
+
+type sendungskandidaten_mutated {
+  key: ID!
+  event: EventEnum
+  data: sendungskandidaten
 }
 
 type spiele {
@@ -2850,6 +3268,60 @@ type version_directus_sync_id_map {
 }
 
 """"""
+type version_dossiers {
+  id: ID
+  status: String
+  source_file: JSON
+
+  """IMAP Message-ID. Null bei Handupload."""
+  source_message_id: String
+
+  """Der Betreff — er ist zugleich der Dedup-Schluessel dieser Instanz."""
+  source_subject: String
+  error_message: String
+  processed_at: Date
+  date_created: Date
+  date_updated: Date
+  editions: JSON
+}
+
+""""""
+type version_editions {
+  id: ID
+  dossier: JSON
+  broadcast_date: Date
+
+  """Aus der Stunde der SRGSSR-Episode abgeleitet."""
+  edition_label: String
+  broadcast_at: Date
+  headline: String
+  lead: String
+
+  """
+  Freier Prosatext, darum cast-json und nicht cast-csv — Kommas wuerden ihn zerreissen.
+  """
+  teaser_blocks: JSON
+
+  """SRGSSR podcastHdUrl — eine direkte, oeffentliche MP3."""
+  audio_url: String
+  srgssr_urn: String
+
+  """Absaetze mit Zeitmarke."""
+  transcript: JSON
+
+  """Weitere Themen der Sendung, je mit Zeitmarke."""
+  extra_topics: JSON
+
+  """
+  Je Beitrag gesetzt, wenn die SRGSSR-Aufloesung scheitert — der Beitrag entsteht trotzdem, nur ohne Audio.
+  """
+  resolution_error: String
+  date_created: Date
+  date_updated: Date
+  kandidaten: JSON
+}
+
+""""""
 type version_entsorgungsdokumente {
   id: ID
   kalender: JSON
@@ -3060,6 +3532,7 @@ type version_meldungen {
   """
   perle: Boolean
   amtsblattmeldung: JSON
+  sendungskandidat: JSON
 }
 
 """"""
@@ -3115,6 +3588,55 @@ type version_portal_seiten {
   geprueft_am: Date
   date_created: Date
   date_updated: Date
+}
+
+""""""
+type version_punkt6_dossiers {
+  id: ID
+  status: String
+  source_file: JSON
+
+  """IMAP Message-ID. Null bei Handupload."""
+  source_message_id: String
+
+  """Der Betreff — er ist zugleich der Dedup-Schluessel dieser Instanz."""
+  source_subject: String
+  error_message: String
+  processed_at: Date
+  date_created: Date
+  date_updated: Date
+  editions: JSON
+}
+
+""""""
+type version_punkt6_editions {
+  id: ID
+  dossier: JSON
+  broadcast_date: Date
+
+  """Titel des Hauptbeitrags, aus dem ersten Clip von telebasel.ch."""
+  headline: String
+  lead: String
+
+  """Das Transkript der GANZEN Episode, nicht nur des Hauptbeitrags."""
+  transcript: JSON
+  main_start_seconds: Int
+  main_end_seconds: Int
+
+  """
+  Jeder weitere Beitrag der Sendung, mit exakten Grenzen von telebasel.ch.
+  """
+  extra_topics: JSON
+
+  """Video der ganzen Episode, von allen Beitraegen geteilt."""
+  video_url: String
+
+  """Die telebasel.ch-Seite der Episode."""
+  episode_url: String
+  resolution_error: String
+  date_created: Date
+  date_updated: Date
+  kandidaten: JSON
 }
 
 """"""
@@ -3194,6 +3716,33 @@ type version_redaktionswissen {
   aktiv: Boolean
   date_created: Date
   date_updated: Date
+}
+
+""""""
+type version_sendungskandidaten {
+  id: ID
+  quelle: String
+  titel: String
+
+  """
+  Die Faktenliste — die EINZIGE Quelle des Meldungs-Prompts. Nie das Transkript selbst.
+  """
+  zusammenfassung: String
+
+  """Wo der Beitrag in der Sendung beginnt."""
+  zeitmarke_sekunden: Int
+
+  """Warum die Sichtung das fuer die Gemeinde relevant haelt."""
+  begruendung: String
+  entscheid: String
+  ablehnungsgrund: String
+  ablehnungskommentar: String
+  date_created: Date
+  date_updated: Date
+  edition: JSON
+  punkt6_edition: JSON
+  gemeinde: JSON
+  meldungen: JSON
 }
 
 """"""
@@ -4161,6 +4710,58 @@ input create_directus_users_input {
   policies: [create_directus_access_input]
 }
 
+input create_dossiers_input {
+  id: ID
+  status: String
+  source_file: create_directus_files_input
+
+  """IMAP Message-ID. Null bei Handupload."""
+  source_message_id: String
+
+  """Der Betreff — er ist zugleich der Dedup-Schluessel dieser Instanz."""
+  source_subject: String
+  error_message: String
+  processed_at: Date
+  date_created: Date
+  date_updated: Date
+  editions: [create_editions_input]
+}
+
+input create_editions_input {
+  id: ID
+  dossier: create_dossiers_input
+  broadcast_date: Date!
+
+  """Aus der Stunde der SRGSSR-Episode abgeleitet."""
+  edition_label: String
+  broadcast_at: Date
+  headline: String
+  lead: String
+
+  """
+  Freier Prosatext, darum cast-json und nicht cast-csv — Kommas wuerden ihn zerreissen.
+  """
+  teaser_blocks: JSON
+
+  """SRGSSR podcastHdUrl — eine direkte, oeffentliche MP3."""
+  audio_url: String
+  srgssr_urn: String
+
+  """Absaetze mit Zeitmarke."""
+  transcript: JSON
+
+  """Weitere Themen der Sendung, je mit Zeitmarke."""
+  extra_topics: JSON
+
+  """
+  Je Beitrag gesetzt, wenn die SRGSSR-Aufloesung scheitert — der Beitrag entsteht trotzdem, nur ohne Audio.
+  """
+  resolution_error: String
+  date_created: Date
+  date_updated: Date
+  kandidaten: [create_sendungskandidaten_input]
+}
+
 input create_entsorgungsdokumente_input {
   id: ID
   kalender: create_entsorgungskalender_input
@@ -4366,6 +4967,7 @@ input create_meldungen_input {
   """
   perle: Boolean
   amtsblattmeldung: create_amtsblattmeldungen_input
+  sendungskandidat: create_sendungskandidaten_input
 }
 
 input create_portal_bereiche_input {
@@ -4419,6 +5021,53 @@ input create_portal_seiten_input {
   geprueft_am: Date
   date_created: Date
   date_updated: Date
+}
+
+input create_punkt6_dossiers_input {
+  id: ID
+  status: String
+  source_file: create_directus_files_input
+
+  """IMAP Message-ID. Null bei Handupload."""
+  source_message_id: String
+
+  """Der Betreff — er ist zugleich der Dedup-Schluessel dieser Instanz."""
+  source_subject: String
+  error_message: String
+  processed_at: Date
+  date_created: Date
+  date_updated: Date
+  editions: [create_punkt6_editions_input]
+}
+
+input create_punkt6_editions_input {
+  id: ID
+  dossier: create_punkt6_dossiers_input
+  broadcast_date: Date!
+
+  """Titel des Hauptbeitrags, aus dem ersten Clip von telebasel.ch."""
+  headline: String
+  lead: String
+
+  """Das Transkript der GANZEN Episode, nicht nur des Hauptbeitrags."""
+  transcript: JSON
+  main_start_seconds: Int
+  main_end_seconds: Int
+
+  """
+  Jeder weitere Beitrag der Sendung, mit exakten Grenzen von telebasel.ch.
+  """
+  extra_topics: JSON
+
+  """Video der ganzen Episode, von allen Beitraegen geteilt."""
+  video_url: String
+
+  """Die telebasel.ch-Seite der Episode."""
+  episode_url: String
+  resolution_error: String
+  date_created: Date
+  date_updated: Date
+  kandidaten: [create_sendungskandidaten_input]
 }
 
 input create_quellen_input {
@@ -4495,6 +5144,32 @@ input create_redaktionswissen_input {
   aktiv: Boolean
   date_created: Date
   date_updated: Date
+}
+
+input create_sendungskandidaten_input {
+  id: ID
+  quelle: String!
+  titel: String
+
+  """
+  Die Faktenliste — die EINZIGE Quelle des Meldungs-Prompts. Nie das Transkript selbst.
+  """
+  zusammenfassung: String
+
+  """Wo der Beitrag in der Sendung beginnt."""
+  zeitmarke_sekunden: Int
+
+  """Warum die Sichtung das fuer die Gemeinde relevant haelt."""
+  begruendung: String
+  entscheid: String
+  ablehnungsgrund: String
+  ablehnungskommentar: String
+  date_created: Date
+  date_updated: Date
+  edition: create_editions_input
+  punkt6_edition: create_punkt6_editions_input
+  gemeinde: create_gemeinden_input
+  meldungen: [create_meldungen_input]
 }
 
 input create_spiele_input {
@@ -5293,6 +5968,83 @@ input directus_versions_filter {
   _or: [directus_versions_filter]
 }
 
+input dossiers_filter {
+  id: id_filter_operators
+  status: string_filter_operators
+  source_file: directus_files_filter
+  source_message_id: string_filter_operators
+  source_subject: string_filter_operators
+  error_message: string_filter_operators
+  processed_at: date_filter_operators
+  processed_at_func: datetime_function_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  _and: [dossiers_filter]
+  _or: [dossiers_filter]
+  editions: editions_quantifier_filter
+}
+
+input editions_filter {
+  id: id_filter_operators
+  dossier: dossiers_filter
+  broadcast_date: date_filter_operators
+  broadcast_date_func: date_function_filter_operators
+  edition_label: string_filter_operators
+  broadcast_at: date_filter_operators
+  broadcast_at_func: datetime_function_filter_operators
+  headline: string_filter_operators
+  lead: string_filter_operators
+  teaser_blocks: string_filter_operators
+  teaser_blocks_func: count_function_filter_operators
+  audio_url: string_filter_operators
+  srgssr_urn: string_filter_operators
+  transcript: string_filter_operators
+  transcript_func: count_function_filter_operators
+  extra_topics: string_filter_operators
+  extra_topics_func: count_function_filter_operators
+  resolution_error: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  _and: [editions_filter]
+  _or: [editions_filter]
+  kandidaten: sendungskandidaten_quantifier_filter
+}
+
+""""""
+input editions_quantifier_filter {
+  id: id_filter_operators
+  dossier: dossiers_filter
+  broadcast_date: date_filter_operators
+  broadcast_date_func: date_function_filter_operators
+  edition_label: string_filter_operators
+  broadcast_at: date_filter_operators
+  broadcast_at_func: datetime_function_filter_operators
+  headline: string_filter_operators
+  lead: string_filter_operators
+  teaser_blocks: string_filter_operators
+  teaser_blocks_func: count_function_filter_operators
+  audio_url: string_filter_operators
+  srgssr_urn: string_filter_operators
+  transcript: string_filter_operators
+  transcript_func: count_function_filter_operators
+  extra_topics: string_filter_operators
+  extra_topics_func: count_function_filter_operators
+  resolution_error: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  _and: [editions_filter]
+  _or: [editions_filter]
+  _some: editions_filter
+  _none: editions_filter
+  kandidaten: sendungskandidaten_quantifier_filter
+}
+
 input entsorgungsdokumente_filter {
   id: id_filter_operators
   kalender: entsorgungskalender_filter
@@ -5475,6 +6227,7 @@ input meldungen_filter {
   kandidat: wochenblattkandidaten_filter
   perle: boolean_filter_operators
   amtsblattmeldung: amtsblattmeldungen_filter
+  sendungskandidat: sendungskandidaten_filter
   _and: [meldungen_filter]
   _or: [meldungen_filter]
 }
@@ -5516,6 +6269,7 @@ input meldungen_quantifier_filter {
   kandidat: wochenblattkandidaten_filter
   perle: boolean_filter_operators
   amtsblattmeldung: amtsblattmeldungen_filter
+  sendungskandidat: sendungskandidaten_filter
   _and: [meldungen_filter]
   _or: [meldungen_filter]
   _some: meldungen_filter
@@ -5579,6 +6333,77 @@ input portal_seiten_filter {
   date_updated_func: datetime_function_filter_operators
   _and: [portal_seiten_filter]
   _or: [portal_seiten_filter]
+}
+
+input punkt6_dossiers_filter {
+  id: id_filter_operators
+  status: string_filter_operators
+  source_file: directus_files_filter
+  source_message_id: string_filter_operators
+  source_subject: string_filter_operators
+  error_message: string_filter_operators
+  processed_at: date_filter_operators
+  processed_at_func: datetime_function_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  _and: [punkt6_dossiers_filter]
+  _or: [punkt6_dossiers_filter]
+  editions: punkt6_editions_quantifier_filter
+}
+
+input punkt6_editions_filter {
+  id: id_filter_operators
+  dossier: punkt6_dossiers_filter
+  broadcast_date: date_filter_operators
+  broadcast_date_func: date_function_filter_operators
+  headline: string_filter_operators
+  lead: string_filter_operators
+  transcript: string_filter_operators
+  transcript_func: count_function_filter_operators
+  main_start_seconds: number_filter_operators
+  main_end_seconds: number_filter_operators
+  extra_topics: string_filter_operators
+  extra_topics_func: count_function_filter_operators
+  video_url: string_filter_operators
+  episode_url: string_filter_operators
+  resolution_error: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  _and: [punkt6_editions_filter]
+  _or: [punkt6_editions_filter]
+  kandidaten: sendungskandidaten_quantifier_filter
+}
+
+""""""
+input punkt6_editions_quantifier_filter {
+  id: id_filter_operators
+  dossier: punkt6_dossiers_filter
+  broadcast_date: date_filter_operators
+  broadcast_date_func: date_function_filter_operators
+  headline: string_filter_operators
+  lead: string_filter_operators
+  transcript: string_filter_operators
+  transcript_func: count_function_filter_operators
+  main_start_seconds: number_filter_operators
+  main_end_seconds: number_filter_operators
+  extra_topics: string_filter_operators
+  extra_topics_func: count_function_filter_operators
+  video_url: string_filter_operators
+  episode_url: string_filter_operators
+  resolution_error: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  _and: [punkt6_editions_filter]
+  _or: [punkt6_editions_filter]
+  _some: punkt6_editions_filter
+  _none: punkt6_editions_filter
+  kandidaten: sendungskandidaten_quantifier_filter
 }
 
 input quellen_filter {
@@ -5655,6 +6480,53 @@ input redaktionswissen_filter {
   date_updated_func: datetime_function_filter_operators
   _and: [redaktionswissen_filter]
   _or: [redaktionswissen_filter]
+}
+
+input sendungskandidaten_filter {
+  id: id_filter_operators
+  quelle: string_filter_operators
+  titel: string_filter_operators
+  zusammenfassung: string_filter_operators
+  zeitmarke_sekunden: number_filter_operators
+  begruendung: string_filter_operators
+  entscheid: string_filter_operators
+  ablehnungsgrund: string_filter_operators
+  ablehnungskommentar: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  edition: editions_filter
+  punkt6_edition: punkt6_editions_filter
+  gemeinde: gemeinden_filter
+  _and: [sendungskandidaten_filter]
+  _or: [sendungskandidaten_filter]
+  meldungen: meldungen_quantifier_filter
+}
+
+""""""
+input sendungskandidaten_quantifier_filter {
+  id: id_filter_operators
+  quelle: string_filter_operators
+  titel: string_filter_operators
+  zusammenfassung: string_filter_operators
+  zeitmarke_sekunden: number_filter_operators
+  begruendung: string_filter_operators
+  entscheid: string_filter_operators
+  ablehnungsgrund: string_filter_operators
+  ablehnungskommentar: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  edition: editions_filter
+  punkt6_edition: punkt6_editions_filter
+  gemeinde: gemeinden_filter
+  _and: [sendungskandidaten_filter]
+  _or: [sendungskandidaten_filter]
+  _some: sendungskandidaten_filter
+  _none: sendungskandidaten_filter
+  meldungen: meldungen_quantifier_filter
 }
 
 input spiele_filter {
@@ -6015,6 +6887,58 @@ input update_directus_users_input {
   policies: [update_directus_access_input]
 }
 
+input update_dossiers_input {
+  id: ID
+  status: String
+  source_file: update_directus_files_input
+
+  """IMAP Message-ID. Null bei Handupload."""
+  source_message_id: String
+
+  """Der Betreff — er ist zugleich der Dedup-Schluessel dieser Instanz."""
+  source_subject: String
+  error_message: String
+  processed_at: Date
+  date_created: Date
+  date_updated: Date
+  editions: [update_editions_input]
+}
+
+input update_editions_input {
+  id: ID
+  dossier: update_dossiers_input
+  broadcast_date: Date
+
+  """Aus der Stunde der SRGSSR-Episode abgeleitet."""
+  edition_label: String
+  broadcast_at: Date
+  headline: String
+  lead: String
+
+  """
+  Freier Prosatext, darum cast-json und nicht cast-csv — Kommas wuerden ihn zerreissen.
+  """
+  teaser_blocks: JSON
+
+  """SRGSSR podcastHdUrl — eine direkte, oeffentliche MP3."""
+  audio_url: String
+  srgssr_urn: String
+
+  """Absaetze mit Zeitmarke."""
+  transcript: JSON
+
+  """Weitere Themen der Sendung, je mit Zeitmarke."""
+  extra_topics: JSON
+
+  """
+  Je Beitrag gesetzt, wenn die SRGSSR-Aufloesung scheitert — der Beitrag entsteht trotzdem, nur ohne Audio.
+  """
+  resolution_error: String
+  date_created: Date
+  date_updated: Date
+  kandidaten: [update_sendungskandidaten_input]
+}
+
 input update_entsorgungsdokumente_input {
   id: ID
   kalender: update_entsorgungskalender_input
@@ -6220,6 +7144,7 @@ input update_meldungen_input {
   """
   perle: Boolean
   amtsblattmeldung: update_amtsblattmeldungen_input
+  sendungskandidat: update_sendungskandidaten_input
 }
 
 input update_portal_bereiche_input {
@@ -6273,6 +7198,53 @@ input update_portal_seiten_input {
   geprueft_am: Date
   date_created: Date
   date_updated: Date
+}
+
+input update_punkt6_dossiers_input {
+  id: ID
+  status: String
+  source_file: update_directus_files_input
+
+  """IMAP Message-ID. Null bei Handupload."""
+  source_message_id: String
+
+  """Der Betreff — er ist zugleich der Dedup-Schluessel dieser Instanz."""
+  source_subject: String
+  error_message: String
+  processed_at: Date
+  date_created: Date
+  date_updated: Date
+  editions: [update_punkt6_editions_input]
+}
+
+input update_punkt6_editions_input {
+  id: ID
+  dossier: update_punkt6_dossiers_input
+  broadcast_date: Date
+
+  """Titel des Hauptbeitrags, aus dem ersten Clip von telebasel.ch."""
+  headline: String
+  lead: String
+
+  """Das Transkript der GANZEN Episode, nicht nur des Hauptbeitrags."""
+  transcript: JSON
+  main_start_seconds: Int
+  main_end_seconds: Int
+
+  """
+  Jeder weitere Beitrag der Sendung, mit exakten Grenzen von telebasel.ch.
+  """
+  extra_topics: JSON
+
+  """Video der ganzen Episode, von allen Beitraegen geteilt."""
+  video_url: String
+
+  """Die telebasel.ch-Seite der Episode."""
+  episode_url: String
+  resolution_error: String
+  date_created: Date
+  date_updated: Date
+  kandidaten: [update_sendungskandidaten_input]
 }
 
 input update_quellen_input {
@@ -6349,6 +7321,32 @@ input update_redaktionswissen_input {
   aktiv: Boolean
   date_created: Date
   date_updated: Date
+}
+
+input update_sendungskandidaten_input {
+  id: ID
+  quelle: String
+  titel: String
+
+  """
+  Die Faktenliste — die EINZIGE Quelle des Meldungs-Prompts. Nie das Transkript selbst.
+  """
+  zusammenfassung: String
+
+  """Wo der Beitrag in der Sendung beginnt."""
+  zeitmarke_sekunden: Int
+
+  """Warum die Sichtung das fuer die Gemeinde relevant haelt."""
+  begruendung: String
+  entscheid: String
+  ablehnungsgrund: String
+  ablehnungskommentar: String
+  date_created: Date
+  date_updated: Date
+  edition: update_editions_input
+  punkt6_edition: update_punkt6_editions_input
+  gemeinde: update_gemeinden_input
+  meldungen: [update_meldungen_input]
 }
 
 input update_spiele_input {

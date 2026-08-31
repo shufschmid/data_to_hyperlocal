@@ -287,11 +287,11 @@ type Subscription {
   directus_deployment_runs_mutated(event: EventEnum): directus_deployment_runs_mutated
   quellen_mutated(event: EventEnum): quellen_mutated
   ankuendigungen_mutated(event: EventEnum): ankuendigungen_mutated
+  meldungen_mutated(event: EventEnum): meldungen_mutated
   chat_nachrichten_mutated(event: EventEnum): chat_nachrichten_mutated
   laeufe_mutated(event: EventEnum): laeufe_mutated
   redaktionswissen_mutated(event: EventEnum): redaktionswissen_mutated
   entsorgungsdokumente_mutated(event: EventEnum): entsorgungsdokumente_mutated
-  meldungen_mutated(event: EventEnum): meldungen_mutated
   portal_bereiche_mutated(event: EventEnum): portal_bereiche_mutated
   portal_seiten_mutated(event: EventEnum): portal_seiten_mutated
   directus_sync_id_map_mutated(event: EventEnum): directus_sync_id_map_mutated
@@ -300,6 +300,7 @@ type Subscription {
   entsorgungskalender_mutated(event: EventEnum): entsorgungskalender_mutated
   entsorgungstermine_mutated(event: EventEnum): entsorgungstermine_mutated
   datensaetze_mutated(event: EventEnum): datensaetze_mutated
+  dossiers_mutated(event: EventEnum): dossiers_mutated
   wochenblaetter_mutated(event: EventEnum): wochenblaetter_mutated
   wochenblattausgaben_mutated(event: EventEnum): wochenblattausgaben_mutated
   recherchehinweise_mutated(event: EventEnum): recherchehinweise_mutated
@@ -307,6 +308,10 @@ type Subscription {
   wochenblattgemeinden_mutated(event: EventEnum): wochenblattgemeinden_mutated
   amtsblattmeldungen_mutated(event: EventEnum): amtsblattmeldungen_mutated
   gemeinden_mutated(event: EventEnum): gemeinden_mutated
+  editions_mutated(event: EventEnum): editions_mutated
+  punkt6_dossiers_mutated(event: EventEnum): punkt6_dossiers_mutated
+  punkt6_editions_mutated(event: EventEnum): punkt6_editions_mutated
+  sendungskandidaten_mutated(event: EventEnum): sendungskandidaten_mutated
 }
 
 """The `Boolean` scalar type represents `true` or `false`."""
@@ -2010,6 +2015,80 @@ type directus_versions_mutated {
   data: directus_versions
 }
 
+type dossiers {
+  id: ID!
+  status: String
+  source_file(filter: directus_files_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): directus_files
+
+  """IMAP Message-ID. Null bei Handupload."""
+  source_message_id: String
+
+  """Der Betreff — er ist zugleich der Dedup-Schluessel dieser Instanz."""
+  source_subject: String
+  error_message: String
+  processed_at: Date
+  processed_at_func: datetime_functions
+  date_created: Date
+  date_created_func: datetime_functions
+  date_updated: Date
+  date_updated_func: datetime_functions
+  editions(filter: editions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [editions]
+}
+
+type dossiers_mutated {
+  key: ID!
+  event: EventEnum
+  data: dossiers
+}
+
+type editions {
+  id: ID!
+  dossier(filter: dossiers_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): dossiers
+  broadcast_date: Date!
+  broadcast_date_func: date_functions
+
+  """Aus der Stunde der SRGSSR-Episode abgeleitet."""
+  edition_label: String
+  broadcast_at: Date
+  broadcast_at_func: datetime_functions
+  headline: String
+  lead: String
+
+  """
+  Freier Prosatext, darum cast-json und nicht cast-csv — Kommas wuerden ihn zerreissen.
+  """
+  teaser_blocks: JSON
+  teaser_blocks_func: count_functions
+
+  """SRGSSR podcastHdUrl — eine direkte, oeffentliche MP3."""
+  audio_url: String
+  srgssr_urn: String
+
+  """Absaetze mit Zeitmarke."""
+  transcript: JSON
+  transcript_func: count_functions
+
+  """Weitere Themen der Sendung, je mit Zeitmarke."""
+  extra_topics: JSON
+  extra_topics_func: count_functions
+
+  """
+  Je Beitrag gesetzt, wenn die SRGSSR-Aufloesung scheitert — der Beitrag entsteht trotzdem, nur ohne Audio.
+  """
+  resolution_error: String
+  date_created: Date
+  date_created_func: datetime_functions
+  date_updated: Date
+  date_updated_func: datetime_functions
+  kandidaten(filter: sendungskandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [sendungskandidaten]
+}
+
+type editions_mutated {
+  key: ID!
+  event: EventEnum
+  data: editions
+}
+
 type entsorgungsdokumente {
   id: ID!
   kalender(filter: entsorgungskalender_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): entsorgungskalender
@@ -2269,6 +2348,7 @@ type meldungen {
   """
   perle: Boolean
   amtsblattmeldung(filter: amtsblattmeldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): amtsblattmeldungen
+  sendungskandidat(filter: sendungskandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): sendungskandidaten
 }
 
 type meldungen_mutated {
@@ -2353,6 +2433,73 @@ type portal_seiten_mutated {
   key: ID!
   event: EventEnum
   data: portal_seiten
+}
+
+type punkt6_dossiers {
+  id: ID!
+  status: String
+  source_file(filter: directus_files_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): directus_files
+
+  """IMAP Message-ID. Null bei Handupload."""
+  source_message_id: String
+
+  """Der Betreff — er ist zugleich der Dedup-Schluessel dieser Instanz."""
+  source_subject: String
+  error_message: String
+  processed_at: Date
+  processed_at_func: datetime_functions
+  date_created: Date
+  date_created_func: datetime_functions
+  date_updated: Date
+  date_updated_func: datetime_functions
+  editions(filter: punkt6_editions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [punkt6_editions]
+}
+
+type punkt6_dossiers_mutated {
+  key: ID!
+  event: EventEnum
+  data: punkt6_dossiers
+}
+
+type punkt6_editions {
+  id: ID!
+  dossier(filter: punkt6_dossiers_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): punkt6_dossiers
+  broadcast_date: Date!
+  broadcast_date_func: date_functions
+
+  """Titel des Hauptbeitrags, aus dem ersten Clip von telebasel.ch."""
+  headline: String
+  lead: String
+
+  """Das Transkript der GANZEN Episode, nicht nur des Hauptbeitrags."""
+  transcript: JSON
+  transcript_func: count_functions
+  main_start_seconds: Int
+  main_end_seconds: Int
+
+  """
+  Jeder weitere Beitrag der Sendung, mit exakten Grenzen von telebasel.ch.
+  """
+  extra_topics: JSON
+  extra_topics_func: count_functions
+
+  """Video der ganzen Episode, von allen Beitraegen geteilt."""
+  video_url: String
+
+  """Die telebasel.ch-Seite der Episode."""
+  episode_url: String
+  resolution_error: String
+  date_created: Date
+  date_created_func: datetime_functions
+  date_updated: Date
+  date_updated_func: datetime_functions
+  kandidaten(filter: sendungskandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [sendungskandidaten]
+}
+
+type punkt6_editions_mutated {
+  key: ID!
+  event: EventEnum
+  data: punkt6_editions
 }
 
 type quellen {
@@ -2455,6 +2602,40 @@ type redaktionswissen_mutated {
   key: ID!
   event: EventEnum
   data: redaktionswissen
+}
+
+type sendungskandidaten {
+  id: ID!
+  quelle: String!
+  titel: String
+
+  """
+  Die Faktenliste — die EINZIGE Quelle des Meldungs-Prompts. Nie das Transkript selbst.
+  """
+  zusammenfassung: String
+
+  """Wo der Beitrag in der Sendung beginnt."""
+  zeitmarke_sekunden: Int
+
+  """Warum die Sichtung das fuer die Gemeinde relevant haelt."""
+  begruendung: String
+  entscheid: String
+  ablehnungsgrund: String
+  ablehnungskommentar: String
+  date_created: Date
+  date_created_func: datetime_functions
+  date_updated: Date
+  date_updated_func: datetime_functions
+  edition(filter: editions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): editions
+  punkt6_edition(filter: punkt6_editions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): punkt6_editions
+  gemeinde(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): gemeinden
+  meldungen(filter: meldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [meldungen]
+}
+
+type sendungskandidaten_mutated {
+  key: ID!
+  event: EventEnum
+  data: sendungskandidaten
 }
 
 type server_info {
@@ -3918,6 +4099,83 @@ input directus_versions_filter {
   _or: [directus_versions_filter]
 }
 
+input dossiers_filter {
+  id: id_filter_operators
+  status: string_filter_operators
+  source_file: directus_files_filter
+  source_message_id: string_filter_operators
+  source_subject: string_filter_operators
+  error_message: string_filter_operators
+  processed_at: date_filter_operators
+  processed_at_func: datetime_function_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  _and: [dossiers_filter]
+  _or: [dossiers_filter]
+  editions: editions_quantifier_filter
+}
+
+input editions_filter {
+  id: id_filter_operators
+  dossier: dossiers_filter
+  broadcast_date: date_filter_operators
+  broadcast_date_func: date_function_filter_operators
+  edition_label: string_filter_operators
+  broadcast_at: date_filter_operators
+  broadcast_at_func: datetime_function_filter_operators
+  headline: string_filter_operators
+  lead: string_filter_operators
+  teaser_blocks: string_filter_operators
+  teaser_blocks_func: count_function_filter_operators
+  audio_url: string_filter_operators
+  srgssr_urn: string_filter_operators
+  transcript: string_filter_operators
+  transcript_func: count_function_filter_operators
+  extra_topics: string_filter_operators
+  extra_topics_func: count_function_filter_operators
+  resolution_error: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  _and: [editions_filter]
+  _or: [editions_filter]
+  kandidaten: sendungskandidaten_quantifier_filter
+}
+
+""""""
+input editions_quantifier_filter {
+  id: id_filter_operators
+  dossier: dossiers_filter
+  broadcast_date: date_filter_operators
+  broadcast_date_func: date_function_filter_operators
+  edition_label: string_filter_operators
+  broadcast_at: date_filter_operators
+  broadcast_at_func: datetime_function_filter_operators
+  headline: string_filter_operators
+  lead: string_filter_operators
+  teaser_blocks: string_filter_operators
+  teaser_blocks_func: count_function_filter_operators
+  audio_url: string_filter_operators
+  srgssr_urn: string_filter_operators
+  transcript: string_filter_operators
+  transcript_func: count_function_filter_operators
+  extra_topics: string_filter_operators
+  extra_topics_func: count_function_filter_operators
+  resolution_error: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  _and: [editions_filter]
+  _or: [editions_filter]
+  _some: editions_filter
+  _none: editions_filter
+  kandidaten: sendungskandidaten_quantifier_filter
+}
+
 input entsorgungsdokumente_filter {
   id: id_filter_operators
   kalender: entsorgungskalender_filter
@@ -4076,6 +4334,7 @@ input meldungen_filter {
   kandidat: wochenblattkandidaten_filter
   perle: boolean_filter_operators
   amtsblattmeldung: amtsblattmeldungen_filter
+  sendungskandidat: sendungskandidaten_filter
   _and: [meldungen_filter]
   _or: [meldungen_filter]
 }
@@ -4117,6 +4376,7 @@ input meldungen_quantifier_filter {
   kandidat: wochenblattkandidaten_filter
   perle: boolean_filter_operators
   amtsblattmeldung: amtsblattmeldungen_filter
+  sendungskandidat: sendungskandidaten_filter
   _and: [meldungen_filter]
   _or: [meldungen_filter]
   _some: meldungen_filter
@@ -4156,6 +4416,77 @@ input portal_bereiche_filter {
   date_updated_func: datetime_function_filter_operators
   _and: [portal_bereiche_filter]
   _or: [portal_bereiche_filter]
+}
+
+input punkt6_dossiers_filter {
+  id: id_filter_operators
+  status: string_filter_operators
+  source_file: directus_files_filter
+  source_message_id: string_filter_operators
+  source_subject: string_filter_operators
+  error_message: string_filter_operators
+  processed_at: date_filter_operators
+  processed_at_func: datetime_function_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  _and: [punkt6_dossiers_filter]
+  _or: [punkt6_dossiers_filter]
+  editions: punkt6_editions_quantifier_filter
+}
+
+input punkt6_editions_filter {
+  id: id_filter_operators
+  dossier: punkt6_dossiers_filter
+  broadcast_date: date_filter_operators
+  broadcast_date_func: date_function_filter_operators
+  headline: string_filter_operators
+  lead: string_filter_operators
+  transcript: string_filter_operators
+  transcript_func: count_function_filter_operators
+  main_start_seconds: number_filter_operators
+  main_end_seconds: number_filter_operators
+  extra_topics: string_filter_operators
+  extra_topics_func: count_function_filter_operators
+  video_url: string_filter_operators
+  episode_url: string_filter_operators
+  resolution_error: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  _and: [punkt6_editions_filter]
+  _or: [punkt6_editions_filter]
+  kandidaten: sendungskandidaten_quantifier_filter
+}
+
+""""""
+input punkt6_editions_quantifier_filter {
+  id: id_filter_operators
+  dossier: punkt6_dossiers_filter
+  broadcast_date: date_filter_operators
+  broadcast_date_func: date_function_filter_operators
+  headline: string_filter_operators
+  lead: string_filter_operators
+  transcript: string_filter_operators
+  transcript_func: count_function_filter_operators
+  main_start_seconds: number_filter_operators
+  main_end_seconds: number_filter_operators
+  extra_topics: string_filter_operators
+  extra_topics_func: count_function_filter_operators
+  video_url: string_filter_operators
+  episode_url: string_filter_operators
+  resolution_error: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  _and: [punkt6_editions_filter]
+  _or: [punkt6_editions_filter]
+  _some: punkt6_editions_filter
+  _none: punkt6_editions_filter
+  kandidaten: sendungskandidaten_quantifier_filter
 }
 
 input quellen_filter {
@@ -4216,6 +4547,53 @@ input recherchehinweise_quantifier_filter {
   _or: [recherchehinweise_filter]
   _some: recherchehinweise_filter
   _none: recherchehinweise_filter
+}
+
+input sendungskandidaten_filter {
+  id: id_filter_operators
+  quelle: string_filter_operators
+  titel: string_filter_operators
+  zusammenfassung: string_filter_operators
+  zeitmarke_sekunden: number_filter_operators
+  begruendung: string_filter_operators
+  entscheid: string_filter_operators
+  ablehnungsgrund: string_filter_operators
+  ablehnungskommentar: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  edition: editions_filter
+  punkt6_edition: punkt6_editions_filter
+  gemeinde: gemeinden_filter
+  _and: [sendungskandidaten_filter]
+  _or: [sendungskandidaten_filter]
+  meldungen: meldungen_quantifier_filter
+}
+
+""""""
+input sendungskandidaten_quantifier_filter {
+  id: id_filter_operators
+  quelle: string_filter_operators
+  titel: string_filter_operators
+  zusammenfassung: string_filter_operators
+  zeitmarke_sekunden: number_filter_operators
+  begruendung: string_filter_operators
+  entscheid: string_filter_operators
+  ablehnungsgrund: string_filter_operators
+  ablehnungskommentar: string_filter_operators
+  date_created: date_filter_operators
+  date_created_func: datetime_function_filter_operators
+  date_updated: date_filter_operators
+  date_updated_func: datetime_function_filter_operators
+  edition: editions_filter
+  punkt6_edition: punkt6_editions_filter
+  gemeinde: gemeinden_filter
+  _and: [sendungskandidaten_filter]
+  _or: [sendungskandidaten_filter]
+  _some: sendungskandidaten_filter
+  _none: sendungskandidaten_filter
+  meldungen: meldungen_quantifier_filter
 }
 
 input spiele_filter {

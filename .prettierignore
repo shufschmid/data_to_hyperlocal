@@ -15,3 +15,4 @@ package-lock.json
 # tests the formatter's HTML, not the source's — prettier once split "</a>"
 # across two lines and a parser test went hunting for a ghost.
 **/fixtures/*.html
+**/__fixtures__/*.html

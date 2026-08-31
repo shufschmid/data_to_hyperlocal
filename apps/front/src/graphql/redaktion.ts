@@ -219,6 +219,8 @@ export interface AlleMeldungFelder {
   kandidat: { id: string } | null
   /** Set for articles written from an official gazette publication. */
   amtsblattmeldung: { id: string } | null
+  /** Set for articles written from a broadcast contribution. */
+  sendungskandidat: { id: string } | null
   /** Decided at publish time on press reviews: interesting for the city too. */
   perle: boolean | null
 }
@@ -261,6 +263,9 @@ export const ALLE_MELDUNGEN_QUERY = gql`
         id
       }
       amtsblattmeldung {
+        id
+      }
+      sendungskandidat {
         id
       }
       perle
@@ -1129,6 +1134,58 @@ export const AMTSBLATT_QUERY = gql`
       gemeinde {
         id
         name
+      }
+    }
+  }
+`
+
+// The broadcast candidates — a contribution of the Regionaljournal or punkt6
+// that is ABOUT a covered municipality.
+//
+// Read wholesale: there are a handful a day at most, and the two tabs need to
+// look them up per contribution while rendering the review.
+export interface SendungskandidatFelder {
+  id: string
+  /** `regionaljournal` | `punkt6`. */
+  quelle: string
+  titel: string
+  /** The handed fact list — the only source the drafting call ever sees. */
+  zusammenfassung: string | null
+  begruendung: string | null
+  /** Where the contribution starts in the show. */
+  zeitmarke_sekunden: number | null
+  entscheid: string
+  ablehnungsgrund: string | null
+  gemeinde: { id: string; name: string } | null
+  /** Exactly one of the two is set. */
+  edition: { id: string } | null
+  punkt6_edition: { id: string } | null
+}
+
+export interface SendungskandidatenErgebnis {
+  sendungskandidaten: SendungskandidatFelder[]
+}
+
+export const SENDUNGSKANDIDATEN_QUERY = gql`
+  query Sendungskandidaten {
+    sendungskandidaten(sort: ["-date_created"], limit: -1) {
+      id
+      quelle
+      titel
+      zusammenfassung
+      begruendung
+      zeitmarke_sekunden
+      entscheid
+      ablehnungsgrund
+      gemeinde {
+        id
+        name
+      }
+      edition {
+        id
+      }
+      punkt6_edition {
+        id
       }
     }
   }

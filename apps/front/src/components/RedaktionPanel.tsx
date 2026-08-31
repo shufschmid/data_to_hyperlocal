@@ -57,7 +57,9 @@ import {
   type QuellenErgebnis,
   type WissenErgebnis,
   AMTSBLATT_QUERY,
-  type AmtsblattErgebnis
+  type AmtsblattErgebnis,
+  SENDUNGSKANDIDATEN_QUERY,
+  type SendungskandidatenErgebnis
 } from '@/graphql/redaktion'
 import {
   anzahlBeschaeftigt,
@@ -71,6 +73,12 @@ import {
 import { QuellenLauf } from './QuellenLauf'
 import { Presseschau } from './Presseschau'
 import { Amtsblatt } from './Amtsblatt'
+import { SendungsDurchsicht } from './SendungsDurchsicht'
+import IconButton from '@mui/material/IconButton'
+import Menu from '@mui/material/Menu'
+import SettingsOutlined from '@mui/icons-material/SettingsOutlined'
+import MenuItem from '@mui/material/MenuItem'
+import { anzahlOffen as anzahlSendungskandidaten } from '@/lib/sendungen'
 import { anzahlOffen, liestUnterlagen } from '@/lib/amtsblatt'
 import { Chefredaktion } from './Chefredaktion'
 import { Zeitleiste } from './Zeitleiste'
@@ -101,6 +109,32 @@ interface AktionErgebnis {
    */
   sitzungBeendet: boolean
 }
+
+/**
+ * Die Arbeitstische oben, und die zwei Ansichten hinter dem Zahnrad.
+ *
+ * `blog` ist keiner von beiden: er haengt an den zwei kleinen Links in der
+ * Kopfleiste, weil er kein Arbeitstisch mit einer Aufgabe ist, sondern das
+ * Ergebnis aller anderen.
+ */
+type Reiter =
+  | 'statistik'
+  | 'sport'
+  | 'entsorgung'
+  | 'wochenblaetter'
+  | 'amtsblatt'
+  | 'regionaljournal'
+  | 'punkt6'
+  | 'chefredaktion'
+  | 'gemeinden'
+  | 'gelerntes'
+  | 'blog'
+
+/** Was hinter dem Zahnrad liegt — Einstellungen, keine Arbeit. */
+const EINSTELLUNGEN: { wert: Reiter; text: string }[] = [
+  { wert: 'gemeinden', text: 'Gemeinden' },
+  { wert: 'gelerntes', text: 'Gelerntes' }
+]
 
 async function aktion(pfad: string, body?: unknown): Promise<AktionErgebnis> {
   const antwort = await fetch(`/api/redaktion/${pfad}`, {
@@ -168,12 +202,27 @@ export interface RedaktionPanelProps {
    * waehrend nichts mehr laedt.
    */
   onSitzungEnde?: () => void | Promise<void>
+  /**
+   * Der Blog kommt ueber die Kopfleiste, nicht ueber einen Reiter: er ist kein
+   * Arbeitstisch mit einer Aufgabe, sondern das Ergebnis aller anderen.
+   */
+  blogRuf?: number
 }
 
-export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
+export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelProps = {}) {
   const [blogGemeinde, setBlogGemeinde] = useState<string | null>(gemeindeAusUrl)
   // Mit ?gemeinde=… startet die Ansicht im Blog — das ist der Sinn des Links.
-  const [reiter, setReiter] = useState(blogGemeinde === null ? 0 : 5)
+  // Namen statt Nummern: die Reihenfolge wurde zweimal umnummeriert, und jedes
+  // Mal musste jede `reiter === N`-Stelle mitwandern. Ein Name bleibt gueltig,
+  // wohin der Reiter auch rutscht.
+  const [reiter, setReiter] = useState<Reiter>(blogGemeinde === null ? 'statistik' : 'blog')
+  const [zahnradAnker, setZahnradAnker] = useState<HTMLElement | null>(null)
+
+  // Von aussen aufgemacht (Kopfleiste oder ?gemeinde=…) — und wieder zu, wenn
+  // die Redaktorin einen Arbeitstisch waehlt.
+  useEffect(() => {
+    if (blogRuf > 0) setReiter('blog')
+  }, [blogRuf])
   const [kalenderWahl, setKalenderWahl] = useState<string | null>(null)
   const [fehler, setFehler] = useState<string | null>(null)
   const [sendet, setSendet] = useState(false)
@@ -212,6 +261,9 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
     fetchPolicy: LIVE_FETCH_POLICY
   })
   const amtsblatt = useQuery<AmtsblattErgebnis>(AMTSBLATT_QUERY, {
+    fetchPolicy: LIVE_FETCH_POLICY
+  })
+  const sendungskandidaten = useQuery<SendungskandidatenErgebnis>(SENDUNGSKANDIDATEN_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY
   })
   // Der Perlen-Stapel der Chefredaktion: Kandidaten mit Perlen-Vorschlag,
@@ -317,6 +369,16 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
   // die Presseschau-Ansicht, damit Badge und Karten nie auseinanderlaufen.
   // Wie beim Kandidaten: eine uebernommene Publikation bleibt auf dem Tisch,
   // solange ihre Meldung redigiert wird — dort wird sie ja redigiert.
+  const alleKandidaten = sendungskandidaten.data?.sendungskandidaten ?? []
+  // Der Zaehler zaehlt nur die Vorschlaege — die Sendungen selbst sind eine
+  // Durchsicht, die nie leer wird, und ihre Beitraege mitzuzaehlen machte die
+  // Zahl bedeutungslos.
+  const anzahlSendungOffen = (quelle: 'regionaljournal' | 'punkt6'): number =>
+    anzahlSendungskandidaten(
+      alleKandidaten.filter((k) => k.quelle === quelle),
+      meldungenAlle
+    )
+
   const meldungStatusJeAmtsblatt = new Map(
     meldungenAlle.flatMap((m) =>
       m.amtsblattmeldung === null ? [] : [[m.amtsblattmeldung.id, m.status] as const]
@@ -572,68 +634,122 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
           </Alert>
         ))}
 
-      <QuellenHinweis quellen={quellen.data?.quellen ?? []} onErfassen={() => setReiter(0)} />
+      <QuellenHinweis quellen={quellen.data?.quellen ?? []} onErfassen={() => setReiter('statistik')} />
 
       <EntsorgungHinweis
         gemeinden={gemeinden.data?.gemeinden ?? []}
         kalender={kalender.data?.entsorgungskalender ?? []}
-        onErfassen={() => setReiter(2)}
+        onErfassen={() => setReiter('entsorgung')}
       />
 
-      <Tabs value={reiter} onChange={(_, v: number) => setReiter(v)}>
-        <Tab label="statistik.bl" />
-        <Tab label="Sportresultate" />
-        <Tab label="Entsorgung" />
-        <Tab
-          label={
-            <Badge
-              color="info"
-              badgeContent={
-                // Der Füllstand des Tischs: alles, was noch auf die
-                // Redaktorin wartet — Offenes und Meldungen im Redigat.
-                (wochenblaetter.data?.wochenblaetter ?? [])
-                  .flatMap((b) => b.ausgaben)
-                  .flatMap((a) => a.kandidaten)
-                  .filter((k) => bleibtAufDemTisch(k.entscheid, meldungStatusJeKandidat.get(k.id) ?? null))
-                  .length
-              }
-              sx={ZAEHLER_IM_REITER}
-            >
-              Wochenblätter
-            </Badge>
-          }
-        />
-        <Tab
-          label={
-            <Badge
-              color="info"
-              badgeContent={anzahlOffen(amtsblatt.data?.amtsblattmeldungen ?? [], meldungStatusJeAmtsblatt)}
-              sx={ZAEHLER_IM_REITER}
-            >
-              Amtsblatt
-            </Badge>
-          }
-        />
-        <Tab
-          label={
-            <Badge
-              color="warning"
-              badgeContent={
-                (recherchehinweise.data?.recherchehinweise ?? []).filter((h) => h.status === 'offen').length +
-                (offenePerlen.data?.wochenblattkandidaten ?? []).length
-              }
-              sx={ZAEHLER_IM_REITER}
-            >
-              Chefredaktion
-            </Badge>
-          }
-        />
-        <Tab label="Blog" />
-        <Tab label="Gelerntes" />
-        <Tab label="Gemeinden" />
-      </Tabs>
+      <Stack direction="row" sx={{ alignItems: 'center', gap: 1 }}>
+        <Tabs
+          value={EINSTELLUNGEN.some((e) => e.wert === reiter) || reiter === 'blog' ? false : reiter}
+          onChange={(_, v: Reiter) => setReiter(v)}
+          variant="scrollable"
+          scrollButtons="auto"
+          sx={{
+            flexGrow: 1,
+            minWidth: 0,
+            // Acht Tische plus Zahnrad passen mit der MUI-Vorgabe nicht auf
+            // eine Zeile — der letzte verschwand hinter dem Blaetterpfeil.
+            '& .MuiTab-root': { minWidth: 0, px: 1.25 }
+          }}
+        >
+          <Tab value="statistik" label="statistik.bl" />
+          <Tab value="sport" label="Sportresultate" />
+          <Tab value="entsorgung" label="Entsorgung" />
+          <Tab
+            value="wochenblaetter"
+            label={
+              <Badge
+                color="info"
+                badgeContent={
+                  // Der Füllstand des Tischs: alles, was noch auf die
+                  // Redaktorin wartet — Offenes und Meldungen im Redigat.
+                  (wochenblaetter.data?.wochenblaetter ?? [])
+                    .flatMap((b) => b.ausgaben)
+                    .flatMap((a) => a.kandidaten)
+                    .filter((k) => bleibtAufDemTisch(k.entscheid, meldungStatusJeKandidat.get(k.id) ?? null))
+                    .length
+                }
+                sx={ZAEHLER_IM_REITER}
+              >
+                Wochenblätter
+              </Badge>
+            }
+          />
+          <Tab
+            value="amtsblatt"
+            label={
+              <Badge
+                color="info"
+                badgeContent={anzahlOffen(amtsblatt.data?.amtsblattmeldungen ?? [], meldungStatusJeAmtsblatt)}
+                sx={ZAEHLER_IM_REITER}
+              >
+                Amtsblatt
+              </Badge>
+            }
+          />
+          <Tab
+            value="regionaljournal"
+            label={
+              <Badge color="info" badgeContent={anzahlSendungOffen('regionaljournal')} sx={ZAEHLER_IM_REITER}>
+                Regionaljournal
+              </Badge>
+            }
+          />
+          <Tab
+            value="punkt6"
+            label={
+              <Badge color="info" badgeContent={anzahlSendungOffen('punkt6')} sx={ZAEHLER_IM_REITER}>
+                punkt6
+              </Badge>
+            }
+          />
+          <Tab
+            value="chefredaktion"
+            label={
+              <Badge
+                color="warning"
+                badgeContent={
+                  (recherchehinweise.data?.recherchehinweise ?? []).filter((h) => h.status === 'offen')
+                    .length + (offenePerlen.data?.wochenblattkandidaten ?? []).length
+                }
+                sx={ZAEHLER_IM_REITER}
+              >
+                Chefredaktion
+              </Badge>
+            }
+          />
+        </Tabs>
 
-      {reiter === 0 && (
+        {/* Gemeinden und Gelerntes sind Einstellungen, keine Arbeitstische —
+            oben steht nur, woran jemand arbeitet. */}
+        <IconButton
+          aria-label="Einstellungen"
+          onClick={(e) => setZahnradAnker(e.currentTarget)}
+          color={EINSTELLUNGEN.some((e) => e.wert === reiter) ? 'primary' : 'default'}
+        >
+          <SettingsOutlined />
+        </IconButton>
+        <Menu anchorEl={zahnradAnker} open={zahnradAnker !== null} onClose={() => setZahnradAnker(null)}>
+          {EINSTELLUNGEN.map((e) => (
+            <MenuItem
+              key={e.wert}
+              selected={reiter === e.wert}
+              onClick={() => {
+                setReiter(e.wert)
+                setZahnradAnker(null)
+              }}
+            >
+              {e.text}
+            </MenuItem>
+          ))}
+        </Menu>
+      </Stack>
+
+      {reiter === 'statistik' && (
         <Stack spacing={1}>
           <Typography variant="body2" color="text.secondary">
             Woher unser Material kommt, nach Datum: die Publikationsagenda des Amts, Änderungen an den
@@ -766,7 +882,7 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
         </Stack>
       )}
 
-      {reiter === 1 && (
+      {reiter === 'sport' && (
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
             Resultate und kommende Begegnungen der erfassten Vereine — nur Aktivmannschaften, kein Nachwuchs
@@ -798,7 +914,7 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
         </Stack>
       )}
 
-      {reiter === 2 && (
+      {reiter === 'entsorgung' && (
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
             Der gedruckte Abfuhrkalender einer Gemeinde, einmal im Jahr erfasst. Daraus entstehen Erinnerungen
@@ -847,7 +963,7 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
         </Stack>
       )}
 
-      {reiter === 3 && (
+      {reiter === 'wochenblaetter' && (
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
             Was die Wochenblätter exklusiv haben. Der 9-Uhr-Lauf inventarisiert jede neue Ausgabe zu
@@ -906,7 +1022,7 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
         </Stack>
       )}
 
-      {reiter === 4 && (
+      {reiter === 'amtsblatt' && (
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
             Was die Gemeinden amtlich publizieren — kantonal und im SHAB, über das Amtsblattportal des Bundes.
@@ -946,7 +1062,45 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
         </Stack>
       )}
 
-      {reiter === 5 && (
+      {(reiter === 'regionaljournal' || reiter === 'punkt6') && (
+        <Stack spacing={2}>
+          <Typography variant="body2" color="text.secondary">
+            {reiter === 'punkt6'
+              ? 'Die Nachrichtensendung punkt6 von Telebasel, täglich aus dem SMD-Transkript geholt und gegen telebasel.ch aufgelöst — jeder Beitrag mit seinem Ausschnitt im Video.'
+              : 'Das Regionaljournal Basel Baselland von SRF, täglich aus dem SMD-Transkript geholt und gegen die SRGSSR-API aufgelöst — jeder Beitrag mit seiner Stelle im Audio.'}{' '}
+            Wo ein Beitrag von einer bespielten Gemeinde handelt, ist er farbig hervorgehoben und trägt die
+            Entscheide: daraus wird eine Meldung, oder eben nicht.
+          </Typography>
+          <SendungsDurchsicht
+            sendung={reiter}
+            kandidaten={alleKandidaten.filter((k) => k.quelle === reiter)}
+            meldungen={meldungenAlle}
+            laeuft={sendet}
+            onPostfach={async () => {
+              const pfad = reiter === 'punkt6' ? 'punkt6-dossiers/ingest' : 'dossiers/ingest'
+              await fetch(`/api/${pfad}`, { method: 'POST' })
+              await allesNeuLaden()
+            }}
+            onMeldung={async (id) => {
+              await fuehreAus(`sendungen/${id}/meldung`)
+            }}
+            onAblehnen={async (id, grund, kommentar) => {
+              await fuehreAus(`sendungen/${id}/ablehnen`, { grund, kommentar })
+            }}
+            onWeiterreichen={async (id, begruendung) => {
+              await fuehreAus(`sendungen/${id}/weiterreichen`, { begruendung })
+            }}
+            onChat={async (id, anweisung) => {
+              await fuehreAus(`meldungen/${id}/chat`, { anweisung })
+            }}
+            onAktion={async (id, was) => {
+              await fuehreAus(`meldungen/${id}/${was}`)
+            }}
+          />
+        </Stack>
+      )}
+
+      {reiter === 'chefredaktion' && (
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
             Der Tisch der Chefredaktion: Recherche-Hinweise (aus Leserbriefen, vom Inventar oder von der
@@ -975,7 +1129,7 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
         </Stack>
       )}
 
-      {reiter === 6 && (
+      {reiter === 'blog' && (
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
             Alles, was für eine Gemeinde geschrieben wurde — neuste zuerst, gleich ob aus einer Statistik oder
@@ -998,7 +1152,7 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
         </Stack>
       )}
 
-      {reiter === 7 && (
+      {reiter === 'gelerntes' && (
         <Stack spacing={1}>
           <Typography variant="body2" color="text.secondary">
             Regeln, die aus deinen Anweisungen gelernt wurden. Sie fliessen in jede weitere Meldung ein — auch
@@ -1016,7 +1170,7 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
         </Stack>
       )}
 
-      {reiter === 8 && (
+      {reiter === 'gemeinden' && (
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
             Das Redaktionsgebiet: eine Karte je Gemeinde, mit Statistik, Vereinen, Wochenblatt und
@@ -1060,7 +1214,7 @@ export function RedaktionPanel({ onSitzungEnde }: RedaktionPanelProps = {}) {
               })
               await wochenblaetter.refetch()
             }}
-            onZumEntsorgungsTab={() => setReiter(2)}
+            onZumEntsorgungsTab={() => setReiter('entsorgung')}
             onPlz={async (id, plz) => {
               await fuehreAus(`gemeinden/${id}/plz`, { plz })
             }}

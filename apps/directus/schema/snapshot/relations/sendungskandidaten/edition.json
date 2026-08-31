@@ -1,0 +1,25 @@
+{
+  "collection": "sendungskandidaten",
+  "field": "edition",
+  "related_collection": "editions",
+  "meta": {
+    "junction_field": null,
+    "many_collection": "sendungskandidaten",
+    "many_field": "edition",
+    "one_allowed_collections": null,
+    "one_collection": "editions",
+    "one_collection_field": null,
+    "one_deselect_action": "nullify",
+    "one_field": "kandidaten",
+    "sort_field": null
+  },
+  "schema": {
+    "table": "sendungskandidaten",
+    "column": "edition",
+    "foreign_key_table": "editions",
+    "foreign_key_column": "id",
+    "constraint_name": "sendungskandidaten_edition_foreign",
+    "on_update": "NO ACTION",
+    "on_delete": "CASCADE"
+  }
+}

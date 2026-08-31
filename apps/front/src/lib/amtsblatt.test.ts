@@ -86,7 +86,7 @@ describe('meldungJePublikation', () => {
   it('ordnet die Meldungen ihren Publikationen zu', () => {
     const karte = meldungJePublikation([
       { id: 'm1', amtsblattmeldung: { id: 'a' } },
-      { id: 'm2', amtsblattmeldung: null }
+      { id: 'm2', amtsblattmeldung: null, sendungskandidat: null }
     ])
 
     expect(karte.get('a')?.id).toBe('m1')

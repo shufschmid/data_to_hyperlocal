@@ -24,6 +24,9 @@ type State = { status: 'loading' } | { status: 'anonymous' } | { status: 'signed
 // issued during server rendering — the queries live below this gate, and the gate
 // starts out in `loading`.
 export function AppShell() {
+  // Ein Zaehler, kein Schalter: waere es ein Schalter, bliebe er nach dem
+  // ersten Klick auf true und ein zweiter Klick taete nichts mehr.
+  const [blogRuf, setBlogRuf] = useState(0)
   const [state, setState] = useState<State>({ status: 'loading' })
 
   const check = useCallback(async () => {
@@ -79,6 +82,23 @@ export function AppShell() {
           <Typography variant="h1" component="h1" sx={{ flexGrow: 1, fontSize: '1.25rem' }}>
             Die Redaktion
           </Typography>
+          {/* Der Blog ist kein Arbeitstisch: er hat keine Aufgabe, er ist das
+              Ergebnis aller anderen. Darum klein hier oben statt als Reiter —
+              einmal zum Bearbeiten, einmal so, wie ihn die Leserschaft sieht. */}
+          <Button size="small" color="inherit" onClick={() => setBlogRuf((n) => n + 1)}>
+            Blog
+          </Button>
+          <Button
+            size="small"
+            color="inherit"
+            component="a"
+            href="/blog"
+            target="_blank"
+            rel="noopener"
+            sx={{ mr: 1 }}
+          >
+            Blog öffnen ↗
+          </Button>
           <Typography
             variant="body2"
             color="text.secondary"
@@ -96,7 +116,7 @@ export function AppShell() {
         {/* Stirbt die Sitzung im Betrieb, prueft die Huelle neu und zeigt das
             Anmeldeformular — statt angemeldet auszusehen, waehrend nichts mehr
             laedt. */}
-        <RedaktionPanel onSitzungEnde={check} />
+        <RedaktionPanel onSitzungEnde={check} blogRuf={blogRuf} />
       </Container>
     </>
   )

@@ -16,6 +16,62 @@
     "_syncId": "a7c54ed8-f762-431b-9716-39a268d20733"
   },
   {
+    "name": "Ausfuehren",
+    "key": "ausfuehren",
+    "type": "dossiers-ingest-imap",
+    "position_x": 19,
+    "position_y": 1,
+    "options": {
+      "limit": 5
+    },
+    "resolve": null,
+    "reject": null,
+    "flow": "da8f13bc-82db-471e-8dcf-08fe36562c43",
+    "_syncId": "54faa99b-58af-4c50-8645-951d334cf255"
+  },
+  {
+    "name": "Ausfuehren",
+    "key": "ausfuehren",
+    "type": "punkt6-dossiers-process-pending",
+    "position_x": 19,
+    "position_y": 1,
+    "options": {
+      "limit": 5
+    },
+    "resolve": null,
+    "reject": null,
+    "flow": "4b3e1ec5-2071-4a3b-aa1f-07ca82bbb655",
+    "_syncId": "db229a49-35c3-4114-bcdb-704a85be6435"
+  },
+  {
+    "name": "Ausfuehren",
+    "key": "ausfuehren",
+    "type": "dossiers-process-pending",
+    "position_x": 19,
+    "position_y": 1,
+    "options": {
+      "limit": 5
+    },
+    "resolve": null,
+    "reject": null,
+    "flow": "55cd59e6-a1e1-48d2-83ea-d34c19c9b63c",
+    "_syncId": "d672acc4-5748-46a9-a226-1d6c1f8bb208"
+  },
+  {
+    "name": "Ausfuehren",
+    "key": "ausfuehren",
+    "type": "punkt6-dossiers-ingest-imap",
+    "position_x": 19,
+    "position_y": 1,
+    "options": {
+      "limit": 5
+    },
+    "resolve": null,
+    "reject": null,
+    "flow": "2e456128-2553-4333-ac55-bd283f3c45c0",
+    "_syncId": "527a023b-88c7-427f-ae8c-07a8fe818e81"
+  },
+  {
     "name": "Inventur",
     "key": "portal_inventur",
     "type": "portal-inventur",

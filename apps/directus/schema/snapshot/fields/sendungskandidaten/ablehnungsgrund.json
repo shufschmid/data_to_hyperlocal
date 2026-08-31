@@ -1,0 +1,71 @@
+{
+  "collection": "sendungskandidaten",
+  "field": "ablehnungsgrund",
+  "type": "string",
+  "meta": {
+    "collection": "sendungskandidaten",
+    "conditions": null,
+    "display": null,
+    "display_options": null,
+    "field": "ablehnungsgrund",
+    "group": null,
+    "hidden": false,
+    "interface": "select-dropdown",
+    "note": null,
+    "options": {
+      "choices": [
+        {
+          "text": "Nicht relevant",
+          "value": "nicht_relevant"
+        },
+        {
+          "text": "Nur am Rand erwaehnt",
+          "value": "nur_erwaehnt"
+        },
+        {
+          "text": "Doublette",
+          "value": "doublette"
+        },
+        {
+          "text": "Veraltet",
+          "value": "veraltet"
+        },
+        {
+          "text": "Falsche Gemeinde",
+          "value": "falsche_gemeinde"
+        },
+        {
+          "text": "Anderer Grund",
+          "value": "andere"
+        }
+      ]
+    },
+    "readonly": false,
+    "required": false,
+    "searchable": true,
+    "sort": 8,
+    "special": null,
+    "translations": null,
+    "validation": null,
+    "validation_message": null,
+    "width": "half"
+  },
+  "schema": {
+    "name": "ablehnungsgrund",
+    "table": "sendungskandidaten",
+    "data_type": "character varying",
+    "default_value": null,
+    "max_length": 30,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "is_nullable": true,
+    "is_unique": false,
+    "is_indexed": false,
+    "is_primary_key": false,
+    "is_generated": false,
+    "generation_expression": null,
+    "has_auto_increment": false,
+    "foreign_key_table": null,
+    "foreign_key_column": null
+  }
+}
