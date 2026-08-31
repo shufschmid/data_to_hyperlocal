@@ -1011,6 +1011,42 @@ export default defineEndpoint(
       return { bericht, warnungen }
     }
 
+    async function ueberarbeiteAmtsblatt(
+      meldung: {
+        id: string
+        titel: string | null
+        lead: string | null
+        text: string | null
+      },
+      publikationId: string,
+      anweisung: string
+    ): Promise<string[]> {
+      const schema = await getSchema()
+      const meldungen = new ItemsService('meldungen', { schema })
+
+      // Loaded fresh rather than carried along: the facts and the plan findings
+      // are the article's only source, and they must be the same ones on a
+      // revision as on the first write.
+      const zeile = await ladeAmtsblattZeile(publikationId, undefined)
+      const fakten = amtsblattFakten(zeile)
+      const { bericht, warnungen } = await amtsblattMitChecks(
+        fakten,
+        buildAmtsblattRevision(fakten, meldung, anweisung)
+      )
+
+      await meldungen.updateOne(meldung.id, {
+        titel: bericht.titel,
+        lead: bericht.lead,
+        text: mitAmtsblattQuelle(bericht.text, fakten),
+        zeit_warnungen: warnungen.length > 0 ? warnungen : null,
+        verarbeitung: 'idle',
+        anweisung: null,
+        fehler: null
+      })
+
+      return warnungen
+    }
+
     /**
      * Reading the documents on demand.
      *
@@ -2240,6 +2276,7 @@ export default defineEndpoint(
               'spiel',
               'erscheint_am',
               'kandidat',
+              'amtsblattmeldung',
               'titel',
               'lead',
               'text'
@@ -2249,6 +2286,7 @@ export default defineEndpoint(
             spiel: string | null
             erscheint_am: string | null
             kandidat: string | null
+            amtsblattmeldung: string | null
             titel: string | null
             lead: string | null
             text: string | null
@@ -2358,6 +2396,42 @@ export default defineEndpoint(
               logger.error(
                 fehler,
                 'redaktion: Erinnerungs-Ueberarbeitung fehlgeschlagen'
+              )
+              throw new UeberarbeitungFehlgeschlagen()
+            }
+          }
+
+          // A gazette article is revised here too, for the same reason as the
+          // three above: it has no run, so the statistics queue cannot carry
+          // it — it would sit at `geplant` for ever, which is exactly what it
+          // did. The plan findings and the two built links are re-applied from
+          // the publication, so a revision cannot lose them.
+          if (meldung.amtsblattmeldung !== null) {
+            await meldungen.updateOne(id, { verarbeitung: 'laeuft', anweisung })
+            try {
+              const warnungen = await ueberarbeiteAmtsblatt(
+                meldung,
+                meldung.amtsblattmeldung,
+                anweisung
+              )
+              await chat.createOne({
+                meldung: id,
+                rolle: 'assistant',
+                inhalt:
+                  warnungen.length === 0
+                    ? 'Neu formuliert.'
+                    : `Neu formuliert — mit Hinweisen: ${warnungen.join(' · ')}`,
+                position: position + 1
+              })
+              return res.json({ data: { meldung: id, warnungen } })
+            } catch (fehler) {
+              await meldungen.updateOne(id, {
+                verarbeitung: 'idle',
+                fehler: fehlerText(fehler)
+              })
+              logger.error(
+                fehler,
+                'redaktion: Amtsblatt-Ueberarbeitung fehlgeschlagen'
               )
               throw new UeberarbeitungFehlgeschlagen()
             }

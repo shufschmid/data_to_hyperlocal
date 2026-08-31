@@ -255,7 +255,21 @@ them is wrong even if it works.
    button that reads the documents on demand — the same function either way.
    Three decisions like the press review (übernehmen · ablehnen mit Grund ·
    an die Chefredaktion), all three teach the next triage. **No Meldung is
-   written without a person's decision.** And the desk shows WORK, not history:
+   written without a person's decision.** The tab's badge counts the PROPOSALS
+   plus what she already took over — counting the whole desk read "99+" every
+   morning, because the desk deliberately keeps the rest. The desk also cleans
+   itself (`darfWeg`): an undecided row with a passed DEADLINE goes, and so
+   does anything the triage did not propose after seven days. A proposal
+   without a deadline stays until decided — it is the queue, and deciding it is
+   the learning signal. Decided rows are never deleted; they are the memory.
+   The cleanup takes the run's own look-back window as a floor, and that is not
+   decoration: with a seven-day window against seven-day retention, one run
+   deleted 32 rows and re-fetched them minutes later, re-paying for the same
+   triage every morning. The window is now two days.
+   A gazette Meldung is also revised INLINE, like the match report, the press
+   review and the reminder — it has no `lauf`, so the statistics queue cannot
+   carry it. Without that fourth branch it sat at `verarbeitung: 'geplant'` for
+   ever, which is exactly what happened. And the desk shows WORK, not history:
    a taken-over publication STAYS, with its Meldung rendered on the row, until
    that Meldung is published or discarded — because that is where it is edited
    (`bleibtAufDemTisch` takes the Meldung's status, exactly as the press

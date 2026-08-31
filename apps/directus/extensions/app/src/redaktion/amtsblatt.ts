@@ -185,6 +185,63 @@ export function parseTriage(
   return treffer
 }
 
+/** How long an unproposed publication waits before the desk drops it. */
+export const AUFRAEUM_TAGE = 7
+
+export interface AufraeumZeile {
+  id: string
+  entscheid: string
+  vorschlag: boolean | null
+  frist: string | null
+  publiziert_am: string | null
+}
+
+/**
+ * Whether an undecided publication has outlived its usefulness.
+ *
+ * Two rules from the newsroom, and they are different in kind. A passed
+ * DEADLINE is final: nobody can object to a building permit whose objection
+ * period closed, so the row is of no use to anyone — that holds even for a
+ * proposal. Everything the triage did NOT propose is different: it is not
+ * wrong, only unremarkable, and after a week untouched it is stale.
+ *
+ * A proposal WITHOUT a deadline is left alone on purpose. It is the editor's
+ * own queue — the number on the tab — and it empties by being decided, not by
+ * expiring. Deciding it is also what teaches the next triage; letting it rot
+ * away would throw that signal out.
+ *
+ * Only ever applied to `entscheid === 'offen'`. A decided row is the memory of
+ * this feed and is never deleted.
+ */
+export function darfWeg(
+  zeile: AufraeumZeile,
+  heute: string,
+  tage = AUFRAEUM_TAGE,
+  fensterTage = 0
+): boolean {
+  if (zeile.entscheid !== 'offen') return false
+
+  const alter = alterInTagen(zeile.publiziert_am, heute)
+
+  // Never delete inside the run's own look-back window. Measured the hard way:
+  // with a seven-day window and seven-day retention, one run deleted 32 rows
+  // and re-fetched them minutes later — paying for the same triage again every
+  // morning, for ever.
+  if (alter !== null && alter < fensterTage) return false
+
+  if (zeile.frist !== null) return zeile.frist < heute
+  if (zeile.vorschlag === true) return false
+  return alter !== null && alter >= tage
+}
+
+function alterInTagen(datum: string | null, heute: string): number | null {
+  if (datum === null) return null
+  const alter =
+    (Date.parse(`${heute}T00:00:00Z`) - Date.parse(`${datum}T00:00:00Z`)) /
+    86_400_000
+  return Number.isFinite(alter) ? alter : null
+}
+
 // ---------------------------------------------------------------------------
 // 2. Reading the plans
 // ---------------------------------------------------------------------------

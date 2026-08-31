@@ -82,6 +82,23 @@ export function passt(eintrag: AmtsblattFelder, filter: Filter): boolean {
     .some((feld) => feld.includes(suche))
 }
 
+/**
+ * Whether a row has outlived its usefulness — the view's half of the rule the
+ * 07:00 run enforces (`darfWeg` in `redaktion/amtsblatt.ts`, which owns it).
+ *
+ * Mirrored here for the same reason `berichtenswerteSpiele` mirrors
+ * `mannschaft.ts`: without it the desk would show for up to a day what the
+ * next run deletes, and the editor would work on rows that are about to
+ * vanish. Changes on one side belong on the other.
+ */
+export function abgelaufen(eintrag: AmtsblattFelder, heute: string, tage = 7): boolean {
+  if (eintrag.entscheid !== 'offen') return false
+  if (eintrag.frist !== null) return eintrag.frist < heute
+  if (eintrag.vorschlag === true) return false
+  const tageAlt = tageBisFrist(eintrag.publiziert_am, heute)
+  return tageAlt !== null && -tageAlt >= tage
+}
+
 export interface Tisch {
   /** What the triage put forward — the top of the desk. */
   vorschlaege: AmtsblattFelder[]
@@ -99,10 +116,16 @@ export interface Tisch {
 export function tisch(
   eintraege: readonly AmtsblattFelder[],
   filter: Filter,
-  meldungStatus: ReadonlyMap<string, string> = new Map()
+  meldungStatus: ReadonlyMap<string, string> = new Map(),
+  heute: string | null = null
 ): Tisch {
   const offen = sortiere(
-    eintraege.filter((e) => bleibtAufDemTisch(e, meldungStatus.get(e.id) ?? null) && passt(e, filter))
+    eintraege.filter(
+      (e) =>
+        bleibtAufDemTisch(e, meldungStatus.get(e.id) ?? null) &&
+        passt(e, filter) &&
+        (heute === null || !abgelaufen(e, heute))
+    )
   )
   return {
     vorschlaege: offen.filter((e) => e.vorschlag === true),
@@ -110,12 +133,22 @@ export function tisch(
   }
 }
 
-/** The badge on the tab: what the desk actually shows. */
+/**
+ * The badge on the tab: the PROPOSALS, and nothing else.
+ *
+ * Counting everything the desk holds made the number useless — it read "99+"
+ * every morning, because the desk deliberately keeps what the triage did not
+ * propose. What the editor actually owes an answer to is the proposals, plus
+ * whatever she has already taken over and not finished.
+ */
 export function anzahlOffen(
   eintraege: readonly AmtsblattFelder[],
   meldungStatus: ReadonlyMap<string, string> = new Map()
 ): number {
-  return eintraege.filter((e) => bleibtAufDemTisch(e, meldungStatus.get(e.id) ?? null)).length
+  return eintraege.filter((e) => {
+    if (!bleibtAufDemTisch(e, meldungStatus.get(e.id) ?? null)) return false
+    return e.vorschlag === true || e.entscheid === 'uebernommen'
+  }).length
 }
 
 /**

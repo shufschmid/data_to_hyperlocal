@@ -6,11 +6,14 @@ import {
   type AmtsblattTreffer
 } from '../../shared/amtsblatt'
 import {
+  AUFRAEUM_TAGE,
   buildTriagePrompt,
+  darfWeg,
   lernDigest,
   parseTriage,
   TRIAGE_SCHEMA,
   TRIAGE_SYSTEM_PROMPT,
+  type AufraeumZeile,
   type LernEintrag,
   type TriageZeile
 } from '../../redaktion/amtsblatt'
@@ -53,6 +56,7 @@ interface Ergebnis {
   neu: number
   vorschlaege: number
   plaeneGelesen: number
+  aufgeraeumt: number
   ohnePlz: string[]
   fehler: string[]
 }
@@ -88,8 +92,35 @@ export default defineOperationApi<Optionen>({
       neu: 0,
       vorschlaege: 0,
       plaeneGelesen: 0,
+      aufgeraeumt: 0,
       ohnePlz: [],
       fehler: []
+    }
+
+    // The desk cleans itself, the same way the press review's does: undecided
+    // rows that can no longer be acted on are deleted. DECIDED rows always
+    // stay — they are this feed's memory, and the next triage learns from them.
+    const heute = new Date().toISOString().slice(0, 10)
+    try {
+      const offene = (await meldungen.readByQuery({
+        filter: { entscheid: { _eq: 'offen' } },
+        fields: ['id', 'entscheid', 'vorschlag', 'frist', 'publiziert_am'],
+        limit: -1
+      })) as AufraeumZeile[]
+
+      // Das Rueckschau-Fenster wird durchgereicht, damit Aufraeumen und Holen
+      // nicht gegeneinander arbeiten koennen — auch wenn jemand die Optionen
+      // spaeter verstellt.
+      const weg = offene
+        .filter((z) => darfWeg(z, heute, AUFRAEUM_TAGE, nachlauf + 1))
+        .map((z) => z.id)
+      if (weg.length > 0) {
+        await meldungen.deleteMany(weg)
+        ergebnis.aufgeraeumt = weg.length
+      }
+    } catch (fehler) {
+      // Housekeeping must never cost the run its actual work.
+      logger.warn(fehler, 'Amtsblatt: Aufraeumen fehlgeschlagen.')
     }
 
     const gemeinden = (await gemeindenService.readByQuery({
@@ -117,7 +148,7 @@ export default defineOperationApi<Optionen>({
       try {
         const treffer = await fetchPublikationen(
           { bfsNummer: gemeinde.bfs_nummer, plz },
-          tageZurueck(nachlauf + 5),
+          tageZurueck(nachlauf),
           abruf
         )
         if (treffer.length === 0) continue

@@ -1,5 +1,6 @@
 import type { AmtsblattFelder, GemeindeFelder } from '@/graphql/redaktion'
 import {
+  abgelaufen,
   anzahlOffen,
   bleibtAufDemTisch,
   datumText,
@@ -65,15 +66,19 @@ describe('bleibtAufDemTisch', () => {
     expect(bleibtAufDemTisch(uebernommen, null)).toBe(false)
   })
 
-  it('zaehlt fuer das Reiter-Abzeichen, was der Tisch zeigt', () => {
+  // Der Zaehler zaehlt, worauf die Redaktorin eine Antwort schuldet — nicht,
+  // was der Tisch alles haelt. Sonst stand dort jeden Morgen „99+".
+  it('zaehlt nur Vorschlaege und angefangene Arbeit', () => {
     const eintraege = [
-      eintrag({ id: '1' }),
-      eintrag({ id: '2', entscheid: 'abgelehnt' }),
-      eintrag({ id: '3', entscheid: 'uebernommen' })
+      eintrag({ id: '1', vorschlag: true }),
+      eintrag({ id: '2', vorschlag: false }),
+      eintrag({ id: '3', vorschlag: null }),
+      eintrag({ id: '4', vorschlag: true, entscheid: 'abgelehnt' }),
+      eintrag({ id: '5', vorschlag: false, entscheid: 'uebernommen' })
     ]
 
     expect(anzahlOffen(eintraege)).toBe(1)
-    expect(anzahlOffen(eintraege, new Map([['3', 'entwurf']]))).toBe(2)
+    expect(anzahlOffen(eintraege, new Map([['5', 'entwurf']]))).toBe(2)
   })
 })
 
@@ -140,6 +145,23 @@ describe('tisch', () => {
 
     expect(tisch(uebernommen, OHNE_FILTER).vorschlaege).toHaveLength(0)
     expect(tisch(uebernommen, OHNE_FILTER, new Map([['a', 'entwurf']])).vorschlaege).toHaveLength(1)
+  })
+})
+
+describe('abgelaufen', () => {
+  it('spiegelt die Regel des Laufs: Frist vorbei, oder sieben Tage ohne Vorschlag', () => {
+    expect(abgelaufen(eintrag({ frist: '2026-08-30' }), '2026-08-31')).toBe(true)
+    expect(abgelaufen(eintrag({ frist: '2026-09-07' }), '2026-08-31')).toBe(false)
+    expect(abgelaufen(eintrag({ publiziert_am: '2026-08-24' }), '2026-08-31')).toBe(true)
+    expect(abgelaufen(eintrag({ publiziert_am: '2026-08-25' }), '2026-08-31')).toBe(false)
+    expect(abgelaufen(eintrag({ vorschlag: true, publiziert_am: '2026-01-01' }), '2026-08-31')).toBe(false)
+  })
+
+  it('zeigt Abgelaufenes gar nicht erst an', () => {
+    const alt = [eintrag({ id: 'alt', frist: '2026-08-30' })]
+
+    expect(tisch(alt, OHNE_FILTER).uebrige).toHaveLength(1)
+    expect(tisch(alt, OHNE_FILTER, new Map(), '2026-08-31').uebrige).toHaveLength(0)
   })
 })
 

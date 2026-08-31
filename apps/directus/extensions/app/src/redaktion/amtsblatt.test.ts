@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { AmtsblattFakten } from './amtsblatt'
 import {
   artikelUnterlage,
+  darfWeg,
   attributionsWarnung,
   buildAmtsblattPrompt,
   buildPlanMessages,
@@ -174,6 +175,67 @@ describe('lernDigest', () => {
 
   it('bleibt leer, solange nichts entschieden wurde', () => {
     expect(lernDigest([])).toBe('')
+  })
+})
+
+describe('darfWeg', () => {
+  const zeile = (ueber = {}) => ({
+    id: 'a',
+    entscheid: 'offen',
+    vorschlag: false,
+    frist: null as string | null,
+    publiziert_am: '2026-08-01',
+    ...ueber
+  })
+
+  // Eine abgelaufene Frist ist endgueltig: gegen ein Baugesuch, dessen
+  // Einsprachefrist zu ist, kann niemand mehr etwas unternehmen.
+  it('laesst eine abgelaufene Frist weg, auch als Vorschlag', () => {
+    expect(darfWeg(zeile({ frist: '2026-08-30' }), '2026-08-31')).toBe(true)
+    expect(
+      darfWeg(zeile({ frist: '2026-08-30', vorschlag: true }), '2026-08-31')
+    ).toBe(true)
+    expect(darfWeg(zeile({ frist: '2026-09-07' }), '2026-08-31')).toBe(false)
+  })
+
+  it('raeumt nach sieben Tagen weg, was die Sichtung nicht vorschlug', () => {
+    expect(darfWeg(zeile({ publiziert_am: '2026-08-24' }), '2026-08-31')).toBe(
+      true
+    )
+    expect(darfWeg(zeile({ publiziert_am: '2026-08-25' }), '2026-08-31')).toBe(
+      false
+    )
+  })
+
+  // Ein Vorschlag ohne Frist ist die Warteschlange der Redaktorin — er leert
+  // sich durch Entscheiden, nicht durch Verfallen, und der Entscheid ist das
+  // Lernsignal der naechsten Sichtung.
+  it('laesst einen Vorschlag ohne Frist stehen, egal wie alt', () => {
+    expect(
+      darfWeg(
+        zeile({ vorschlag: true, publiziert_am: '2026-01-01' }),
+        '2026-08-31'
+      )
+    ).toBe(false)
+  })
+
+  // Gemessen: mit sieben Tagen Rueckschau und sieben Tagen Aufbewahrung
+  // loeschte ein Lauf 32 Zeilen und holte sie Minuten spaeter zurueck — und
+  // bezahlte die Sichtung jeden Morgen neu.
+  it('fasst nichts an, was der Lauf gleich wieder holen wuerde', () => {
+    const frisch = zeile({ publiziert_am: '2026-08-24', frist: '2026-08-30' })
+
+    expect(darfWeg(frisch, '2026-08-31')).toBe(true)
+    expect(darfWeg(frisch, '2026-08-31', 7, 8)).toBe(false)
+  })
+
+  // Entschiedene Zeilen sind das Gedaechtnis dieses Feeds.
+  it('fasst nie an, worueber schon entschieden ist', () => {
+    for (const entscheid of ['uebernommen', 'abgelehnt', 'weitergereicht']) {
+      expect(
+        darfWeg(zeile({ entscheid, frist: '2020-01-01' }), '2026-08-31')
+      ).toBe(false)
+    }
   })
 })
 

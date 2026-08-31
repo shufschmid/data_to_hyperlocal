@@ -96,8 +96,8 @@ export function Amtsblatt({
     [meldungZu]
   )
   const { vorschlaege, uebrige } = useMemo(
-    () => tisch(eintraege, filter, statusJePublikation),
-    [eintraege, filter, statusJePublikation]
+    () => tisch(eintraege, filter, statusJePublikation, heute),
+    [eintraege, filter, statusJePublikation, heute]
   )
   const fehlendePlz = useMemo(() => ohnePlz(gemeinden), [gemeinden])
   const aktive = useMemo(() => gemeinden.filter((g) => g.aktiv), [gemeinden])
@@ -296,6 +296,12 @@ export function Amtsblatt({
           {laeuft ? 'Läuft …' : 'Jetzt prüfen'}
         </Button>
       </Stack>
+
+      <Typography variant="caption" color="text.secondary">
+        Der Tisch räumt sich selbst: eine Publikation mit abgelaufener Einsprachefrist verschwindet, und was
+        die Sichtung nicht vorgeschlagen hat, nach sieben Tagen. Vorschläge bleiben, bis Sie entschieden haben
+        — der Zähler im Reiter zählt genau die.
+      </Typography>
 
       {fehlendePlz.length > 0 && (
         <Alert severity="warning">
