@@ -1,22 +1,23 @@
-import { createRequire } from 'node:module'
-import { pathToFileURL } from 'node:url'
-import {
-  getDocument,
-  GlobalWorkerOptions
-} from 'pdfjs-dist/legacy/build/pdf.mjs'
-import type { TextItem } from 'pdfjs-dist/types/src/display/api'
+import { getDocument } from 'unpdf/pdfjs'
 
-// The extension bundler (directus-extension build) inlines every module into a
-// single dist/api.js, which breaks pdfjs-dist's own worker path guess - it looks
-// for "pdf.worker.mjs" next to the bundle, which does not exist there (only in
-// node_modules). Resolve the real file explicitly via Node's module resolution
-// (works because node_modules/pdfjs-dist itself is not bundled away) rather than
-// letting pdfjs-dist guess a path relative to the bundled file's location.
-GlobalWorkerOptions.workerSrc = pathToFileURL(
-  createRequire(import.meta.url).resolve(
-    'pdfjs-dist/legacy/build/pdf.worker.mjs'
-  )
-).href
+// pdfjs comes from `unpdf`, not from `pdfjs-dist` directly — and that is the
+// one place this file departs from the sister project it was ported from.
+//
+// There, pdfjs-dist is imported straight and the bundler's inlining is worked
+// around by resolving `pdf.worker.mjs` by hand: the extension build folds every
+// module into one dist/api.js, so pdfjs's own guess ("the worker sits next to
+// me") points at a file that only exists in node_modules.
+//
+// That workaround cannot survive here, because THIS bundle already contains
+// `unpdf` (the waste-calendar reader), and unpdf ships its own inlined pdfjs.
+// Two pdfjs builds in one file, and the API half of one met the worker half of
+// the other: `The API version "5.7.284" does not match the Worker version
+// "6.1.200"` — every dossier failed, while the Vitest suite stayed green
+// because it runs against un-bundled source. Taking pdfjs from unpdf leaves
+// exactly one copy in the bundle and needs no worker file at all.
+//
+// Both ported parsers are untouched by this; they only ever used the helpers
+// below.
 
 // Generic line/paragraph extraction for an SMD "Dossier" PDF. Both the
 // Regionaljournal (dossiers/pdf-parser.ts) and Punkt6 (punkt6/pdf-parser.ts)
@@ -65,6 +66,19 @@ export const TIMESTAMP_RE = /^(\d{2}):(\d{2}):(\d{2})\s+(.*)$/s
 // Calibrated against the real Regionaljournal sample PDFs: a gap bigger than this
 // multiple of the preceding line's font size starts a new (untimestamped) block.
 export const PARAGRAPH_GAP_RATIO = 1.4
+
+/**
+ * The two fields of a pdfjs text item this module reads.
+ *
+ * Declared here instead of imported: the shape is stable across pdfjs majors,
+ * while the path its type lives at is not — and `isTextItem` below is what
+ * actually protects the code, since a page's content stream also yields
+ * marked-content items that carry neither field.
+ */
+interface TextItem {
+  str: string
+  transform: number[]
+}
 
 function isTextItem(item: unknown): item is TextItem {
   return typeof item === 'object' && item !== null && 'str' in item

@@ -222,7 +222,7 @@ describe('Meldung', () => {
   // ein "hoeren Sie es selbst ab 4:21".
   it('baut die Quellenzeile mit Zeitmarke, je Sendung anders', () => {
     expect(quelleZeile(fakten())).toBe(
-      'Quelle: Regionaljournal Basel Baselland (SRF) vom 2026-08-31, https://srf.ch/audio/a.mp3#t=261'
+      'Quelle: Regionaljournal Basel Baselland (SRF) vom 31. August 2026, https://srf.ch/audio/a.mp3#t=261'
     )
     expect(
       quelleZeile(
@@ -237,10 +237,10 @@ describe('Meldung', () => {
 
   it('laesst die Zeitmarke weg, wo es keine gibt', () => {
     expect(quelleZeile(fakten({ zeitmarkeSekunden: null }))).toBe(
-      'Quelle: Regionaljournal Basel Baselland (SRF) vom 2026-08-31, https://srf.ch/audio/a.mp3'
+      'Quelle: Regionaljournal Basel Baselland (SRF) vom 31. August 2026, https://srf.ch/audio/a.mp3'
     )
     expect(quelleZeile(fakten({ quellUrl: null }))).toBe(
-      'Quelle: Regionaljournal Basel Baselland (SRF) vom 2026-08-31'
+      'Quelle: Regionaljournal Basel Baselland (SRF) vom 31. August 2026'
     )
   })
 

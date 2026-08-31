@@ -171,7 +171,6 @@
     "@directus/errors": "^2.1.0",
     "imapflow": "^1.0.191",
     "mailparser": "^3.7.4",
-    "pdfjs-dist": "^5.4.149",
     "unpdf": "^1.8.1"
   },
   "devDependencies": {

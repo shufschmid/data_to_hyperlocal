@@ -302,6 +302,18 @@ them is wrong even if it works.
    and `punkt6/` came over UNCHANGED and is meant to stay that way: the next fix
    over there should be a copy, not a merge. Everything this newsroom added
    lives in `redaktion/sendung.ts` and `redaktion/sendunglauf.ts`.
+   **One thing this bundle forced a change on.** The sister project imports
+   `pdfjs-dist` directly and works around the extension bundler by resolving
+   `pdf.worker.mjs` by hand — the build folds everything into one `dist/api.js`,
+   so pdfjs's own guess points at a file that lives only in `node_modules`. That
+   cannot survive here, because this bundle already carries `unpdf` (the waste
+   calendar reads its PDFs with it), and unpdf ships its own inlined pdfjs. Two
+   copies met: `The API version "5.7.284" does not match the Worker version
+"6.1.200"`, and every dossier failed — while the Vitest suite stayed green,
+   because it runs against un-bundled source. `shared/pdf-text.ts` now takes
+   pdfjs from `unpdf/pdfjs`, `pdfjs-dist` is gone from the bundle, and there is
+   exactly one copy and no worker file. **Only a real `docker compose build`
+   plus one processed dossier proves this; no test can.**
    Two things were deliberately changed on arrival. The Beiträge lost their
    `draft/published` status — a leftover from an abandoned plan that would have
    put two meanings of „publizieren" side by side; here the word means one

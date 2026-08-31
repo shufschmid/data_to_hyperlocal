@@ -10,6 +10,10 @@
  */
 
 export { parseSpielbericht as parseSendungMeldung } from './spielbericht'
+// Dieselbe Schreibweise wie im Amtsblatt-Feed, und aus demselben Grund dort
+// von Hand ausgeschrieben: ein reines Datum hat keine Zeitzone, und als lokaler
+// Zeitpunkt geparst verschiebt es sich oestlich von UTC um einen Tag.
+import { datumDeutsch } from './amtsblatt'
 export { ueberlappungsWarnungen } from './presseschau'
 
 /** Which show a candidate came from. Decides attribution and the source link. */
@@ -337,7 +341,7 @@ export function buildSendungRevision(
  */
 export function quelleZeile(fakten: SendungsFakten): string {
   const info = SENDUNGEN[fakten.sendung]
-  const kopf = `Quelle: ${info.name} (${info.sender}) vom ${fakten.datum}`
+  const kopf = `Quelle: ${info.name} (${info.sender}) vom ${datumDeutsch(fakten.datum)}`
   if (fakten.quellUrl === null) return kopf
 
   const marke = fakten.zeitmarkeSekunden
