@@ -73,11 +73,9 @@ function fakeClient(overrides: Partial<ImapClientLike> = {}): ImapClientLike {
         }
       }
     }),
-    download: vi
-      .fn()
-      .mockResolvedValue({
-        content: Readable.from([Buffer.from(RAW_MESSAGE_WITH_PDF)])
-      }),
+    download: vi.fn().mockResolvedValue({
+      content: Readable.from([Buffer.from(RAW_MESSAGE_WITH_PDF)])
+    }),
     messageFlagsAdd: vi.fn().mockResolvedValue(true),
     logout: vi.fn().mockResolvedValue(undefined),
     close: vi.fn(),
@@ -174,11 +172,9 @@ describe('createMailboxFetcher', () => {
 
   it('skips a message whose bodyStructure claimed a PDF but the parsed message has none', async () => {
     const client = fakeClient({
-      download: vi
-        .fn()
-        .mockResolvedValue({
-          content: Readable.from([Buffer.from(RAW_MESSAGE_WITHOUT_ATTACHMENT)])
-        })
+      download: vi.fn().mockResolvedValue({
+        content: Readable.from([Buffer.from(RAW_MESSAGE_WITHOUT_ATTACHMENT)])
+      })
     })
     const fetcher = createMailboxFetcher(() => client)
 
