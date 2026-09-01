@@ -215,6 +215,35 @@ describe('processPunkt6Dossier', () => {
     expect(edition.resolution_error).toBeNull()
   })
 
+  // The web cut can be a DIFFERENT edit than the broadcast the transcript
+  // describes (measured 2026-09-01: an episode titled "31.08." carried next-day
+  // stories). The summary call doubles as the coherence check.
+  it('rejects markers that belong to a different edit and keeps waiting', async () => {
+    const antwort = claudeMessage(
+      JSON.stringify({
+        leads: [
+          { headline: MAIN_HEADLINE, lead: null, passt: false },
+          { headline: OTHER_HEADLINE, lead: null, passt: false }
+        ]
+      })
+    )
+    const { deps, dossiers, editions } = await buildDeps({
+      sendToClaude: vi.fn().mockResolvedValue(antwort),
+      heute: '2026-08-26'
+    })
+
+    const result = await processPunkt6Dossier('dossier-1', deps)
+
+    expect(result.status).toBe('wartet')
+    expect(dossiers.all()[0]!.status).toBe('pending')
+
+    const edition = editions.all()[0]!
+    expect(edition.headline).toBe(SEGMENT.headline)
+    expect(edition.main_start_seconds).toBeNull()
+    expect(edition.extra_topics).toEqual([])
+    expect(edition.video_url).toBe(EPISODE.videoUrl)
+  })
+
   it('accepts the unsegmented edition as final once the broadcast is older than the patience window', async () => {
     const telebaselClient: TelebaselClient = {
       resolveEpisode: vi.fn().mockResolvedValue({ ...EPISODE, segments: [] })

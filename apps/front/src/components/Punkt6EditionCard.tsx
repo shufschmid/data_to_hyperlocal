@@ -117,15 +117,16 @@ export function Punkt6EditionCard({
         </Typography>
       )}
 
-      {/* telebasel.ch traegt die Beitragsmarken erst nachtraeglich ein — bis
-          dahin gibt es Video und Transkript, aber keine Themenbloecke. Der
-          taegliche Lauf versucht es von selbst erneut. */}
+      {/* telebasel.ch traegt die Beitragsmarken erst nachtraeglich ein — und
+          traegt eine Seite auch mal die Marken eines anderen Schnitts, werden
+          sie verworfen. Bis dahin gibt es Video und Transkript; der taegliche
+          Lauf versucht es von selbst erneut. */}
       {hasVideo &&
         edition.main_start_seconds === null &&
         (edition.extra_topics === null || edition.extra_topics.length === 0) && (
           <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', mb: 1.5 }}>
-            telebasel.ch hat zu dieser Sendung noch keine Beitragsmarken publiziert — darum vorerst nur Video
-            und Transkript. Die Aufbereitung nach Themen wird automatisch nachgeholt.
+            telebasel.ch hat zu dieser Sendung noch keine zum Transkript passenden Beitragsmarken publiziert —
+            darum vorerst nur Video und Transkript. Die Aufbereitung nach Themen wird automatisch nachgeholt.
           </Typography>
         )}
 
@@ -134,9 +135,11 @@ export function Punkt6EditionCard({
           {edition.extra_topics.map((topic) => (
             <Box key={topic.headline} sx={{ pl: 1.5, borderLeft: 2, borderColor: 'divider' }}>
               <Typography variant="subtitle2">{topic.headline}</Typography>
-              {topic.summary !== null && (
+              {/* Der Sprunglink haengt am Video, nicht an der Zusammenfassung —
+                  ein Beitrag ohne Lead bleibt trotzdem anspringbar. */}
+              {(topic.summary !== null || hasVideo) && (
                 <Typography variant="body2" color="text.secondary">
-                  {topic.summary}{' '}
+                  {topic.summary !== null && <>{topic.summary} </>}
                   {hasVideo && (
                     <Link
                       component="button"

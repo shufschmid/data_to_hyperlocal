@@ -14,6 +14,15 @@ export interface SegmentSummaryInput {
 export interface SegmentLead {
   headline: string
   lead: string | null
+  /**
+   * Whether the transcript slice actually belongs to this headline. telebasel.ch's
+   * web cut can be a DIFFERENT edit than the broadcast the transcript describes
+   * (measured 2026-09-01: the "31.08." episode page carried next-day stories, and
+   * only one of five markers matched the transcript) - the summary call doubles as
+   * this coherence check, and process-punkt6-dossier.ts rejects the segmentation
+   * when most slices do not fit.
+   */
+  passt: boolean
 }
 
 export class NoSegmentsError extends Error {
@@ -34,8 +43,13 @@ export const SUMMARY_SYSTEM_PROMPT = [
   'Falls der Textausschnitt zu einem Beitrag leer oder zu kurz fuer eine sinnvolle Zusammenfassung ist,',
   'setze lead auf null statt zu raten.',
   '',
+  'Beurteile ausserdem je Beitrag, ob der Textausschnitt inhaltlich zu seiner Schlagzeile gehoert',
+  '("passt": true/false). Ein Ausschnitt, der offensichtlich von einem anderen Thema handelt, passt',
+  'nicht - das kommt vor, wenn die Web-Fassung der Sendung anders geschnitten ist als die ausgestrahlte.',
+  'Setze in diesem Fall auch lead auf null.',
+  '',
   'Antworte ausschliesslich mit JSON in der Form:',
-  '{"leads": [{"headline": string, "lead": string oder null}]}'
+  '{"leads": [{"headline": string, "lead": string oder null, "passt": boolean}]}'
 ].join('\n')
 
 export function buildSummaryPrompt(segments: SegmentSummaryInput[]): string {
@@ -80,10 +94,17 @@ export function parseSummaryAnswer(
         typeof l === 'object' &&
         l !== null &&
         (l as { headline?: unknown }).headline === segment.headline
-    ) as { lead?: unknown } | undefined
+    ) as { lead?: unknown; passt?: unknown } | undefined
 
     const rawLead =
       match && typeof match.lead === 'string' ? match.lead.trim() : ''
-    return { headline: segment.headline, lead: rawLead !== '' ? rawLead : null }
+    // A missing `passt` counts as fitting: the coherence check only ever REMOVES
+    // a segmentation on the model's explicit word, never on a formatting slip.
+    const passt = match && typeof match.passt === 'boolean' ? match.passt : true
+    return {
+      headline: segment.headline,
+      lead: rawLead !== '' ? rawLead : null,
+      passt
+    }
   })
 }

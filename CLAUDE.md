@@ -334,7 +334,18 @@ them is wrong even if it works.
    'pending' ('wartet' in the result): the edition already shows video and
    transcript, the daily run retries for the markers at no model cost, and the
    municipality Sichtung waits for the real Beiträge instead of judging one
-   whole-show blob. After three days the unsegmented edition is final. The
+   whole-show blob. After three days the unsegmented edition is final.
+   Markers that DO exist are checked against the transcript before they are
+   trusted: the web cut can be a DIFFERENT edit than the broadcast (measured
+   the same day: an episode titled „31.08." carried next-day stories, one of
+   five markers matching — the transcript had no Superblocks, no KSBL, no
+   Hollywood). The lead call answers `passt` per Beitrag, and when most
+   slices do not fit their headline the segmentation is rejected wholesale
+   (`resolveBeitraege`) — confidently wrong chapter titles with wrong jump
+   marks are worse than none. Rejection happens only on the model's explicit
+   word; a failed lead call degrades to "no leads", never to "no
+   segmentation". The daily retry resolves BY DATE from the archive page, so
+   an episode re-published under a new id is found automatically. The
    Sichtung itself (`redaktion/sendunglauf.ts`, this project's own code) now
    diffs on reprocessing like the press review: an edition's OPEN candidates
    are replaced, decided ones stay and are never re-asked.

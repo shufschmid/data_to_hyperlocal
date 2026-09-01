@@ -5,7 +5,8 @@ import { sliceTranscriptBySegments, type SlicedSegment } from './segment-slicer'
 import {
   buildSummaryPrompt,
   parseSummaryAnswer,
-  SUMMARY_SYSTEM_PROMPT
+  SUMMARY_SYSTEM_PROMPT,
+  type SegmentLead
 } from './summary-prompt'
 import type { TelebaselClient, TelebaselEpisode } from './telebasel-client'
 import type { Punkt6Dossier, Punkt6Edition } from '../types/schema'
@@ -72,18 +73,20 @@ const MARKER_GEDULD_TAGE = 3
 /**
  * telebasel.ch publishes a fresh episode WITHOUT its schema.org Clip blocks and
  * adds them later (measured 2026-09-01: the 31.08. page had video but zero
- * `hasPart` entries ~17h after airing, while the 30.08. page carried five). A
- * transcript processed the next morning therefore resolves the video but finds
- * no Beitrag boundaries - not an error, just too early. Waiting is bounded:
- * some episodes may never get markers, and after MARKER_GEDULD_TAGE the
- * unsegmented edition is accepted as final.
+ * `hasPart` entries ~17h after airing, while the 30.08. page carried five). And
+ * markers that DO exist can belong to a different edit than the broadcast the
+ * transcript describes (same day: an episode titled "31.08." carried next-day
+ * stories, one of five markers matching). Either way the segmentation is not
+ * usable yet - not an error, just too early. Waiting is bounded: after
+ * MARKER_GEDULD_TAGE the unsegmented edition is accepted as final.
  */
 export function wartetAufBeitragsmarken(
   episode: TelebaselEpisode | null,
+  brauchbarSegmentiert: boolean,
   broadcastDate: string,
   heute: string
 ): boolean {
-  if (episode === null || episode.segments.length > 0) return false
+  if (episode === null || brauchbarSegmentiert) return false
   const alterTage = (Date.parse(heute) - Date.parse(broadcastDate)) / 86_400_000
   return Number.isFinite(alterTage) && alterTage <= MARKER_GEDULD_TAGE
 }
@@ -113,10 +116,15 @@ async function resolveEpisode(
 async function buildLeads(
   slices: SlicedSegment[],
   deps: ProcessPunkt6DossierDeps
-): Promise<Map<string, string | null>> {
-  const fallback = new Map<string, string | null>(
-    slices.map((s) => [s.headline, null])
-  )
+): Promise<SegmentLead[]> {
+  // `passt: true` in the fallback on purpose: the coherence check only rejects a
+  // segmentation on the model's explicit word - an infrastructure failure must
+  // degrade to "no leads", never to "throw the segmentation away".
+  const fallback: SegmentLead[] = slices.map((s) => ({
+    headline: s.headline,
+    lead: null,
+    passt: true
+  }))
   if (slices.length === 0) return fallback
 
   const summaryInputs = slices.map((s) => ({
@@ -132,8 +140,7 @@ async function buildLeads(
       },
       deps.sendToClaude
     )
-    const leads = parseSummaryAnswer(answer, summaryInputs)
-    return new Map(leads.map((l) => [l.headline, l.lead]))
+    return parseSummaryAnswer(answer, summaryInputs)
   } catch (error) {
     // A malformed/truncated Claude answer degrades to "no lead" rather than
     // aborting the whole dossier - the headline and transcript are still useful
@@ -151,27 +158,50 @@ async function resolveBeitraege(
   segment: Punkt6Segment,
   episode: TelebaselEpisode | null,
   deps: ProcessPunkt6DossierDeps
-): Promise<{ main: ResolvedBeitrag; extras: ResolvedBeitrag[] }> {
-  const slices = episode
-    ? sliceTranscriptBySegments(segment.paragraphs, episode.segments)
-    : []
-
+): Promise<{
+  main: ResolvedBeitrag
+  extras: ResolvedBeitrag[]
+  /** false: no markers, or markers belonging to a different edit - both mean "keep waiting". */
+  brauchbar: boolean
+}> {
   // telebasel.ch is what tells us how to split the Sendung into Beitraege at all -
   // without it there's no boundary to slice by, so the whole episode becomes a
   // single, unsegmented edition rather than being silently dropped.
-  if (slices.length === 0) {
-    return {
-      main: {
-        headline: segment.headline,
-        lead: null,
-        startSeconds: null,
-        endSeconds: null
-      },
-      extras: []
-    }
+  const unsegmentiert = {
+    main: {
+      headline: segment.headline,
+      lead: null,
+      startSeconds: null,
+      endSeconds: null
+    },
+    extras: [],
+    brauchbar: false
   }
 
-  const leadsByHeadline = await buildLeads(slices, deps)
+  const slices = episode
+    ? sliceTranscriptBySegments(segment.paragraphs, episode.segments)
+    : []
+  if (slices.length === 0) return unsegmentiert
+
+  const leads = await buildLeads(slices, deps)
+
+  // The lead call doubles as the coherence check: the web cut can be a DIFFERENT
+  // edit than the broadcast the transcript describes (measured 2026-09-01: an
+  // episode titled "31.08." carried next-day stories, and only one of five
+  // markers matched the transcript). Slicing by mismatched markers produces
+  // confidently wrong Beitraege - wrong headlines, wrong jump marks - so when
+  // most slices do not fit their headline, the segmentation is rejected
+  // wholesale and the edition stays unsegmented (and keeps waiting).
+  const passend = leads.filter((l) => l.passt).length
+  if (passend * 2 < leads.length) {
+    deps.logger.warn(
+      { passend, segmente: leads.length },
+      'process-punkt6-dossier: markers do not match the transcript - segmentation rejected'
+    )
+    return unsegmentiert
+  }
+
+  const leadsByHeadline = new Map(leads.map((l) => [l.headline, l.lead]))
   const toResolved = (s: SlicedSegment): ResolvedBeitrag => ({
     headline: s.headline,
     lead: leadsByHeadline.get(s.headline) ?? null,
@@ -180,7 +210,11 @@ async function resolveBeitraege(
   })
 
   const [mainSlice, ...restSlices] = slices
-  return { main: toResolved(mainSlice!), extras: restSlices.map(toResolved) }
+  return {
+    main: toResolved(mainSlice!),
+    extras: restSlices.map(toResolved),
+    brauchbar: true
+  }
 }
 
 async function upsertEdition(
@@ -233,7 +267,11 @@ export async function processPunkt6Dossier(
       segment.broadcastDate,
       deps
     )
-    const { main, extras } = await resolveBeitraege(segment, episode, deps)
+    const { main, extras, brauchbar } = await resolveBeitraege(
+      segment,
+      episode,
+      deps
+    )
 
     const fields = punkt6EditionFields(
       segment.paragraphs,
@@ -255,12 +293,14 @@ export async function processPunkt6Dossier(
     // appear (each retry costs two GETs and no model call while they are
     // missing; the upsert then fills main/extras in place).
     const heute = deps.heute ?? new Date().toISOString().slice(0, 10)
-    if (wartetAufBeitragsmarken(episode, segment.broadcastDate, heute)) {
+    if (
+      wartetAufBeitragsmarken(episode, brauchbar, segment.broadcastDate, heute)
+    ) {
       await deps.dossiers.updateOne(dossierId, {
         status: 'pending',
         processed_at: new Date().toISOString(),
         error_message:
-          'telebasel.ch has not published the Beitrag markers for this episode yet - retried daily until they appear.'
+          'telebasel.ch has not published Beitrag markers matching this transcript yet - retried daily until they appear.'
       })
       return { dossierId, status: 'wartet', editionId }
     }
