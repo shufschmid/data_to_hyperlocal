@@ -65,6 +65,15 @@ export interface TelebaselClient {
 const ARCHIVE_ENTRY_RE =
   /<a class="episode episode--vertical-list" href="https:\/\/telebasel\.ch\/sendungen\/punkt6\/(\d+)\?autoplay=1">[\s\S]*?<span class="episode__time">\S+\s+(\d{2})\.(\d{2})\.(\d{4})<\/span>/g
 
+// The NEWEST episode is not in the vertical list at all: the archive page renders
+// it as its hero (<section class="episode-hero">), and the only machine-readable
+// trace of its id and date there is the hero's share modal, which the page carries
+// exactly once. A transcript normally arrives before the NEXT episode airs, so the
+// episode being looked up is almost always exactly this one - without this
+// fallback the current Sendung could never be resolved (hit on 2026-08-31).
+const HERO_ENTRY_RE =
+  /<div id="share-data-element"[^>]*?data-project-id="(\d+)"[^>]*?data-episode-title="punkt6 vom (\d{2})\.(\d{2})\.(\d{4})"/
+
 const DURATION_RE = /data-video-duration="(\d+)"/
 const VIDEO_URL_RE = /data-video-url="([^"]+)"/
 const THUMBNAIL_URL_RE = /<meta itemprop="thumbnailUrl" content="([^"]+)"/
@@ -82,6 +91,17 @@ function findEpisodeId(archiveHtml: string, broadcastDate: string): string {
   ARCHIVE_ENTRY_RE.lastIndex = 0
   for (const match of archiveHtml.matchAll(ARCHIVE_ENTRY_RE)) {
     const [, id, dd, mm, yyyy] = match as unknown as [
+      string,
+      string,
+      string,
+      string,
+      string
+    ]
+    if (`${yyyy}-${mm}-${dd}` === wanted) return id
+  }
+  const hero = HERO_ENTRY_RE.exec(archiveHtml)
+  if (hero) {
+    const [, id, dd, mm, yyyy] = hero as unknown as [
       string,
       string,
       string,

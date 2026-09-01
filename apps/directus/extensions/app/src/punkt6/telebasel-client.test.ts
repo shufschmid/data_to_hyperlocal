@@ -10,11 +10,13 @@ async function loadFixture(name: string): Promise<string> {
   return readFile(join(FIXTURES, name), 'utf-8')
 }
 
-// Both fixtures are real telebasel.ch pages, fetched during development
+// All fixtures are real telebasel.ch pages, fetched during development
 // (archive.html: https://telebasel.ch/sendungen/punkt6 ;
-//  episode-239377.html: https://telebasel.ch/sendungen/punkt6/239377) - this test
-// pins the client's HTML-scraping regexes against the site's actual current markup,
-// not a hand-written approximation of it.
+//  episode-239377.html and episode-239492.html: the matching episode pages) - this
+// test pins the client's HTML-scraping regexes against the site's actual current
+// markup, not a hand-written approximation of it. archive.html's newest episode
+// (30.08., id 239492) appears ONLY as the page's hero, not in the vertical list -
+// the exact shape the hero fallback exists for.
 function stubFetch(byUrl: Record<string, string>): typeof fetch {
   return (async (input: string | URL | Request) => {
     const url = typeof input === 'string' ? input : input.toString()
@@ -84,6 +86,26 @@ describe('createTelebaselClient', () => {
         endSeconds: 816
       }
     ])
+  })
+
+  it('resolves the newest broadcast via the archive hero, which the vertical list never carries', async () => {
+    const archiveHtml = await loadFixture('archive.html')
+    const episodeHtml = await loadFixture('episode-239492.html')
+    const client = createTelebaselClient(
+      stubFetch({
+        'https://telebasel.ch/sendungen/punkt6': archiveHtml,
+        'https://telebasel.ch/sendungen/punkt6/239492': episodeHtml
+      })
+    )
+
+    const episode = await client.resolveEpisode('2026-08-30')
+
+    expect(episode.id).toBe('239492')
+    expect(episode.url).toBe('https://telebasel.ch/sendungen/punkt6/239492')
+    expect(episode.videoUrl).toBe(
+      'https://simplex-cdn-media.akamaized.net/content/4062/4063/239492/index.m3u8'
+    )
+    expect(episode.segments).toHaveLength(5)
   })
 
   it('throws TelebaselLookupError when no episode matches the broadcast date', async () => {
