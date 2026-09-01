@@ -314,7 +314,7 @@ them is wrong even if it works.
    pdfjs from `unpdf/pdfjs`, `pdfjs-dist` is gone from the bundle, and there is
    exactly one copy and no worker file. **Only a real `docker compose build`
    plus one processed dossier proves this; no test can.**
-   Two fixes originated HERE and belong in the sister project as copies.
+   Three fixes originated HERE and belong in the sister project as copies.
    First: telebasel.ch renders the NEWEST episode only as the archive page's
    hero, never in the vertical episode list, so the current Sendung could never
    be resolved — hit on the 31.08. dossier, and structural, because a
@@ -326,7 +326,18 @@ them is wrong even if it works.
    everything": a Directus process whose environment predated
    `PUNKT6_IMAP_SUBJECT_FILTER` (env vars load at process start, a `.env` edit
    needs a restart) turned 14 Regionaljournal/Gemeinden mails into failing
-   punkt6 dossiers before anyone noticed.
+   punkt6 dossiers before anyone noticed. Third: telebasel.ch publishes a
+   fresh episode page WITHOUT its schema.org Clip blocks and adds them later
+   (measured: the 31.08. page had video but zero `hasPart` ~17h after airing,
+   the 30.08. page carried five) — so an episode that resolves with zero
+   segments and a broadcast younger than three days keeps its dossier
+   'pending' ('wartet' in the result): the edition already shows video and
+   transcript, the daily run retries for the markers at no model cost, and the
+   municipality Sichtung waits for the real Beiträge instead of judging one
+   whole-show blob. After three days the unsegmented edition is final. The
+   Sichtung itself (`redaktion/sendunglauf.ts`, this project's own code) now
+   diffs on reprocessing like the press review: an edition's OPEN candidates
+   are replaced, decided ones stay and are never re-asked.
    Two things were deliberately changed on arrival. The Beiträge lost their
    `draft/published` status — a leftover from an abandoned plan that would have
    put two meanings of „publizieren" side by side; here the word means one

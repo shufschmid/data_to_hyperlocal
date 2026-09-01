@@ -50,12 +50,42 @@ export interface ProcessPunkt6DossierDeps {
    * they can run without a real PDF fixture when one isn't the point of the test.
    */
   parseDossier?: (buffer: Buffer) => Promise<Punkt6Segment>
+  /** Today as ISO "YYYY-MM-DD" - injectable so tests can pin the marker patience window. */
+  heute?: string
 }
 
 export interface ProcessPunkt6DossierResult {
   dossierId: string
-  status: 'processed' | 'failed'
+  /**
+   * 'wartet': the episode resolved (video, transcript) but telebasel.ch has not
+   * published its Beitrag markers yet - the dossier stays 'pending' so the daily
+   * run retries, and the municipality Sichtung is deliberately NOT run yet
+   * (a whole-show blob makes poor candidates, and the real ones follow).
+   */
+  status: 'processed' | 'failed' | 'wartet'
   editionId: string | null
+}
+
+/** How many days after the broadcast the pipeline keeps waiting for markers. */
+const MARKER_GEDULD_TAGE = 3
+
+/**
+ * telebasel.ch publishes a fresh episode WITHOUT its schema.org Clip blocks and
+ * adds them later (measured 2026-09-01: the 31.08. page had video but zero
+ * `hasPart` entries ~17h after airing, while the 30.08. page carried five). A
+ * transcript processed the next morning therefore resolves the video but finds
+ * no Beitrag boundaries - not an error, just too early. Waiting is bounded:
+ * some episodes may never get markers, and after MARKER_GEDULD_TAGE the
+ * unsegmented edition is accepted as final.
+ */
+export function wartetAufBeitragsmarken(
+  episode: TelebaselEpisode | null,
+  broadcastDate: string,
+  heute: string
+): boolean {
+  if (episode === null || episode.segments.length > 0) return false
+  const alterTage = (Date.parse(heute) - Date.parse(broadcastDate)) / 86_400_000
+  return Number.isFinite(alterTage) && alterTage <= MARKER_GEDULD_TAGE
 }
 
 async function resolveEpisode(
@@ -168,7 +198,11 @@ async function upsertEdition(
 
   const existingId = existing[0]?.id
   if (existingId) {
-    await deps.editions.updateOne(existingId, fields)
+    // headline included on purpose: while telebasel.ch's markers are missing the
+    // edition carries the generic show title, and the retry that finally finds
+    // them must be able to replace it with the Hauptbeitrag's own headline.
+    // `dossier` and `broadcast_date` stay untouched - they are the identity.
+    await deps.editions.updateOne(existingId, { ...fields, headline })
     return existingId
   }
 
@@ -215,6 +249,21 @@ export async function processPunkt6Dossier(
       fields,
       deps
     )
+
+    // The edition already carries video and transcript - keep it - but the
+    // dossier stays 'pending' so the daily run reprocesses it until the markers
+    // appear (each retry costs two GETs and no model call while they are
+    // missing; the upsert then fills main/extras in place).
+    const heute = deps.heute ?? new Date().toISOString().slice(0, 10)
+    if (wartetAufBeitragsmarken(episode, segment.broadcastDate, heute)) {
+      await deps.dossiers.updateOne(dossierId, {
+        status: 'pending',
+        processed_at: new Date().toISOString(),
+        error_message:
+          'telebasel.ch has not published the Beitrag markers for this episode yet - retried daily until they appear.'
+      })
+      return { dossierId, status: 'wartet', editionId }
+    }
 
     await deps.dossiers.updateOne(dossierId, {
       status: 'processed',

@@ -1093,11 +1093,13 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             onVerarbeiten={async (dossierId) => {
               const pfad = reiter === 'punkt6' ? 'punkt6-dossiers' : 'dossiers'
               const antwort = await fetch(`/api/${pfad}/${dossierId}/process`, { method: 'POST' })
-              if (!antwort.ok) return false
+              if (!antwort.ok) return 'fehlgeschlagen'
               const inhalt = (await antwort.json().catch(() => null)) as {
                 data?: { status?: string }
               } | null
-              return inhalt?.data?.status === 'processed'
+              if (inhalt?.data?.status === 'processed') return 'verarbeitet'
+              if (inhalt?.data?.status === 'wartet') return 'wartet'
+              return 'fehlgeschlagen'
             }}
             onMeldung={async (id) => {
               await fuehreAus(`sendungen/${id}/meldung`)

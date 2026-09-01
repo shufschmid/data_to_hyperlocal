@@ -188,6 +188,71 @@ describe('processPunkt6Dossier', () => {
     expect(edition.resolution_error).toBe('No episode found.')
   })
 
+  // telebasel.ch publishes a fresh episode page WITHOUT its Clip blocks and adds
+  // them later (measured on the 31.08.2026 episode) - the pipeline must treat
+  // that as "too early", not as final.
+  it('keeps the dossier pending while telebasel.ch has no Beitrag markers yet, but stores video and transcript', async () => {
+    const telebaselClient: TelebaselClient = {
+      resolveEpisode: vi.fn().mockResolvedValue({ ...EPISODE, segments: [] })
+    }
+    const { deps, dossiers, editions } = await buildDeps({
+      telebaselClient,
+      heute: '2026-08-26'
+    })
+
+    const result = await processPunkt6Dossier('dossier-1', deps)
+
+    expect(result.status).toBe('wartet')
+    const dossierRow = dossiers.all()[0]!
+    expect(dossierRow.status).toBe('pending')
+    expect(dossierRow.error_message).toContain('markers')
+
+    const edition = editions.all()[0]!
+    expect(edition.video_url).toBe(EPISODE.videoUrl)
+    expect(edition.transcript).toEqual(SEGMENT.paragraphs)
+    expect(edition.main_start_seconds).toBeNull()
+    expect(edition.extra_topics).toEqual([])
+    expect(edition.resolution_error).toBeNull()
+  })
+
+  it('accepts the unsegmented edition as final once the broadcast is older than the patience window', async () => {
+    const telebaselClient: TelebaselClient = {
+      resolveEpisode: vi.fn().mockResolvedValue({ ...EPISODE, segments: [] })
+    }
+    const { deps, dossiers } = await buildDeps({
+      telebaselClient,
+      heute: '2026-08-30'
+    })
+
+    const result = await processPunkt6Dossier('dossier-1', deps)
+
+    expect(result.status).toBe('processed')
+    expect(dossiers.all()[0]!.status).toBe('processed')
+  })
+
+  it('the retry that finds the markers replaces the generic show title with the Hauptbeitrag headline', async () => {
+    const telebaselClient: TelebaselClient = {
+      resolveEpisode: vi
+        .fn()
+        .mockResolvedValueOnce({ ...EPISODE, segments: [] })
+        .mockResolvedValueOnce(EPISODE)
+    }
+    const { deps, editions } = await buildDeps({
+      telebaselClient,
+      heute: '2026-08-26'
+    })
+
+    await processPunkt6Dossier('dossier-1', deps)
+    expect(editions.all()[0]!.headline).toBe(SEGMENT.headline)
+
+    const result = await processPunkt6Dossier('dossier-1', deps)
+
+    expect(result.status).toBe('processed')
+    expect(editions.all()).toHaveLength(1)
+    expect(editions.all()[0]!.headline).toBe(MAIN_HEADLINE)
+    expect(editions.all()[0]!.main_start_seconds).toBe(0)
+  })
+
   it('reprocessing the same dossier updates the existing edition instead of duplicating it', async () => {
     const { deps, editions } = await buildDeps()
 

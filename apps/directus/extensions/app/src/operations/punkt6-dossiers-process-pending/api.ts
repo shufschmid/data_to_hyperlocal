@@ -60,6 +60,7 @@ export default defineOperationApi<Options>({
 
     let processed = 0
     let failed = 0
+    let wartend = 0
     let kandidatenNeu = 0
 
     for (const { id } of pending) {
@@ -75,12 +76,17 @@ export default defineOperationApi<Options>({
           logger
         })
         if (result.status === 'processed') processed++
+        else if (result.status === 'wartet') wartend++
         else failed++
 
         // Die Gemeinde-Sichtung faengt ihre Fehler selbst — sie darf die
-        // Durchsicht, um die es hier zuerst geht, nie gefaehrden.
+        // Durchsicht, um die es hier zuerst geht, nie gefaehrden. Solange die
+        // Beitragsmarken fehlen ('wartet'), wird bewusst NICHT gesichtet — die
+        // richtigen Kandidaten folgen, sobald telebasel.ch die Marken setzt.
         const sichtung = await sichteSendung(
-          result.editionId === null ? [] : [result.editionId],
+          result.status !== 'processed' || result.editionId === null
+            ? []
+            : [result.editionId],
           'punkt6',
           {
             editions: editions as never,
@@ -105,6 +111,7 @@ export default defineOperationApi<Options>({
       pending: pending.length,
       processed,
       failed,
+      wartend,
       kandidaten: kandidatenNeu,
       aufgeraeumt
     }

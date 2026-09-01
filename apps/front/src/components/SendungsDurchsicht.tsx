@@ -29,7 +29,8 @@ export interface SendungsDurchsichtProps {
   /** Holt die Dossiers. Antwortet mit den neu angelegten Zeilen. */
   onPostfach?: () => Promise<{ created: number; dossierIds: string[] } | null>
   /** Verarbeitet EIN Dossier — je Aufruf eine Anfrage, damit kein Proxy-Timeout droht. */
-  onVerarbeiten?: (dossierId: string) => Promise<boolean>
+  /** 'wartet': verarbeitet, aber telebasel.ch hat die Beitragsmarken noch nicht publiziert. */
+  onVerarbeiten?: (dossierId: string) => Promise<'verarbeitet' | 'wartet' | 'fehlgeschlagen'>
   onMeldung?: (id: string) => Promise<void> | void
   onAblehnen?: (id: string, grund: string, kommentar: string | null) => Promise<void> | void
   onWeiterreichen?: (id: string, begruendung: string | null) => Promise<void> | void
@@ -105,20 +106,26 @@ export function SendungsDurchsicht({
   // und "14 Dossiers geholt" ohne Postfachlauf hat schon einmal in die Irre gefuehrt.
   async function verarbeiteAlle(ids: readonly string[], geholt: number | null): Promise<void> {
     let fertig = 0
+    let wartend = 0
     let gescheitert = 0
     for (const id of ids) {
       setFortschritt({ fertig, gesamt: ids.length })
-      const ok = (await onVerarbeiten?.(id)) ?? false
-      if (ok) fertig += 1
+      const ergebnis = (await onVerarbeiten?.(id)) ?? 'fehlgeschlagen'
+      if (ergebnis === 'verarbeitet') fertig += 1
+      else if (ergebnis === 'wartet') wartend += 1
       else gescheitert += 1
     }
     setFortschritt(null)
     await Promise.all([abfrage.refetch(), istPunkt6 ? p6Dossiers.refetch() : rjDossiers.refetch()])
-    const auftakt =
+    const teile = [
       geholt === null
         ? `${fertig} von ${ids.length} Dossier${ids.length === 1 ? '' : 's'} verarbeitet`
         : `${geholt} Dossier${geholt === 1 ? '' : 's'} geholt, ${fertig} verarbeitet`
-    setBericht(auftakt + (gescheitert === 0 ? '.' : `, ${gescheitert} fehlgeschlagen.`))
+    ]
+    if (wartend > 0)
+      teile.push(`${wartend} ${wartend === 1 ? 'wartet' : 'warten'} auf die Beitragsmarken von telebasel.ch`)
+    if (gescheitert > 0) teile.push(`${gescheitert} fehlgeschlagen`)
+    setBericht(teile.join(', ') + '.')
   }
 
   return (

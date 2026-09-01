@@ -117,6 +117,18 @@ export function Punkt6EditionCard({
         </Typography>
       )}
 
+      {/* telebasel.ch traegt die Beitragsmarken erst nachtraeglich ein — bis
+          dahin gibt es Video und Transkript, aber keine Themenbloecke. Der
+          taegliche Lauf versucht es von selbst erneut. */}
+      {hasVideo &&
+        edition.main_start_seconds === null &&
+        (edition.extra_topics === null || edition.extra_topics.length === 0) && (
+          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', mb: 1.5 }}>
+            telebasel.ch hat zu dieser Sendung noch keine Beitragsmarken publiziert — darum vorerst nur Video
+            und Transkript. Die Aufbereitung nach Themen wird automatisch nachgeholt.
+          </Typography>
+        )}
+
       {edition.extra_topics !== null && edition.extra_topics.length > 0 && (
         <Stack spacing={1.5} sx={{ mb: 1.5 }}>
           {edition.extra_topics.map((topic) => (

@@ -40,6 +40,13 @@ export interface SichtungKontext {
   /** Test seam, exactly as in shared/claude.ts. */
   send?: MessageSender
   model?: string | null
+  /**
+   * Decided candidates of the SAME edition, as `${gemeindeId}|${titel}` keys.
+   * A reprocessed edition (telebasel.ch markers arriving late, an editor
+   * pressing the button twice) must never re-ask a decided question - the
+   * decision rows are the memory.
+   */
+  bereitsEntschieden?: ReadonlySet<string>
 }
 
 export interface GemeindeZeile {
@@ -219,6 +226,8 @@ export async function sichteBeitraege(
       for (const kandidat of parseInventar(antwort, treffer)) {
         const gemeindeId = jeName.get(kandidat.gemeinde)
         if (gemeindeId === undefined) continue
+        if (kontext.bereitsEntschieden?.has(`${gemeindeId}|${kandidat.titel}`))
+          continue
         await kontext.kandidaten.createOne({
           quelle: bezug.quelle,
           gemeinde: gemeindeId,
@@ -320,6 +329,16 @@ export async function sichteSendung(
               edition as unknown as Parameters<typeof beitraegeAusEdition>[0]
             )
 
+      // A reprocessed edition (late telebasel.ch markers, a second button
+      // press) diffs like the press review's re-inventory: its own OPEN
+      // candidates are replaced by the fresh Sichtung, decided ones stay and
+      // are never re-created - they are the memory.
+      const bereitsEntschieden = await ersetzeOffeneKandidaten(
+        id,
+        quelle,
+        dienste.kandidaten
+      )
+
       const teil = await sichteBeitraege(
         beitraege,
         {
@@ -331,6 +350,7 @@ export async function sichteSendung(
         {
           kandidaten: dienste.kandidaten,
           logger: dienste.logger,
+          bereitsEntschieden,
           ...(dienste.model === undefined ? {} : { model: dienste.model }),
           ...(dienste.send === undefined ? {} : { send: dienste.send })
         }
@@ -347,6 +367,36 @@ export async function sichteSendung(
     )
     return leer
   }
+}
+
+/**
+ * Deletes one edition's OPEN candidates (the fresh Sichtung re-creates what
+ * still holds) and returns its decided ones as `${gemeindeId}|${titel}` keys,
+ * so they are never asked again.
+ */
+async function ersetzeOffeneKandidaten(
+  editionId: string,
+  quelle: SendungsQuelle,
+  kandidaten: ItemsServiceLike
+): Promise<ReadonlySet<string>> {
+  const schluessel = quelle === 'punkt6' ? 'punkt6_edition' : 'edition'
+  const vorhandene = (await kandidaten.readByQuery({
+    filter: { [schluessel]: { _eq: editionId } },
+    fields: ['id', 'entscheid', 'titel', 'gemeinde'],
+    limit: -1
+  })) as { id: string; entscheid: string; titel: string; gemeinde: string }[]
+
+  const offene = vorhandene
+    .filter((v) => v.entscheid === 'offen')
+    .map((v) => v.id)
+  if (offene.length > 0 && kandidaten.deleteMany !== undefined)
+    await kandidaten.deleteMany(offene)
+
+  return new Set(
+    vorhandene
+      .filter((v) => v.entscheid !== 'offen')
+      .map((v) => `${v.gemeinde}|${v.titel}`)
+  )
 }
 
 /**

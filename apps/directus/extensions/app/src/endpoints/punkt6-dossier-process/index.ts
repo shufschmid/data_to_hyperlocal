@@ -83,9 +83,14 @@ export default defineEndpoint((router, { services, getSchema, logger }) => {
         })
 
         // Die Gemeinde-Sichtung haengt hinten dran und kann die Durchsicht
-        // nicht gefaehrden: sie faengt ihre Fehler selbst.
+        // nicht gefaehrden: sie faengt ihre Fehler selbst. Solange die
+        // Beitragsmarken fehlen ('wartet'), wird bewusst NICHT gesichtet — ein
+        // ungeteiltes Sendungs-Transkript ergibt schlechte Kandidaten, und die
+        // richtigen folgen mit dem naechsten Lauf.
         await sichteSendung(
-          result.editionId === null ? [] : [result.editionId],
+          result.status !== 'processed' || result.editionId === null
+            ? []
+            : [result.editionId],
           'punkt6',
           {
             editions: editions as never,
