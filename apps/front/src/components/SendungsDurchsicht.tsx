@@ -101,7 +101,9 @@ export function SendungsDurchsicht({
 
   const beitraege = istPunkt6 ? (p6.data?.punkt6_editions ?? []) : (rj.data?.editions ?? [])
 
-  async function verarbeiteAlle(ids: readonly string[], geholt: number): Promise<void> {
+  // `geholt` ist nur beim Postfach-Weg gesetzt — der Aufraeum-Knopf holt nichts,
+  // und "14 Dossiers geholt" ohne Postfachlauf hat schon einmal in die Irre gefuehrt.
+  async function verarbeiteAlle(ids: readonly string[], geholt: number | null): Promise<void> {
     let fertig = 0
     let gescheitert = 0
     for (const id of ids) {
@@ -112,10 +114,11 @@ export function SendungsDurchsicht({
     }
     setFortschritt(null)
     await Promise.all([abfrage.refetch(), istPunkt6 ? p6Dossiers.refetch() : rjDossiers.refetch()])
-    setBericht(
-      `${geholt} Dossier${geholt === 1 ? '' : 's'} geholt, ${fertig} verarbeitet` +
-        (gescheitert === 0 ? '.' : `, ${gescheitert} fehlgeschlagen.`)
-    )
+    const auftakt =
+      geholt === null
+        ? `${fertig} von ${ids.length} Dossier${ids.length === 1 ? '' : 's'} verarbeitet`
+        : `${geholt} Dossier${geholt === 1 ? '' : 's'} geholt, ${fertig} verarbeitet`
+    setBericht(auftakt + (gescheitert === 0 ? '.' : `, ${gescheitert} fehlgeschlagen.`))
   }
 
   return (
@@ -191,7 +194,7 @@ export function SendungsDurchsicht({
                   try {
                     await verarbeiteAlle(
                       offeneDossiers.map((d) => d.id),
-                      offeneDossiers.length
+                      null
                     )
                   } finally {
                     setHolt(false)

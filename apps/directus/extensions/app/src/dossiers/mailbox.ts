@@ -52,7 +52,6 @@ export type MailboxFetcher = (
 ) => Promise<MailboxFetchResult>
 
 export function imapConfigFromEnv(): MailboxConfig {
-  const subjectFilter = optionalEnv('IMAP_SUBJECT_FILTER', '')
   return {
     host: requireEnv('IMAP_HOST'),
     port: Number(optionalEnv('IMAP_PORT', '993')),
@@ -60,7 +59,12 @@ export function imapConfigFromEnv(): MailboxConfig {
     user: requireEnv('IMAP_USER'),
     password: requireEnv('IMAP_PASSWORD'),
     mailbox: optionalEnv('IMAP_MAILBOX', 'INBOX'),
-    subjectFilter: subjectFilter === '' ? null : subjectFilter
+    // REQUIRED, never null - same rule as punkt6ImapConfigFromEnv and for the
+    // same reason: the mailbox carries several saved searches, and a run
+    // without a filter ingests the other feeds' mails wholesale. MailboxConfig
+    // keeps subjectFilter nullable for tests and for a genuinely dedicated
+    // mailbox, but the env door refuses to build a filterless config.
+    subjectFilter: requireEnv('IMAP_SUBJECT_FILTER')
   }
 }
 

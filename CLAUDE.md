@@ -314,12 +314,19 @@ them is wrong even if it works.
    pdfjs from `unpdf/pdfjs`, `pdfjs-dist` is gone from the bundle, and there is
    exactly one copy and no worker file. **Only a real `docker compose build`
    plus one processed dossier proves this; no test can.**
-   One fix originated HERE and belongs in the sister project as a copy:
-   telebasel.ch renders the NEWEST episode only as the archive page's hero,
-   never in the vertical episode list, so the current Sendung could never be
-   resolved — hit on the 31.08. dossier, and structural, because a transcript
-   normally arrives before the next episode airs. `telebasel-client.ts` now
-   reads the hero's share modal (`share-data-element`) as a fallback.
+   Two fixes originated HERE and belong in the sister project as copies.
+   First: telebasel.ch renders the NEWEST episode only as the archive page's
+   hero, never in the vertical episode list, so the current Sendung could never
+   be resolved — hit on the 31.08. dossier, and structural, because a
+   transcript normally arrives before the next episode airs.
+   `telebasel-client.ts` now reads the hero's share modal
+   (`share-data-element`) as a fallback. Second: both `imapConfigFromEnv`
+   functions now REQUIRE their subject filter — the mailbox is shared between
+   several saved searches, and an empty filter used to mean "ingest
+   everything": a Directus process whose environment predated
+   `PUNKT6_IMAP_SUBJECT_FILTER` (env vars load at process start, a `.env` edit
+   needs a restart) turned 14 Regionaljournal/Gemeinden mails into failing
+   punkt6 dossiers before anyone noticed.
    Two things were deliberately changed on arrival. The Beiträge lost their
    `draft/published` status — a leftover from an abandoned plan that would have
    put two meanings of „publizieren" side by side; here the word means one

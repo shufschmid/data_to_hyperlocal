@@ -19,7 +19,6 @@ import type { Punkt6Dossier } from '../types/schema'
 // ingestion runs never interfere with each other.
 
 export function punkt6ImapConfigFromEnv(): MailboxConfig {
-  const subjectFilter = optionalEnv('PUNKT6_IMAP_SUBJECT_FILTER', '')
   return {
     host: requireEnv('IMAP_HOST'),
     port: Number(optionalEnv('IMAP_PORT', '993')),
@@ -27,7 +26,13 @@ export function punkt6ImapConfigFromEnv(): MailboxConfig {
     user: requireEnv('IMAP_USER'),
     password: requireEnv('IMAP_PASSWORD'),
     mailbox: optionalEnv('IMAP_MAILBOX', 'INBOX'),
-    subjectFilter: subjectFilter === '' ? null : subjectFilter
+    // REQUIRED, never null: this mailbox is shared between several saved
+    // searches, so "no filter" does not mean "everything here is punkt6" - it
+    // means ingesting the other feeds' mails wholesale. Measured 2026-09-01: a
+    // Directus process whose environment predated this variable ran with a null
+    // filter and turned 14 Regionaljournal/Gemeinden mails into punkt6 dossiers,
+    // every one failing at the PDF parser. Refuse loudly, naming the variable.
+    subjectFilter: requireEnv('PUNKT6_IMAP_SUBJECT_FILTER')
   }
 }
 
