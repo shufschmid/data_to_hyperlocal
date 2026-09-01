@@ -847,6 +847,15 @@ On a server, deploy the same `docker-compose.yml` with real values in `.env`
 (`KEY`, `SECRET`, `DB_PASSWORD`, `ADMIN_PASSWORD`, the public URLs) and a reverse
 proxy in front for TLS.
 
+**The actual Dokploy host does not consume the GHCR images at all**: the compose
+file builds both apps from source (`build:` contexts), and Dokploy rebuilds and
+redeploys the stack from the repository on every push to `main`. A push IS the
+deploy — which is also why the GHCR publish workflows failing does not stop a
+deploy (measured 2026-09-01: they had been failing at startup since 30.08 —
+`GITHUB_TOKEN` capped at `packages: read` by the repo's Actions settings — while
+the server kept deploying normally). The images remain the documented path for
+any host that pulls instead of builds.
+
 ## Things to know before editing
 
 - **Not an npm workspace.** No hoisting, no shared `node_modules`. Always `cd` into
