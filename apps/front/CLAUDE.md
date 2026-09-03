@@ -27,6 +27,7 @@ apps/front/src/
 │   ├── providers.tsx        'use client': ApolloProvider + ThemeProvider
 │   ├── page.tsx             renders <AppShell />
 │   ├── blog/                PUBLIC page — published articles only, no session gate
+│   ├── robots.ts            robots.txt — lets crawlers IN so they can read the noindex
 │   └── api/                 route handlers — proxies, nothing else
 │       ├── auth/{login,logout,session}/
 │       ├── graphql/         the browser's only data endpoint
@@ -74,6 +75,18 @@ component is a build error, which is what keeps tokens off the browser.
 - There is deliberately **no service/admin token in this app**. If a feature seems to
   need one, it needs a Directus extension endpoint instead — that is the whole point
   of constraint 7 in the root CLAUDE.md.
+- **Nothing in this app may be indexed, and the blog is UNLISTED rather than
+  secret**: reachable for anyone who has the address, absent from search results.
+  Three pieces say so and they have to stay consistent — the `X-Robots-Tag`
+  header on `/:path*` in `next.config.ts` (`noindex, nofollow, noarchive`), the
+  `robots` metadata in the root layout (inherited by every page, `googleBot`
+  spelled out separately), and `src/app/robots.ts`. **The last one deliberately
+  does NOT forbid crawling, and changing that would break the other two:**
+  robots.txt governs CRAWLING, `noindex` governs INDEXING. A crawler turned away
+  at robots.txt never reads the `noindex`, and Google documents that it may then
+  still list the bare URL when something links to it. Blocking the door is what
+  leaves the address in the index. There is no sitemap, for the same reason.
+  Tested in `src/app/robots.test.ts`.
 - Never introduce a `NEXT_PUBLIC_*` variable for anything sensitive: those are baked
   into the browser bundle at build time.
 

@@ -28,7 +28,21 @@ const nextConfig: NextConfig = {
         headers: [
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
-          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' }
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          // Nothing here belongs in a search index. The workspace needs a login
+          // anyway, and the blog is deliberately unlisted: reachable for anyone
+          // who has the address, not something a search turns up.
+          //
+          // As a HEADER, not only as a meta tag: it also covers what carries no
+          // HTML head — a JSON answer, a file — and it is the form Google and
+          // Bing document for exactly this. `noarchive` additionally keeps a
+          // cached copy from outliving a withdrawn article.
+          //
+          // This works ONLY because robots.txt lets crawlers in (see
+          // src/app/robots.ts). A `Disallow` there would stop them reading this
+          // header, and a page they cannot read is one they may list from
+          // someone else's link — the opposite of what is wanted.
+          { key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' }
         ]
       },
       {
