@@ -8,6 +8,7 @@ function eintrag(ueber: Partial<AmtsblattFelder> = {}): AmtsblattFelder {
     id: 'a',
     publikations_id: 'p',
     publikationsnummer: null,
+    quelle_typ: 'amtsblatt',
     kanton: 'BL',
     gruppe: 'bauen',
     rubrik_name: 'Baugesuch',
@@ -153,6 +154,34 @@ describe('Amtsblatt', () => {
       'https://bgauflage.bl.ch/x'
     )
     expect(screen.getByRole('link', { name: /Lage/ })).toBeInTheDocument()
+  })
+
+  // Eine Beschaffung kommt von simap.ch, nicht aus einem Amtsblatt — der Link
+  // muss sagen, wohin er fuehrt.
+  it('beschriftet den Link einer Beschaffung mit simap.ch', () => {
+    render(
+      <Amtsblatt
+        eintraege={[
+          eintrag({
+            quelle_typ: 'simap',
+            gruppe: 'beschaffung',
+            rubrik_name: 'Zuschlag',
+            unterlagen: [],
+            plan_status: 'nicht_lesbar',
+            pdf_url: 'https://www.simap.ch/de/project-detail/abc'
+          })
+        ]}
+        gemeinden={GEMEINDEN}
+        heute={HEUTE}
+      />
+    )
+
+    expect(screen.getByRole('link', { name: /Publikation auf simap\.ch/ })).toHaveAttribute(
+      'href',
+      'https://www.simap.ch/de/project-detail/abc'
+    )
+    expect(screen.queryByRole('link', { name: /Amtliche Publikation/ })).not.toBeInTheDocument()
+    expect(screen.getByText('Öffentliche Beschaffung')).toBeInTheDocument()
   })
 
   // The editor's own door to the plans — offered only where there is something

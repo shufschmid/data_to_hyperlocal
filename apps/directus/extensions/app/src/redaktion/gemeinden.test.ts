@@ -19,6 +19,7 @@ function gemeinde(bfs: number, name: string): Gemeinde {
     bezirk: 'Arlesheim',
     aktiv: true,
     plz: null,
+    simap_vergabestellen: null,
     date_created: null,
     date_updated: null
   }

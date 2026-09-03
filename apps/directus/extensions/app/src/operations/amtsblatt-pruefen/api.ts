@@ -21,12 +21,34 @@ import {
   ergaenzeZeile,
   type AmtsblattZeile
 } from '../../redaktion/amtsblattlauf'
+import {
+  baueSimapZeile,
+  ordneProjektZu,
+  type SimapZeilenwerte
+} from '../../redaktion/simaplauf'
+import {
+  fetchDetail,
+  fetchErfuellungsort,
+  fetchVergabestellen,
+  kantonVonBezirk,
+  type SimapGemeinde,
+  type SimapProjekt
+} from '../../shared/simap'
+import type { SimapVergabestelle } from '../../types/schema'
 
-// The 07:00 look at the official gazette portal.
+// The 07:00 look at the official gazette portal — and at simap.ch.
 //
 // Per municipality: two list requests (the portal indexes by place AND by
 // address, and the two sets do not overlap — see `fetchPublikationen`), insert
 // what is new, then ONE triage call over the day's titles.
+//
+// Public procurement rides along rather than getting a Flow of its own, and
+// that is the whole reason it is cheap: its rows land in the same collection as
+// group `beschaffung`, so ONE triage call per municipality judges the gazette's
+// news and the day's tenders together, at no extra model cost. The simap phase
+// runs before the municipality loop (its second query asks for all cantons at
+// once) and catches its own failures — the platform being unreachable must
+// never cost the gazette run.
 //
 // The triage sorts, it does not filter: everything stays on the desk, the
 // proposals sit on top and the rest one click away. That is what keeps the tab
@@ -54,10 +76,14 @@ interface Optionen {
 interface Ergebnis {
   gemeinden: number
   neu: number
+  /** Of `neu`, how many came from simap.ch rather than the gazette portal. */
+  beschaffungen: number
   vorschlaege: number
   plaeneGelesen: number
   aufgeraeumt: number
   ohnePlz: string[]
+  /** Named, not logged — see `ohnePlz`. Their own tenders stay invisible. */
+  ohneVergabestellen: string[]
   fehler: string[]
 }
 
@@ -90,10 +116,12 @@ export default defineOperationApi<Optionen>({
     const ergebnis: Ergebnis = {
       gemeinden: 0,
       neu: 0,
+      beschaffungen: 0,
       vorschlaege: 0,
       plaeneGelesen: 0,
       aufgeraeumt: 0,
       ohnePlz: [],
+      ohneVergabestellen: [],
       fehler: []
     }
 
@@ -125,15 +153,138 @@ export default defineOperationApi<Optionen>({
 
     const gemeinden = (await gemeindenService.readByQuery({
       filter: { aktiv: { _eq: true }, bfs_nummer: { _nnull: true } },
-      fields: ['id', 'name', 'bfs_nummer', 'plz'],
+      fields: [
+        'id',
+        'name',
+        'bfs_nummer',
+        'bezirk',
+        'plz',
+        'simap_vergabestellen'
+      ],
       sort: ['name'],
       limit: hoechstens
     })) as {
       id: string
       name: string
       bfs_nummer: number
+      bezirk: string
       plz: string[] | null
+      simap_vergabestellen: SimapVergabestelle[] | null
     }[]
+
+    // --- simap.ch: the procurement half, collected before the municipality loop
+    //
+    // Two queries, and both are needed for a different reason. The
+    // procurement-office one is asked PER MUNICIPALITY so a row's municipality
+    // is certain by construction; the place-of-performance one is asked ONCE
+    // for all cantons involved and matched locally by postcode — that is what
+    // catches the school the CANTON builds in Muttenz, which the municipality
+    // itself never publishes.
+    //
+    // The whole phase catches its own failures: simap being unreachable must
+    // never cost the gazette run, which is the feed this desk was built for.
+    const simapGemeinden: SimapGemeinde[] = gemeinden.map((g) => ({
+      id: g.id,
+      name: g.name,
+      bezirk: g.bezirk,
+      plz: g.plz ?? []
+    }))
+    /** New procurement rows, ready to insert, grouped by municipality. */
+    const simapJeGemeinde = new Map<string, SimapZeilenwerte[]>()
+
+    try {
+      const seit = tageZurueck(nachlauf)
+      const gesehen = new Set<string>()
+      // `{projekt, gemeinde}` rather than a flat list: the office query already
+      // knows the municipality, and re-deriving it from a name is the mistake
+      // this connector exists to avoid.
+      const gefunden: { projekt: SimapProjekt; gemeinde: SimapGemeinde }[] = []
+
+      for (const gemeinde of gemeinden) {
+        const stellen = (gemeinde.simap_vergabestellen ?? [])
+          .map((v) => v.id)
+          .filter((id) => id !== '')
+        if (stellen.length === 0) {
+          ergebnis.ohneVergabestellen.push(gemeinde.name)
+          continue
+        }
+        const eigene = await fetchVergabestellen(stellen, seit, abruf)
+        if (eigene.abgeschnitten)
+          ergebnis.fehler.push(
+            `simap.ch: Zu ${gemeinde.name} gab es mehr Publikationen, als ein Lauf liest.`
+          )
+        for (const projekt of eigene.projekte) {
+          if (gesehen.has(projekt.publicationId)) continue
+          gesehen.add(projekt.publicationId)
+          const zu = simapGemeinden.find((g) => g.id === gemeinde.id)
+          if (zu !== undefined) gefunden.push({ projekt, gemeinde: zu })
+        }
+      }
+
+      const kantone = [
+        ...new Set(gemeinden.map((g) => kantonVonBezirk(g.bezirk)))
+      ]
+      const fremde = await fetchErfuellungsort(kantone, seit, abruf)
+      // Said, not swallowed: the rows read are good, but a truncated list means
+      // a publication in one of our municipalities may be missing.
+      if (fremde.abgeschnitten)
+        ergebnis.fehler.push(
+          'simap.ch: Es gab mehr Publikationen mit Erfuellungsort in der Region, ' +
+            'als ein Lauf liest — Nachlauf verkleinern.'
+        )
+      for (const projekt of fremde.projekte) {
+        if (gesehen.has(projekt.publicationId)) continue
+        const zu = ordneProjektZu(projekt, simapGemeinden, null)
+        if (zu === null) continue
+        gesehen.add(projekt.publicationId)
+        gefunden.push({ projekt, gemeinde: zu })
+      }
+
+      // Only what this database does not have yet — the detail request costs a
+      // round trip, and the unique clamp on `publikations_id` would reject the
+      // insert anyway.
+      const bekannt =
+        gefunden.length === 0
+          ? new Set<string>()
+          : new Set(
+              (
+                (await meldungen.readByQuery({
+                  filter: {
+                    publikations_id: {
+                      _in: gefunden.map((f) => f.projekt.publicationId)
+                    }
+                  },
+                  fields: ['publikations_id'],
+                  limit: -1
+                })) as { publikations_id: string }[]
+              ).map((z) => z.publikations_id)
+            )
+
+      for (const { projekt, gemeinde } of gefunden) {
+        if (bekannt.has(projekt.publicationId)) continue
+        // The facts come at collection time, not on a click: the volume is a
+        // handful a week, the tender deadline lives only in the detail, and a
+        // filled row means "Meldung schreiben" works on the first press.
+        let detail: unknown | null = null
+        try {
+          detail = await fetchDetail(projekt.id, projekt.publicationId, abruf)
+        } catch (fehler) {
+          // The row still goes on the desk; the endpoint refetches on demand.
+          logger.warn(
+            fehler,
+            `simap: Angaben zu ${projekt.publicationId} nicht geholt`
+          )
+        }
+        const bisher = simapJeGemeinde.get(gemeinde.id) ?? []
+        bisher.push(baueSimapZeile(projekt, gemeinde, detail))
+        simapJeGemeinde.set(gemeinde.id, bisher)
+      }
+    } catch (fehler) {
+      const grund =
+        fehler instanceof Error ? fehler.message : 'Unbekannter Fehler'
+      logger.warn(fehler, 'simap.ch fehlgeschlagen.')
+      ergebnis.fehler.push(`simap.ch: ${grund}`)
+    }
 
     let planBudgetRest = planBudget
 
@@ -145,36 +296,47 @@ export default defineOperationApi<Optionen>({
       // from "nothing was published".
       if (plz.length === 0) ergebnis.ohnePlz.push(gemeinde.name)
 
+      // What simap found for this municipality, collected above. Insert it
+      // alongside the gazette's rows so ONE triage call judges the day's news
+      // for this municipality, whichever door it came through.
+      const beschaffungen = simapJeGemeinde.get(gemeinde.id) ?? []
+
       try {
         const treffer = await fetchPublikationen(
           { bfsNummer: gemeinde.bfs_nummer, plz },
           tageZurueck(nachlauf),
           abruf
         )
-        if (treffer.length === 0) continue
 
-        const bekannt = new Set(
-          (
-            (await meldungen.readByQuery({
-              filter: {
-                publikations_id: { _in: treffer.map((t) => t.id) }
-              },
-              fields: ['publikations_id'],
-              limit: -1
-            })) as { publikations_id: string }[]
-          ).map((z) => z.publikations_id)
-        )
+        const bekannt =
+          treffer.length === 0
+            ? new Set<string>()
+            : new Set(
+                (
+                  (await meldungen.readByQuery({
+                    filter: {
+                      publikations_id: { _in: treffer.map((t) => t.id) }
+                    },
+                    fields: ['publikations_id'],
+                    limit: -1
+                  })) as { publikations_id: string }[]
+                ).map((z) => z.publikations_id)
+              )
 
         const neue: AmtsblattTreffer[] = treffer.filter(
           (t) => !bekannt.has(t.id)
         )
-        if (neue.length === 0) continue
+        // Nothing new from either source — the next municipality. Checked
+        // AFTER simap, or a municipality whose only news is a tender would
+        // never be triaged.
+        if (neue.length === 0 && beschaffungen.length === 0) continue
 
-        const angelegt: { id: string; treffer: AmtsblattTreffer }[] = []
+        const angelegt: { id: string; zeile: TriageZeile }[] = []
         for (const t of neue) {
           try {
             const id = (await meldungen.createOne({
               publikations_id: t.id,
+              quelle_typ: 'amtsblatt',
               publikationsnummer: t.nummer,
               gemeinde: gemeinde.id,
               kanton: t.kanton,
@@ -187,12 +349,44 @@ export default defineOperationApi<Optionen>({
               amt: t.amt,
               pdf_url: t.pdfUrl
             })) as string
-            angelegt.push({ id, treffer: t })
+            angelegt.push({
+              id,
+              zeile: {
+                id,
+                titel: t.titel,
+                rubrikName: t.rubrikName,
+                gruppe: t.gruppe,
+                amt: t.amt
+              }
+            })
             ergebnis.neu += 1
           } catch (fehler) {
             // A race with a parallel run, or one bad row — never the whole
             // municipality.
             logger.warn(fehler, `Publikation ${t.id} nicht angelegt.`)
+          }
+        }
+
+        for (const werte of beschaffungen) {
+          try {
+            const id = (await meldungen.createOne(werte)) as string
+            angelegt.push({
+              id,
+              zeile: {
+                id,
+                titel: werte.titel,
+                rubrikName: werte.rubrik_name,
+                gruppe: werte.gruppe,
+                amt: werte.amt
+              }
+            })
+            ergebnis.neu += 1
+            ergebnis.beschaffungen += 1
+          } catch (fehler) {
+            logger.warn(
+              fehler,
+              `Beschaffung ${werte.publikations_id} nicht angelegt.`
+            )
           }
         }
         if (angelegt.length === 0) continue
@@ -213,13 +407,7 @@ export default defineOperationApi<Optionen>({
           ablehnungsgrund: string | null
         }[]
 
-        const zeilen: TriageZeile[] = angelegt.map(({ id, treffer }) => ({
-          id,
-          titel: treffer.titel,
-          rubrikName: treffer.rubrikName,
-          gruppe: treffer.gruppe,
-          amt: treffer.amt
-        }))
+        const zeilen: TriageZeile[] = angelegt.map(({ zeile }) => zeile)
 
         try {
           const antwort = await completeJson<unknown>({
@@ -296,21 +484,31 @@ export default defineOperationApi<Optionen>({
       }
     }
 
-    // One source row for the whole feed — the banner reads it, exactly as with
-    // the agenda.
-    const quelle = (await quellen.readByQuery({
-      filter: { typ: { _eq: 'amtsblatt' } },
-      fields: ['id'],
-      limit: 1
-    })) as { id: string }[]
-    const quelleId = quelle[0]?.id
-    if (quelleId !== undefined) {
+    // One source row per adapter — the banner reads them, exactly as with the
+    // agenda. Both are stamped, and the simap one carries only ITS errors: a
+    // silent gazette and a silent procurement platform are different news, and
+    // one banner blaming the other would send someone looking in the wrong place.
+    const simapFehler = ergebnis.fehler.filter((f) => f.startsWith('simap.ch'))
+    const portalFehler = ergebnis.fehler.filter(
+      (f) => !f.startsWith('simap.ch')
+    )
+    const jetzt = new Date().toISOString()
+
+    for (const [typ, fehler] of [
+      ['amtsblatt', portalFehler],
+      ['simap', simapFehler]
+    ] as const) {
+      const quelle = (await quellen.readByQuery({
+        filter: { typ: { _eq: typ } },
+        fields: ['id'],
+        limit: 1
+      })) as { id: string }[]
+      const quelleId = quelle[0]?.id
+      if (quelleId === undefined) continue
       await quellen.updateOne(quelleId, {
-        letzte_pruefung: new Date().toISOString(),
+        letzte_pruefung: jetzt,
         letzter_fehler:
-          ergebnis.fehler.length === 0
-            ? null
-            : ergebnis.fehler.join(' · ').slice(0, 1000)
+          fehler.length === 0 ? null : fehler.join(' · ').slice(0, 1000)
       })
     }
 

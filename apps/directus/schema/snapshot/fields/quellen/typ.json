@@ -29,6 +29,10 @@
         {
           "text": "Amtsblattportal",
           "value": "amtsblatt"
+        },
+        {
+          "text": "simap.ch (Beschaffungen)",
+          "value": "simap"
         }
       ]
     },

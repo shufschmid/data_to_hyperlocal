@@ -1,0 +1,527 @@
+{
+  "project-info": {
+    "stateContractArea": true,
+    "dialog": "no",
+    "documentsWithCosts": "no",
+    "publicationTed": false,
+    "procOfficeAddress": {
+      "postalCode": "4102",
+      "countryId": "CH",
+      "cantonId": "BL",
+      "id": "6378c220-7e03-4127-a132-275b3ac052d4",
+      "name": {
+        "de": "Bauabteilung Binningen",
+        "en": null,
+        "fr": "Bauabteilung Binningen",
+        "it": null
+      },
+      "contactPerson": {
+        "de": null,
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "phone": "+41614255302",
+      "email": "simap@binningen.bl.ch",
+      "url": {
+        "de": "https://www.binningen.ch/",
+        "en": null,
+        "fr": "https://www.binningen.ch",
+        "it": null
+      },
+      "reference": null,
+      "street": {
+        "de": "Hauptstrasse 36",
+        "en": null,
+        "fr": "Hauptstrasse 36",
+        "it": null
+      },
+      "city": {
+        "de": "Binningen",
+        "en": null,
+        "fr": "Binningen",
+        "it": null
+      }
+    },
+    "procurementRecipientAddress": {
+      "postalCode": "4102",
+      "countryId": "CH",
+      "cantonId": "BL",
+      "id": "306fe8ac-2929-4f36-8a02-c486349e1467",
+      "name": {
+        "de": "Bauabteilung Binningen",
+        "en": null,
+        "fr": "Bauabteilung Binningen",
+        "it": null
+      },
+      "contactPerson": {
+        "de": null,
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "phone": "+41612455302",
+      "email": "simap@binningen.bl.ch",
+      "url": {
+        "de": "https://www.binningen.ch/",
+        "en": null,
+        "fr": "https://www.binningen.ch/",
+        "it": null
+      },
+      "reference": null,
+      "street": {
+        "de": "Hauptstrasse 36",
+        "en": null,
+        "fr": "Hauptstrasse 36",
+        "it": null
+      },
+      "city": {
+        "de": "Binningen",
+        "en": null,
+        "fr": "Binningen",
+        "it": null
+      }
+    },
+    "title": {
+      "de": "EPM Binningen - BKP 273 Innentüren und 273.2 Innere Verglasungen",
+      "en": null,
+      "fr": "EPM Binningen - CFC 273 Portes intérieures et 273.2 Vitrages intérieurs",
+      "it": null
+    },
+    "documentsLanguages": ["de"],
+    "documentsSourceType": "documents_source_simap",
+    "offerLanguages": ["de"],
+    "offerTypes": ["offer_external", "offer_specific"],
+    "publicationLanguages": ["de"],
+    "processType": "open",
+    "orderType": "construction",
+    "participantLotsLimitation": null,
+    "participantLotsLimitationNote": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "dialogNote": null,
+    "documentsCosts": {
+      "currency": null,
+      "price": null
+    },
+    "documentsCostsNote": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "documentsLanguagesNote": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "documentsSourceEmail": null,
+    "documentsSourceUrl": null,
+    "documentsSourceNote": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "offerSpecificNote": {
+      "de": "<p>Die Angebote sind vollständig ausgefüllt im verschlossenen Umschlag versehen mit der Aufschrift:</p><p>\"Angebot: EPM Binningen, BKP 273.00 Innentüren und Innere Verglasungen\" einzureichen und müssen spätestens zur vorgenannten Eingabefrist beim Einreichungsort vorliegen.</p><p>Alle Dokumente sind in Papierform und auf einem mobilen Datenträger (USB-Stick etc.) abzugeben.</p><p>Die Angebote können entweder per Post (Eingang der Sendung massgebend, nicht Datum des Poststempels) oder durch persönliche Abgabe am Empfang (werktags jeweils von 08.00-12.00 Uhr und 13.15-16.00 Uhr) eingereicht werden.</p>",
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "offerDigitalExternalPlatformUrl": null,
+    "documentsSourceAddress": null,
+    "offerAddress": {
+      "postalCode": "4051",
+      "countryId": "CH",
+      "cantonId": null,
+      "id": "8a76051b-86fb-4de8-9af4-61bcbad642a1",
+      "name": {
+        "de": "Generalplanergemeinschaft Meiriacker c/o Büro für Bauökonomie AG",
+        "en": null,
+        "fr": "Generalplanergemeinschaft Meiriacker c/o Büro für Bauökonomie AG",
+        "it": null
+      },
+      "contactPerson": {
+        "de": null,
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "phone": null,
+      "email": null,
+      "url": {
+        "de": null,
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "reference": null,
+      "street": {
+        "de": "Centralbahnstrasse 7",
+        "en": null,
+        "fr": "Centralbahnstrasse 7",
+        "it": null
+      },
+      "city": {
+        "de": "Basel",
+        "en": null,
+        "fr": "Basel",
+        "it": null
+      }
+    },
+    "publicationLanguagesComment": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    }
+  },
+  "procurement": {
+    "orderDescription": {
+      "de": "<p>Innentüren und innere Verglasungen, Neubau eines Schulhauses, Umbau eines Bestandsbau, Arbeit in mehreren Etappen. Während der gesamten Bauzeit bleibt der Schulbetrieb in vollem Umfang erhalten.</p>",
+      "en": null,
+      "fr": "<p>Portes intérieures et vitrages intérieurs, construction d’un nouveau bâtiment scolaire, transformation d’un bâtiment existant, travaux réalisés en plusieurs étapes. Pendant toute la durée des travaux, l’exploitation scolaire est maintenue dans son intégralité.</p>",
+      "it": null
+    },
+    "processType": "open",
+    "orderType": "construction",
+    "additionalCpvCodes": [],
+    "bkpCodes": [
+      {
+        "code": "273.0",
+        "label": {
+          "de": "Innentüren",
+          "en": "Internal doors",
+          "fr": "Portes intérieures",
+          "it": "Porte interne"
+        }
+      },
+      {
+        "code": "273.2",
+        "label": {
+          "de": "Innere Verglasungen",
+          "en": "Internal glazing",
+          "fr": "Vitrages intérieurs",
+          "it": "Serramenti vetrati interni"
+        }
+      }
+    ],
+    "ebkphCodes": [],
+    "ebkptCodes": [],
+    "npkCodes": [],
+    "oagCodes": [
+      {
+        "code": "1.2",
+        "label": {
+          "de": "Unterricht, Bildung und Forschung",
+          "en": "Teaching, education and research",
+          "fr": "Enseignement, formation et recherche",
+          "it": "Istruzione, formazione e ricerca"
+        }
+      }
+    ],
+    "constructionType": "execution",
+    "constructionCategory": "structural_engineering",
+    "cpcCode": null,
+    "orderAddressOnlyDescription": "no",
+    "orderAddressDescription": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "executionDeadlineType": "date_time",
+    "executionPeriod": {
+      "dateRange": ["2027-09-01", "2027-12-17"]
+    },
+    "executionDays": null,
+    "executionNote": {
+      "de": "Ausführung ab Herbst 2027, gemäss Grobterminplan Ausführung (Vorabzug)",
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "variants": "no",
+    "variantsNote": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "partialOffers": "no",
+    "partialOffersNote": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "orderAddress": {
+      "countryId": "CH",
+      "cantonId": "BL",
+      "postalCode": "4102",
+      "city": {
+        "de": "Binningen",
+        "en": null,
+        "fr": null,
+        "it": null
+      }
+    },
+    "contractDeadlineType": "not_specified",
+    "contractPeriod": null,
+    "contractDays": null,
+    "canContractBeExtended": "yes",
+    "canContractBeExtendedNote": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "options": "no",
+    "optionsNote": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "cpvCode": {
+      "code": "45210000",
+      "label": {
+        "de": "Bauleistungen im Hochbau",
+        "en": "Building construction work",
+        "fr": "Travaux de construction de bâtiments",
+        "it": "Lavori generali di costruzione di edifici"
+      }
+    }
+  },
+  "terms": {
+    "termsType": "in_documents",
+    "termsCriteria": [],
+    "termsCriteriaAsPDF": false,
+    "consortiumAllowed": "yes",
+    "consortiumMultiApplicationAllowed": "no",
+    "subContractorAllowed": "yes",
+    "subContractorMultiApplicationAllowed": "yes",
+    "processType": "open",
+    "orderType": "construction",
+    "preInvolvedVendor": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "termsOfBusiness": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "termsOfPayment": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "includedCosts": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "securityDeposits": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "nonWTORequirements": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "walkThroughNotes": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "termsNote": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "otherRequirements": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "consortiumNote": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "subContractorNote": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "remediesNotice": {
+      "de": "Gegen diese Ausschreibung kann innert 20 Tagen, ab Datum der Publikation auf simap.ch an gerechnet, beim Kantonsgericht, Abteilung Verfassungs- und Verwaltungsrecht, Bahnhofplatz 16, 4410 Liestal, schriftlich Beschwerde erhoben werden. Anordnungen in den Ausschreibungsunterlagen, deren Bedeutung erkennbar ist, müssen zusammen mit der Ausschreibung angefochten werden (Art. 53 Abs. 2 IVöB).\n\nEiner Beschwerde kommt nicht von Gesetzes wegen aufschiebende Wirkung zu. Die Beschwerdeschrift ist in vierfacher Ausfertigung einzureichen. Sie muss ein klar umschriebenes Begehren und die Unterschrift der Beschwerdeführenden oder der sie vertretenden Person enthalten. Der angefochtene Entscheid ist der Beschwerde in Kopie beizulegen. Das Verfahren vor Kantonsgericht, Abteilung Verfassungs- und Verwaltungsrecht, ist kostenpflichtig.",
+      "en": null,
+      "fr": null,
+      "it": null
+    }
+  },
+  "dates": {
+    "qnaRoundSourceType": "simap",
+    "offerValidityDeadlineType": "days_after",
+    "offerValidityNotes": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "reductionMinimumOfferDeadline": false,
+    "publicOfferOpening": "no",
+    "qnas": [
+      {
+        "id": "70974f48-0228-4e55-bd93-10287cc11499",
+        "date": "2026-09-10",
+        "note": {
+          "de": "Schriftliche Fragen sind bis am 10.09.2026 auf der Plattform SIMAP zu hinterlegen. Eine Zusammenstellung der rechtzeitig eingegangene Fragen mit den entsprechenden Antworten wird bis am 22.09.2026 allen zur Angebotseinreichung berechtigten Anbietenden zur Verfügung gestellt. Es werden keine mündlichen Auskünfte erteilt. Nach Ablauf der Frist eintreffende Fragen werden nicht berücksichtigt.",
+          "en": null,
+          "fr": null,
+          "it": null
+        },
+        "externalLink": null
+      }
+    ],
+    "otherAppointments": [],
+    "processType": "open",
+    "orderType": "construction",
+    "publicationDate": "2026-09-01",
+    "initialPublicationDate": null,
+    "publicationDateForecast": null,
+    "offerDeadline": "2026-10-12T16:00:00+02:00",
+    "specificDeadlinesAndFormalRequirements": {
+      "de": "Die Angebote sind vollständig ausgefüllt im verschlossenen Umschlag versehen mit der Aufschrift:\n\"Angebot: EPM Binningen, BKP 273 Innentüren und 273.2 Innere Verglasungen\" einzureichen und müssen spätestens zur vorgenannten Eingabefrist beim Einreichungsort vorliegen.\nAlle Dokumente sind in Papierform und auf einem mobilen Datenträger (USB-Stick etc.) abzugeben.\nDie Angebote können entweder per Post (Eingang der Sendung massgebend, nicht Datum des Poststempels) oder durch persönliche Abgabe am Empfang (werktags jeweils von 08.00-12.00 Uhr und 13.15-16.00 Uhr) eingereicht werden.",
+      "en": null,
+      "fr": "Les offres doivent être dûment complétées et remises dans une enveloppe fermée portant la mention :\n\"Offre : EPM Binningen, CFC 273 Portes intérieures et 273.2 Vitrages intérieurs\" et doivent parvenir au plus tard à la date limite de remise susmentionnée au lieu de dépôt indiqué.\nTous les documents doivent être remis sous forme papier et sur un support de données amovible (clé USB, etc.).\nLes offres peuvent être envoyées par courrier postal (la date de réception de l’envoi faisant foi, et non la date du cachet postal) ou remises en personne à la réception (les jours ouvrables, de 08h00 à 12h00 et de 13h15 à 16h00).",
+      "it": null
+    },
+    "documentsAvailable": null,
+    "expressionOfInterestUntil": null,
+    "offerValidityDeadlineDate": null,
+    "offerValidityDeadlineDays": 180,
+    "offerOpening": null,
+    "offerOpeningNotes": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "offerOpeningPostalCode": null,
+    "offerOpeningCity": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    }
+  },
+  "id": "7bce5e21-e759-4a98-8494-d7cfe3ccd04d",
+  "type": "tender",
+  "projectType": "tender",
+  "publishers": [
+    {
+      "id": "c92c5781-c89a-4f93-94b1-f2061c35e556",
+      "name": "simap.ch"
+    }
+  ],
+  "correction": null,
+  "referencingPub": null,
+  "invitedVendors": null,
+  "lots": [],
+  "criteria": {
+    "qualificationCriteriaInDocuments": "yes",
+    "qualificationCriteriaAsPDF": false,
+    "qualificationCriteria": [],
+    "awardCriteriaSelection": "criteria_in_documents",
+    "awardCriteria": [],
+    "processType": "open",
+    "orderType": "construction",
+    "qualificationCriteriaNote": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "awardCriteriaNote": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    }
+  },
+  "base": {
+    "corrected": false,
+    "cpvCode": {
+      "code": "45210000",
+      "label": {
+        "de": "Bauleistungen im Hochbau",
+        "en": "Building construction work",
+        "fr": "Travaux de construction de bâtiments",
+        "it": "Lavori generali di costruzione di edifici"
+      }
+    },
+    "orderType": "construction",
+    "lots": [],
+    "publicationTed": false,
+    "id": "7bce5e21-e759-4a98-8494-d7cfe3ccd04d",
+    "title": {
+      "de": "EPM Binningen - BKP 273 Innentüren und 273.2 Innere Verglasungen",
+      "en": null,
+      "fr": "EPM Binningen - CFC 273 Portes intérieures et 273.2 Vitrages intérieurs",
+      "it": null
+    },
+    "projectType": "tender",
+    "processType": "open",
+    "lotsType": "without",
+    "stateContractArea": true,
+    "type": "tender",
+    "publicationNumber": "43044-01",
+    "projectId": "5df54c6c-3ca5-458b-af05-db9d1d18f880",
+    "publicationDate": "2026-09-01",
+    "creationLanguage": "de",
+    "translationLanguages": [
+      {
+        "language": "fr",
+        "type": "summary"
+      }
+    ],
+    "procOfficeId": "32c91c20-70fb-4f13-a8ad-6185e762038c",
+    "publishers": ["c92c5781-c89a-4f93-94b1-f2061c35e556"],
+    "participantLotsLimitation": null,
+    "participantLotsLimitationNote": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "correctedPubId": null,
+    "initialPublicationDate": null,
+    "referencingPubId": null,
+    "cpcCode": null,
+    "projectNumber": "43044"
+  },
+  "hasProjectDocuments": true,
+  "ted": null
+}

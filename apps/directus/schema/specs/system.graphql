@@ -306,10 +306,10 @@ type Subscription {
   recherchehinweise_mutated(event: EventEnum): recherchehinweise_mutated
   wochenblattkandidaten_mutated(event: EventEnum): wochenblattkandidaten_mutated
   wochenblattgemeinden_mutated(event: EventEnum): wochenblattgemeinden_mutated
-  amtsblattmeldungen_mutated(event: EventEnum): amtsblattmeldungen_mutated
   gemeinden_mutated(event: EventEnum): gemeinden_mutated
   editions_mutated(event: EventEnum): editions_mutated
   punkt6_dossiers_mutated(event: EventEnum): punkt6_dossiers_mutated
+  amtsblattmeldungen_mutated(event: EventEnum): amtsblattmeldungen_mutated
   punkt6_editions_mutated(event: EventEnum): punkt6_editions_mutated
   sendungskandidaten_mutated(event: EventEnum): sendungskandidaten_mutated
 }
@@ -454,6 +454,11 @@ type amtsblattmeldungen {
   date_updated: Date
   date_updated_func: datetime_functions
   gemeinde(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): gemeinden
+
+  """
+  Woher die Zeile kommt. Das Amtsblattportal und simap.ch fuehren getrennte Publikations-IDs, und Attribution wie Nachladen haengen daran.
+  """
+  quelle_typ: String
   meldungen(filter: meldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [meldungen]
 }
 
@@ -2235,6 +2240,12 @@ type gemeinden {
   Postleitzahlen der Gemeinde. Ohne sie bleibt die SHAB-Haelfte still: Handelsregister, Konkurse und Betreibungen sind beim Portal an die Adresse gebunden, nicht an die BFS-Nummer.
   """
   plz: [String]
+
+  """
+  Vergabestellen dieser Gemeinde auf simap.ch: [{"id","name","typ"}]. Die id stammt aus dem oeffentlichen Verzeichnis (/procoffices/v1/po/public). Von Hand gepflegt, weil das Verzeichnis keinen Kanton nennt: die Namenssuche liefert "Gemeinde Aesch LU" und "Gemeinde Reinach" (AG) gleich mit. Leer heisst nicht blind — der Erfuellungsort wird trotzdem ueber die PLZ gefunden.
+  """
+  simap_vergabestellen: JSON
+  simap_vergabestellen_func: count_functions
 }
 
 type gemeinden_mutated {
@@ -3073,6 +3084,7 @@ input amtsblattmeldungen_filter {
   date_updated: date_filter_operators
   date_updated_func: datetime_function_filter_operators
   gemeinde: gemeinden_filter
+  quelle_typ: string_filter_operators
   _and: [amtsblattmeldungen_filter]
   _or: [amtsblattmeldungen_filter]
   meldungen: meldungen_quantifier_filter
@@ -4244,6 +4256,8 @@ input gemeinden_filter {
   date_updated: date_filter_operators
   date_updated_func: datetime_function_filter_operators
   plz: string_filter_operators
+  simap_vergabestellen: string_filter_operators
+  simap_vergabestellen_func: count_function_filter_operators
   _and: [gemeinden_filter]
   _or: [gemeinden_filter]
 }

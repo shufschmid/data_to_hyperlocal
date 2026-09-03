@@ -1,60 +1,44 @@
 {
   "collection": "amtsblattmeldungen",
-  "field": "gruppe",
+  "field": "quelle_typ",
   "type": "string",
   "meta": {
     "collection": "amtsblattmeldungen",
     "conditions": null,
     "display": "labels",
     "display_options": null,
-    "field": "gruppe",
+    "field": "quelle_typ",
     "group": null,
     "hidden": false,
     "interface": "select-dropdown",
-    "note": "Wonach die Redaktion sortiert. \"personen\" ist keine Themen-, sondern eine Eigenschaft: dort werden Privatpersonen genannt.",
+    "note": "Woher die Zeile kommt. Das Amtsblattportal und simap.ch fuehren getrennte Publikations-IDs, und Attribution wie Nachladen haengen daran.",
     "options": {
       "choices": [
         {
-          "text": "Bauen, Planung, Verkehr",
-          "value": "bauen"
+          "text": "Amtsblattportal",
+          "value": "amtsblatt"
         },
         {
-          "text": "Handelsregister",
-          "value": "wirtschaft"
-        },
-        {
-          "text": "Behoerden und Buergerrecht",
-          "value": "behoerden"
-        },
-        {
-          "text": "Grundbuch und Handaenderungen",
-          "value": "grundbuch"
-        },
-        {
-          "text": "Konkurse, Betreibungen, Erbschaft",
-          "value": "personen"
-        },
-        {
-          "text": "Oeffentliche Beschaffung",
-          "value": "beschaffung"
+          "text": "simap.ch",
+          "value": "simap"
         }
       ]
     },
     "readonly": false,
     "required": false,
     "searchable": true,
-    "sort": 5,
+    "sort": 28,
     "special": null,
     "translations": null,
     "validation": null,
     "validation_message": null,
-    "width": "full"
+    "width": "half"
   },
   "schema": {
-    "name": "gruppe",
+    "name": "quelle_typ",
     "table": "amtsblattmeldungen",
     "data_type": "character varying",
-    "default_value": null,
+    "default_value": "amtsblatt",
     "max_length": 20,
     "numeric_precision": null,
     "numeric_scale": null,

@@ -43,6 +43,7 @@ function fakten(ueber: Partial<AmtsblattFakten> = {}): AmtsblattFakten {
     titel: 'Baugesuch - Solaranlage, Aesch',
     rubrikName: 'Baugesuch',
     gruppe: 'bauen',
+    quelleTyp: 'amtsblatt',
     amt: 'Kanton Basel-Landschaft - Bauinspektorat',
     publiziertAm: '2026-08-27',
     frist: '2026-09-07',
@@ -59,6 +60,30 @@ function fakten(ueber: Partial<AmtsblattFakten> = {}): AmtsblattFakten {
     unterlage: null,
     ...ueber
   }
+}
+
+/** Dieselben Fakten, aber aus der anderen Tuer: eine Beschaffung von simap.ch. */
+function simapFakten(ueber: Partial<AmtsblattFakten> = {}): AmtsblattFakten {
+  return fakten({
+    quelleTyp: 'simap',
+    gruppe: 'beschaffung',
+    rubrikName: 'Zuschlag',
+    titel: 'BKP 421 Gaertnerarbeiten, Neubau Gemeindezentrum',
+    amt: 'Gemeinde Pratteln',
+    angaben: [
+      {
+        bezeichnung: 'Auftraggeberin',
+        wert: 'Gemeinde Pratteln, 4133 Pratteln'
+      },
+      {
+        bezeichnung: 'Zuschlag an',
+        wert: "Schneider Gartengestaltung AG, 4107 Ettingen, CHF 616'183.15"
+      },
+      { bezeichnung: 'Eingegangene Angebote', wert: '6' }
+    ],
+    pdfUrl: 'https://www.simap.ch/de/project-detail/abc',
+    ...ueber
+  })
 }
 
 describe('Triage', () => {
@@ -237,6 +262,30 @@ describe('darfWeg', () => {
       ).toBe(false)
     }
   })
+
+  // Eine Beschaffung von simap.ch traegt dieselbe Form: ein Zuschlag hat keine
+  // Frist (die Beschwerdefrist ist nicht als Datum publiziert), eine
+  // Ausschreibung schon. Dieselben Regeln muessen greifen.
+  it('behandelt eine Beschaffung wie jede andere Zeile', () => {
+    // Zuschlag ohne Frist, nicht vorgeschlagen: geht nach sieben Tagen.
+    expect(
+      darfWeg(zeile({ frist: null, publiziert_am: '2026-08-24' }), '2026-08-31')
+    ).toBe(true)
+    // Derselbe Zuschlag als Vorschlag: bleibt bis zum Entscheid.
+    expect(
+      darfWeg(
+        zeile({ frist: null, vorschlag: true, publiziert_am: '2026-08-24' }),
+        '2026-08-31'
+      )
+    ).toBe(false)
+    // Ausschreibung mit laufender Eingabefrist: bleibt.
+    expect(
+      darfWeg(
+        zeile({ frist: '2026-10-12', publiziert_am: '2026-08-24' }),
+        '2026-08-31'
+      )
+    ).toBe(false)
+  })
 })
 
 describe('Planlesung', () => {
@@ -353,6 +402,22 @@ describe('Meldung', () => {
       'Text.\n\nQuelle: Amtliche Publikation vom 27. August 2026, https://amtsblattportal.ch/api/v1/publications/4dc2b146/pdf'
     )
   })
+
+  // Eine Beschaffung kommt nicht aus einem Amtsblatt, sondern von simap.ch —
+  // die Plattform ist die Quelle, und die Zeile muss das sagen.
+  it('nennt bei einer Beschaffung simap.ch als Quelle, nicht ein Amtsblatt', () => {
+    const zeile = quelleZeile(
+      simapFakten({
+        pdfUrl:
+          'https://www.simap.ch/de/project-detail/5df54c6c-3ca5-458b-af05-db9d1d18f880'
+      })
+    )
+    expect(zeile).toBe(
+      'Quelle: Publikation auf simap.ch vom 27. August 2026, ' +
+        'https://www.simap.ch/de/project-detail/5df54c6c-3ca5-458b-af05-db9d1d18f880'
+    )
+    expect(zeile).not.toContain('Amtliche Publikation')
+  })
 })
 
 describe('artikelUnterlage', () => {
@@ -390,6 +455,9 @@ describe('Pruefungen', () => {
     expect(quellenName('BS', 'behoerden')).toBe('Basel-Stadt')
     expect(quellenName('SO', 'bauen')).toBe('Solothurn')
     expect(quellenName('BL', 'wirtschaft')).toBe('Handelsamtsblatt')
+    // Eine Beschaffung kommt von der Plattform, nicht vom Kanton — auch dann,
+    // wenn die Gemeinde in Basel-Landschaft liegt.
+    expect(quellenName('BL', 'beschaffung', 'simap')).toBe('simap.ch')
   })
 
   it('meldet eine fehlende Attribution', () => {
@@ -408,6 +476,54 @@ describe('Pruefungen', () => {
         fakten()
       )
     ).toBeNull()
+  })
+
+  // Bei simap ist der Plattformname die ganze Attribution: ein Wort wie
+  // "amtlich" zu verlangen wuerde jeden korrekten Text durchfallen lassen.
+  it('verlangt bei einer Beschaffung simap.ch — und nichts Amtliches', () => {
+    expect(
+      attributionsWarnung(
+        'Die Gemeinde Pratteln hat den Auftrag vergeben.',
+        simapFakten()
+      )
+    ).toContain('simap.ch')
+    expect(
+      attributionsWarnung(
+        'Wie auf simap.ch publiziert, geht der Auftrag an die Firma.',
+        simapFakten()
+      )
+    ).toBeNull()
+    // Ein amtlich klingender Text ohne simap.ch reicht NICHT.
+    expect(
+      attributionsWarnung(
+        'Wie das Amtsblatt des Kantons Basel-Landschaft meldet …',
+        simapFakten()
+      )
+    ).toContain('simap.ch')
+  })
+
+  // Firmennamen sind keine Privatpersonen: `personen` bleibt bei simap leer,
+  // darum kann der Preis-und-Firma-Satz keine Warnung ausloesen.
+  it('warnt bei einer Beschaffung nicht wegen des Firmennamens', () => {
+    const f = simapFakten()
+    expect(f.personen).toEqual([])
+    expect(
+      personenWarnungen(
+        'Den Zuschlag erhielt die Schneider Gartengestaltung AG aus Ettingen.',
+        f.personen
+      )
+    ).toEqual([])
+  })
+
+  // Der Preis und die Zahl der Angebote stehen in den Angaben — also sind ihre
+  // Ziffern erlaubt, auch mit Schweizer Tausendertrennzeichen.
+  it('nimmt Betrag und Anzahl Angebote aus den Angaben als gedeckte Zahlen', () => {
+    expect(
+      zahlWarnungen(
+        "Den Zuschlag erhielt die Firma fuer 616'183.15 Franken; es gingen 6 Angebote ein.",
+        simapFakten()
+      )
+    ).toEqual([])
   })
 
   // The rule the whole feed hangs on: an official publication may name a

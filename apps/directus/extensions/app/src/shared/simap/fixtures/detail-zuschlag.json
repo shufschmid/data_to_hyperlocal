@@ -1,0 +1,250 @@
+{
+  "procurement": {
+    "oagCodes": [],
+    "projectType": "tender",
+    "processType": "open",
+    "pubType": "award",
+    "orderType": "construction",
+    "orderDescription": {
+      "de": "<p>Gärtnerarbeiten</p>",
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "additionalCpvCodes": [],
+    "bkpCodes": [
+      {
+        "code": "421",
+        "label": {
+          "de": "Gärtnerarbeiten",
+          "en": "Gardening works",
+          "fr": "Travaux de jardinage",
+          "it": "Opere da giardiniere"
+        }
+      }
+    ],
+    "ebkphCodes": [],
+    "ebkptCodes": [],
+    "npkCodes": [],
+    "cpcCode": null,
+    "constructionType": "execution",
+    "constructionCategory": "structural_engineering",
+    "cpvCode": {
+      "code": "45000000",
+      "label": {
+        "de": "Bauarbeiten",
+        "en": "Construction work",
+        "fr": "Travaux de construction",
+        "it": "Lavori di costruzione"
+      }
+    },
+    "projectOrderDescription": null,
+    "externalReference": null
+  },
+  "id": "dcd8352a-3d29-4e35-803a-5d512949a4e2",
+  "type": "award",
+  "projectType": "tender",
+  "publishers": [
+    {
+      "id": "c92c5781-c89a-4f93-94b1-f2061c35e556",
+      "name": "simap.ch"
+    }
+  ],
+  "project-info": {
+    "procOfficeAddress": {
+      "postalCode": "4133",
+      "countryId": "CH",
+      "cantonId": "BL",
+      "id": "f742e82f-cbfe-4322-a66f-e32b87f773a7",
+      "name": {
+        "de": "Gemeinde Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "contactPerson": {
+        "de": "Jenny D'Annunzio",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "phone": "+41618252323",
+      "email": "jenny.dannunzio@pratteln.ch",
+      "url": {
+        "de": "https://www.pratteln.ch",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "reference": null,
+      "street": {
+        "de": "Baslerstrasse 33",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "city": {
+        "de": "Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      }
+    },
+    "procurementRecipientAddress": {
+      "postalCode": "4133",
+      "countryId": "CH",
+      "cantonId": "BL",
+      "id": "d59fe746-390e-4c2c-a022-4a50e02ca15c",
+      "name": {
+        "de": "Gemeinde Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "contactPerson": {
+        "de": null,
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "phone": "+41618252323",
+      "email": "jenny.dannunzio@pratteln.ch",
+      "url": {
+        "de": "https://www.pratteln.ch",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "reference": null,
+      "street": {
+        "de": "Baslerstrasse 33",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "city": {
+        "de": "Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      }
+    },
+    "title": {
+      "de": "BKP 421 Gärtnerarbeiten, Neubau Gemeindezentrum und Bibliothek, Pratteln",
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "stateContractArea": true,
+    "publicationTed": false
+  },
+  "decision": {
+    "awardDecisionWithJustification": true,
+    "vendors": [
+      {
+        "vendorId": "f0d2544f-ee90-4cb9-aab7-ca68e7655cf5",
+        "vendorName": "Schneider Gartengestaltung AG",
+        "vendorAddress": {
+          "countryId": "CH",
+          "street": "Brühlstrasse 15a",
+          "city": "Ettingen",
+          "postalCode": "4107",
+          "cantonId": "BL"
+        },
+        "price": {
+          "currency": "chf",
+          "price": 616183.15,
+          "vatType": "full"
+        },
+        "note": {
+          "de": null,
+          "en": null,
+          "fr": null,
+          "it": null
+        },
+        "rank": null
+      }
+    ],
+    "numberOfSubmissions": 6,
+    "totalPriceSelection": "price_of_selected_offers",
+    "totalPriceSelectionNote": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "totalPriceRange": {
+      "currency": null,
+      "vatType": null,
+      "range": null
+    },
+    "awardDecisionDate": "2025-11-04",
+    "awardDecisionJustification": {
+      "de": "Das wirtschaftlich günstigste und vollständige Angebot wurde durch die Firma Schneider Garten-gestaltung AG, Ettingen, eingereicht. Das Unternehmen ist hinsichtlich der Kapazitäten und er-brachten Referenzen in der Lage, die geforderten Leistungen zu erbringen und wird aus diesem Grund durch die Abteilung Bau, Verkehr und Umwelt (BVU) für die Arbeitsvergabe BKP 421 Gärt-nerarbeiten vorgeschlagen",
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "awardDecisionJuryDescription": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "awardDecisionNote": {
+      "de": null,
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "remediesNotice": {
+      "de": "Gegen diesen Entscheid kann innert 20 Tagen, vom Empfang des Entscheides an gerechnet beim Kantonsgericht, Abteilung Verfassungs- und Verwaltungsrecht, Bahnhofplatz 16, 4410 Liestal, schrift-lich Beschwerde erhoben werden. Einer Beschwerde kommt nicht von Gesetzes wegen aufschiebende Wirkung zu. Die Beschwerdeschrift ist in vierfacher Ausfertigung einzureichen. Sie muss ein klar um-schriebenes Begehren und die Unterschrift der Beschwerdeführenden oder der sie vertretenden Person enthalten. Der angefochtene Entscheid ist der Beschwerde in Kopie beizulegen. Das Verfahren vor Kantonsgericht, Abteilung Verfassungs- und Verwaltungsrecht, ist kostenpflichtig.",
+      "en": null,
+      "fr": null,
+      "it": null
+    }
+  },
+  "referencingPub": {
+    "publishers": [
+      {
+        "id": "c92c5781-c89a-4f93-94b1-f2061c35e556",
+        "name": "simap.ch"
+      }
+    ],
+    "publicationId": "a292b0d1-c7e0-441d-8120-271be60a0fb4",
+    "pubType": "tender",
+    "projectType": "tender",
+    "processType": "open",
+    "corrected": false,
+    "publicationNumber": "19490-01",
+    "publicationDate": "2025-07-02"
+  },
+  "base": {
+    "publicationTed": false,
+    "id": "dcd8352a-3d29-4e35-803a-5d512949a4e2",
+    "title": {
+      "de": "BKP 421 Gärtnerarbeiten, Neubau Gemeindezentrum und Bibliothek, Pratteln",
+      "en": null,
+      "fr": null,
+      "it": null
+    },
+    "projectType": "tender",
+    "processType": "open",
+    "lotsType": "without",
+    "stateContractArea": true,
+    "type": "award",
+    "publicationNumber": "19490-02",
+    "projectId": "3895195a-9167-4dca-851c-f187ed5f4eea",
+    "publicationDate": "2026-07-22",
+    "creationLanguage": "de",
+    "translationLanguages": [],
+    "procOfficeId": "a27dcef8-d542-4f65-bfb2-c810bdc52aaa",
+    "publishers": ["c92c5781-c89a-4f93-94b1-f2061c35e556"],
+    "projectNumber": "19490",
+    "referencingPubId": "a292b0d1-c7e0-441d-8120-271be60a0fb4",
+    "referencingLotId": null
+  },
+  "hasProjectDocuments": false,
+  "ted": null,
+  "lot": null
+}

@@ -109,11 +109,15 @@ export function parseListe(csv: string): Publikation[] {
 }
 
 /**
- * The five kinds of publication the newsroom sorts by.
+ * The six kinds of publication the newsroom sorts by.
  *
  * `personen` is not a topic but a property: those rubrics name natural persons
  * in a private matter — a bankruptcy, a payment order, an estate, a property
  * sale. Keeping them together is what lets one rule cover them all.
+ *
+ * `beschaffung` is the one group the gazette shares with another source: it
+ * also carries the simap.ch feed, whose rows arrive through `shared/simap` and
+ * are marked `quelle_typ: 'simap'`.
  */
 export type Gruppe =
   | 'bauen'
@@ -121,13 +125,15 @@ export type Gruppe =
   | 'behoerden'
   | 'grundbuch'
   | 'personen'
+  | 'beschaffung'
 
 export const GRUPPEN_TEXT: Record<Gruppe, string> = {
   bauen: 'Bauen, Planung, Verkehr',
   wirtschaft: 'Handelsregister',
   behoerden: 'Behoerden und Buergerrecht',
   grundbuch: 'Grundbuch und Handaenderungen',
-  personen: 'Konkurse, Betreibungen, Erbschaft'
+  personen: 'Konkurse, Betreibungen, Erbschaft',
+  beschaffung: 'Oeffentliche Beschaffung'
 }
 
 /**
@@ -175,7 +181,13 @@ const GRUPPE_JE_RUBRIK: Record<string, Gruppe> = {
   'KA-BS': 'behoerden',
   'BW-BS': 'behoerden',
   'BE-BS': 'behoerden',
-  'OB-BS': 'behoerden',
+  // Basel-Stadt publishes its procurement notices in the gazette, so this one
+  // rubric belongs with the simap.ch feed rather than with the authorities'
+  // pile. A BS tender can therefore show up twice — once here, once from simap
+  // — and that is deliberate: the two carry different ids, the duplicate is
+  // visible side by side, and the editor rejecting one as `doublette` teaches
+  // the next triage. Matching them on titles would be guesswork.
+  'OB-BS': 'beschaffung',
   'AI-BS': 'behoerden',
   'KW-BS': 'behoerden',
   'SW-BS': 'behoerden',
@@ -340,8 +352,12 @@ export interface Inhalt {
  * ones untouched, and decoding afterwards turns them back into literal `<p>`
  * that no later pass removes. So: unescape the angle brackets, THEN strip, and
  * decode `&amp;` last so an `&amp;lt;` cannot smuggle a tag through.
+ *
+ * Exported because simap.ch hands its project descriptions as real HTML
+ * (`<p>Innentüren und innere Verglasungen …</p>`), and the same order is right
+ * there — one rule, one place.
  */
-function entferneMarkup(text: string): string {
+export function entferneMarkup(text: string): string {
   return text
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')

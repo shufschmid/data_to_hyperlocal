@@ -3,7 +3,7 @@
   "info": {
     "title": "Dynamic API Specification",
     "description": "This is a dynamically generated API specification for all endpoints existing on the current project.",
-    "version": "c3115fd83202817fdcbbf886230de2ad7b36ce18"
+    "version": "52f71da533da4e4c021f59a80417c788614bf692"
   },
   "servers": [
     {
@@ -15290,395 +15290,6 @@
         ]
       }
     },
-    "/items/amtsblattmeldungen": {
-      "post": {
-        "summary": "Create an Item",
-        "description": "Create a new amtsblattmeldungen item.",
-        "tags": [
-          "Items",
-          "ItemsAmtsblattmeldungen"
-        ],
-        "operationId": "createItemsAmtsblattmeldungen",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Meta"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "oneOf": [
-                  {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/ItemsAmtsblattmeldungen"
-                    }
-                  },
-                  {
-                    "$ref": "#/components/schemas/ItemsAmtsblattmeldungen"
-                  }
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/ItemsAmtsblattmeldungen"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          }
-        }
-      },
-      "get": {
-        "summary": "List Items",
-        "description": "List the amtsblattmeldungen items.",
-        "tags": [
-          "Items",
-          "ItemsAmtsblattmeldungen"
-        ],
-        "operationId": "readItemsAmtsblattmeldungen",
-        "security": [
-          {
-            "Auth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Fields"
-          },
-          {
-            "$ref": "#/components/parameters/Limit"
-          },
-          {
-            "$ref": "#/components/parameters/Meta"
-          },
-          {
-            "$ref": "#/components/parameters/Offset"
-          },
-          {
-            "$ref": "#/components/parameters/Sort"
-          },
-          {
-            "$ref": "#/components/parameters/Filter"
-          },
-          {
-            "$ref": "#/components/parameters/Search"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "$ref": "#/components/schemas/ItemsAmtsblattmeldungen"
-                      }
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/x-metadata"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          }
-        }
-      },
-      "patch": {
-        "summary": "Update Multiple Items",
-        "description": "Update multiple amtsblattmeldungen items at the same time.",
-        "tags": [
-          "Items",
-          "ItemsAmtsblattmeldungen"
-        ],
-        "operationId": "updateItemsAmtsblattmeldungen",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Fields"
-          },
-          {
-            "$ref": "#/components/parameters/Limit"
-          },
-          {
-            "$ref": "#/components/parameters/Meta"
-          },
-          {
-            "$ref": "#/components/parameters/Offset"
-          },
-          {
-            "$ref": "#/components/parameters/Sort"
-          },
-          {
-            "$ref": "#/components/parameters/Filter"
-          },
-          {
-            "$ref": "#/components/parameters/Search"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "oneOf": [
-                  {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/ItemsAmtsblattmeldungen"
-                    }
-                  },
-                  {
-                    "$ref": "#/components/schemas/ItemsAmtsblattmeldungen"
-                  }
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/ItemsAmtsblattmeldungen"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "summary": "Delete Multiple Items",
-        "description": "Delete multiple existing amtsblattmeldungen items.",
-        "tags": [
-          "Items",
-          "ItemsAmtsblattmeldungen"
-        ],
-        "operationId": "deleteItemsAmtsblattmeldungen",
-        "responses": {
-          "200": {
-            "description": "Successful request"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          }
-        },
-        "parameters": []
-      }
-    },
-    "/items/amtsblattmeldungen/{id}": {
-      "get": {
-        "summary": "Retrieve an Item",
-        "description": "Retrieve a single amtsblattmeldungen item by unique identifier.",
-        "tags": [
-          "Items",
-          "ItemsAmtsblattmeldungen"
-        ],
-        "operationId": "readSingleItemsAmtsblattmeldungen",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Fields"
-          },
-          {
-            "$ref": "#/components/parameters/Meta"
-          },
-          {
-            "$ref": "#/components/parameters/Version"
-          },
-          {
-            "name": "id",
-            "description": "Index of the item.",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "oneOf": [
-                {
-                  "type": "integer",
-                  "description": "Incremental index of the item.",
-                  "example": 1
-                },
-                {
-                  "type": "string",
-                  "description": "Unique identifier of the item.",
-                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
-                }
-              ]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "object",
-                      "$ref": "#/components/schemas/ItemsAmtsblattmeldungen"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          }
-        }
-      },
-      "patch": {
-        "summary": "Update an Item",
-        "description": "Update an existing amtsblattmeldungen item.",
-        "tags": [
-          "Items",
-          "ItemsAmtsblattmeldungen"
-        ],
-        "operationId": "updateSingleItemsAmtsblattmeldungen",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Fields"
-          },
-          {
-            "$ref": "#/components/parameters/Meta"
-          },
-          {
-            "name": "id",
-            "description": "Index of the item.",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "oneOf": [
-                {
-                  "type": "integer",
-                  "description": "Incremental index of the item.",
-                  "example": 1
-                },
-                {
-                  "type": "string",
-                  "description": "Unique identifier of the item.",
-                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
-                }
-              ]
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "$ref": "#/components/schemas/ItemsAmtsblattmeldungen"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "object",
-                      "$ref": "#/components/schemas/ItemsAmtsblattmeldungen"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          }
-        }
-      },
-      "delete": {
-        "summary": "Delete an Item",
-        "description": "Delete an existing amtsblattmeldungen item.",
-        "tags": [
-          "Items",
-          "ItemsAmtsblattmeldungen"
-        ],
-        "operationId": "deleteSingleItemsAmtsblattmeldungen",
-        "responses": {
-          "200": {
-            "description": "Successful request"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          }
-        },
-        "parameters": [
-          {
-            "name": "id",
-            "description": "Index of the item.",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "oneOf": [
-                {
-                  "type": "integer",
-                  "description": "Incremental index of the item.",
-                  "example": 1
-                },
-                {
-                  "type": "string",
-                  "description": "Unique identifier of the item.",
-                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
-                }
-              ]
-            }
-          }
-        ]
-      }
-    },
     "/items/gemeinden": {
       "post": {
         "summary": "Create an Item",
@@ -16846,6 +16457,395 @@
         ]
       }
     },
+    "/items/amtsblattmeldungen": {
+      "post": {
+        "summary": "Create an Item",
+        "description": "Create a new amtsblattmeldungen item.",
+        "tags": [
+          "Items",
+          "ItemsAmtsblattmeldungen"
+        ],
+        "operationId": "createItemsAmtsblattmeldungen",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Meta"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsAmtsblattmeldungen"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsAmtsblattmeldungen"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsAmtsblattmeldungen"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "get": {
+        "summary": "List Items",
+        "description": "List the amtsblattmeldungen items.",
+        "tags": [
+          "Items",
+          "ItemsAmtsblattmeldungen"
+        ],
+        "operationId": "readItemsAmtsblattmeldungen",
+        "security": [
+          {
+            "Auth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "$ref": "#/components/schemas/ItemsAmtsblattmeldungen"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/x-metadata"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update Multiple Items",
+        "description": "Update multiple amtsblattmeldungen items at the same time.",
+        "tags": [
+          "Items",
+          "ItemsAmtsblattmeldungen"
+        ],
+        "operationId": "updateItemsAmtsblattmeldungen",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsAmtsblattmeldungen"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsAmtsblattmeldungen"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsAmtsblattmeldungen"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Multiple Items",
+        "description": "Delete multiple existing amtsblattmeldungen items.",
+        "tags": [
+          "Items",
+          "ItemsAmtsblattmeldungen"
+        ],
+        "operationId": "deleteItemsAmtsblattmeldungen",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/items/amtsblattmeldungen/{id}": {
+      "get": {
+        "summary": "Retrieve an Item",
+        "description": "Retrieve a single amtsblattmeldungen item by unique identifier.",
+        "tags": [
+          "Items",
+          "ItemsAmtsblattmeldungen"
+        ],
+        "operationId": "readSingleItemsAmtsblattmeldungen",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Version"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsAmtsblattmeldungen"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update an Item",
+        "description": "Update an existing amtsblattmeldungen item.",
+        "tags": [
+          "Items",
+          "ItemsAmtsblattmeldungen"
+        ],
+        "operationId": "updateSingleItemsAmtsblattmeldungen",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "$ref": "#/components/schemas/ItemsAmtsblattmeldungen"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsAmtsblattmeldungen"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete an Item",
+        "description": "Delete an existing amtsblattmeldungen item.",
+        "tags": [
+          "Items",
+          "ItemsAmtsblattmeldungen"
+        ],
+        "operationId": "deleteSingleItemsAmtsblattmeldungen",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
     "/items/punkt6_editions": {
       "post": {
         "summary": "Create an Item",
@@ -17848,11 +17848,6 @@
       "description": "Welche Gemeinden ein Wochenblatt abdeckt. Der Muttenzer & Prattler Anzeiger traegt zwei."
     },
     {
-      "name": "ItemsAmtsblattmeldungen",
-      "x-collection": "amtsblattmeldungen",
-      "description": "Eine amtliche Publikation aus dem Amtsblattportal, einer Gemeinde zugeordnet. Die Redaktion entscheidet: Meldung, ablehnen oder an die Chefredaktion weiterreichen — alle drei lernt die naechste Sichtung."
-    },
-    {
       "name": "ItemsGemeinden",
       "x-collection": "gemeinden",
       "description": "Gemeinden, ueber die berichtet wird — Basel-Landschaft vollstaendig, dazu Riehen (BS) fuer den Sport. \"Aktiv\" steuert, fuer welche Gemeinden Meldungen erzeugt werden."
@@ -17866,6 +17861,11 @@
       "name": "ItemsPunkt6Dossiers",
       "x-collection": "punkt6_dossiers",
       "description": "Ein eingegangenes SMD-Dossier-PDF von punkt6 (Telebasel). Gleiches Postfach wie das Regionaljournal, anderer Betreff-Filter."
+    },
+    {
+      "name": "ItemsAmtsblattmeldungen",
+      "x-collection": "amtsblattmeldungen",
+      "description": "Eine amtliche Publikation aus dem Amtsblattportal, einer Gemeinde zugeordnet. Die Redaktion entscheidet: Meldung, ablehnen oder an die Chefredaktion weiterreichen — alle drei lernt die naechste Sichtung."
     },
     {
       "name": "ItemsPunkt6Editions",
@@ -21659,147 +21659,6 @@
           "gemeinde"
         ]
       },
-      "ItemsAmtsblattmeldungen": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "nullable": false,
-            "type": "string",
-            "format": "uuid"
-          },
-          "publikations_id": {
-            "nullable": false,
-            "description": "Die Identitaet beim Portal. Unique — die Klammer, die einen zweiten Lauf idempotent macht.",
-            "type": "string"
-          },
-          "publikationsnummer": {
-            "nullable": true,
-            "description": "Amtliche Meldungsnummer, z.B. BP-BL05-0000006880.",
-            "type": "string"
-          },
-          "kanton": {
-            "nullable": true,
-            "description": "Kantonskuerzel der Publikation.",
-            "type": "string"
-          },
-          "gruppe": {
-            "nullable": true,
-            "description": "Wonach die Redaktion sortiert. \"personen\" ist keine Themen-, sondern eine Eigenschaft: dort werden Privatpersonen genannt.",
-            "type": "string"
-          },
-          "rubrik": {
-            "nullable": true,
-            "type": "string"
-          },
-          "unterrubrik": {
-            "nullable": true,
-            "type": "string"
-          },
-          "rubrik_name": {
-            "nullable": true,
-            "description": "Deutscher Name aus dem Rubrikkatalog des Portals.",
-            "type": "string"
-          },
-          "titel": {
-            "nullable": true,
-            "type": "string"
-          },
-          "publiziert_am": {
-            "nullable": true,
-            "type": "string",
-            "format": "date"
-          },
-          "frist": {
-            "nullable": true,
-            "description": "Einsprache- oder Auflagefrist. Die Zahl, die eine Meldung dringend macht — sie gehoert in den Lead.",
-            "type": "string",
-            "format": "date"
-          },
-          "amt": {
-            "nullable": true,
-            "description": "Publizierende Stelle.",
-            "type": "string"
-          },
-          "pdf_url": {
-            "nullable": true,
-            "description": "Das amtliche PDF. Vom Code gebaut, nie vom Modell geschrieben.",
-            "type": "string"
-          },
-          "angaben": {
-            "nullable": true,
-            "description": "Die beschrifteten Angaben aus der Einzelpublikation. Erst gefuellt, wenn jemand die Zeile anfasst."
-          },
-          "unterlagen": {
-            "nullable": true,
-            "description": "Worauf die Publikation verweist — Plaene, Akten, Karten. \"lesbar\" sagt, ob wir sie maschinell lesen koennen."
-          },
-          "personen": {
-            "nullable": true,
-            "description": "Natuerliche Personen, welche die Publikation nennt. Sie gehen an den Prompt als \"nicht nennen\" und an die Pruefung."
-          },
-          "planbefunde": {
-            "nullable": true,
-            "description": "Was aus den aufgelegten Plaenen hervorgeht, je Befund mit dem Blatt, auf dem er steht."
-          },
-          "plan_status": {
-            "nullable": false,
-            "type": "string"
-          },
-          "plan_fazit": {
-            "nullable": true,
-            "type": "string"
-          },
-          "vorschlag": {
-            "nullable": true,
-            "description": "Urteil der Sichtung: lohnt sich ein Blick? Leer heisst \"noch nicht beurteilt\" — nicht \"nein\".",
-            "type": "boolean"
-          },
-          "vorschlag_begruendung": {
-            "nullable": true,
-            "type": "string"
-          },
-          "entscheid": {
-            "nullable": false,
-            "type": "string"
-          },
-          "ablehnungsgrund": {
-            "nullable": true,
-            "type": "string"
-          },
-          "ablehnungskommentar": {
-            "nullable": true,
-            "type": "string"
-          },
-          "date_created": {
-            "nullable": true,
-            "type": "string",
-            "format": "timestamp"
-          },
-          "date_updated": {
-            "nullable": true,
-            "type": "string",
-            "format": "timestamp"
-          },
-          "gemeinde": {
-            "nullable": false,
-            "oneOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "$ref": "#/components/schemas/ItemsGemeinden"
-              }
-            ]
-          }
-        },
-        "x-collection": "amtsblattmeldungen",
-        "required": [
-          "id",
-          "publikations_id",
-          "gemeinde"
-        ]
-      },
       "ItemsGemeinden": {
         "type": "object",
         "properties": {
@@ -21844,6 +21703,10 @@
             "items": {
               "type": "string"
             }
+          },
+          "simap_vergabestellen": {
+            "nullable": true,
+            "description": "Vergabestellen dieser Gemeinde auf simap.ch: [{\"id\",\"name\",\"typ\"}]. Die id stammt aus dem oeffentlichen Verzeichnis (/procoffices/v1/po/public). Von Hand gepflegt, weil das Verzeichnis keinen Kanton nennt: die Namenssuche liefert \"Gemeinde Aesch LU\" und \"Gemeinde Reinach\" (AG) gleich mit. Leer heisst nicht blind — der Erfuellungsort wird trotzdem ueber die PLZ gefunden."
           }
         },
         "x-collection": "gemeinden",
@@ -21998,6 +21861,152 @@
         "required": [
           "id",
           "source_file"
+        ]
+      },
+      "ItemsAmtsblattmeldungen": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "nullable": false,
+            "type": "string",
+            "format": "uuid"
+          },
+          "publikations_id": {
+            "nullable": false,
+            "description": "Die Identitaet beim Portal. Unique — die Klammer, die einen zweiten Lauf idempotent macht.",
+            "type": "string"
+          },
+          "publikationsnummer": {
+            "nullable": true,
+            "description": "Amtliche Meldungsnummer, z.B. BP-BL05-0000006880.",
+            "type": "string"
+          },
+          "kanton": {
+            "nullable": true,
+            "description": "Kantonskuerzel der Publikation.",
+            "type": "string"
+          },
+          "gruppe": {
+            "nullable": true,
+            "description": "Wonach die Redaktion sortiert. \"personen\" ist keine Themen-, sondern eine Eigenschaft: dort werden Privatpersonen genannt.",
+            "type": "string"
+          },
+          "rubrik": {
+            "nullable": true,
+            "type": "string"
+          },
+          "unterrubrik": {
+            "nullable": true,
+            "type": "string"
+          },
+          "rubrik_name": {
+            "nullable": true,
+            "description": "Deutscher Name aus dem Rubrikkatalog des Portals.",
+            "type": "string"
+          },
+          "titel": {
+            "nullable": true,
+            "type": "string"
+          },
+          "publiziert_am": {
+            "nullable": true,
+            "type": "string",
+            "format": "date"
+          },
+          "frist": {
+            "nullable": true,
+            "description": "Einsprache- oder Auflagefrist. Die Zahl, die eine Meldung dringend macht — sie gehoert in den Lead.",
+            "type": "string",
+            "format": "date"
+          },
+          "amt": {
+            "nullable": true,
+            "description": "Publizierende Stelle.",
+            "type": "string"
+          },
+          "pdf_url": {
+            "nullable": true,
+            "description": "Das amtliche PDF. Vom Code gebaut, nie vom Modell geschrieben.",
+            "type": "string"
+          },
+          "angaben": {
+            "nullable": true,
+            "description": "Die beschrifteten Angaben aus der Einzelpublikation. Erst gefuellt, wenn jemand die Zeile anfasst."
+          },
+          "unterlagen": {
+            "nullable": true,
+            "description": "Worauf die Publikation verweist — Plaene, Akten, Karten. \"lesbar\" sagt, ob wir sie maschinell lesen koennen."
+          },
+          "personen": {
+            "nullable": true,
+            "description": "Natuerliche Personen, welche die Publikation nennt. Sie gehen an den Prompt als \"nicht nennen\" und an die Pruefung."
+          },
+          "planbefunde": {
+            "nullable": true,
+            "description": "Was aus den aufgelegten Plaenen hervorgeht, je Befund mit dem Blatt, auf dem er steht."
+          },
+          "plan_status": {
+            "nullable": false,
+            "type": "string"
+          },
+          "plan_fazit": {
+            "nullable": true,
+            "type": "string"
+          },
+          "vorschlag": {
+            "nullable": true,
+            "description": "Urteil der Sichtung: lohnt sich ein Blick? Leer heisst \"noch nicht beurteilt\" — nicht \"nein\".",
+            "type": "boolean"
+          },
+          "vorschlag_begruendung": {
+            "nullable": true,
+            "type": "string"
+          },
+          "entscheid": {
+            "nullable": false,
+            "type": "string"
+          },
+          "ablehnungsgrund": {
+            "nullable": true,
+            "type": "string"
+          },
+          "ablehnungskommentar": {
+            "nullable": true,
+            "type": "string"
+          },
+          "date_created": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "date_updated": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "gemeinde": {
+            "nullable": false,
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsGemeinden"
+              }
+            ]
+          },
+          "quelle_typ": {
+            "nullable": true,
+            "description": "Woher die Zeile kommt. Das Amtsblattportal und simap.ch fuehren getrennte Publikations-IDs, und Attribution wie Nachladen haengen daran.",
+            "type": "string"
+          }
+        },
+        "x-collection": "amtsblattmeldungen",
+        "required": [
+          "id",
+          "publikations_id",
+          "gemeinde"
         ]
       },
       "ItemsPunkt6Editions": {

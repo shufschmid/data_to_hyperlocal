@@ -1,0 +1,46 @@
+{
+  "projects": [
+    {
+      "id": "55d83442-a8e9-463b-a296-d1043f5a9206",
+      "title": {
+        "de": "Leitungsumlegung Griensammler - Kanalstrasse",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "projectNumber": "8452",
+      "projectType": "tender",
+      "projectSubType": "service",
+      "processType": "open",
+      "lotsType": "without",
+      "publicationId": "dae638d5-9b64-440d-a6fb-b7bcda044152",
+      "publicationDate": "2025-04-16",
+      "publicationNumber": "8452-02",
+      "pubType": "award",
+      "corrected": false,
+      "procOfficeName": {
+        "de": "Gemeinde Reinach, Bau und Planung Regionalzentrum",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "lots": [],
+      "orderAddressOnlyDescription": "no",
+      "orderAddress": {
+        "countryId": "CH",
+        "cantonId": "AG",
+        "postalCode": "5734",
+        "city": {
+          "de": "Reinach",
+          "en": null,
+          "fr": null,
+          "it": null
+        }
+      }
+    }
+  ],
+  "pagination": {
+    "lastItem": "20250416|8452",
+    "itemsPerPage": 20
+  }
+}

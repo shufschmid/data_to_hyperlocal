@@ -90,6 +90,7 @@ them is wrong even if it works.
    | `files.localpoint.ch`          | the BiBo's original PDFs — the same public address the reader's download button opens, no login                                                                                                                                                                                                                                                       | `shared/wochenblatt/`        |
    | `amtsblattportal.ch`           | every canton's official gazette plus the federal SHAB, in one documented API — published items need no credentials. The only source that covers the whole newsroom area, Riehen (BS) and Dornach (SO) included                                                                                                                                        | `shared/amtsblatt/`          |
    | `bgauflage.bl.ch`              | the building plans behind a Baselland permit, as plain images — the same public door the objection period opens, read only for a publication the newsroom acted on                                                                                                                                                                                    | `shared/amtsblatt/`          |
+   | `www.simap.ch`                 | the joint public-procurement platform of the Confederation and the cantons — open search and detail endpoints, no key, a documented OpenAPI spec. Read once a day, anchored on registered procurement-office uuids and our own postcodes, never on municipality names (`simap.ch` without `www` answers 301)                                          | `shared/simap/`              |
    | an IMAP mailbox                | where SMD delivers the two shows' transcript PDFs — one mailbox, two subject filters. Dedup runs against THIS database's own `source_subject`, never the mailbox's seen-flag, so a second deployment reading the same mailbox costs nothing                                                                                                           | `dossiers/mailbox.ts`        |
    | `api.srgssr.ch`                | the SRGSSR Audio Metadata API (OAuth2) — resolves a Regionaljournal story to its public MP3. Read with `optionalEnv`: missing credentials fail PER STORY as `resolution_error`, never as a crashed dossier                                                                                                                                            | `dossiers/srgssr-client.ts`  |
    | `telebasel.ch`                 | two plain GETs per punkt6 episode — `robots.txt` allows `/sendungen/`, and the episode page carries one schema.org `Clip` per Beitrag with exact start/end seconds, so no model is needed to find the boundaries                                                                                                                                      | `punkt6/telebasel-client.ts` |
@@ -239,10 +240,38 @@ them is wrong even if it works.
    and the federal SHAB sit on one portal, so Riehen (BS) and Dornach (SO)
    arrive through the same door as the Baselland ones — where the statistics
    portals are cantonal and silent about them. Read daily at 07:00, two
-   requests per municipality (see above), filed into five groups — Bauen,
-   Handelsregister, Behörden, Grundbuch, Personen. `personen` is not a topic
-   but a property: those rubrics name private individuals, which is what lets
-   one rule cover them all.
+   requests per municipality (see above), filed into six groups — Bauen,
+   Handelsregister, Behörden, Grundbuch, Personen, Öffentliche Beschaffung.
+   `personen` is not a topic but a property: those rubrics name private
+   individuals, which is what lets one rule cover them all.
+   **`beschaffung` is the one group two sources share.** Public procurement
+   arrives from simap.ch (`shared/simap/`), collected by the SAME 07:00
+   operation rather than a Flow of its own — that is what makes it cheap: its
+   rows land in `amtsblattmeldungen` marked `quelle_typ: 'simap'`, so the one
+   triage call per municipality judges the gazette's news and the day's
+   tenders together at no extra model cost, and the desk, the three decisions
+   and the per-municipality memory work on them unchanged. Two queries per
+   run: one PER MUNICIPALITY over its registered procurement offices
+   (`gemeinden.simap_vergabestellen`), and ONE over all cantons involved,
+   matched locally by `gemeinden.plz` — the second is the one that catches
+   what the CANTON or the Confederation builds in a covered municipality
+   (measured: IWB tunnelling in Binningen, a Wärmenetz in Riehen), which the
+   municipality itself never publishes. Basel-Stadt's gazette rubric `OB-BS`
+   was moved into this group too, so a BS tender's two arrivals sit side by
+   side and the editor rejects one as `doublette` — matching them on titles
+   would be guesswork. Facts come at collection time, not on a click (a
+   handful a week, and the tender deadline lives only in the detail);
+   `plan_status: 'nicht_lesbar'` is what keeps these rows out of the
+   plan-reading query and hides the documents button, since simap publishes no
+   sheets. **Three things measured on 2 September 2026 and easy to get wrong
+   again:** the procurement-office directory names NO canton, so its name
+   search returns „Gemeinde Aesch LU" and two Reinach AG offices — every uuid
+   in `simap_vergabestellen` was verified through the postcodes of its actual
+   publications, and auto-resolution would file another canton's tenders here
+   silently; the place-of-performance match must therefore anchor on the
+   postcode, never the city name (Reinach AG 5734 vs. Reinach BL 4153);
+   and the search REFUSES a filter-only request, which is why the second query
+   carries the full `projectSubTypes` list as its quick filter.
    Volume was measured, and it decides the design: **12 publications a day over
    seven municipalities, eight of them commercial-register routine**. So one
    Sonnet call per municipality per run TRIAGES the day's titles — it SORTS,
@@ -290,7 +319,12 @@ them is wrong even if it works.
    links (the official PDF and the documents), and they keep the names of
    natural persons OUT by default — an official publication may name a private
    individual, a piece of journalism decides that for itself, and
-   `personenWarnungen` reports it when the model does anyway.
+   `personenWarnungen` reports it when the model does anyway. A procurement
+   article differs in exactly three places, all of them in the same module:
+   it names simap.ch rather than a gazette (`quellenName`,
+   `attributionsWarnung`), it carries one link instead of two, and it DOES
+   name the winning company with its price — a firm is not a private person,
+   and `personen` stays empty on those rows so the check cannot fire on it.
 
    „Regionaljournal" and „punkt6" are the sixth and seventh feeds, ported from
    the sister project shufschmid/regionaljournal (same template, same
@@ -444,8 +478,10 @@ them is wrong even if it works.
 | a new rule about what a gazette article may say   | `redaktion/amtsblatt.ts` — the prompt **and** the checks (attribution, digits, absolute dates, no private names)                                                                                                                         |
 | a new rule about what a broadcast Meldung may say | `redaktion/sendung.ts` — the prompt **and** the checks (attribution per show, digits, verbatim overlap against the transcript)                                                                                                           |
 | which names a broadcast is scanned for            | nothing — `gemeindeTreffer` uses the active `gemeinden` rows, so adding a municipality adds it to the scan                                                                                                                               |
-| which gazette rubrics reach the desk              | `RUBRIKGRUPPEN` in `shared/amtsblatt/parse.ts` — sub-rubric first, rubric second; an unmapped rubric is dropped, never guessed                                                                                                           |
-| a municipality's postcodes                        | „Gemeinden" → die Karte → Abschnitt „Amtsblatt"; ohne sie bleiben Handelsregister, Konkurse und Betreibungen dieser Gemeinde unsichtbar                                                                                                  |
+| which gazette rubrics reach the desk              | `GRUPPE_JE_UNTERRUBRIK`/`GRUPPE_JE_RUBRIK` in `shared/amtsblatt/parse.ts` — sub-rubric first, rubric second; an unmapped rubric is dropped, never guessed                                                                                |
+| a municipality's postcodes                        | „Gemeinden" → die Karte → Abschnitt „Amtsblatt"; ohne sie bleiben Handelsregister, Konkurse und Betreibungen dieser Gemeinde unsichtbar — und die Beschaffungen, die andere in ihr ausschreiben                                          |
+| a municipality's procurement offices on simap.ch  | `gemeinden.simap_vergabestellen` (JSON, Admin-UI) — die uuid aus `/procoffices/v1/po/public`, aber ERST gegen die PLZ ihrer Publikationen prüfen: das Verzeichnis nennt keinen Kanton. Leer heisst nicht blind, nur „keine eigenen"      |
+| a new rule about what a procurement article says  | `redaktion/amtsblatt.ts` — derselbe Prompt und dieselben Checks, mit `quelleTyp: 'simap'` als Verzweigung für Attribution und Quellenzeile                                                                                               |
 | a new rule about what a reminder may say          | `redaktion/erinnerung.ts` — the prompt **and** the check next to it                                                                                                                                                                      |
 | a one-off data repair or backfill                 | rows only: a one-shot Flow, else `apps/directus/migrations/*.mts` as a last resort                                                                                                                                                       |
 | an agenda entry the crawler could not fetch       | the banner in the workspace → „Eintrag von Hand erfassen"                                                                                                                                                                                |
@@ -579,17 +615,26 @@ editor takes a candidate over ── POST /redaktion/kandidaten/:id/meldung
 
 Flow "Amtsblatt pruefen"  (0 7 * * *)
   └─ operations/amtsblatt-pruefen   je aktive Gemeinde, sequenziell
+       ├─ simap.ch VORAB, eigenes try/catch, eigene quellen-Zeile:
+       │    ├─ je Gemeinde: issuedByOrganizations=<ihre Vergabestellen>
+       │    │               → was sie SELBST ausschreibt und vergibt
+       │    ├─ 1× für alle Kantone: orderAddressCantons + alle Untertypen
+       │    │               → was ANDERE in ihr bauen, lokal per PLZ zugeordnet
+       │    │                 (Kanton/Bund/IWB — publiziert die Gemeinde nie)
+       │    └─ je neue Zeile 1 Detail-Abruf → angaben + frist, gleich beim Holen
        ├─ municipalityId=<BFS>        Ort-gebunden: Baugesuche, Planauflagen,
        │                              Verkehr, Grundbuch, Behoerdenbeschluesse
        ├─ municipalityZipCodes=<PLZ>  Adress-gebunden: Handelsregister,
        │                              Konkurse, Betreibungen — DISJUNKT zum
        │                              ersten, beide braucht es
-       ├─ 1× Sonnet je Gemeinde  → Sichtung: was lohnt einen Blick?
-       │                           sortiert, filtert nie; die letzten ~20
-       │                           Entscheide DIESER Gemeinde als Beispiele
+       ├─ 1× Sonnet je Gemeinde  → Sichtung über BEIDE Quellen zusammen:
+       │                           was lohnt einen Blick? sortiert, filtert
+       │                           nie; die letzten ~20 Entscheide DIESER
+       │                           Gemeinde als Beispiele
        └─ je Vorschlag: Einzel-XML (Angaben, Frist, Personennamen) und, wo
           BL Plaene auflegt, 1× Opus über die Planblätter als Bilder
           → planbefunde, jeder mit seinem Blatt
+          (simap-Zeilen sind hier aussen vor: plan_status 'nicht_lesbar')
 
 editor takes a publication over ── POST /redaktion/amtsblatt/:id/meldung
   └─ 1× Sonnet über die Angaben + Planbefunde → kurze Meldung; Attribution
@@ -838,6 +883,15 @@ joining the two on `Spielnummer`. Read results from there, or not at all.
   plans come down when the objection period ends: the link dies, the reading
   outlives it. `gemeinden.plz` belongs here too — it is the key to half the
   feed, and its absence is silent rather than loud.
+- `gemeinden.simap_vergabestellen` — which procurement offices speak for a
+  municipality, including its communal enterprises (the Wärmeverbund Riehen AG,
+  the Wasserwerk Reinach und Umgebung). Newsroom-maintained for a measured
+  reason: simap's public directory names no canton, so the name search offers
+  „Gemeinde Aesch LU" and two Reinach AG offices alongside the right ones, and
+  a wrong entry files another canton's tenders on this desk without a trace.
+  Each id was verified through the postcodes of its own publications; a
+  municipality without an entry still gets everything built IN it, only not
+  what it tenders itself.
 
 - `sendungskandidaten.entscheid` + `ablehnungsgrund` — the broadcast feed's
   memory, scoped PER SHOW rather than per municipality: what counts as "only

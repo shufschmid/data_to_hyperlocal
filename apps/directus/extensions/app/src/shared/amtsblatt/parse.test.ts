@@ -86,12 +86,16 @@ describe('parseListe', () => {
 })
 
 describe('gruppeVon', () => {
-  it('ordnet die Rubriken den fuenf Gruppen zu', () => {
+  it('ordnet die Rubriken den sechs Gruppen zu', () => {
     expect(gruppeVon('BP-BL', 'BP-BL05')).toBe('bauen')
     expect(gruppeVon('HR', 'HR01')).toBe('wirtschaft')
     expect(gruppeVon('RS-BS', 'RS-BS65')).toBe('behoerden')
     expect(gruppeVon('GR-BL', 'GR-BL10')).toBe('grundbuch')
     expect(gruppeVon('KK', 'KK01')).toBe('personen')
+    // Basel-Stadt publiziert seine Beschaffungen im Amtsblatt. Die Rubrik
+    // gehoert darum zum simap-Feed und nicht zu den Behoerden — sonst liegt
+    // dieselbe Ausschreibung je nach Kanton in zwei verschiedenen Stapeln.
+    expect(gruppeVon('OB-BS', 'OB-BS10')).toBe('beschaffung')
   })
 
   // The measured trap: Solothurn files property transfers inside the building

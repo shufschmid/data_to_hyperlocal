@@ -27,12 +27,31 @@ export interface Gemeinde {
    * so rather than showing an empty desk.
    */
   plz: string[] | null
+  /**
+   * The municipality's procurement offices on simap.ch, `[{id, name, typ}]`.
+   *
+   * Maintained by hand, because the public directory names no canton: a search
+   * for "Aesch" returns "Gemeinde Aesch LU" and a Zurich school district, and
+   * two of the four "Reinach" offices publish in Reinach AG. Auto-resolution
+   * would file another canton's tenders here and nothing downstream would
+   * notice. Empty is not blind — the Erfüllungsort half still finds the
+   * municipality by postcode.
+   */
+  simap_vergabestellen: SimapVergabestelle[] | null
   date_created: string | null
   date_updated: string | null
 }
 
+export interface SimapVergabestelle {
+  /** The office's uuid from `/procoffices/v1/po/public` — what `issuedByOrganizations` takes. */
+  id: string
+  name: string
+  /** The directory's own kind, e.g. `communal` or `other_communal` (a communal enterprise). */
+  typ: string
+}
+
 /** Picks the adapter in `shared/` that knows how to read a source. */
-export type QuellenTyp = 'ods' | 'agenda' | 'statbl' | 'amtsblatt'
+export type QuellenTyp = 'ods' | 'agenda' | 'statbl' | 'amtsblatt' | 'simap'
 
 export interface Quelle {
   id: string
@@ -659,13 +678,24 @@ export interface Schema {
   recherchehinweise: Recherchehinweis[]
 }
 
-/** Which of the five piles a publication belongs to — see `shared/amtsblatt`. */
+/** Which of the six piles a publication belongs to — see `shared/amtsblatt`. */
 export type AmtsblattGruppe =
   | 'bauen'
   | 'wirtschaft'
   | 'behoerden'
   | 'grundbuch'
   | 'personen'
+  | 'beschaffung'
+
+/**
+ * Which door a desk row came through.
+ *
+ * The two sources keep separate publication-id namespaces, and both the
+ * attribution ("wie das Amtsblatt … publiziert" vs. "wie auf simap.ch
+ * publiziert") and the on-demand re-fetch have to branch on it. Null reads as
+ * `amtsblatt` — every row that existed before simap arrived came from there.
+ */
+export type AmtsblattQuelleTyp = 'amtsblatt' | 'simap'
 
 export type AmtsblattEntscheid =
   | 'offen'
@@ -694,6 +724,8 @@ export interface Amtsblattmeldung {
   /** The identity at the portal. Unique — the clamp that makes a second run idempotent. */
   publikations_id: string
   publikationsnummer: string | null
+  /** Null on every row written before simap.ch arrived — read it as `amtsblatt`. */
+  quelle_typ: AmtsblattQuelleTyp | null
   gemeinde: string
   kanton: string | null
   gruppe: AmtsblattGruppe | null

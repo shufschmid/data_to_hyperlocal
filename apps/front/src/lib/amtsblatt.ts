@@ -8,7 +8,8 @@ export const GRUPPEN: { wert: string; text: string }[] = [
   { wert: 'wirtschaft', text: 'Handelsregister' },
   { wert: 'behoerden', text: 'Behörden & Bürgerrecht' },
   { wert: 'grundbuch', text: 'Grundbuch' },
-  { wert: 'personen', text: 'Konkurse & Betreibungen' }
+  { wert: 'personen', text: 'Konkurse & Betreibungen' },
+  { wert: 'beschaffung', text: 'Öffentliche Beschaffung' }
 ]
 
 export function gruppenText(gruppe: string | null): string {

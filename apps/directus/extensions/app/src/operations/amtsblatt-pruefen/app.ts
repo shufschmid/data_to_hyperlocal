@@ -8,7 +8,7 @@ export default defineOperationApp({
   name: 'Amtsblatt pruefen',
   icon: 'gavel',
   description:
-    'Liest die amtlichen Publikationen der bespielten Gemeinden aus dem Amtsblattportal — kantonal und SHAB. Eine Sichtung sortiert, was einen Blick lohnt; zu den Vorschlaegen werden die aufgelegten Plaene angesehen. Meldungen entstehen erst, wenn die Redaktion uebernimmt.',
+    'Liest die amtlichen Publikationen der bespielten Gemeinden aus dem Amtsblattportal — kantonal und SHAB — sowie die oeffentlichen Beschaffungen auf simap.ch: was eine Gemeinde selbst ausschreibt und was andere in ihr bauen. Eine Sichtung je Gemeinde sortiert beides zusammen; zu den Vorschlaegen werden die aufgelegten Plaene angesehen. Meldungen entstehen erst, wenn die Redaktion uebernimmt.',
   overview: ({ gemeinden, plaene }) => [
     { label: 'Gemeinden pro Lauf', text: String(gemeinden ?? 20) },
     { label: 'Planlesungen pro Lauf', text: String(plaene ?? 6) }

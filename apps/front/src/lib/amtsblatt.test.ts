@@ -21,6 +21,7 @@ function eintrag(ueber: Partial<AmtsblattFelder> = {}): AmtsblattFelder {
     id: 'a',
     publikations_id: 'p',
     publikationsnummer: null,
+    quelle_typ: 'amtsblatt',
     kanton: 'BL',
     gruppe: 'bauen',
     rubrik_name: 'Baugesuch',
@@ -246,6 +247,22 @@ describe('Darstellung', () => {
   it('benennt die Gruppen, auch die unbekannte', () => {
     expect(gruppenText('bauen')).toBe('Bauen, Planung, Verkehr')
     expect(gruppenText('personen')).toBe('Konkurse & Betreibungen')
+    expect(gruppenText('beschaffung')).toBe('Öffentliche Beschaffung')
     expect(gruppenText(null)).toBe('Übriges')
+  })
+
+  // Eine Beschaffung von simap.ch traegt keine lesbaren Planunterlagen — der
+  // Knopf muss von selbst wegbleiben, nicht erst beim Klick scheitern.
+  it('bietet bei einer Beschaffung kein Unterlagen-Lesen an', () => {
+    expect(
+      kannUnterlagenLesen(
+        eintrag({
+          quelle_typ: 'simap',
+          gruppe: 'beschaffung',
+          unterlagen: [],
+          plan_status: 'nicht_lesbar'
+        })
+      )
+    ).toBe(false)
   })
 })

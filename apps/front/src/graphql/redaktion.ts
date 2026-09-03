@@ -1080,8 +1080,10 @@ export interface AmtsblattFelder {
   id: string
   publikations_id: string
   publikationsnummer: string | null
+  /** `amtsblatt` | `simap`. Null on rows written before simap.ch arrived. */
+  quelle_typ: string | null
   kanton: string | null
-  /** `bauen` | `wirtschaft` | `behoerden` | `grundbuch` | `personen`. */
+  /** `bauen` | `wirtschaft` | `behoerden` | `grundbuch` | `personen` | `beschaffung`. */
   gruppe: string | null
   rubrik_name: string | null
   titel: string
@@ -1114,6 +1116,7 @@ export const AMTSBLATT_QUERY = gql`
       id
       publikations_id
       publikationsnummer
+      quelle_typ
       kanton
       gruppe
       rubrik_name

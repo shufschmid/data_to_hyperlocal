@@ -166,7 +166,8 @@ export function Amtsblatt({
                 variant="body2"
                 sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
               >
-                <ArticleOutlined fontSize="inherit" /> Amtliche Publikation
+                <ArticleOutlined fontSize="inherit" />{' '}
+                {eintrag.quelle_typ === 'simap' ? 'Publikation auf simap.ch' : 'Amtliche Publikation'}
               </Link>
             )}
             {doku !== null && (

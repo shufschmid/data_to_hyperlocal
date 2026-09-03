@@ -13,6 +13,7 @@
 import type Anthropic from '@anthropic-ai/sdk'
 import type { Angabe, Gruppe, Planbild, Unterlage } from '../shared/amtsblatt'
 import { GRUPPEN_TEXT } from '../shared/amtsblatt'
+import type { AmtsblattQuelleTyp } from '../types/schema'
 
 export { parseSpielbericht as parseAmtsblattMeldung } from './spielbericht'
 
@@ -37,13 +38,19 @@ Leitungsprojekte), Beschluesse von Gemeinde- und Einwohnerrat, Abstimmungen und
 Referendumsfristen, Planauflagen, Verkehrsanordnungen mit spuerbarer Wirkung,
 Firmen mit erkennbarer lokaler Bedeutung (Neugruendung mit Betrieb vor Ort,
 Konkurs eines bekannten Betriebs), alles mit einer laufenden Einsprache- oder
-Auflagefrist.
+Auflagefrist. Bei oeffentlichen Beschaffungen: Vorhaben, die die Gemeinde
+sichtbar veraendern oder erkennbar Steuergeld binden (Schulhaus, Werkhof,
+Sanierung, Energieanlage, groessere Dienstleistungen), und Zuschlaege, die
+zeigen, wer einen solchen Auftrag zu welchem Preis erhalten hat.
 
 Dagegen: private Kleinbauten (Wintergarten, Whirlpool, Balkon, Gartenhaus,
 Dachfenster, Fassadenanstrich), Routinemutationen im Handelsregister
 (Zeichnungsberechtigung, Adressaenderung, Domizilwechsel), einzelne
 Handaenderungen von Wohneigentum, Zahlungsbefehle und Betreibungen gegen
-Privatpersonen, Erbschaftsuebernahmen, Stelleninserate.
+Privatpersonen, Erbschaftsuebernahmen, Stelleninserate. Bei Beschaffungen
+ausserdem: einzelne Gewerke eines laengst bekannten Bauvorhabens (Innentueren,
+Gartenarbeiten, Malerarbeiten) — davon gibt es je Projekt dutzende, und das
+Vorhaben selbst war schon eine Meldung.
 
 Im Zweifel: nein. Die abgelehnten Publikationen verschwinden nicht, sie stehen
 der Redaktion weiterhin zur Verfuegung — ein falsches Ja kostet Aufmerksamkeit,
@@ -387,6 +394,12 @@ export interface AmtsblattFakten {
   titel: string
   rubrikName: string
   gruppe: Gruppe
+  /**
+   * Which door the publication came through. A gazette article has to name the
+   * gazette, a procurement one has to name simap.ch — the platform is the
+   * source, and it is a different one.
+   */
+  quelleTyp: AmtsblattQuelleTyp
   amt: string
   publiziertAm: string
   frist: string | null
@@ -400,13 +413,20 @@ export interface AmtsblattFakten {
   unterlage: Unterlage | null
 }
 
-export const AMTSBLATT_SYSTEM_PROMPT = `Du schreibst fuer eine lokale Redaktion in der Region Basel kurze Meldungen aus amtlichen Publikationen (Amtsblatt des Kantons, SHAB).
+export const AMTSBLATT_SYSTEM_PROMPT = `Du schreibst fuer eine lokale Redaktion in der Region Basel kurze Meldungen aus amtlichen Publikationen (Amtsblatt des Kantons, SHAB) und aus oeffentlichen Beschaffungen der Plattform simap.ch.
 
 Regeln, ohne Ausnahme:
 - Verwende NUR die Fakten aus den Angaben. Erfinde nichts und rechne nichts aus.
   Auch keine Umrechnung von Flaechen, Kosten oder Anteilen.
 - Nenne die Quelle IM TEXT: "wie das Amtsblatt des Kantons {Kanton} publiziert"
   oder, beim Handelsregister, "wie das Schweizerische Handelsamtsblatt meldet".
+  Bei einer Beschaffung: "wie auf simap.ch publiziert" — die Plattform ist dort
+  die Quelle, nicht ein Amtsblatt.
+- Bei einem Zuschlag: Betrag und Name der beauftragten Firma stehen in den
+  Angaben und gehoeren in die Meldung, genau so, wie sie dort stehen. Runde den
+  Betrag nicht und rechne ihn nicht um. Firmen sind keine Privatpersonen: ihre
+  Namen nennst du. Die Zahl der eingegangenen Angebote nennst du, wo sie
+  dasteht — sie sagt, wie umkaempft der Auftrag war.
 - Nenne Daten ABSOLUT ("bis zum 7. September 2026"), niemals relativ ("bis
   naechste Woche", "in einem Monat"). Der Text muss in fuenf Jahren noch
   stimmen. Das gilt besonders fuer Einsprache- und Auflagefristen: sie sind der
@@ -546,9 +566,11 @@ export function unterlagenText(art: Unterlage['art']): string {
  * applies here unchanged.
  */
 export function quelleZeile(fakten: AmtsblattFakten): string {
-  const kopf =
-    `Quelle: Amtliche Publikation vom ${datumDeutsch(fakten.publiziertAm)}, ` +
-    fakten.pdfUrl
+  const was =
+    fakten.quelleTyp === 'simap'
+      ? 'Publikation auf simap.ch'
+      : 'Amtliche Publikation'
+  const kopf = `Quelle: ${was} vom ${datumDeutsch(fakten.publiziertAm)}, ${fakten.pdfUrl}`
   if (fakten.unterlage === null) return kopf
   return `${kopf}\n\n${unterlagenText(fakten.unterlage.art)}: ${fakten.unterlage.url}`
 }
@@ -561,8 +583,19 @@ export function mitQuelle(text: string, fakten: AmtsblattFakten): string {
 // The checks — a prompt is a request, a check is a rule
 // ---------------------------------------------------------------------------
 
-/** Which gazette the text has to name, given the canton it came from. */
-export function quellenName(kanton: string, gruppe: Gruppe): string {
+/**
+ * Which source the text has to name.
+ *
+ * Not always a gazette: a procurement publication comes from simap.ch, the
+ * joint platform of the Confederation and the cantons, and naming a cantonal
+ * gazette for it would be plainly wrong.
+ */
+export function quellenName(
+  kanton: string,
+  gruppe: Gruppe,
+  quelleTyp: AmtsblattQuelleTyp = 'amtsblatt'
+): string {
+  if (quelleTyp === 'simap') return 'simap.ch'
   if (gruppe === 'wirtschaft') return 'Handelsamtsblatt'
   const kantone: Record<string, string> = {
     BL: 'Basel-Landschaft',
@@ -574,19 +607,31 @@ export function quellenName(kanton: string, gruppe: Gruppe): string {
 
 /**
  * The attribution has to survive every revision — reported, then retried once.
- * A gazette article that does not say it comes from the gazette reads as the
+ * An article built from a published record that does not say so reads as the
  * newsroom's own reporting, which it is not.
  */
 export function attributionsWarnung(
   text: string,
-  fakten: Pick<AmtsblattFakten, 'kanton' | 'gruppe'>
+  fakten: Pick<AmtsblattFakten, 'kanton' | 'gruppe'> & {
+    quelleTyp?: AmtsblattQuelleTyp
+  }
 ): string | null {
   const klein = text.normalize('NFC').toLowerCase()
-  const name = quellenName(fakten.kanton, fakten.gruppe).toLowerCase()
+  const typ = fakten.quelleTyp ?? 'amtsblatt'
+  const name = quellenName(fakten.kanton, fakten.gruppe, typ).toLowerCase()
+
+  // For simap the platform's name IS the attribution — there is no second word
+  // like "amtlich" that would do, and demanding one would fail every correct text.
+  if (typ === 'simap') {
+    return klein.includes('simap')
+      ? null
+      : 'Die Meldung nennt simap.ch nicht als Quelle.'
+  }
+
   if (!klein.includes('amtsblatt') && !klein.includes('amtlich'))
     return 'Die Meldung nennt nicht, dass sie aus einer amtlichen Publikation stammt.'
   if (!klein.includes(name.normalize('NFC')))
-    return `Die Quelle ("${quellenName(fakten.kanton, fakten.gruppe)}") wird im Text nicht genannt.`
+    return `Die Quelle ("${quellenName(fakten.kanton, fakten.gruppe, typ)}") wird im Text nicht genannt.`
   return null
 }
 

@@ -1,0 +1,730 @@
+{
+  "projects": [
+    {
+      "id": "3895195a-9167-4dca-851c-f187ed5f4eea",
+      "title": {
+        "de": "BKP 421 Gärtnerarbeiten, Neubau Gemeindezentrum und Bibliothek, Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "projectNumber": "19490",
+      "projectType": "tender",
+      "projectSubType": "construction",
+      "processType": "open",
+      "lotsType": "without",
+      "publicationId": "dcd8352a-3d29-4e35-803a-5d512949a4e2",
+      "publicationDate": "2026-07-22",
+      "publicationNumber": "19490-02",
+      "pubType": "award",
+      "corrected": false,
+      "procOfficeName": {
+        "de": "Gemeinde Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "lots": [],
+      "orderAddressOnlyDescription": "no",
+      "orderAddress": {
+        "countryId": "CH",
+        "cantonId": "BL",
+        "postalCode": "4133",
+        "city": {
+          "de": "Pratteln",
+          "en": null,
+          "fr": null,
+          "it": null
+        }
+      }
+    },
+    {
+      "id": "6b93b32f-60ea-4325-8f27-7e69eb7ad132",
+      "title": {
+        "de": "BKP 272.0 Innentüren aus Metall, Neubau Gemeindezentrum und Bibliothek, Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "projectNumber": "21694",
+      "projectType": "tender",
+      "projectSubType": "construction",
+      "processType": "open",
+      "lotsType": "without",
+      "publicationId": "87949f42-e361-4f2e-bb82-53781fc04b84",
+      "publicationDate": "2026-07-22",
+      "publicationNumber": "21694-02",
+      "pubType": "award",
+      "corrected": false,
+      "procOfficeName": {
+        "de": "Gemeinde Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "lots": [],
+      "orderAddressOnlyDescription": "no",
+      "orderAddress": {
+        "countryId": "CH",
+        "cantonId": "BL",
+        "postalCode": "4133",
+        "city": {
+          "de": "Pratteln",
+          "en": null,
+          "fr": null,
+          "it": null
+        }
+      }
+    },
+    {
+      "id": "146ba00b-4a7d-43a0-acea-e46cd3370cb3",
+      "title": {
+        "de": "BKP 271 / 281.5 / 226.2 Gipser- und Malerarbeiten, Verputzte Aussenwärmedämmung, Neubau Gemeindezentrum und Bibliothek, Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "projectNumber": "21968",
+      "projectType": "tender",
+      "projectSubType": "construction",
+      "processType": "open",
+      "lotsType": "without",
+      "publicationId": "18c54fee-2fce-4343-8b8f-0020c91d9d0f",
+      "publicationDate": "2026-07-22",
+      "publicationNumber": "21968-02",
+      "pubType": "award",
+      "corrected": false,
+      "procOfficeName": {
+        "de": "Gemeinde Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "lots": [],
+      "orderAddressOnlyDescription": "no",
+      "orderAddress": {
+        "countryId": "CH",
+        "cantonId": "BL",
+        "postalCode": "4133",
+        "city": {
+          "de": "Pratteln",
+          "en": null,
+          "fr": null,
+          "it": null
+        }
+      }
+    },
+    {
+      "id": "8bc76f9f-aeb6-4658-ab2a-d275d9bcf9f6",
+      "title": {
+        "de": "BKP 273.0 Innentüren aus Holz, Neubau Gemeindezentrum und Bibliothek, Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "projectNumber": "21969",
+      "projectType": "tender",
+      "projectSubType": "construction",
+      "processType": "open",
+      "lotsType": "without",
+      "publicationId": "fd5c6d07-9bef-4079-aa3c-30f9b92aac33",
+      "publicationDate": "2026-07-22",
+      "publicationNumber": "21969-02",
+      "pubType": "award",
+      "corrected": false,
+      "procOfficeName": {
+        "de": "Jenny D'Annunzio",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "lots": [],
+      "orderAddressOnlyDescription": "no",
+      "orderAddress": {
+        "countryId": "CH",
+        "cantonId": "BL",
+        "postalCode": "4133",
+        "city": {
+          "de": "Pratteln",
+          "en": null,
+          "fr": null,
+          "it": null
+        }
+      }
+    },
+    {
+      "id": "ebc04461-37fc-484c-85d0-2d27b81b50c8",
+      "title": {
+        "de": "BKP 281.0 / 281.1 Unterlagsboden, Zementüberzüge, Hartbeton, Neubau Gemeindezentrum und Bibliothek, Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "projectNumber": "21970",
+      "projectType": "tender",
+      "projectSubType": "construction",
+      "processType": "open",
+      "lotsType": "without",
+      "publicationId": "163cf77f-2581-4f24-9374-041f5f3efc04",
+      "publicationDate": "2026-07-22",
+      "publicationNumber": "21970-02",
+      "pubType": "award",
+      "corrected": false,
+      "procOfficeName": {
+        "de": "Gemeinde Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "lots": [],
+      "orderAddressOnlyDescription": "no",
+      "orderAddress": {
+        "countryId": "CH",
+        "cantonId": "BL",
+        "postalCode": "4133",
+        "city": {
+          "de": "Pratteln",
+          "en": null,
+          "fr": null,
+          "it": null
+        }
+      }
+    },
+    {
+      "id": "edb4197b-a37a-49bc-bb00-d03641a67098",
+      "title": {
+        "de": "BKP 244 Lüftungsanlagen / Neubau Gemeindezentrum und Bibliothek Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "projectNumber": "427",
+      "projectType": "tender",
+      "projectSubType": "service",
+      "processType": "open",
+      "lotsType": "without",
+      "publicationId": "512c8079-8fc1-47d6-874b-ad9e86093b31",
+      "publicationDate": "2026-07-22",
+      "publicationNumber": "427-02",
+      "pubType": "award",
+      "corrected": false,
+      "procOfficeName": {
+        "de": "Gemeinde Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "lots": [],
+      "orderAddressOnlyDescription": "no",
+      "orderAddress": {
+        "countryId": "CH",
+        "cantonId": "BL",
+        "postalCode": "4133",
+        "city": {
+          "de": "Pratteln",
+          "en": null,
+          "fr": null,
+          "it": null
+        }
+      }
+    },
+    {
+      "id": "0a6de20f-430d-4bfc-8d36-2bc9c025af7a",
+      "title": {
+        "de": "BKP 224 Bedachungsarbeiten Neubau Gemeindezentrum und Bibliothek, Gemeinde Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "projectNumber": "434",
+      "projectType": "tender",
+      "projectSubType": "construction",
+      "processType": "open",
+      "lotsType": "without",
+      "publicationId": "6a6479df-c453-4e5c-a78c-c560ab2a3ac8",
+      "publicationDate": "2026-07-22",
+      "publicationNumber": "434-02",
+      "pubType": "award",
+      "corrected": false,
+      "procOfficeName": {
+        "de": "Gemeinde Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "lots": [],
+      "orderAddressOnlyDescription": "no",
+      "orderAddress": {
+        "countryId": "CH",
+        "cantonId": "BL",
+        "postalCode": "4133",
+        "city": {
+          "de": "Pratteln",
+          "en": null,
+          "fr": null,
+          "it": null
+        }
+      }
+    },
+    {
+      "id": "db1343b8-5fca-429a-9b3d-ba9a36bef5ba",
+      "title": {
+        "de": "214 Montagebau in Holz Neubau Gemeindezentrum und Bibliothek Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "projectNumber": "5741",
+      "projectType": "tender",
+      "projectSubType": "construction",
+      "processType": "open",
+      "lotsType": "without",
+      "publicationId": "3b02fea3-733f-47ea-a9d0-66cf31f54893",
+      "publicationDate": "2026-07-22",
+      "publicationNumber": "5741-02",
+      "pubType": "award",
+      "corrected": false,
+      "procOfficeName": {
+        "de": "Gemeinde Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "lots": [],
+      "orderAddressOnlyDescription": "no",
+      "orderAddress": {
+        "countryId": "CH",
+        "cantonId": "BL",
+        "postalCode": "4133",
+        "city": {
+          "de": "Pratteln",
+          "en": null,
+          "fr": null,
+          "it": null
+        }
+      }
+    },
+    {
+      "id": "72e9e74f-e365-46a0-9ad1-0bdec98c9cf8",
+      "title": {
+        "de": "BKP 242 / 246 Heizungs- und Kälteanlagen / Neubau Gemeindezentrum und Bibliothek, 4133 Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "projectNumber": "609",
+      "projectType": "tender",
+      "projectSubType": "construction",
+      "processType": "open",
+      "lotsType": "without",
+      "publicationId": "5b50782c-1b68-4918-8b13-c2d231303ed7",
+      "publicationDate": "2026-07-22",
+      "publicationNumber": "609-02",
+      "pubType": "award",
+      "corrected": false,
+      "procOfficeName": {
+        "de": "Gemeinde Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "lots": [],
+      "orderAddressOnlyDescription": "no",
+      "orderAddress": {
+        "countryId": "CH",
+        "cantonId": "BL",
+        "postalCode": "4133",
+        "city": {
+          "de": "Pratteln",
+          "en": null,
+          "fr": null,
+          "it": null
+        }
+      }
+    },
+    {
+      "id": "7758350e-f4cf-4d3e-9c8c-849f952846b9",
+      "title": {
+        "de": "TU-Multisporthalle \"Sandgruben\" Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "projectNumber": "30749",
+      "projectType": "tender",
+      "projectSubType": "construction",
+      "processType": "open",
+      "lotsType": "without",
+      "publicationId": "c0a948ae-e89b-4201-80d4-e0f91ebf9137",
+      "publicationDate": "2026-07-02",
+      "publicationNumber": "30749-01",
+      "pubType": "tender",
+      "corrected": false,
+      "procOfficeName": {
+        "de": "Gemeinde Pratteln / Abteilung Bau, Verkehr und Umwelt",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "lots": [],
+      "orderAddressOnlyDescription": "no",
+      "orderAddress": {
+        "countryId": "CH",
+        "cantonId": "BL",
+        "postalCode": "4133",
+        "city": {
+          "de": "Pratteln",
+          "en": null,
+          "fr": null,
+          "it": null
+        }
+      }
+    },
+    {
+      "id": "f140ce66-4821-460a-840f-73c9927e7229",
+      "title": {
+        "de": "Beschaffung ERP-Fachlösung",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "projectNumber": "29621",
+      "projectType": "tender",
+      "projectSubType": "service",
+      "processType": "open",
+      "lotsType": "without",
+      "publicationId": "f5682468-975f-43cc-923a-4d67ab00d243",
+      "publicationDate": "2026-05-15",
+      "publicationNumber": "29621-02",
+      "pubType": "award",
+      "corrected": false,
+      "procOfficeName": {
+        "de": "Gemeinde Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "lots": [],
+      "orderAddressOnlyDescription": "no",
+      "orderAddress": {
+        "countryId": "CH",
+        "cantonId": "BL",
+        "postalCode": "4133",
+        "city": {
+          "de": "Pratteln",
+          "en": null,
+          "fr": null,
+          "it": null
+        }
+      }
+    },
+    {
+      "id": "1c35438c-5be5-4892-bcaf-70b69dfc790e",
+      "title": {
+        "de": "Gemeinde Pratteln, Sanierung Gemeindestrassen Gallenweg, Wasenstrasse, Münchackerstrasse ",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "projectNumber": "36426",
+      "projectType": "tender",
+      "projectSubType": "construction",
+      "processType": "open",
+      "lotsType": "without",
+      "publicationId": "92c6d168-4571-4219-822c-10d14fa0d5cb",
+      "publicationDate": "2026-05-01",
+      "publicationNumber": "36426-01",
+      "pubType": "tender",
+      "corrected": false,
+      "procOfficeName": {
+        "de": "Gemeinde Pratteln, vertreten durch vzp ingenieure ag",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "lots": [],
+      "orderAddressOnlyDescription": "no",
+      "orderAddress": {
+        "countryId": "CH",
+        "cantonId": "BL",
+        "postalCode": "4133",
+        "city": {
+          "de": "Pratteln",
+          "en": null,
+          "fr": null,
+          "it": null
+        }
+      }
+    },
+    {
+      "id": "2ecd63e0-1e99-46fc-8b88-3cf13a4ad302",
+      "title": {
+        "de": "Pratteln, Salinenstrasse Los 1",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "projectNumber": "34737",
+      "projectType": "tender",
+      "projectSubType": "construction",
+      "processType": "open",
+      "lotsType": "without",
+      "publicationId": "9e671eab-e46c-48b6-9770-c6e82058a9aa",
+      "publicationDate": "2026-04-02",
+      "publicationNumber": "34737-01",
+      "pubType": "tender",
+      "corrected": false,
+      "procOfficeName": {
+        "de": "Gemeinde Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "lots": [],
+      "orderAddressOnlyDescription": "no",
+      "orderAddress": {
+        "countryId": "CH",
+        "cantonId": "BL",
+        "postalCode": "4133",
+        "city": {
+          "de": "Pratteln",
+          "en": null,
+          "fr": null,
+          "it": null
+        }
+      }
+    },
+    {
+      "id": "65234114-730b-405a-8016-56088036a418",
+      "title": {
+        "de": "BKP 273.3 Schreinerarbeiten Neubau Gemeindezentrum und Bibliothek Gemeinde Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "projectNumber": "32586",
+      "projectType": "tender",
+      "projectSubType": "construction",
+      "processType": "open",
+      "lotsType": "without",
+      "publicationId": "144607f1-d967-4727-ad7f-7ca02ea26279",
+      "publicationDate": "2026-02-27",
+      "publicationNumber": "32586-01",
+      "pubType": "tender",
+      "corrected": false,
+      "procOfficeName": {
+        "de": "Gemeinde Pratteln / Abteilung Bau, Verkehr und Umwelt",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "lots": [],
+      "orderAddressOnlyDescription": "no",
+      "orderAddress": {
+        "countryId": "CH",
+        "cantonId": "BL",
+        "postalCode": "4133",
+        "city": {
+          "de": "Pratteln",
+          "en": null,
+          "fr": null,
+          "it": null
+        }
+      }
+    },
+    {
+      "id": "707ca632-bf2a-49c1-8566-8e032a547f23",
+      "title": {
+        "de": "BKP 283.2 Deckenbekleidung aus Akustik, Neubau Gemeindezentrum und Bibliothek, Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "projectNumber": "19483",
+      "projectType": "tender",
+      "projectSubType": "construction",
+      "processType": "open",
+      "lotsType": "without",
+      "publicationId": "6b27e26f-b15c-4cb0-b982-80757f228da8",
+      "publicationDate": "2025-07-02",
+      "publicationNumber": "19483-01",
+      "pubType": "tender",
+      "corrected": false,
+      "procOfficeName": {
+        "de": "Gemeinde Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "lots": [],
+      "orderAddressOnlyDescription": "no",
+      "orderAddress": {
+        "countryId": "CH",
+        "cantonId": "BL",
+        "postalCode": "4133",
+        "city": {
+          "de": "Pratteln",
+          "en": null,
+          "fr": null,
+          "it": null
+        }
+      }
+    },
+    {
+      "id": "1d066b71-935c-4eab-bd5e-1ea9b2e817d9",
+      "title": {
+        "de": "BKP 281.0 Unterlagsboden / BKP 281.1 Hartbetonbelag Neubau Gemeindezentrum und Bibliothek Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "projectNumber": "7244",
+      "projectType": "tender",
+      "projectSubType": "construction",
+      "processType": "open",
+      "lotsType": "without",
+      "publicationId": "b2b65de4-2730-4751-ab80-92e2395d7440",
+      "publicationDate": "2025-05-01",
+      "publicationNumber": "7244-02",
+      "pubType": "abandonment",
+      "corrected": false,
+      "procOfficeName": {
+        "de": "Gemeinde Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "lots": [],
+      "orderAddressOnlyDescription": "no",
+      "orderAddress": {
+        "countryId": "CH",
+        "cantonId": "BL",
+        "postalCode": "4133",
+        "city": {
+          "de": "Pratteln",
+          "en": null,
+          "fr": null,
+          "it": null
+        }
+      }
+    },
+    {
+      "id": "d782de78-c4e0-4af9-b03c-1a93353314a0",
+      "title": {
+        "de": "215.2 Fassadenbau / Neubau Gemeindezentrum und Bibliothek",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "projectNumber": "5743",
+      "projectType": "tender",
+      "projectSubType": "construction",
+      "processType": "open",
+      "lotsType": "without",
+      "publicationId": "63745b34-24ef-4db0-91f8-a789e16b18c3",
+      "publicationDate": "2025-02-05",
+      "publicationNumber": "5743-02",
+      "pubType": "abandonment",
+      "corrected": false,
+      "procOfficeName": {
+        "de": "Gemeinde Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "lots": [],
+      "orderAddressOnlyDescription": "no",
+      "orderAddress": {
+        "countryId": "CH",
+        "cantonId": "BL",
+        "postalCode": "4133",
+        "city": {
+          "de": "Pratteln",
+          "en": null,
+          "fr": null,
+          "it": null
+        }
+      }
+    },
+    {
+      "id": "b92124f3-5859-4d79-9556-6ec4875fd546",
+      "title": {
+        "de": "BKP 274.2 Glasbausteine / Neubau Gemeindezentrum und Bibliothek Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "projectNumber": "7243",
+      "projectType": "tender",
+      "projectSubType": "construction",
+      "processType": "open",
+      "lotsType": "without",
+      "publicationId": "90f3cb74-7595-4bb8-abb6-49408a919e13",
+      "publicationDate": "2025-02-05",
+      "publicationNumber": "7243-02",
+      "pubType": "abandonment",
+      "corrected": false,
+      "procOfficeName": {
+        "de": "Gemeinde Pratteln",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "lots": [],
+      "orderAddressOnlyDescription": "no",
+      "orderAddress": {
+        "countryId": "CH",
+        "cantonId": "BL",
+        "postalCode": "4133",
+        "city": {
+          "de": "4133 Pratteln",
+          "en": null,
+          "fr": null,
+          "it": null
+        }
+      }
+    },
+    {
+      "id": "c66d13df-f17b-4d89-9b9f-dace9137ff39",
+      "title": {
+        "de": "Mobilitätsdrehscheibe Bahnhof Pratteln: Velounterführung und provisorischer PU-Anschluss Projektierung und Bauleitung inkl. Gesamtleitung (SIA-Phasen 31-53)",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "projectNumber": "2325",
+      "projectType": "tender",
+      "projectSubType": "service",
+      "processType": "open",
+      "lotsType": "without",
+      "publicationId": "a48bffde-b859-4ef7-91bf-4883e803acbc",
+      "publicationDate": "2025-01-20",
+      "publicationNumber": "2325-02",
+      "pubType": "award",
+      "corrected": false,
+      "procOfficeName": {
+        "de": "Gemeinde Pratteln / Planung und Hochbau",
+        "en": null,
+        "fr": null,
+        "it": null
+      },
+      "lots": [],
+      "orderAddressOnlyDescription": "no",
+      "orderAddress": {
+        "countryId": "CH",
+        "cantonId": "BL",
+        "postalCode": "4133",
+        "city": {
+          "de": "Gemeinde Pratteln",
+          "en": null,
+          "fr": null,
+          "it": null
+        }
+      }
+    }
+  ],
+  "pagination": {
+    "lastItem": "20250120|2325",
+    "itemsPerPage": 20
+  }
+}

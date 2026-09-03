@@ -83,10 +83,6 @@ type Query {
   wochenblattgemeinden_by_id(id: ID!, version: String): wochenblattgemeinden
   wochenblattgemeinden_aggregated(groupBy: [String], filter: wochenblattgemeinden_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [wochenblattgemeinden_aggregated!]!
   wochenblattgemeinden_by_version(version: String!, id: ID!): version_wochenblattgemeinden
-  amtsblattmeldungen(filter: amtsblattmeldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [amtsblattmeldungen!]!
-  amtsblattmeldungen_by_id(id: ID!, version: String): amtsblattmeldungen
-  amtsblattmeldungen_aggregated(groupBy: [String], filter: amtsblattmeldungen_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [amtsblattmeldungen_aggregated!]!
-  amtsblattmeldungen_by_version(version: String!, id: ID!): version_amtsblattmeldungen
   gemeinden(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [gemeinden!]!
   gemeinden_by_id(id: ID!, version: String): gemeinden
   gemeinden_aggregated(groupBy: [String], filter: gemeinden_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [gemeinden_aggregated!]!
@@ -99,6 +95,10 @@ type Query {
   punkt6_dossiers_by_id(id: ID!, version: String): punkt6_dossiers
   punkt6_dossiers_aggregated(groupBy: [String], filter: punkt6_dossiers_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [punkt6_dossiers_aggregated!]!
   punkt6_dossiers_by_version(version: String!, id: ID!): version_punkt6_dossiers
+  amtsblattmeldungen(filter: amtsblattmeldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [amtsblattmeldungen!]!
+  amtsblattmeldungen_by_id(id: ID!, version: String): amtsblattmeldungen
+  amtsblattmeldungen_aggregated(groupBy: [String], filter: amtsblattmeldungen_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [amtsblattmeldungen_aggregated!]!
+  amtsblattmeldungen_by_version(version: String!, id: ID!): version_amtsblattmeldungen
   punkt6_editions(filter: punkt6_editions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [punkt6_editions!]!
   punkt6_editions_by_id(id: ID!, version: String): punkt6_editions
   punkt6_editions_aggregated(groupBy: [String], filter: punkt6_editions_filter, limit: Int, offset: Int, page: Int, search: String, sort: [String]): [punkt6_editions_aggregated!]!
@@ -152,14 +152,14 @@ type Mutation {
   create_wochenblattkandidaten_item(data: create_wochenblattkandidaten_input!): wochenblattkandidaten
   create_wochenblattgemeinden_items(filter: wochenblattgemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_wochenblattgemeinden_input!]): [wochenblattgemeinden!]!
   create_wochenblattgemeinden_item(data: create_wochenblattgemeinden_input!): wochenblattgemeinden
-  create_amtsblattmeldungen_items(filter: amtsblattmeldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_amtsblattmeldungen_input!]): [amtsblattmeldungen!]!
-  create_amtsblattmeldungen_item(data: create_amtsblattmeldungen_input!): amtsblattmeldungen
   create_gemeinden_items(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_gemeinden_input!]): [gemeinden!]!
   create_gemeinden_item(data: create_gemeinden_input!): gemeinden
   create_editions_items(filter: editions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_editions_input!]): [editions!]!
   create_editions_item(data: create_editions_input!): editions
   create_punkt6_dossiers_items(filter: punkt6_dossiers_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_punkt6_dossiers_input!]): [punkt6_dossiers!]!
   create_punkt6_dossiers_item(data: create_punkt6_dossiers_input!): punkt6_dossiers
+  create_amtsblattmeldungen_items(filter: amtsblattmeldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_amtsblattmeldungen_input!]): [amtsblattmeldungen!]!
+  create_amtsblattmeldungen_item(data: create_amtsblattmeldungen_input!): amtsblattmeldungen
   create_punkt6_editions_items(filter: punkt6_editions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_punkt6_editions_input!]): [punkt6_editions!]!
   create_punkt6_editions_item(data: create_punkt6_editions_input!): punkt6_editions
   create_sendungskandidaten_items(filter: sendungskandidaten_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [create_sendungskandidaten_input!]): [sendungskandidaten!]!
@@ -227,9 +227,6 @@ type Mutation {
   update_wochenblattgemeinden_items(filter: wochenblattgemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_wochenblattgemeinden_input!): [wochenblattgemeinden!]!
   update_wochenblattgemeinden_batch(filter: wochenblattgemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_wochenblattgemeinden_input!]): [wochenblattgemeinden!]!
   update_wochenblattgemeinden_item(id: ID!, data: update_wochenblattgemeinden_input!): wochenblattgemeinden
-  update_amtsblattmeldungen_items(filter: amtsblattmeldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_amtsblattmeldungen_input!): [amtsblattmeldungen!]!
-  update_amtsblattmeldungen_batch(filter: amtsblattmeldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_amtsblattmeldungen_input!]): [amtsblattmeldungen!]!
-  update_amtsblattmeldungen_item(id: ID!, data: update_amtsblattmeldungen_input!): amtsblattmeldungen
   update_gemeinden_items(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_gemeinden_input!): [gemeinden!]!
   update_gemeinden_batch(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_gemeinden_input!]): [gemeinden!]!
   update_gemeinden_item(id: ID!, data: update_gemeinden_input!): gemeinden
@@ -239,6 +236,9 @@ type Mutation {
   update_punkt6_dossiers_items(filter: punkt6_dossiers_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_punkt6_dossiers_input!): [punkt6_dossiers!]!
   update_punkt6_dossiers_batch(filter: punkt6_dossiers_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_punkt6_dossiers_input!]): [punkt6_dossiers!]!
   update_punkt6_dossiers_item(id: ID!, data: update_punkt6_dossiers_input!): punkt6_dossiers
+  update_amtsblattmeldungen_items(filter: amtsblattmeldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_amtsblattmeldungen_input!): [amtsblattmeldungen!]!
+  update_amtsblattmeldungen_batch(filter: amtsblattmeldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_amtsblattmeldungen_input!]): [amtsblattmeldungen!]!
+  update_amtsblattmeldungen_item(id: ID!, data: update_amtsblattmeldungen_input!): amtsblattmeldungen
   update_punkt6_editions_items(filter: punkt6_editions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, ids: [ID]!, data: update_punkt6_editions_input!): [punkt6_editions!]!
   update_punkt6_editions_batch(filter: punkt6_editions_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String, data: [update_punkt6_editions_input!]): [punkt6_editions!]!
   update_punkt6_editions_item(id: ID!, data: update_punkt6_editions_input!): punkt6_editions
@@ -287,14 +287,14 @@ type Mutation {
   delete_wochenblattkandidaten_item(id: ID!): delete_one
   delete_wochenblattgemeinden_items(ids: [ID]!): delete_many
   delete_wochenblattgemeinden_item(id: ID!): delete_one
-  delete_amtsblattmeldungen_items(ids: [ID]!): delete_many
-  delete_amtsblattmeldungen_item(id: ID!): delete_one
   delete_gemeinden_items(ids: [ID]!): delete_many
   delete_gemeinden_item(id: ID!): delete_one
   delete_editions_items(ids: [ID]!): delete_many
   delete_editions_item(id: ID!): delete_one
   delete_punkt6_dossiers_items(ids: [ID]!): delete_many
   delete_punkt6_dossiers_item(id: ID!): delete_one
+  delete_amtsblattmeldungen_items(ids: [ID]!): delete_many
+  delete_amtsblattmeldungen_item(id: ID!): delete_one
   delete_punkt6_editions_items(ids: [ID]!): delete_many
   delete_punkt6_editions_item(id: ID!): delete_one
   delete_sendungskandidaten_items(ids: [ID]!): delete_many
@@ -346,10 +346,10 @@ type Subscription {
   recherchehinweise_mutated(event: EventEnum): recherchehinweise_mutated
   wochenblattkandidaten_mutated(event: EventEnum): wochenblattkandidaten_mutated
   wochenblattgemeinden_mutated(event: EventEnum): wochenblattgemeinden_mutated
-  amtsblattmeldungen_mutated(event: EventEnum): amtsblattmeldungen_mutated
   gemeinden_mutated(event: EventEnum): gemeinden_mutated
   editions_mutated(event: EventEnum): editions_mutated
   punkt6_dossiers_mutated(event: EventEnum): punkt6_dossiers_mutated
+  amtsblattmeldungen_mutated(event: EventEnum): amtsblattmeldungen_mutated
   punkt6_editions_mutated(event: EventEnum): punkt6_editions_mutated
   sendungskandidaten_mutated(event: EventEnum): sendungskandidaten_mutated
 }
@@ -478,6 +478,11 @@ type amtsblattmeldungen {
   date_updated: Date
   date_updated_func: datetime_functions
   gemeinde(filter: gemeinden_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): gemeinden
+
+  """
+  Woher die Zeile kommt. Das Amtsblattportal und simap.ch fuehren getrennte Publikations-IDs, und Attribution wie Nachladen haengen daran.
+  """
+  quelle_typ: String
   meldungen(filter: meldungen_filter, sort: [String], limit: Int, offset: Int, page: Int, search: String): [meldungen]
 }
 
@@ -558,6 +563,11 @@ type amtsblattmeldungen_aggregated_count {
   date_created: Int
   date_updated: Int
   gemeinde: Int
+
+  """
+  Woher die Zeile kommt. Das Amtsblattportal und simap.ch fuehren getrennte Publikations-IDs, und Attribution wie Nachladen haengen daran.
+  """
+  quelle_typ: Int
 }
 
 type amtsblattmeldungen_mutated {
@@ -1991,6 +2001,12 @@ type gemeinden {
   Postleitzahlen der Gemeinde. Ohne sie bleibt die SHAB-Haelfte still: Handelsregister, Konkurse und Betreibungen sind beim Portal an die Adresse gebunden, nicht an die BFS-Nummer.
   """
   plz: [String]
+
+  """
+  Vergabestellen dieser Gemeinde auf simap.ch: [{"id","name","typ"}]. Die id stammt aus dem oeffentlichen Verzeichnis (/procoffices/v1/po/public). Von Hand gepflegt, weil das Verzeichnis keinen Kanton nennt: die Namenssuche liefert "Gemeinde Aesch LU" und "Gemeinde Reinach" (AG) gleich mit. Leer heisst nicht blind — der Erfuellungsort wird trotzdem ueber die PLZ gefunden.
+  """
+  simap_vergabestellen: JSON
+  simap_vergabestellen_func: count_functions
 }
 
 type gemeinden_aggregated {
@@ -2029,6 +2045,11 @@ type gemeinden_aggregated_count {
   Postleitzahlen der Gemeinde. Ohne sie bleibt die SHAB-Haelfte still: Handelsregister, Konkurse und Betreibungen sind beim Portal an die Adresse gebunden, nicht an die BFS-Nummer.
   """
   plz: Int
+
+  """
+  Vergabestellen dieser Gemeinde auf simap.ch: [{"id","name","typ"}]. Die id stammt aus dem oeffentlichen Verzeichnis (/procoffices/v1/po/public). Von Hand gepflegt, weil das Verzeichnis keinen Kanton nennt: die Namenssuche liefert "Gemeinde Aesch LU" und "Gemeinde Reinach" (AG) gleich mit. Leer heisst nicht blind — der Erfuellungsort wird trotzdem ueber die PLZ gefunden.
+  """
+  simap_vergabestellen: Int
 }
 
 type gemeinden_aggregated_fields {
@@ -3133,6 +3154,11 @@ type version_amtsblattmeldungen {
   date_created: Date
   date_updated: Date
   gemeinde: JSON
+
+  """
+  Woher die Zeile kommt. Das Amtsblattportal und simap.ch fuehren getrennte Publikations-IDs, und Attribution wie Nachladen haengen daran.
+  """
+  quelle_typ: String
   meldungen: JSON
 }
 
@@ -3441,6 +3467,11 @@ type version_gemeinden {
   Postleitzahlen der Gemeinde. Ohne sie bleibt die SHAB-Haelfte still: Handelsregister, Konkurse und Betreibungen sind beim Portal an die Adresse gebunden, nicht an die BFS-Nummer.
   """
   plz: [String]
+
+  """
+  Vergabestellen dieser Gemeinde auf simap.ch: [{"id","name","typ"}]. Die id stammt aus dem oeffentlichen Verzeichnis (/procoffices/v1/po/public). Von Hand gepflegt, weil das Verzeichnis keinen Kanton nennt: die Namenssuche liefert "Gemeinde Aesch LU" und "Gemeinde Reinach" (AG) gleich mit. Leer heisst nicht blind — der Erfuellungsort wird trotzdem ueber die PLZ gefunden.
+  """
+  simap_vergabestellen: JSON
 }
 
 """"""
@@ -4326,6 +4357,7 @@ input amtsblattmeldungen_filter {
   date_updated: date_filter_operators
   date_updated_func: datetime_function_filter_operators
   gemeinde: gemeinden_filter
+  quelle_typ: string_filter_operators
   _and: [amtsblattmeldungen_filter]
   _or: [amtsblattmeldungen_filter]
   meldungen: meldungen_quantifier_filter
@@ -4468,6 +4500,11 @@ input create_amtsblattmeldungen_input {
   date_created: Date
   date_updated: Date
   gemeinde: create_gemeinden_input
+
+  """
+  Woher die Zeile kommt. Das Amtsblattportal und simap.ch fuehren getrennte Publikations-IDs, und Attribution wie Nachladen haengen daran.
+  """
+  quelle_typ: String
   meldungen: [create_meldungen_input]
 }
 
@@ -4878,6 +4915,11 @@ input create_gemeinden_input {
   Postleitzahlen der Gemeinde. Ohne sie bleibt die SHAB-Haelfte still: Handelsregister, Konkurse und Betreibungen sind beim Portal an die Adresse gebunden, nicht an die BFS-Nummer.
   """
   plz: [String]
+
+  """
+  Vergabestellen dieser Gemeinde auf simap.ch: [{"id","name","typ"}]. Die id stammt aus dem oeffentlichen Verzeichnis (/procoffices/v1/po/public). Von Hand gepflegt, weil das Verzeichnis keinen Kanton nennt: die Namenssuche liefert "Gemeinde Aesch LU" und "Gemeinde Reinach" (AG) gleich mit. Leer heisst nicht blind — der Erfuellungsort wird trotzdem ueber die PLZ gefunden.
+  """
+  simap_vergabestellen: JSON
 }
 
 input create_laeufe_input {
@@ -6137,6 +6179,8 @@ input gemeinden_filter {
   date_updated: date_filter_operators
   date_updated_func: datetime_function_filter_operators
   plz: string_filter_operators
+  simap_vergabestellen: string_filter_operators
+  simap_vergabestellen_func: count_function_filter_operators
   _and: [gemeinden_filter]
   _or: [gemeinden_filter]
 }
@@ -6645,6 +6689,11 @@ input update_amtsblattmeldungen_input {
   date_created: Date
   date_updated: Date
   gemeinde: update_gemeinden_input
+
+  """
+  Woher die Zeile kommt. Das Amtsblattportal und simap.ch fuehren getrennte Publikations-IDs, und Attribution wie Nachladen haengen daran.
+  """
+  quelle_typ: String
   meldungen: [update_meldungen_input]
 }
 
@@ -7055,6 +7104,11 @@ input update_gemeinden_input {
   Postleitzahlen der Gemeinde. Ohne sie bleibt die SHAB-Haelfte still: Handelsregister, Konkurse und Betreibungen sind beim Portal an die Adresse gebunden, nicht an die BFS-Nummer.
   """
   plz: [String]
+
+  """
+  Vergabestellen dieser Gemeinde auf simap.ch: [{"id","name","typ"}]. Die id stammt aus dem oeffentlichen Verzeichnis (/procoffices/v1/po/public). Von Hand gepflegt, weil das Verzeichnis keinen Kanton nennt: die Namenssuche liefert "Gemeinde Aesch LU" und "Gemeinde Reinach" (AG) gleich mit. Leer heisst nicht blind — der Erfuellungsort wird trotzdem ueber die PLZ gefunden.
+  """
+  simap_vergabestellen: JSON
 }
 
 input update_laeufe_input {

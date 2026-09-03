@@ -124,7 +124,14 @@ import { ladeTabelle, StatblFehler, tabellenId } from '../../shared/statbl'
 import { tabellenFelder } from '../../shared/statbl/parse'
 import { baueFreigabeNachricht, LinkNotifier } from '../../shared/notify'
 import { optionalEnv } from '../../shared/env'
-import type { Datensatz, Lauf, Meldung } from '../../types/schema'
+import type {
+  AmtsblattQuelleTyp,
+  Datensatz,
+  Lauf,
+  Meldung
+} from '../../types/schema'
+import { ergaenzeSimapZeile } from '../../redaktion/simaplauf'
+import { projektIdAusLink } from '../../shared/simap'
 
 // What the editorial workspace calls.
 //
@@ -318,6 +325,17 @@ const UnterlagenLaufenBereits = createError(
   'RUN_IN_PROGRESS',
   'Die Unterlagen zu dieser Publikation werden bereits gelesen.',
   409
+)
+
+/**
+ * simap.ch publishes no plan sheets — the desk hides the button for those
+ * rows, and this makes the refusal explicit rather than firing a doomed
+ * request at the gazette portal with a simap id.
+ */
+const KeineUnterlagen = createError(
+  'NO_DOCUMENTS',
+  'Zu einer Beschaffung auf simap.ch gibt es keine Planunterlagen zu lesen.',
+  400
 )
 
 const PublikationSchonEntschieden = createError(
@@ -1249,9 +1267,13 @@ export default defineEndpoint(
     interface AmtsblattRohzeile {
       id: string
       publikations_id: string
+      /** Null on rows written before simap.ch arrived — read as `amtsblatt`. */
+      quelle_typ: AmtsblattQuelleTyp | null
       titel: string
       kanton: string | null
       gruppe: Gruppe | null
+      /** The raw kind — for simap the `pubType` the fact sheet is rendered for. */
+      rubrik: string | null
       rubrik_name: string | null
       amt: string | null
       publiziert_am: string | null
@@ -1270,9 +1292,11 @@ export default defineEndpoint(
     const AMTSBLATT_FELDER = [
       'id',
       'publikations_id',
+      'quelle_typ',
       'titel',
       'kanton',
       'gruppe',
+      'rubrik',
       'rubrik_name',
       'amt',
       'publiziert_am',
@@ -1296,6 +1320,7 @@ export default defineEndpoint(
         titel: zeile.titel,
         rubrikName: zeile.rubrik_name ?? '',
         gruppe: zeile.gruppe ?? 'behoerden',
+        quelleTyp: zeile.quelle_typ ?? 'amtsblatt',
         amt: zeile.amt ?? '',
         publiziertAm: zeile.publiziert_am ?? '',
         frist: zeile.frist,
@@ -1439,6 +1464,8 @@ export default defineEndpoint(
           return next(uebersetze(error))
         }
 
+        if (zeile.quelle_typ === 'simap') return next(new KeineUnterlagen())
+
         if (laufendeUnterlagen.has(id))
           return next(new UnterlagenLaufenBereits())
         laufendeUnterlagen.add(id)
@@ -1523,25 +1550,50 @@ export default defineEndpoint(
           // The facts come from the single publication, which the list does not
           // carry. Fetched here for a row nobody read yet — the editor picked
           // it, so it is worth the request.
+          //
+          // Which door to knock on depends on where the row came from: a simap
+          // row's `publikations_id` is a simap uuid, and asking
+          // amtsblattportal.ch for it returns a 404. A simap row normally
+          // arrives with its facts already filled, so this is the recovery path
+          // for one whose detail request failed while it was collected.
           if (zeile.angaben === null || zeile.angaben.length === 0) {
-            await ergaenzeZeile(
-              {
-                id: zeile.id,
-                publikations_id: zeile.publikations_id,
-                titel: zeile.titel,
-                gemeinde: zeile.gemeinde,
-                angaben: zeile.angaben,
-                unterlagen: zeile.unterlagen,
-                plan_status: zeile.plan_status
-              } satisfies AmtsblattZeile,
-              {
-                meldungen: new ItemsService('amtsblattmeldungen', { schema }),
-                logger,
-                abruf: {
-                  kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch')
-                }
-              }
-            )
+            const abruf = {
+              kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch')
+            }
+            const meldungenSystem = new ItemsService('amtsblattmeldungen', {
+              schema
+            })
+            const projektId =
+              zeile.quelle_typ === 'simap'
+                ? projektIdAusLink(zeile.pdf_url)
+                : null
+
+            if (zeile.quelle_typ === 'simap') {
+              if (projektId !== null)
+                await ergaenzeSimapZeile(
+                  {
+                    id: zeile.id,
+                    publikations_id: zeile.publikations_id,
+                    pdf_url: zeile.pdf_url,
+                    rubrik: zeile.rubrik
+                  },
+                  projektId,
+                  { meldungen: meldungenSystem, logger, abruf }
+                )
+            } else {
+              await ergaenzeZeile(
+                {
+                  id: zeile.id,
+                  publikations_id: zeile.publikations_id,
+                  titel: zeile.titel,
+                  gemeinde: zeile.gemeinde,
+                  angaben: zeile.angaben,
+                  unterlagen: zeile.unterlagen,
+                  plan_status: zeile.plan_status
+                } satisfies AmtsblattZeile,
+                { meldungen: meldungenSystem, logger, abruf }
+              )
+            }
             zeile = await ladeAmtsblattZeile(id, req.accountability)
           }
 
