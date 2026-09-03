@@ -5,16 +5,21 @@ Vertrag für Abnehmer. Erster Abnehmer ist der **Dorfkönig 3.0**.
 Konvention: **`wepublish-rest/1`**, Directus-Profil, Weg B (Endpunkt-Erweiterung
 `api` im Bundle). Umsetzung: `apps/directus/extensions/app/src/endpoints/api/`.
 
+Der Host ist der **Directus**-Host (`redaktion-admin…`), nicht der des Blogs
+(`redaktion.apps.bajour.ch`). Das ist keine Feinheit: unter der Blog-Domain
+läuft Next, und `/api/…` gehört dort dessen eigenen Routen — eine Anfrage
+dorthin bekommt eine HTML-404-Seite und nie diese Schnittstelle.
+
 ## Adresse und Modus
 
-|           |                                                                                 |
-| --------- | ------------------------------------------------------------------------------- |
-| Adresse   | `<DIRECTUS_PUBLIC_URL>/api/v1` — der **Directus**-Host, nicht der des Frontends |
-| Lokal     | `http://localhost:8055/api/v1`                                                  |
-| Merkmal   | **keines** (offener Modus, R4a)                                                 |
-| Schalter  | `BLOG_API_OFFEN=ja` in der Umgebung von Directus                                |
-| Methoden  | nur `GET` (R2); alles andere `405`                                              |
-| Kopfzeile | jede Antwort trägt `X-Robots-Tag: noindex`                                      |
+|             |                                                     |
+| ----------- | --------------------------------------------------- |
+| **Adresse** | **`https://redaktion-admin.apps.bajour.ch/api/v1`** |
+| Lokal       | `http://localhost:8055/api/v1`                      |
+| Merkmal     | **keines** (offener Modus, R4a)                     |
+| Schalter    | `BLOG_API_OFFEN=ja` in der Umgebung von Directus    |
+| Methoden    | nur `GET` (R2); alles andere `405`                  |
+| Kopfzeile   | jede Antwort trägt `X-Robots-Tag: noindex`          |
 
 Warum ohne Schlüssel: Alles, was diese Schnittstelle liefert, steht ohnehin
 öffentlich im Blog — ein Schlüssel schützte nichts. Der Schalter ist trotzdem
@@ -157,13 +162,16 @@ nicht.
 ## Abnahme
 
 ```bash
-A=http://localhost:8055/api/v1
+A=https://redaktion-admin.apps.bajour.ch/api/v1
 curl -s $A/gesundheit | python3 -m json.tool          # bereit: true, merkmal: "keines"
 curl -s $A/gemeinden | python3 -m json.tool           # die gueltigen Kennungen
 curl -s "$A/artikel?gemeinde=muenchenstein&seit=2026-08-01&grenze=5" | python3 -m json.tool
 curl -s "$A/artikel?grenze=501"                       # 400 ungueltige_eingabe
 curl -s $A/quatsch                                    # 404 im eigenen Umschlag, nie HTML
 ```
+
+Gegen die Live-Instanz durchlaufen am 3. September 2026: 72 publizierte
+Beiträge über 7 Gemeinden, alle Fehlerfälle in der erwarteten Form.
 
 ## Feldzuordnung für den Dorfkönig
 
