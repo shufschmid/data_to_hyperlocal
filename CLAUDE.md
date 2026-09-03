@@ -336,6 +336,22 @@ them is wrong even if it works.
    and `punkt6/` came over UNCHANGED and is meant to stay that way: the next fix
    over there should be a copy, not a merge. Everything this newsroom added
    lives in `redaktion/sendung.ts` and `redaktion/sendunglauf.ts`.
+   **A broadcast has a SHAPE, and the Sichtung has to respect it.** The show
+   opens by trailing every topic in one breath („… Das Land zahlt weniger …
+   und: temporäre Kunst in Bottmingen"), covers each one at length later, and
+   sometimes recaps at the end. So a municipality is typically named THREE
+   times, and only the long passage is the story — which is why
+   `beitraegeAusEdition` gives every topic its own slice of the transcript
+   (`beitraegeAusPunkt6` always did). Handing the main contribution the whole
+   text instead judged every „Ausserdem" topic twice: measured on 22
+   candidates, SIX were duplicate pairs, and the copy from the full text
+   carried no timestamp, so it pointed at no passage at all. The main
+   contribution keeps everything the topics do not claim — that is where the
+   stories the show never listed live, and they are worth real money (Tempo 30
+   in Münchenstein, the Muttenz tram rebuild, the southern approach flights
+   over Allschwil had no topic entry of their own). The trailed sentence stays
+   there too, and the prompt's „HANDELT von" versus „ERWAEHNT bloss" is what
+   keeps it from becoming a candidate.
    **One thing this bundle forced a change on.** The sister project imports
    `pdfjs-dist` directly and works around the extension bundler by resolving
    `pdf.worker.mjs` by hand — the build folds everything into one `dist/api.js`,

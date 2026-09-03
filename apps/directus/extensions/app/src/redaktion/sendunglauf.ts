@@ -67,6 +67,30 @@ export interface SichtungsBeitrag {
  * A Regionaljournal edition carries its transcript plus separately summarised
  * extra topics; a punkt6 edition carries the whole episode and slices it by
  * telebasel.ch's own boundaries. Both end up here as plain contributions.
+ *
+ * A broadcast has a SHAPE, and ignoring it produced duplicates. The show opens
+ * by trailing every topic in one breath ("Eine junge Frau stirbt an einer
+ * Überdosis … Das Land zahlt weniger … in Bottmingen …"), then covers each one
+ * at length, and sometimes recaps at the end. Handing the whole transcript to
+ * the main contribution meant every "Ausserdem" topic was judged TWICE: once
+ * inside that full text, once on its own — measured on 22 candidates, six were
+ * such pairs, and the copy from the full text carried no timestamp, so it
+ * pointed the editor at no passage at all.
+ *
+ * So each topic now gets its OWN passage, `beitraegeAusPunkt6`-style. Where a
+ * topic appears more than once, the long passage is the one that counts — the
+ * resolution step already looked for exactly that, "der Timecode, ab dem das
+ * Thema wirklich inhaltlich behandelt wird (nicht die blosse Erwaehnung am
+ * Anfang)" (`dossiers/topics-prompt.ts`).
+ *
+ * The main contribution keeps everything the topics do NOT claim, and that is
+ * deliberate rather than lazy: it holds the opening trail, its own report, and
+ * any story the show never listed under "Ausserdem" — and those are worth real
+ * money. Measured in the same run: Tempo 30 in Münchenstein, the tram network
+ * rebuild in Muttenz and the southern approach flights over Allschwil had no
+ * topic entry of their own and would never have been seen. What remains of a
+ * trailed topic there is a single sentence, which the inventory prompt is built
+ * to read as "merely mentioned" rather than as a story.
  */
 export function beitraegeAusEdition(edition: {
   headline: string
@@ -74,20 +98,59 @@ export function beitraegeAusEdition(edition: {
   transcript: TranscriptParagraph[] | null
   extra_topics: ExtraTopic[] | null
 }): SichtungsBeitrag[] {
-  const volltext = (edition.transcript ?? []).map((p) => p.text).join('\n')
+  const absaetze = edition.transcript ?? []
+  const themen = edition.extra_topics ?? []
+
+  // Where each topic's own coverage begins, in order. A topic the resolution
+  // could not place (`paragraphSeconds: null`) claims no passage — it still
+  // gets judged on its headline and summary.
+  const grenzen = themen
+    .map((t) => t.paragraphSeconds)
+    .filter((s): s is number => s !== null)
+    .sort((a, b) => a - b)
+
+  const naechsteGrenze = (von: number): number | null =>
+    grenzen.find((g) => g > von) ?? null
+
+  const schnitt = (von: number, bis: number | null): string =>
+    absaetze
+      .filter((p) => p.seconds >= von && (bis === null || p.seconds < bis))
+      .map((p) => p.text)
+      .join('\n')
+
+  // Everything before the first topic's own coverage: the opening trail, the
+  // main report itself, and whatever the show covered without listing it under
+  // "Ausserdem". From the first boundary on, the segments below cover the rest
+  // of the broadcast without a gap, so there is nothing else left over.
+  const erste = grenzen[0]
+  const ungeteilt = absaetze
+    .filter((p) => erste === undefined || p.seconds < erste)
+    .map((p) => p.text)
+    .join('\n')
+
   const beitraege: SichtungsBeitrag[] = [
     {
       titel: edition.headline,
-      text: [edition.lead ?? '', volltext].filter((t) => t !== '').join('\n\n'),
+      text: [edition.lead ?? '', ungeteilt]
+        .filter((t) => t !== '')
+        .join('\n\n'),
       zeitmarkeSekunden: null
     }
   ]
-  for (const thema of edition.extra_topics ?? []) {
+
+  for (const thema of themen) {
+    const eigenerText =
+      thema.paragraphSeconds === null
+        ? ''
+        : schnitt(
+            thema.paragraphSeconds,
+            naechsteGrenze(thema.paragraphSeconds)
+          )
     beitraege.push({
       titel: thema.headline,
-      text: [thema.headline, thema.summary ?? '']
+      text: [thema.headline, thema.summary ?? '', eigenerText]
         .filter((t) => t !== '')
-        .join('\n'),
+        .join('\n\n'),
       zeitmarkeSekunden: thema.paragraphSeconds
     })
   }
