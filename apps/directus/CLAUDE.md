@@ -151,6 +151,18 @@ export default defineEndpoint((router, { services, getSchema, logger }) => {
   their own 4xx (see `LeereAnweisung` in `redaktion`) and keep the generic
   5xx for what really is a fault.
 - Working example: `src/endpoints/redaktion/` — note the deliberately public `/freigabe` routes and why they are safe.
+- **The one endpoint that is public by design and answers 404 instead of 403:**
+  `src/endpoints/api/` (mounted at `/api/v1/…`), the read-only API the Dorfkönig
+  fetches published articles from. The 403 rule above protects data a caller
+  must not probe for; here everything that answers is published and public, so
+  there is nothing to hide and the convention (`wepublish-rest/1`, R9) asks for 404. It avoids `readOne` entirely — `readByQuery` with a hard-wired
+  `status = publiziert` and a uuid-shape check before the query, so a caller's
+  typo cannot become a 500 from Postgres. Two more properties worth keeping:
+  the route REGISTER drives both the router and `/beschreibung`+`/openapi.json`
+  (a route cannot be undocumented, and the tests compare both directions), and
+  every outside thing is injected, so the whole API is unit-tested without a
+  database. The switch `BLOG_API_OFFEN` is explicit and never a fallback.
+  Contract for consumers: [SCHNITTSTELLE.md](SCHNITTSTELLE.md).
 
 ### Hook — react to a write, from any source
 

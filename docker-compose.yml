@@ -99,6 +99,11 @@ services:
       SRGSSR_SHOW_ID: ${SRGSSR_SHOW_ID:-}
       CRAWLER_TIMEOUT_MS: ${CRAWLER_TIMEOUT_MS:-90000}
 
+      # Die oeffentliche Blog-API (/api/v1/…, Konvention wepublish-rest/1).
+      # Leerer Vorgabewert heisst abgeschaltet: eine Schnittstelle, die ohne
+      # Absicht offen ist, ist es zu unrecht. "ja" schaltet sie ein.
+      BLOG_API_OFFEN: ${BLOG_API_OFFEN:-}
+
       EXTENSIONS_PATH: ./extensions
       # Auto-reload watches the filesystem; pointless in an immutable image.
       EXTENSIONS_AUTO_RELOAD: 'false'

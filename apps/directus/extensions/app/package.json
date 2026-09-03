@@ -82,6 +82,11 @@
         "source": "src/endpoints/redaktion/index.ts"
       },
       {
+        "type": "endpoint",
+        "name": "api",
+        "source": "src/endpoints/api/index.ts"
+      },
+      {
         "type": "hook",
         "name": "kandidat-gemeinde",
         "source": "src/hooks/kandidat-gemeinde/index.ts"

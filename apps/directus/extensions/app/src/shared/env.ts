@@ -37,5 +37,8 @@ export function envFlag(
 ): boolean {
   const value = env[name]
   if (value === undefined || value.trim() === '') return fallback
-  return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase())
+  // `ja` belongs here because the switches are documented in German — and a
+  // switch that reads as "off" when someone writes the obvious German word for
+  // "on" fails silently, which is the worst way for a switch to fail.
+  return ['1', 'true', 'yes', 'on', 'ja'].includes(value.trim().toLowerCase())
 }

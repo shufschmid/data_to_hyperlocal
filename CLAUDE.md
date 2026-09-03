@@ -4,7 +4,9 @@ Turns public data into local journalism. Sources are watched for new datasets;
 when one arrives with figures per municipality, one article is drafted for each
 municipality the newsroom covers. An editor reviews them, revises them by chat,
 optionally sends them out to be counter-checked, and publishes. Published
-articles are read by a separate downstream system, the **Dorfkönig**.
+articles are read by a separate downstream system, the **Dorfkönig**, through
+the read-only API at `/api/v1/…` (`endpoints/api/`, contract in
+[apps/directus/SCHNITTSTELLE.md](apps/directus/SCHNITTSTELLE.md)).
 
 Built from the standalone-AI-application template; the example feature it shipped
 with has been removed.
@@ -156,6 +158,24 @@ them is wrong even if it works.
    task; the two behind the gear are configuration. The **Blog** is neither —
    it is the result of all the others — so it hangs on two small links in the
    header instead: one opens it in-app for editing, one opens the public page.
+   **The blog also has a THIRD reader, and it is a program.** The Dorfkönig
+   fetches the published articles from `/api/v1/…` (`endpoints/api/`, convention
+   `wepublish-rest/1`, contract in `apps/directus/SCHNITTSTELLE.md`). Three
+   things are worth knowing before touching it. It is an extension rather than
+   Directus' own `/items` door because the three fields a consumer needs are
+   NOT columns: the municipality's slug (only the frontend had one), the rubrik
+   (visible solely in which of five foreign keys is set) and the source (stored
+   differently by every desk). `datengrundlage` is read for the source and
+   never delivered — for a statistics article it holds sixty raw rows of
+   working material. And the register in `endpoints/api/register.ts` drives the
+   router AND the documentation, so a route cannot exist undocumented; the
+   tests compare both directions. The switch `BLOG_API_OFFEN` is deliberate
+   rather than a fallback: unset means the content paths answer 503 and the
+   health says which of the two reasons it is.
+   Measured while building it: statistics articles often carry NO source line
+   in their text at all, so the address is derived from the dataset behind the
+   run with the same `quellenlink()` the newsroom's own check uses — fishing it
+   out of the prose returned null for every real article.
    The tab values are NAMES, not indices (`reiter === 'amtsblatt'`): the order
    was renumbered twice, and each time every `reiter === N` had to move with it. „Sportresultate" is the second feed and works
    the same way as the first: a source that publishes on its own schedule, watched
@@ -503,6 +523,7 @@ them is wrong even if it works.
 | an agenda entry the crawler could not fetch       | the banner in the workspace → „Eintrag von Hand erfassen"                                                                                                                                                                                |
 | a municipality the newsroom covers                | „Gemeinden" → „Gemeinde hinzufügen" — aus dem Verzeichnis, oder ausserkantonal neu erfasst (Name, BFS-Nummer, Bezirk)                                                                                                                    |
 | which municipalities a weekly paper covers        | „Gemeinden" → die Karte → „Zuordnung ändern"; ein NEUES Blatt weiterhin im Reiter „Wochenblätter"                                                                                                                                        |
+| a change to what the Dorfkönig reads              | `endpoints/api/` in the bundle — the register drives the routes AND the docs; contract in [apps/directus/SCHNITTSTELLE.md](apps/directus/SCHNITTSTELLE.md)                                                                               |
 | a new environment variable                        | `apps/directus/.env.example` **and** root `.env.example` **and** docker-compose.yml                                                                                                                                                      |
 
 A change that spans both apps starts in `apps/directus` — data model first, then the

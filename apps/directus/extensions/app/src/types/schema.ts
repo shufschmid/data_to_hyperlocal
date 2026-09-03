@@ -213,6 +213,13 @@ export interface Meldung {
   /** Set for articles written from an official gazette publication. Null otherwise. */
   amtsblattmeldung: string | null
   /**
+   * Set for articles written from a broadcast contribution. Null otherwise.
+   *
+   * The column has existed since the two shows arrived; this typed view had
+   * simply not caught up, so every reader cast it in by hand.
+   */
+  sendungskandidat: string | null
+  /**
    * Mirror of the candidate's Perle verdict, for downstream readers of
    * published press reviews. The Chefredaktion decides on the CANDIDATE
    * (`wochenblattkandidaten.perle`) — independent of whether a Meldung ever

@@ -39,8 +39,20 @@ describe('envFlag', () => {
     }
   })
 
+  // Die Schalter sind deutsch dokumentiert (`BLOG_API_OFFEN=ja`). Ohne diese
+  // Schreibweise laese ein Schalter, den jemand mit dem naheliegenden Wort
+  // einschaltet, still als „aus" — der schlechteste Fehler fuer einen Schalter.
+  it('reads the German spelling, in any case', () => {
+    for (const value of ['ja', 'JA', ' Ja ']) {
+      expect(envFlag('BLOG_API_OFFEN', false, { BLOG_API_OFFEN: value })).toBe(
+        true
+      )
+    }
+  })
+
   it('treats anything else as false and honours the fallback', () => {
     expect(envFlag('DEBUG', false, { DEBUG: 'nope' })).toBe(false)
+    expect(envFlag('DEBUG', false, { DEBUG: 'nein' })).toBe(false)
     expect(envFlag('DEBUG', true, {})).toBe(true)
   })
 })
