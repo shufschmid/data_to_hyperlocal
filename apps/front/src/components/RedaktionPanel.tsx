@@ -388,9 +388,19 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
     meldungenAlle.flatMap((m) => (m.kandidat === null ? [] : [[m.kandidat.id, m.status] as const]))
   )
 
+  // Die Sendungskandidaten gehoeren hier dazu, und ihr Fehlen war sichtbar:
+  // die Gemeinde-Sichtung laeuft NACH dem Verarbeiten eines Dossiers, also
+  // standen die Beitraege schon da, waehrend der Vorschlag dazu erst beim
+  // naechsten Laden der Seite auftauchte. Dasselbe galt fuer jeden Entscheid:
+  // ein abgelehnter Kandidat verschwand erst nach einem Reload.
   const allesNeuLaden = useCallback(async () => {
-    await Promise.all([laeufe.refetch(), alleMeldungen.refetch(), datensaetze.refetch()])
-  }, [laeufe, alleMeldungen, datensaetze])
+    await Promise.all([
+      laeufe.refetch(),
+      alleMeldungen.refetch(),
+      datensaetze.refetch(),
+      sendungskandidaten.refetch()
+    ])
+  }, [laeufe, alleMeldungen, datensaetze, sendungskandidaten])
 
   // The hand-started scrape run: state lives in the extension's process, this
   // only mirrors it. Polled while a run is under way; when it finishes, the
@@ -1116,6 +1126,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             onAktion={async (id, was) => {
               await fuehreAus(`meldungen/${id}/${was}`)
             }}
+            onAktualisieren={allesNeuLaden}
           />
         </Stack>
       )}

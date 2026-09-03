@@ -36,6 +36,15 @@ export interface SendungsDurchsichtProps {
   onWeiterreichen?: (id: string, begruendung: string | null) => Promise<void> | void
   onChat?: (id: string, anweisung: string) => Promise<void>
   onAktion?: (id: string, aktion: MeldungAktion) => Promise<void>
+  /**
+   * Laedt die Daten neu, die eine Ebene hoeher liegen — vor allem die
+   * Gemeinde-Kandidaten.
+   *
+   * Die Sichtung laeuft NACH dem Verarbeiten eines Dossiers, also standen die
+   * Beitraege schon auf dem Schirm, waehrend der Vorschlag dazu noch entstand.
+   * Ohne diesen Aufruf sah man ihn erst beim naechsten Laden der Seite.
+   */
+  onAktualisieren?: () => Promise<void>
 }
 
 /**
@@ -58,7 +67,8 @@ export function SendungsDurchsicht({
   onAblehnen,
   onWeiterreichen,
   onChat,
-  onAktion
+  onAktion,
+  onAktualisieren
 }: SendungsDurchsichtProps) {
   const istPunkt6 = sendung === 'punkt6'
   const [holt, setHolt] = useState(false)
@@ -116,7 +126,13 @@ export function SendungsDurchsicht({
       else gescheitert += 1
     }
     setFortschritt(null)
-    await Promise.all([abfrage.refetch(), istPunkt6 ? p6Dossiers.refetch() : rjDossiers.refetch()])
+    // Die Kandidaten liegen eine Ebene hoeher und muessen mit: sie entstehen
+    // erst waehrend der Verarbeitung, nicht davor.
+    await Promise.all([
+      abfrage.refetch(),
+      istPunkt6 ? p6Dossiers.refetch() : rjDossiers.refetch(),
+      onAktualisieren?.() ?? Promise.resolve()
+    ])
     const teile = [
       geholt === null
         ? `${fertig} von ${ids.length} Dossier${ids.length === 1 ? '' : 's'} verarbeitet`
