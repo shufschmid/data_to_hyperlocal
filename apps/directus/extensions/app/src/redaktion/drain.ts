@@ -22,13 +22,16 @@ import { JAHR_SPALTE, ladeReihe, ladeTabelle } from '../shared/statbl'
 import type { OdsField } from '../shared/ods'
 import type { Zeitreihe } from './kontext'
 import {
+  arbeitsmaterial,
   beschreibeEinordnung,
   beschreibeKanton,
   beschreibeKantonZeitreihe,
   beschreibeZeitreihen,
   datengrundlage,
+  MAX_GRUNDLAGE_ZEILEN,
   verdichteZeilen,
-  zeitreihen
+  zeitreihen,
+  type FrischeZeilen
 } from './kontext'
 import {
   ARTIKEL_SCHEMA,
@@ -453,6 +456,11 @@ async function erstelleBriefing(
       verarbeitung: 'geplant',
       datengrundlage: {
         ...datengrundlage(treffer.rows, lauf.periode),
+        // The canton comparison, computed HERE over the full period slice and
+        // stored. Stage B used to recompute it from `lauf.kontext.alle_zeilen`,
+        // which is capped at 400 rows — a sample, and on a 3500-row period the
+        // "Kantonsschnitt" it produced was the sample's, not the canton's.
+        einordnung: beschreibeEinordnung(treffer.rows, zeilen),
         // Stored, not recomputed later: the article has to be checkable against
         // the exact series it was written from, and the portal moves.
         ...(eigenerVerlauf === null || periodenFeld === null
@@ -465,11 +473,15 @@ async function erstelleBriefing(
   await laeufeService.updateOne(lauf.id, {
     status: 'schreibt',
     briefing: JSON.stringify(briefing),
+    // No `alle_zeilen` sample any more. It was meant as a size guard on this
+    // JSON column and quietly became the einordnung's arithmetic basis — 400
+    // of 3524 rows on the Motorfahrzeugbestand. The einordnung is computed
+    // over the FULL slice above and stored per article; nothing reads a
+    // sample, so none is written.
     kontext: {
       kantonszahlen: beschreibeKanton(zeilen),
       zeilen_gesamt: zeilen.length,
-      abdeckung: describeCoverage(abdeckung),
-      alle_zeilen: zeilen.slice(0, 400)
+      abdeckung: describeCoverage(abdeckung)
     },
     fehler: null,
     gesperrt_bis: null
@@ -605,6 +617,17 @@ async function verarbeiteMeldungen(
         (await ladeLaufMaterial(kontext, meldung.lauf))
       laufCache.set(meldung.lauf, material)
 
+      // A revision looks at the WHOLE original source, not at whatever slice
+      // an older cap stored. Fetched once per run and pass — a batch
+      // instruction over nine municipalities pays for one export, not nine.
+      if (meldung.anweisung !== null && material.frisch === undefined) {
+        material.frisch = await ladeFrischeZeilen(
+          kontext,
+          material.datensatzId,
+          material.periode
+        )
+      }
+
       await schreibeMeldung(kontext, meldung, material)
 
       await meldungenService.updateOne(meldung.id, {
@@ -651,7 +674,12 @@ interface LaufMaterial {
   quelle: Quellenlink | null
   /** Built once per run — this exact string is what the prompt cache carries. */
   systemPrompt: string
-  alleZeilen: OdsRecord[]
+  /**
+   * Fresh rows per municipality, loaded lazily for revisions. `undefined`
+   * means "not tried yet", null "tried and failed" — the stored rows then
+   * stand in, which for anything written before the caps fell is a slice.
+   */
+  frisch?: Map<string, FrischeZeilen> | null
 }
 
 async function ladeLaufMaterial(
@@ -673,20 +701,28 @@ async function ladeLaufMaterial(
   }
 
   const briefing = parseBriefing(JSON.parse(lauf.briefing))
-  const regeln = await ladeRegeln(kontext, lauf.datensatz, null)
-  const kontextDaten = (lauf.kontext ?? {}) as { alle_zeilen?: unknown }
 
   // Where the figures can be verified. Per run, so it rides in the cached half
   // of the prompt — and it is looked up here rather than left to the model,
   // which answered the same request with the bare host of the office.
   const datensatz = (await new ItemsService('datensaetze', { schema }).readOne(
     lauf.datensatz,
-    { fields: ['externe_id', 'quelle.typ', 'ankuendigung.link'] }
+    { fields: ['externe_id', 'quelle.id', 'quelle.typ', 'ankuendigung.link'] }
   )) as {
     externe_id: string | null
-    quelle: { typ: string } | null
+    quelle: { id: string; typ: string } | null
     ankuendigung: { link: string | null } | null
   }
+
+  // With the SOURCE, not null: the briefing always saw the quelle-scoped rules,
+  // the article prompt never did — a rule the editor stored for a whole portal
+  // silently applied to stage A and not to the texts it exists for.
+  const regeln = await ladeRegeln(
+    kontext,
+    lauf.datensatz,
+    datensatz.quelle?.id ?? null
+  )
+
   const quelle = quellenlink({
     ankuendigungLink: datensatz.ankuendigung?.link ?? null,
     quelleTyp: datensatz.quelle?.typ ?? null,
@@ -703,10 +739,89 @@ async function ladeLaufMaterial(
       regeln,
       lauf.vorgabe,
       quelle
-    ),
-    alleZeilen: Array.isArray(kontextDaten.alle_zeilen)
-      ? (kontextDaten.alle_zeilen as OdsRecord[])
-      : []
+    )
+  }
+}
+
+/**
+ * The run's rows, fetched fresh and matched per municipality — the window a
+ * revision looks through.
+ *
+ * An instruction must be answerable from the whole original source. Newly
+ * written articles store their complete slice, but everything written before
+ * the caps fell carries at most 60 rows — and the source is still there. A
+ * failure returns null and the stored rows stand in: worse material beats no
+ * rewrite, and the log says which one it was.
+ */
+async function ladeFrischeZeilen(
+  kontext: DrainKontext,
+  datensatzId: string,
+  periode: string
+): Promise<Map<string, FrischeZeilen> | null> {
+  const { services, schema, logger } = kontext
+  const { ItemsService } = services
+
+  try {
+    const datensatz = (await new ItemsService('datensaetze', {
+      schema
+    }).readOne(datensatzId, {
+      fields: ['id', 'quelle', 'externe_id', 'felder', 'gemeindefeld']
+    })) as Pick<
+      Datensatz,
+      'id' | 'quelle' | 'externe_id' | 'felder' | 'gemeindefeld'
+    >
+
+    const felder = datensatz.felder ?? []
+    const gemeindeFelder = detectMunicipalityFields(
+      felder,
+      datensatz.gemeindefeld
+    )
+    if (gemeindeFelder === null) return null
+
+    const quelle = (await new ItemsService('quellen', { schema }).readOne(
+      datensatz.quelle ?? '',
+      { fields: ['id', 'basis_url', 'typ'] }
+    )) as Pick<Quelle, 'id' | 'basis_url' | 'typ'>
+
+    const periodenFeld =
+      quelle.typ === 'statbl' ? JAHR_SPALTE : detectPeriodField(felder)
+    const { zeilen } = await holeZeilen(
+      quelle,
+      datensatz,
+      felder,
+      periode,
+      periodenFeld,
+      false
+    )
+    if (zeilen.length === 0) return null
+
+    const aktive = (await new ItemsService('gemeinden', {
+      schema
+    }).readByQuery({
+      filter: { aktiv: { _eq: true } },
+      fields: ['id', 'bfs_nummer', 'name', 'bezirk'],
+      limit: -1
+    })) as Gemeinde[]
+
+    const abdeckung = matchMunicipalities(
+      zeilen,
+      aktive,
+      gemeindeFelder.bfsField
+    )
+    const jeGemeinde = new Map<string, FrischeZeilen>()
+    for (const treffer of abdeckung.matched) {
+      jeGemeinde.set(treffer.gemeinde.id, {
+        eigene: treffer.rows,
+        alle: zeilen
+      })
+    }
+    return jeGemeinde
+  } catch (fehler) {
+    logger.warn(
+      fehler,
+      `drain: Frische Zeilen fuer die Ueberarbeitung nicht ladbar (${datensatzId}).`
+    )
+    return null
   }
 }
 
@@ -725,11 +840,17 @@ async function schreibeMeldung(
 
   const grundlage = (meldung.datengrundlage ?? {}) as {
     zeilen?: unknown
+    zeilen_gesamt?: unknown
     verlauf?: unknown
+    einordnung?: unknown
   }
-  const eigeneZeilen = Array.isArray(grundlage.zeilen)
-    ? (grundlage.zeilen as OdsRecord[])
-    : []
+  const mat = arbeitsmaterial(
+    grundlage,
+    meldung.anweisung === null
+      ? null
+      : (material.frisch?.get(meldung.gemeinde) ?? null)
+  )
+  const eigeneZeilen = mat.zeilen
   const verlauf = Array.isArray(grundlage.verlauf)
     ? beschreibeZeitreihen(grundlage.verlauf as Zeitreihe[])
     : null
@@ -741,11 +862,27 @@ async function schreibeMeldung(
     meldung.id
   )
 
+  // Rows stored under an older, tighter cap: the truth about the gap goes into
+  // the prompt, because the "(N weitere Zeilen)" line inside `verdichteZeilen`
+  // can only announce what IT cut — not what a past write never stored.
+  const zeilenGesamt =
+    typeof grundlage.zeilen_gesamt === 'number'
+      ? grundlage.zeilen_gesamt
+      : eigeneZeilen.length
+  const fehltImBestand = mat.frisch
+    ? 0
+    : Math.max(zeilenGesamt - eigeneZeilen.length, 0)
+  const zahlen =
+    verdichteZeilen(eigeneZeilen, MAX_GRUNDLAGE_ZEILEN) +
+    (fehltImBestand === 0
+      ? ''
+      : `\n- (${fehltImBestand} weitere Zeilen liegen nicht vor — aeltere, gedeckelte Speicherung. Keine Aussagen ueber Kategorien, die oben fehlen.)`)
+
   const eingabe = {
     gemeinde: gemeinde.name,
     bezirk: gemeinde.bezirk,
-    zahlen: verdichteZeilen(eigeneZeilen),
-    einordnung: beschreibeEinordnung(eigeneZeilen, material.alleZeilen),
+    zahlen,
+    einordnung: mat.einordnung,
     verlauf,
     frueherText,
     ...(meldung.anweisung === null ? {} : { korrektur: meldung.anweisung })
@@ -863,10 +1000,23 @@ async function schreibeMeldung(
     text: repariereQuellenlink(artikel.text, material.quelle)
   }
 
-  await new ItemsService('meldungen', { schema }).updateOne(
-    meldung.id,
-    artikelFelder(gesichert, warnungen)
-  )
+  await new ItemsService('meldungen', { schema }).updateOne(meldung.id, {
+    ...artikelFelder(gesichert, warnungen),
+    // The evidence follows the rewrite: the text was written and checked
+    // against THESE rows, so they replace the slice an older cap stored. The
+    // stored time series stays — the fresh fetch deliberately skips it.
+    ...(mat.frisch
+      ? {
+          datengrundlage: {
+            ...datengrundlage(eigeneZeilen, material.periode),
+            einordnung: mat.einordnung,
+            ...(Array.isArray(grundlage.verlauf)
+              ? { verlauf: grundlage.verlauf }
+              : {})
+          }
+        }
+      : {})
+  })
 }
 
 async function schliesseLaeufeAb(
@@ -921,13 +1071,28 @@ async function ladeRegeln(
   ]
   if (quelleId !== null) passend.push({ quelle: { _eq: quelleId } })
 
-  return (await new ItemsService('redaktionswissen', { schema }).readByQuery({
+  // NEWEST first, and one more than the cap: sorted ascending, a full memory
+  // meant every rule learned after the thirtieth was silently ignored for
+  // ever — the opposite of learning. Now the latest lesson always applies,
+  // and a full cap is said out loud so an editor can retire old rules in
+  // "Gelerntes" instead of wondering why a new one changes nothing.
+  const REGEL_DECKEL = 30
+  const regeln = (await new ItemsService('redaktionswissen', {
+    schema
+  }).readByQuery({
     filter: { aktiv: { _eq: true }, _or: passend },
     fields: ['regel'],
-    sort: ['date_created'],
+    sort: ['-date_created'],
     // Bounded so the cached prefix cannot grow without limit as memory builds.
-    limit: 30
+    limit: REGEL_DECKEL + 1
   })) as Pick<Redaktionswissen, 'regel'>[]
+
+  if (regeln.length > REGEL_DECKEL) {
+    kontext.logger.warn(
+      `drain: mehr als ${REGEL_DECKEL} aktive Regeln fuer Datensatz ${datensatzId} — die aeltesten werden nicht mehr angewendet. Im Reiter "Gelerntes" ausmisten.`
+    )
+  }
+  return regeln.slice(0, REGEL_DECKEL)
 }
 
 /**

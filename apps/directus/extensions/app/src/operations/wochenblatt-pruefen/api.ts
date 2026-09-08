@@ -109,7 +109,7 @@ export default defineOperationApi<Optionen>({
       hinweise: []
     }
 
-    const blaetter = (await blaetterService.readByQuery({
+    const alleAktiven = (await blaetterService.readByQuery({
       filter: { aktiv: { _eq: true } },
       fields: [
         'id',
@@ -121,13 +121,26 @@ export default defineOperationApi<Optionen>({
         'abdeckungen.gemeinde.id',
         'abdeckungen.gemeinde.name'
       ],
-      limit: hoechstens
+      limit: -1
     })) as Array<
       Pick<Wochenblatt, 'id' | 'name' | 'archiv_url' | 'konnektor'> & {
         gemeinde: { id: string; name: string }
         abdeckungen: Array<{ gemeinde: { id: string; name: string } }>
       }
     >
+
+    // The work cap NAMES what it skips — a paper beyond it must not look like a
+    // paper with no new issue.
+    const blaetter = alleAktiven.slice(0, hoechstens)
+    if (alleAktiven.length > blaetter.length) {
+      ergebnis.fehler.push(
+        `Presseschau: ${alleAktiven.length - blaetter.length} aktive Blaetter nicht geprueft (Deckel ${hoechstens}): ` +
+          alleAktiven
+            .slice(hoechstens)
+            .map((b) => b.name)
+            .join(', ')
+      )
+    }
 
     for (const blatt of blaetter) {
       if (

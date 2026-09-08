@@ -14,6 +14,7 @@
 // Parsing lives in ./parse and is pure.
 
 import { buildUserAgent } from '../agenda'
+import { passtDurchsLimit } from './bilder'
 import {
   gruppeVon,
   parseInhalt,
@@ -112,10 +113,18 @@ async function hole(
   )
 }
 
-function listenUrl(params: Record<string, string | string[]>): string {
+/** Page size of the list endpoint, and how many pages one query may walk. */
+const LISTE_SEITENGROESSE = 200
+const LISTE_MAX_SEITEN = 5
+
+function listenUrl(
+  params: Record<string, string | string[]>,
+  seite: number
+): string {
   const such = new URLSearchParams()
   such.set('publicationStates', 'PUBLISHED')
-  such.set('pageRequest.size', '200')
+  such.set('pageRequest.size', String(LISTE_SEITENGROESSE))
+  such.set('pageRequest.page', String(seite))
   for (const [k, v] of Object.entries(params))
     for (const e of Array.isArray(v) ? v : [v]) such.append(k, e)
   return `${BASIS}/publications/csv?${such.toString()}`
@@ -167,38 +176,54 @@ function anreichern(rohe: Publikation[]): AmtsblattTreffer[] {
  * 200, and silently ignores it. Asking for "Riehen" that way returned Zurich
  * fire bans.
  */
+export interface PublikationsListe {
+  treffer: AmtsblattTreffer[]
+  /**
+   * True when a query still returned a full page at the walk's end — there is
+   * more the run did not see. The caller REPORTS this: a triage verdict of
+   * "nothing newsworthy today" computed over a truncated day is exactly the
+   * silent failure this project must not have. simap's connector had this flag
+   * from the start; the gazette side used to read one page of 200 and stop.
+   */
+  abgeschnitten: boolean
+}
+
 export async function fetchPublikationen(
   gemeinde: GemeindeSchluessel,
   seit: string,
   options: AbrufOptionen
-): Promise<AmtsblattTreffer[]> {
-  const abfragen: string[] = [
-    listenUrl({
+): Promise<PublikationsListe> {
+  const abfragen: Record<string, string | string[]>[] = [
+    {
       municipalityId: String(gemeinde.bfsNummer),
       'publicationDate.start': seit
-    })
+    }
   ]
   if (gemeinde.plz.length > 0)
-    abfragen.push(
-      listenUrl({
-        municipalityZipCodes: gemeinde.plz.join(','),
-        'publicationDate.start': seit
-      })
-    )
+    abfragen.push({
+      municipalityZipCodes: gemeinde.plz.join(','),
+      'publicationDate.start': seit
+    })
 
   const gesehen = new Set<string>()
   const alle: Publikation[] = []
+  let abgeschnitten = false
   // Sequential on purpose — see `hole`.
-  for (const url of abfragen) {
-    const antwort = await hole(url, options, 'text/csv')
-    for (const p of parseListe(await antwort.text())) {
-      if (gesehen.has(p.id)) continue
-      gesehen.add(p.id)
-      alle.push(p)
+  for (const params of abfragen) {
+    for (let seite = 0; seite < LISTE_MAX_SEITEN; seite += 1) {
+      const antwort = await hole(listenUrl(params, seite), options, 'text/csv')
+      const zeilen = parseListe(await antwort.text())
+      for (const p of zeilen) {
+        if (gesehen.has(p.id)) continue
+        gesehen.add(p.id)
+        alle.push(p)
+      }
+      if (zeilen.length < LISTE_SEITENGROESSE) break
+      if (seite === LISTE_MAX_SEITEN - 1) abgeschnitten = true
     }
   }
 
-  return anreichern(alle)
+  return { treffer: anreichern(alle), abgeschnitten }
 }
 
 /** The single publication's facts, links and deadline. */
@@ -220,13 +245,30 @@ export interface Planbild {
 }
 
 /**
- * Bounded twice over: a building file is a handful of sheets, and the request
- * has to fit. Anthropic takes 5 MB per image and 32 MB per request; base64
- * inflates by a third. Measured sheets run 330–440 KB, so eight is generous
- * and still far inside both limits.
+ * Bounded three times over: a building file is a handful of sheets, and the
+ * request has to fit. Anthropic takes 5 MB per image, 32 MB per request and at
+ * most 8000 pixels per image edge; base64 inflates by a third. Measured sheets
+ * run 330–440 KB, so eight is generous — but the PIXEL limit bites where the
+ * byte limit does not: Binningen's dossier 0275/2026 carried a 8433-pixel-wide
+ * scan at 2.6 MB, and the whole request came back 400. Sheets that do not fit
+ * are left out, counted, and the count travels to the desk and into the
+ * article — see `plan_blaetter`.
  */
 export const PLAN_MAX_BILDER = 8
 export const PLAN_MAX_BYTES = 4 * 1024 * 1024
+
+export interface Planbilder {
+  bilder: Planbild[]
+  /** How many sheets the gallery names — the denominator of the honesty note. */
+  gesamt: number
+  /**
+   * Sheets FETCHED and measured too large (bytes or pixels). Everything else
+   * left out sat beyond `PLAN_MAX_BILDER` and was never even requested — the
+   * two reasons read differently on the desk, and calling an unfetched sheet
+   * "zu gross" would be a claim nobody measured.
+   */
+  zuGross: number
+}
 
 /**
  * The building plans behind a Baselland permit.
@@ -241,15 +283,22 @@ export const PLAN_MAX_BYTES = 4 * 1024 * 1024
 export async function fetchPlanbilder(
   seiteUrl: string,
   options: AbrufOptionen
-): Promise<Planbild[]> {
+): Promise<Planbilder> {
   const seite = await hole(seiteUrl, options, 'text/html')
   const adressen = planBilder(await seite.text(), seiteUrl)
 
   const bilder: Planbild[] = []
+  let zuGross = 0
   for (const url of adressen.slice(0, PLAN_MAX_BILDER)) {
     const antwort = await hole(url, options, 'image/*')
     const puffer = Buffer.from(await antwort.arrayBuffer())
-    if (puffer.byteLength > PLAN_MAX_BYTES) continue
+    // Too many bytes, or wider/taller than the API accepts: the sheet stays
+    // out, the caller counts it, and the article says so. See
+    // shared/amtsblatt/bilder.ts.
+    if (puffer.byteLength > PLAN_MAX_BYTES || !passtDurchsLimit(puffer)) {
+      zuGross += 1
+      continue
+    }
     bilder.push({
       url,
       medienTyp: url.toLowerCase().endsWith('.png')
@@ -259,7 +308,7 @@ export async function fetchPlanbilder(
       bytes: puffer.byteLength
     })
   }
-  return bilder
+  return { bilder, gesamt: adressen.length, zuGross }
 }
 
 /** The readable documents of a publication, if any. */

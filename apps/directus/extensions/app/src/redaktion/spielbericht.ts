@@ -10,6 +10,12 @@
 // worst offender: "am Samstag", "letzte Runde", "nächste Woche" all rot within
 // days. The prompt demands absolute dates and the check below catches the rest.
 
+/** The association page a report points at, and how the source line names it. */
+export interface SpielQuelle {
+  name: string
+  url: string
+}
+
 export interface SpielFakten {
   heim: string
   gast: string
@@ -25,6 +31,8 @@ export interface SpielFakten {
   liga: string | null
   /** Why the club matters locally, in the newsroom's own words. */
   notiz: string | null
+  /** Where a reader can see the result for themselves. Null only if we have no address. */
+  quelle: SpielQuelle | null
   /** Earlier results of the same club this season, newest first. */
   frueher: ReadonlyArray<{
     datum: string
@@ -47,12 +55,15 @@ Regeln, ohne Ausnahme:
   "letzte Woche", "kuerzlich"). Der Text muss in fuenf Jahren noch stimmen.
 - Schreibe aus der Sicht der Gemeinde, ohne Vereinsjargon und ohne Fanton.
 - Schweizer Rechtschreibung: "ss" statt "ß".
+- Schreibe KEINE Links und keine Webadressen. Die Quelle wird unter den Text
+  gesetzt, das ist nicht deine Aufgabe.
 
-Umfang: Titel (maximal 70 Zeichen), Lead (ein Satz), Text (zwei bis drei kurze
-Absaetze, durch Leerzeilen getrennt).
+Umfang: Titel (maximal 70 Zeichen), dann EIN einziger Absatz mit drei bis
+fuenf kurzen Saetzen. Kein Lead und keine Zwischentitel — ein Spielbericht ist
+hier eine kurze Notiz, kein Artikel.
 
 Antworte ausschliesslich mit JSON:
-{"titel": "...", "lead": "...", "text": "..."}`
+{"titel": "...", "text": "..."}`
 
 /** Formats an ISO instant as the Swiss long date the prompt must use. */
 export function absolutesDatum(iso: string): string {
@@ -100,7 +111,10 @@ function faktenZeilen(fakten: SpielFakten): string[] {
   ].filter((z): z is string => z !== null)
 
   if (fakten.frueher.length > 0) {
-    zeilen.push('', 'Frueher in dieser Saison:')
+    // Labelled as the selection it is: from "the last five" the model cannot
+    // derive season totals ("erst der fuenfte Sieg") — from an unlabelled list
+    // it silently might.
+    zeilen.push('', 'Frueher in dieser Saison (nur die letzten 5 Resultate):')
     for (const f of fakten.frueher.slice(0, 5)) {
       zeilen.push(
         `- ${absolutesDatum(f.datum)}: ${f.heim} ${f.toreHeim}:${f.toreGast} ${f.gast}`
@@ -136,8 +150,8 @@ export function buildSpielberichtPrompt(fakten: SpielFakten): string {
     ...(nurDasResultat(fakten)
       ? [
           'Mehr als das Resultat ist nicht bekannt. Halte dich deshalb SEHR kurz:',
-          'Titel, Lead und EIN Absatz mit zwei bis drei Saetzen. Kein Ausschmuecken,',
-          'keine Vermutungen ueber Spielverlauf, Tragweite oder Tabellenstand.',
+          'zwei bis drei Saetze. Kein Ausschmuecken, keine Vermutungen ueber',
+          'Spielverlauf, Tragweite oder Tabellenstand.',
           ''
         ]
       : []),
@@ -164,7 +178,11 @@ export function buildSpielberichtRevision(
     '',
     'Bisheriger Bericht:',
     `Titel: ${bisher.titel ?? ''}`,
-    `Lead: ${bisher.lead ?? ''}`,
+    // Older reports carried a lead; hand it over as material so nothing is
+    // lost, but the answer follows today's shape — one paragraph, no lead.
+    ...(bisher.lead === null || bisher.lead.trim() === ''
+      ? []
+      : [`Lead: ${bisher.lead}`]),
     bisher.text ?? '',
     '',
     'Anweisung der Redaktion:',
@@ -174,26 +192,158 @@ export function buildSpielberichtRevision(
   ].join('\n')
 }
 
-export interface Spielbericht {
+// ---------------------------------------------------------------------------
+// The source line — built here, never written by the model
+// ---------------------------------------------------------------------------
+
+/**
+ * How each connector's association is named in the running text.
+ *
+ * Keyed on `vereine.quelle`, the same value that decides which connector reads
+ * the club, so a source cannot be read from one place and credited to another.
+ */
+const VERBAND: Readonly<Record<string, string>> = {
+  fvnws: 'Fussballverband Nordwestschweiz',
+  swissvolley: 'Swiss Volley',
+  handball: 'Swiss Handball'
+}
+
+export function verbandsName(quelle: string | null): string {
+  return VERBAND[quelle ?? ''] ?? 'Verbandsseite'
+}
+
+/**
+ * The page the report points at — the club's own results page where there is
+ * one, the page the fixture was read from otherwise.
+ *
+ * The order is not a preference. For football `spiele.quelle_url` is the
+ * association's "what's on" page, and that page only looks FORWARD: a week
+ * after the match it no longer carries it, so a reader following the link would
+ * find everything except the result they came for. The club page keeps it —
+ * it is where the score is read back from in the first place. For volleyball
+ * and handball the two addresses are the same anyway, one page per team.
+ */
+export function verbandsQuelle(
+  verein: { quelle: string | null; ergebnis_url: string | null },
+  fixtureUrl: string | null
+): SpielQuelle | null {
+  const url = (verein.ergebnis_url ?? fixtureUrl ?? '').trim()
+  if (url === '') return null
+  return { name: verbandsName(verein.quelle), url }
+}
+
+/**
+ * The source line, appended by code — never left to the model.
+ *
+ * Same division of labour as the press review and the gazette: the prompt owns
+ * the prose, the code owns the URL. `quelle.ts` has the lesson on record —
+ * asked for a link without being given one, a model answers with the bare host,
+ * which is the source of nothing.
+ *
+ * Null only where we genuinely hold no address; better no line than a made-up
+ * one. The status hook is what stops such a report from being published.
+ */
+export function quelleZeile(fakten: SpielFakten): string | null {
+  if (fakten.quelle === null) return null
+  return `Quelle: ${fakten.quelle.name}, ${fakten.quelle.url}`
+}
+
+/** Model text plus the deterministic source line — shared by write and revision. */
+export function mitQuelle(text: string, fakten: SpielFakten): string {
+  const zeile = quelleZeile(fakten)
+  if (zeile === null) return text.trim()
+  return `${text.trim()}\n\n${zeile}`
+}
+
+/** The line `mitQuelle` appends, as a trailing paragraph of its own. */
+const QUELLENZEILE = /\n{2,}Quelle: [^\n]*$/
+
+/**
+ * The stored report without the line the code put under it.
+ *
+ * A revision hands the model its own earlier text back, and that text already
+ * carries the source line. Left in, the model copies it into the new draft,
+ * `linkWarnungen` flags the copy as an address it invented, and `mitQuelle`
+ * appends a second one below it. So the line comes off before the prompt is
+ * built and goes back on after — it belongs to the code at every point, never
+ * to the model.
+ */
+export function ohneQuelle(text: string | null): string | null {
+  if (text === null) return null
+  return text.replace(QUELLENZEILE, '').trimEnd()
+}
+
+/** Any http(s) address, the same shape `quelle.ts` looks for. */
+const ADRESSE = /https?:\/\/[^\s"'<>)]+/gi
+
+/**
+ * An address the model wrote itself.
+ *
+ * There is exactly one legitimate link in a match report and the code puts it
+ * there. Anything else is invention — run BEFORE `mitQuelle` appends, so the
+ * appended address is never mistaken for the model's own.
+ */
+export function linkWarnungen(text: string): string[] {
+  const gefunden = [...text.matchAll(ADRESSE)].map((t) => t[0])
+  return [...new Set(gefunden)].map(
+    (adresse) => `Der Text nennt selbst eine Adresse: ${adresse}`
+  )
+}
+
+/**
+ * The full three-part article shape — NOT the match report's.
+ *
+ * The press review, the gazette and the broadcast feed all answer with
+ * titel/lead/text and re-export this parser under their own names; it lives
+ * here only because the match report had it first. The match report itself has
+ * moved on to the two-part shape below.
+ */
+export interface Meldungstext {
   titel: string
   lead: string
   text: string
 }
 
-/** The model's answer is a promise, not a proof — never trust its shape. */
+export function parseMeldungstext(antwort: unknown): Meldungstext {
+  const roh = alsObjekt(antwort)
+  return {
+    titel: feld(roh, 'titel'),
+    lead: feld(roh, 'lead'),
+    text: feld(roh, 'text')
+  }
+}
+
+/** A match report is a short notice: a title and one paragraph, no lead. */
+export interface Spielbericht {
+  titel: string
+  text: string
+}
+
+/**
+ * The model's answer is a promise, not a proof — never trust its shape.
+ *
+ * A `lead` in the answer is ignored rather than rejected: the shape used to
+ * have one, and a model that slips back into it should cost a field, not the
+ * whole report.
+ */
 export function parseSpielbericht(antwort: unknown): Spielbericht {
+  const roh = alsObjekt(antwort)
+  return { titel: feld(roh, 'titel'), text: feld(roh, 'text') }
+}
+
+function alsObjekt(antwort: unknown): Record<string, unknown> {
   if (typeof antwort !== 'object' || antwort === null) {
     throw new Error('Antwort ist kein Objekt.')
   }
-  const roh = antwort as Record<string, unknown>
-  const feld = (name: string): string => {
-    const wert = roh[name]
-    if (typeof wert !== 'string' || wert.trim() === '') {
-      throw new Error(`Feld "${name}" fehlt oder ist leer.`)
-    }
-    return wert.trim()
+  return antwort as Record<string, unknown>
+}
+
+function feld(roh: Record<string, unknown>, name: string): string {
+  const wert = roh[name]
+  if (typeof wert !== 'string' || wert.trim() === '') {
+    throw new Error(`Feld "${name}" fehlt oder ist leer.`)
   }
-  return { titel: feld('titel'), lead: feld('lead'), text: feld('text') }
+  return wert.trim()
 }
 
 const RELATIV = [
@@ -241,7 +391,11 @@ export function zeitWarnungen(text: string): string[] {
  * doing arithmetic it was told not to do — a table position, a points total, a
  * goal difference. Those are the figures that quietly turn out wrong.
  */
-export function zahlWarnungen(text: string, fakten: SpielFakten): string[] {
+export function zahlWarnungen(
+  text: string,
+  fakten: SpielFakten,
+  akzeptiert: readonly string[] = []
+): string[] {
   const erlaubt = new Set<string>([
     String(fakten.toreHeim),
     String(fakten.toreGast),
@@ -255,14 +409,55 @@ export function zahlWarnungen(text: string, fakten: SpielFakten): string[] {
     erlaubt.add(String(f.toreHeim))
     erlaubt.add(String(f.toreGast))
   }
-  // League names carry their own digits — "2. Liga interregional".
-  for (const treffer of (fakten.liga ?? '').matchAll(/\d+/g))
-    erlaubt.add(treffer[0])
-  for (const treffer of fakten.wettbewerb.matchAll(/\d+/g))
-    erlaubt.add(treffer[0])
+  // Digits that arrive inside the facts themselves are "in den Angaben" by
+  // definition: the league ("2. Liga interregional"), a year in a club's name
+  // ("FC Concordia 1907"), a pitch number in the venue ("Fiechten - 1"), a
+  // figure in the newsroom's own note. Flagging those taught the editor to
+  // ignore the warning, which is worse than not warning at all.
+  const angaben = [
+    fakten.wettbewerb,
+    fakten.liga ?? '',
+    fakten.heim,
+    fakten.gast,
+    fakten.verein,
+    fakten.gemeinde,
+    fakten.ort ?? '',
+    fakten.notiz ?? ''
+  ]
+  for (const angabe of angaben) {
+    for (const treffer of angabe.matchAll(/\d+/g)) erlaubt.add(treffer[0])
+  }
+  // What the editor has already waved through for this club — see
+  // `gelernteZahlen` below.
+  for (const zahl of akzeptiert) erlaubt.add(zahl)
 
   const gefunden = [...text.matchAll(/\d+/g)].map((t) => t[0])
   return [...new Set(gefunden.filter((z) => !erlaubt.has(z)))].map(
     (z) => `Zahl "${z}" steht nicht in den Angaben.`
   )
+}
+
+/** The exact face of a number warning — the learning below matches on it. */
+const ZAHL_WARNUNG = /^Zahl "(\d+)" steht nicht in den Angaben\.$/
+
+/**
+ * The numbers an editor accepted, read back out of a published report's
+ * warnings.
+ *
+ * Publishing a report that still carries a number warning IS the verdict: the
+ * editor looked at the flagged figure and sent the text out anyway. That
+ * verdict is remembered on the club (`vereine.akzeptierte_zahlen`, written by
+ * the meldung-status hook), so the same number is flagged once and then never
+ * again for this club. Only number warnings learn — a relative time reference
+ * ("am Samstag") is wrong afresh every time, and an editor waving one through
+ * says nothing about the next.
+ */
+export function gelernteZahlen(warnungen: readonly string[] | null): string[] {
+  if (warnungen === null) return []
+  const zahlen: string[] = []
+  for (const warnung of warnungen) {
+    const treffer = ZAHL_WARNUNG.exec(warnung)
+    if (treffer?.[1] !== undefined) zahlen.push(treffer[1])
+  }
+  return [...new Set(zahlen)]
 }

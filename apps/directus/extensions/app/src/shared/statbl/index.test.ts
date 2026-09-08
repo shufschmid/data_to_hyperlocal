@@ -133,6 +133,17 @@ describe('ladeReihe', () => {
 
     expect(h.aufrufe).toHaveLength(3)
   })
+
+  // Der Deckel selbst wird gemeldet wie ein fehlgeschlagenes Jahr: eine Reihe,
+  // die still vierzehn Ausgaben zurueck beginnt, liesse "seit ..."-Aussagen auf
+  // einem Fenster stehen, das niemand gewaehlt hat.
+  it('meldet die Jahrgaenge, die der Deckel wegschneidet', async () => {
+    const { uebersprungen } = await ladeReihe('7_1_1_3', 3, holer())
+
+    expect(
+      uebersprungen.some((u) => u.includes('nicht gelesen (Deckel 3)'))
+    ).toBe(true)
+  })
 })
 
 describe('die zugesicherten Spaltennamen', () => {

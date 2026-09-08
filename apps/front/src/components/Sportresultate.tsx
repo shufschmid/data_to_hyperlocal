@@ -14,9 +14,10 @@ import type { AlleMeldungFelder, MeldungFelder, SpielFelder } from '@/graphql/re
 import {
   berichtenswerteSpiele,
   formatiereZeitpunkt,
+  ordneSpiele,
   resultat,
-  statusText,
-  teileSpiele
+  statusFarbe,
+  statusText
 } from '@/lib/redaktion'
 import { MeldungKarte, type MeldungAktion } from './MeldungKarte'
 
@@ -27,14 +28,20 @@ import { MeldungKarte, type MeldungAktion } from './MeldungKarte'
 // arrives once a year for every municipality at once, a match arrives every
 // weekend for one club.
 //
-// Read-only. The connector writes these rows; nothing here edits them.
+// Three sections, in the order the editor works (see `ordneSpiele`): the fresh
+// results with their reports OPEN on the page — a report is a short notice, and
+// hiding it behind a click made every morning start with six clicks — then
+// everything still open, then the archive, where the reports fold away again.
+//
+// Read-only towards the fixtures. The connector writes those rows; only the
+// reports are acted on here.
 
 const ALLE = '__alle__'
 
 export interface SportresultateProps {
   spiele: readonly SpielFelder[]
   laedt?: boolean
-  /** The clock that separates played from upcoming. Injected by tests. */
+  /** The clock that separates the sections. Injected by tests. */
   jetzt?: Date
   /** The reports themselves, so a match can show the text written about it. */
   berichte?: readonly AlleMeldungFelder[]
@@ -61,39 +68,46 @@ export function Sportresultate({
   const [gemeinde, setGemeinde] = useState(ALLE)
   const [sportart, setSportart] = useState(ALLE)
 
+  // Nur die erste Mannschaft je Verein — Frauenteams und untere Ligen gehoeren
+  // nicht auf diesen Tisch. Der Konnektor speichert sie seit dem Wechsel gar
+  // nicht mehr und raeumt die vorhandenen im naechsten Lauf weg; bis dahin
+  // (und falls ein Verein inzwischen abgeschaltet wurde) blendet das hier sie
+  // aus, statt sie liegen zu lassen.
+  const gefuehrt = useMemo(() => {
+    const behalten = berichtenswerteSpiele(spiele)
+    return spiele.filter((spiel) => behalten.has(spiel))
+  }, [spiele])
+
   // Options come from the data, not a fixed list: a sport shows up here the
   // moment its first match is recorded.
   const gemeinden = useMemo(() => {
     const namen = new Map<string, string>()
-    for (const spiel of spiele) {
+    for (const spiel of gefuehrt) {
       if (spiel.gemeinde !== null) namen.set(spiel.gemeinde.id, spiel.gemeinde.name)
     }
     return [...namen.entries()].sort((a, b) => a[1].localeCompare(b[1], 'de-CH'))
-  }, [spiele])
+  }, [gefuehrt])
 
   const sportarten = useMemo(
-    () => [...new Set(spiele.map((s) => s.sportart))].sort((a, b) => a.localeCompare(b, 'de-CH')),
-    [spiele]
+    () => [...new Set(gefuehrt.map((s) => s.sportart))].sort((a, b) => a.localeCompare(b, 'de-CH')),
+    [gefuehrt]
   )
 
   const gefiltert = useMemo(
     () =>
-      spiele.filter(
+      gefuehrt.filter(
         (spiel) =>
           (gemeinde === ALLE || spiel.gemeinde?.id === gemeinde) &&
           (sportart === ALLE || spiel.sportart === sportart)
       ),
-    [spiele, gemeinde, sportart]
+    [gefuehrt, gemeinde, sportart]
   )
 
-  const { vergangen, kommend } = useMemo(
-    () => teileSpiele(gefiltert, jetzt ?? new Date()),
+  const { aktuelle, anstehend, archiv } = useMemo(
+    () => ordneSpiele(gefiltert, jetzt ?? new Date()),
     [gefiltert, jetzt]
   )
 
-  // Counted across every match, not just the filtered view: the button writes
-  // for all of them, so a count that followed the filter would promise less
-  // than it does.
   const nachSpiel = useMemo(() => {
     const karte = new Map<string, AlleMeldungFelder>()
     for (const bericht of berichte) {
@@ -101,19 +115,16 @@ export function Sportresultate({
     }
     return karte
   }, [berichte])
-  // Nur was ueberhaupt einen Bericht bekaeme: die erste Mannschaft je Verein.
-  // Ohne diese Einschraenkung zaehlte der Knopf dauerhaft Spiele mit, die das
-  // Backend nie schreibt — er blieb aktiv und meldete jedes Mal „nichts zu tun".
-  const offen = useMemo(() => {
-    const berichtenswert = berichtenswerteSpiele(spiele)
-    return spiele.filter(
-      (spiel) =>
-        spiel.tore_heim !== null &&
-        spiel.tore_gast !== null &&
-        !nachSpiel.has(spiel.id) &&
-        berichtenswert.has(spiel)
-    ).length
-  }, [spiele, nachSpiel])
+  // Gezaehlt wird ueber alle gefuehrten Spiele, nicht ueber die gefilterte
+  // Ansicht: der Knopf schreibt fuer alle, ein Zaehler entlang des Filters
+  // verspraeche weniger, als er tut.
+  const offen = useMemo(
+    () =>
+      gefuehrt.filter(
+        (spiel) => spiel.tore_heim !== null && spiel.tore_gast !== null && !nachSpiel.has(spiel.id)
+      ).length,
+    [gefuehrt, nachSpiel]
+  )
   // Was ein Klick scharf stellen wuerde. „in_pruefung“ zaehlt bewusst nicht mit:
   // eine Meldung beim Gegenlesen darf nicht hinter dem Ruecken der Pruefenden
   // publiziert werden — der Endpoint lehnt sie ohnehin ab.
@@ -124,7 +135,7 @@ export function Sportresultate({
 
   return (
     <Stack spacing={2}>
-      {spiele.length === 0 && !laedt && (
+      {gefuehrt.length === 0 && !laedt && (
         <Alert severity="info">
           Noch keine Spiele erfasst. Der Lauf „Sportresultate holen“ trägt sie ein, sobald der Verband die
           nächsten Begegnungen aufschaltet.
@@ -191,19 +202,32 @@ export function Sportresultate({
       </Stack>
 
       <SpielListe
-        titel="Resultate"
-        spiele={vergangen}
-        leer="Noch keine gespielten Begegnungen."
+        titel="Aktuelle Resultate"
+        spiele={aktuelle}
+        leer="Keine Resultate aus den letzten fünf Tagen."
         berichte={nachSpiel}
+        berichtAnzeige="offen"
         laeuft={laeuft}
         onChat={onChat}
         onAktion={onAktion}
       />
       <SpielListe
         titel="Kommende Begegnungen"
-        spiele={kommend}
+        spiele={anstehend}
         leer="Zurzeit sind keine Spiele angesetzt."
+        hinweis="Das nächste zuerst — zuoberst gespielte Partien, deren Resultat der Verband noch nicht publiziert hat."
         berichte={nachSpiel}
+        berichtAnzeige="klappbar"
+        laeuft={laeuft}
+        onChat={onChat}
+        onAktion={onAktion}
+      />
+      <SpielListe
+        titel="Spiele-Archiv"
+        spiele={archiv}
+        leer="Noch nichts im Archiv."
+        berichte={nachSpiel}
+        berichtAnzeige="klappbar"
         laeuft={laeuft}
         onChat={onChat}
         onAktion={onAktion}
@@ -216,7 +240,9 @@ function SpielListe({
   titel,
   spiele,
   leer,
+  hinweis,
   berichte,
+  berichtAnzeige,
   laeuft,
   onChat,
   onAktion
@@ -224,7 +250,10 @@ function SpielListe({
   titel: string
   spiele: readonly SpielFelder[]
   leer: string
+  hinweis?: string
   berichte: Map<string, AlleMeldungFelder>
+  /** "offen": der Bericht steht ausgeklappt da. "klappbar": erst auf Klick. */
+  berichtAnzeige: 'offen' | 'klappbar'
   laeuft: boolean
   onChat?: (id: string, anweisung: string) => Promise<void>
   onAktion?: (id: string, aktion: MeldungAktion) => Promise<void>
@@ -236,6 +265,11 @@ function SpielListe({
           {titel}
         </Typography>
         <Chip size="small" label={spiele.length} />
+        {hinweis !== undefined && spiele.length > 0 && (
+          <Typography variant="caption" color="text.secondary">
+            {hinweis}
+          </Typography>
+        )}
       </Stack>
 
       {spiele.length === 0 ? (
@@ -250,6 +284,7 @@ function SpielListe({
                 key={spiel.id}
                 spiel={spiel}
                 bericht={berichte.get(spiel.id) ?? null}
+                berichtAnzeige={berichtAnzeige}
                 laeuft={laeuft}
                 onChat={onChat}
                 onAktion={onAktion}
@@ -265,18 +300,21 @@ function SpielListe({
 function SpielZeile({
   spiel,
   bericht,
+  berichtAnzeige,
   laeuft,
   onChat,
   onAktion
 }: {
   spiel: SpielFelder
   bericht: AlleMeldungFelder | null
+  berichtAnzeige: 'offen' | 'klappbar'
   laeuft: boolean
   onChat?: (id: string, anweisung: string) => Promise<void>
   onAktion?: (id: string, aktion: MeldungAktion) => Promise<void>
 }) {
-  const [zeigeBericht, setZeigeBericht] = useState(false)
+  const [aufgeklappt, setAufgeklappt] = useState(false)
   const offen = spiel.tore_heim === null || spiel.tore_gast === null
+  const zeigeBericht = bericht !== null && (berichtAnzeige === 'offen' || aufgeklappt)
 
   return (
     <Box sx={{ py: 0.75, px: 1 }}>
@@ -298,29 +336,35 @@ function SpielZeile({
       </Stack>
 
       <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-        {/* Die Sportart zuerst: sobald mehrere Verbaende liefern, ist sie das
-            Erste, was eine Zeile einordnet. */}
+        {/* Die drei Einordnungen als Chips nebeneinander: Sportart, Gemeinde,
+            und — wo eine Meldung existiert — ihr Redaktionsstatus. */}
         <Chip size="small" variant="outlined" label={spiel.sportart} />
+        {spiel.gemeinde !== null && <Chip size="small" variant="outlined" label={spiel.gemeinde.name} />}
+        {bericht !== null && (
+          <Chip size="small" color={statusFarbe(bericht.status)} label={statusText(bericht.status)} />
+        )}
+        {spiel.status !== null && <Chip size="small" color="warning" label={spiel.status} />}
         <Typography variant="caption" color="text.secondary">
-          {formatiereZeitpunkt(spiel.datum)}
-          {spiel.gemeinde === null ? '' : ` · ${spiel.gemeinde.name}`} · {spiel.wettbewerb}
+          {formatiereZeitpunkt(spiel.datum)} · {spiel.wettbewerb}
           {spiel.ort === null ? '' : ` · ${spiel.ort}`}
         </Typography>
-        {spiel.status !== null && <Chip size="small" color="warning" label={spiel.status} />}
-        {bericht !== null && (
-          <Button size="small" onClick={() => setZeigeBericht(!zeigeBericht)} aria-expanded={zeigeBericht}>
-            {zeigeBericht ? 'Bericht zuklappen' : `Bericht anzeigen (${statusText(bericht.status)})`}
+        {bericht !== null && berichtAnzeige === 'klappbar' && (
+          <Button size="small" onClick={() => setAufgeklappt(!aufgeklappt)} aria-expanded={aufgeklappt}>
+            {aufgeklappt ? 'Bericht zuklappen' : 'Bericht anzeigen'}
           </Button>
         )}
       </Stack>
 
-      {/* Der Bericht steht bei seinem Spiel — als vollwertige Karte mit Chat
-          und Einzelaktionen, dieselbe wie bei den Statistik-Meldungen. Erst auf
-          Klick, weil ein Wochenende sechs Berichte in die Liste stellt. */}
-      {bericht !== null && zeigeBericht && (
-        <Box sx={{ mt: 1 }}>
+      {/* Der Bericht steht bei seinem Spiel — als vollwertige Karte mit Chat und
+          Einzelaktionen, verkleinert, weil Gemeinde und Status schon als Chips
+          auf der Zeile stehen. Bei den aktuellen Resultaten offen, weil eine
+          kurze Notiz hinter einem Klick nur Klicks kostet; im Archiv klappbar,
+          weil dort die Geschichte liegt. */}
+      {zeigeBericht && bericht !== null && (
+        <Box sx={{ mt: 1, mb: 0.5 }}>
           <MeldungKarte
             meldung={bericht as unknown as MeldungFelder}
+            kompakt
             laeuft={laeuft}
             onChat={async (id, anweisung) => {
               await onChat?.(id, anweisung)

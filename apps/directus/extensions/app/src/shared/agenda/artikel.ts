@@ -100,10 +100,15 @@ export function parseArtikel(html: string): Artikel {
     if (treffer[1] !== undefined) datensaetze.push(treffer[1])
   }
 
-  const text = entities(html.replace(SKRIPT, ' ').replace(TAG, ' '))
+  const ganz = entities(html.replace(SKRIPT, ' ').replace(TAG, ' '))
     .replace(/\s+/g, ' ')
     .trim()
-    .slice(0, ARTIKEL_MAX_ZEICHEN)
+  // The cut is marked, never silent: the reader of this string is a prompt,
+  // and an article that just stops mid-sentence reads as complete.
+  const text =
+    ganz.length > ARTIKEL_MAX_ZEICHEN
+      ? `${ganz.slice(0, ARTIKEL_MAX_ZEICHEN)} … [Artikel gekuerzt]`
+      : ganz
 
   return {
     text,

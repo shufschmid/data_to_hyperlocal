@@ -18,7 +18,7 @@ import type {
   KandidatEntscheid,
   KandidatTyp
 } from '../types/schema'
-export { parseSpielbericht as parsePresseschau } from './spielbericht'
+export { parseMeldungstext as parsePresseschau } from './spielbericht'
 
 const TYPEN: ReadonlyArray<KandidatTyp> = [
   'interview',
@@ -644,14 +644,46 @@ export function buildPresseschauPrompt(fakten: PresseschauFakten): string {
   ].join('\n')
 }
 
-/** Same facts, previous text, editor's instruction — system prompt unchanged. */
+/** How much of the page's original text a revision may carry. A newspaper
+ * page runs 4–8k characters; the cap only guards the pathological case. */
+const MAX_QUELLTEXT = 12000
+
+/**
+ * Cut with a visible seam — a text that just stops reads as complete. Lives
+ * here rather than in `sendung.ts`, which imports from this file; the other
+ * direction was a circular dependency in the bundle.
+ */
+export function gekuerzt(text: string, hoechstens: number): string {
+  if (text.length <= hoechstens) return text
+  return `${text.slice(0, hoechstens)}\n[… Text gekuerzt — Ende fehlt]`
+}
+
+/**
+ * Same facts, previous text, editor's instruction — system prompt unchanged.
+ *
+ * The revision ADDITIONALLY sees the page's original text where the issue
+ * carries one. The first write is deliberately summary-only (the one-source
+ * rule), but an instruction must be answerable from the whole original —
+ * "was stand dort zur Finanzierung?" has no answer in a summary that left the
+ * financing out. The overlap check keeps it a press review: reading material,
+ * never copy.
+ */
 export function buildPresseschauRevision(
   fakten: PresseschauFakten,
   bisher: { titel: string | null; lead: string | null; text: string | null },
-  anweisung: string
+  anweisung: string,
+  quelltext: string | null = null
 ): string {
+  const mitQuelltext = quelltext !== null && quelltext.trim() !== ''
   return [
     ...faktenZeilen(fakten),
+    ...(mitQuelltext
+      ? [
+          '',
+          'Originaltext der Seiten im Blatt — die Seite des Beitrags und die folgende (zum Nachschlagen; schreibe weiterhin in EIGENEN Worten, uebernimm keine Saetze):',
+          gekuerzt(quelltext as string, MAX_QUELLTEXT)
+        ]
+      : []),
     '',
     'Bisherige Meldung:',
     `Titel: ${bisher.titel ?? ''}`,
@@ -661,7 +693,9 @@ export function buildPresseschauRevision(
     'Anweisung der Redaktion:',
     anweisung,
     '',
-    'Schreibe die Meldung neu. Setze die Anweisung um, aber verwende weiterhin ausschliesslich die Angaben oben.'
+    mitQuelltext
+      ? 'Schreibe die Meldung neu. Setze die Anweisung um, aber verwende weiterhin ausschliesslich die Angaben und den Originaltext oben.'
+      : 'Schreibe die Meldung neu. Setze die Anweisung um, aber verwende weiterhin ausschliesslich die Angaben oben.'
   ].join('\n')
 }
 

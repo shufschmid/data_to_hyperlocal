@@ -367,8 +367,12 @@ export interface ArtikelEingabe {
   zahlen: string
   /** Earlier periods for this municipality, or null when there are none. */
   verlauf?: string | null
-  /** How it sits against the comparison basis. */
-  einordnung: string
+  /**
+   * How it sits against the comparison basis — null when no COMPLETE basis
+   * exists. Never a sample: the prompt then says so and forbids comparisons,
+   * and the percentage check flags whatever the model claims anyway.
+   */
+  einordnung: string | null
   /** What we wrote about this municipality from this dataset before. */
   frueherText: string | null
   /** Set on a retry: what was wrong with the previous attempt. */
@@ -382,7 +386,9 @@ export function buildArtikelUserPrompt(eingabe: ArtikelEingabe): string {
     'Zahlen dieser Gemeinde:',
     eingabe.zahlen,
     '',
-    `Einordnung: ${eingabe.einordnung}`
+    eingabe.einordnung === null
+      ? 'Einordnung: keine Vergleichszahlen vorhanden. Stelle KEINE Kantonsvergleiche an und nenne KEINE Prozentabweichungen — es gibt keine belegte Grundlage dafuer.'
+      : `Einordnung: ${eingabe.einordnung}`
   ]
 
   if (

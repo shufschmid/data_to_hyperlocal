@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { MeldungStatus } from '../types/schema'
 import {
   hatInhalt,
+  hatQuellenlink,
   inhaltGeaendert,
   istFreigegeben,
   istUebergangErlaubt,
@@ -18,6 +19,7 @@ function zustand(ueber: Partial<MeldungZustand> = {}): MeldungZustand {
     text: 'Im Jahr 2025 ...',
     entscheidung: null,
     freigegeben_am: null,
+    spiel: null,
     ...ueber
   }
 }
@@ -67,6 +69,13 @@ describe('hatInhalt', () => {
     expect(hatInhalt(zustand({ lead: '' }))).toBe(false)
     expect(hatInhalt(zustand({ text: null }))).toBe(false)
     expect(hatInhalt(zustand({ titel: '   ' }))).toBe(false)
+  })
+
+  // Ein Spielbericht ist eine kurze Notiz: Titel und ein Absatz, bewusst ohne
+  // Lead. Titel und Text braucht auch er.
+  it('verlangt vom Spielbericht keinen Lead', () => {
+    expect(hatInhalt(zustand({ spiel: 'sp-1', lead: null }))).toBe(true)
+    expect(hatInhalt(zustand({ spiel: 'sp-1', text: null }))).toBe(false)
   })
 })
 
@@ -213,5 +222,37 @@ describe('ruecksetzungNachAenderung', () => {
   // handles pulling it back, this function does not silently unpublish.
   it('setzt eine publizierte Meldung nicht von selbst zurueck', () => {
     expect(ruecksetzungNachAenderung({ status: 'publiziert' })).toBeNull()
+  })
+})
+
+describe('hatQuellenlink', () => {
+  // Die Regel der Redaktion: wer ein Resultat nachpruefen will, muss es
+  // koennen. Der Link haengt der Code an — hier wird gehalten, was ohne ihn
+  // entstanden ist.
+  it('laesst einen Spielbericht ohne Verbandslink nicht publizieren', () => {
+    const pruefung = pruefeUebergang(
+      zustand({ spiel: 'sp-1', text: 'Der FC Reinach spielte 3:3.' }),
+      'publiziert'
+    )
+    expect(pruefung.erlaubt).toBe(false)
+    expect(pruefung.grund).toContain('Verbandsseite')
+  })
+
+  it('laesst ihn durch, sobald die Quellenzeile darunter steht', () => {
+    expect(
+      pruefeUebergang(
+        zustand({
+          spiel: 'sp-1',
+          text: 'Der FC Reinach spielte 3:3.\n\nQuelle: Fussballverband Nordwestschweiz, https://www.fvnws.ch/…?v=42'
+        }),
+        'publiziert'
+      ).erlaubt
+    ).toBe(true)
+  })
+
+  // Nur Spielberichte. Eine Statistikmeldung ohne Datensatzadresse ist ein
+  // anderer Fall und hat mit `quelle.ts` ihre eigene Pruefung.
+  it('geht andere Meldungen nichts an', () => {
+    expect(hatQuellenlink({ spiel: null, text: 'Ohne Adresse.' })).toBe(true)
   })
 })

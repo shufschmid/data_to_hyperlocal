@@ -463,4 +463,26 @@ describe('Prompts', () => {
     expect(revision).toContain('Fakten aus dem Beitrag')
     expect(revision).toContain('Kuerzer bitte.')
   })
+
+  // Die Anweisung der Redaktion muss aus dem GANZEN Original beantwortbar
+  // sein — die Zusammenfassung ist eine Auswahl. Der Ueberlappungs-Check
+  // haelt die Antwort trotzdem in eigenen Worten.
+  it('gibt der Revision den Originaltext der Seite mit, wenn er da ist', () => {
+    const revision = buildPresseschauRevision(
+      FAKTEN,
+      { titel: 'Alt', lead: 'Alt.', text: 'Alter Text.' },
+      'Was stand dort zur Finanzierung?',
+      'Der Gemeinderat finanziert das Projekt mit 2,4 Millionen Franken.'
+    )
+    expect(revision).toContain('Originaltext der Seite')
+    expect(revision).toContain('2,4 Millionen')
+    expect(revision).toContain('EIGENEN Worten')
+
+    const ohne = buildPresseschauRevision(
+      FAKTEN,
+      { titel: 'Alt', lead: 'Alt.', text: 'Alter Text.' },
+      'Kuerzer bitte.'
+    )
+    expect(ohne).not.toContain('Originaltext der Seite')
+  })
 })

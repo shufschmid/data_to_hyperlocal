@@ -15,7 +15,7 @@ import type { Angabe, Gruppe, Planbild, Unterlage } from '../shared/amtsblatt'
 import { GRUPPEN_TEXT } from '../shared/amtsblatt'
 import type { AmtsblattQuelleTyp } from '../types/schema'
 
-export { parseSpielbericht as parseAmtsblattMeldung } from './spielbericht'
+export { parseMeldungstext as parseAmtsblattMeldung } from './spielbericht'
 
 // ---------------------------------------------------------------------------
 // 1. Triage — which of the day's publications deserve an editor's minute
@@ -406,6 +406,13 @@ export interface AmtsblattFakten {
   angaben: readonly Angabe[]
   /** Findings from the plans, already checked — empty when none were read. */
   planbefunde: readonly string[]
+  /**
+   * How many sheets the reading saw of how many the file holds. Null where no
+   * plans were read at all. Unequal numbers mean sheets were left out (too
+   * large for the API) — the prompt is told, and `quelleZeile` puts the note
+   * under the article, deterministically.
+   */
+  blaetter: { gelesen: number; gesamt: number } | null
   /** Names the publication attributes to natural persons — kept OUT of the text. */
   personen: readonly string[]
   pdfUrl: string
@@ -466,6 +473,14 @@ function faktenZeilen(fakten: AmtsblattFakten): string[] {
           '',
           'Aus den oeffentlich aufgelegten Plaenen (gelesen, nicht geschaetzt):',
           ...fakten.planbefunde.map((b) => `- ${b}`)
+        ]),
+    ...(fakten.blaetter === null ||
+    fakten.blaetter.gelesen >= fakten.blaetter.gesamt
+      ? []
+      : [
+          '',
+          `Es wurden nur ${fakten.blaetter.gelesen} von ${fakten.blaetter.gesamt} Planblaettern gelesen (die uebrigen wurden nicht maschinell ausgewertet).`,
+          'Behaupte keine Vollstaendigkeit der Befunde aus den Plaenen.'
         ]),
     ...(fakten.personen.length === 0
       ? []
@@ -570,9 +585,26 @@ export function quelleZeile(fakten: AmtsblattFakten): string {
     fakten.quelleTyp === 'simap'
       ? 'Publikation auf simap.ch'
       : 'Amtliche Publikation'
-  const kopf = `Quelle: ${was} vom ${datumDeutsch(fakten.publiziertAm)}, ${fakten.pdfUrl}`
-  if (fakten.unterlage === null) return kopf
-  return `${kopf}\n\n${unterlagenText(fakten.unterlage.art)}: ${fakten.unterlage.url}`
+  const teile = [
+    `Quelle: ${was} vom ${datumDeutsch(fakten.publiziertAm)}, ${fakten.pdfUrl}`
+  ]
+  if (fakten.unterlage !== null) {
+    teile.push(
+      `${unterlagenText(fakten.unterlage.art)}: ${fakten.unterlage.url}`
+    )
+  }
+  // The honesty note the newsroom asked for: an article written from four of
+  // five sheets must say so. By code, like every other line here — a
+  // disclosure left to the model is a disclosure that sometimes is not there.
+  if (
+    fakten.blaetter !== null &&
+    fakten.blaetter.gelesen < fakten.blaetter.gesamt
+  ) {
+    teile.push(
+      `Hinweis: Für diese Meldung konnten ${fakten.blaetter.gelesen} von ${fakten.blaetter.gesamt} Planblättern maschinell ausgewertet werden.`
+    )
+  }
+  return teile.join('\n\n')
 }
 
 export function mitQuelle(text: string, fakten: AmtsblattFakten): string {
@@ -688,6 +720,11 @@ export function zahlWarnungen(text: string, fakten: AmtsblattFakten): string[] {
     sammle(a.wert)
   }
   for (const b of fakten.planbefunde) sammle(b)
+  // The sheet counts are handed to the prompt, so the text may repeat them.
+  if (fakten.blaetter !== null) {
+    erlaubt.add(String(fakten.blaetter.gelesen))
+    erlaubt.add(String(fakten.blaetter.gesamt))
+  }
 
   const gefunden = [...text.matchAll(/\d+/g)].map((t) => t[0])
   return [...new Set(gefunden.filter((z) => !erlaubt.has(z)))].map(

@@ -21,6 +21,8 @@ import { gql } from '@apollo/client'
 export interface DatensatzFelder {
   id: string
   externe_id: string
+  /** `ods` oder `statbl` — entscheidet, auf welchem Portal die Daten liegen. */
+  quelle: { typ: string } | null
   titel: string
   beschreibung: string | null
   status: string
@@ -57,6 +59,9 @@ export const DATENSAETZE_QUERY = gql`
     ) {
       id
       externe_id
+      quelle {
+        typ
+      }
       titel
       beschreibung
       status
@@ -310,7 +315,14 @@ export interface AnkuendigungFelder {
   quartal: string | null
   link: string | null
   /** The portal dataset behind this entry, once the backend has found it. */
-  datensatz: { id: string; titel: string; status: string; hat_gemeinde: boolean } | null
+  datensatz: {
+    id: string
+    titel: string
+    status: string
+    hat_gemeinde: boolean
+    externe_id: string | null
+    quelle: { typ: string } | null
+  } | null
   zuordnung_hinweis: string | null
 }
 
@@ -339,6 +351,10 @@ export const ANKUENDIGUNGEN_QUERY = gql`
         titel
         status
         hat_gemeinde
+        externe_id
+        quelle {
+          typ
+        }
       }
       zuordnung_hinweis
     }

@@ -19,6 +19,15 @@ with has been removed.
   worked out for itself is flagged — `redaktion/zahlen.ts`.
 - It has a **memory**. When the same statistic reappears next year, last year's
   articles and the rules learned from the editor's chat feed into the new run.
+- **Complete, or declared — never a silent sample.** Whatever a model or a
+  computed figure works from is either the whole source, or the gap is said out
+  loud: as a "(N weitere …)"-line in the prompt, a note on the row, or a plain
+  refusal to write. The newsroom's words, after finding a "Kantonsschnitt"
+  computed from 400 of 3'524 rows: better to not solve a task and say so than
+  to quietly work from a sample — readers live in these municipalities and
+  know their numbers. Size caps guard prompts and storage, never arithmetic,
+  and a cap that bites must be audible (the audit of 8 September 2026 closed
+  every silent one; the pattern to copy is simap's `abgeschnitten`).
 
 It is a **monorepo** — both apps live side by side under `apps/`. It is **not** an
 npm workspace: each app is installed, built and deployed independently and has its
@@ -166,8 +175,8 @@ them is wrong even if it works.
    NOT columns: the municipality's slug (only the frontend had one), the rubrik
    (visible solely in which of five foreign keys is set) and the source (stored
    differently by every desk). `datengrundlage` is read for the source and
-   never delivered — for a statistics article it holds sixty raw rows of
-   working material. And the register in `endpoints/api/register.ts` drives the
+   never delivered — for a statistics article it holds the municipality's whole
+   period slice as working material (measured slices run 50–100 rows). And the register in `endpoints/api/register.ts` drives the
    router AND the documentation, so a route cannot exist undocumented; the
    tests compare both directions. The switch `BLOG_API_OFFEN` is deliberate
    rather than a fallback: unset means the content paths answer 503 and the
@@ -181,9 +190,14 @@ them is wrong even if it works.
    the same way as the first: a source that publishes on its own schedule, watched
    daily. What differs is the shape — a statistic arrives once a year for every
    municipality at once, a match arrives every weekend for one club. Filterable
-   by Gemeinde and Sportart, split into played and upcoming by the clock rather
-   than by whether a score exists, because a finished match whose result the
-   source has not published yet is exactly the one an editor is waiting for.
+   by Gemeinde and Sportart, in THREE sections (`ordneSpiele`): the last five
+   days' results with their reports standing OPEN on the page — a report is a
+   short notice now, and hiding one behind a click cost six clicks every
+   Monday — then everything still open, soonest first, with the played matches
+   whose result the source has not yet published on top, because those are
+   exactly what an editor is waiting for; then the Spiele-Archiv, where reports
+   fold away behind a click again. Gemeinde and the report's status sit as
+   chips on the match row beside the sport.
    „Entsorgung" is the third feed and the only one nobody watches: the printed
    Abfuhrkalender is registered once a year per municipality, read in one pass,
    and produces the whole year's reminders in advance — seventy-odd articles at
@@ -303,7 +317,15 @@ them is wrong even if it works.
    also where a model would most readily invent a figure, so every finding must
    name the sheet it stood on, `parsePlanbefund` drops the ones naming a sheet
    that does not exist, and the list is capped at twelve (the first real run
-   returned 24, half of them survey marks). It pays: a permit titled „4
+   returned 24, half of them survey marks). The sheets themselves are bounded
+   three ways — count, bytes, and PIXELS: the API takes nothing over 8000 px an
+   edge, and scans compress too well for the byte cap to catch that (measured
+   on Binningen 0275/2026 — an 8433-px sheet at 2.6 MB failed the whole
+   reading with a raw 400). Oversized sheets are LEFT OUT, not resized
+   (`shared/amtsblatt/bilder.ts` reads the header, no image codec in the
+   bundle), the row keeps the count (`plan_blaetter`), and an article written
+   from four of five sheets says so in a code-built Hinweis line under the
+   source — the newsroom's rule: fewer sheets is fine, silence about it is not. It pays: a permit titled „4
    Mehrfamilienhäuser" yielded 16 flats, 27 parking spaces and the demolition
    of an existing house and pool; a Muttenz one revealed that the plans say
    Bahnhofstrasse 19 where the publication says 20. Only Baselland publishes
@@ -507,7 +529,8 @@ them is wrong even if it works.
 | a table on statistik.bl.ch the newsroom wants     | paste its URL in the workspace — „statistik.bl" → „Auftrag …" — it becomes an ordinary dataset                                                                                                                                           |
 | a club whose results the newsroom wants           | „Gemeinden" → die Karte der Gemeinde → „Verein erfassen"; ohne Konnektor für die `quelle` bleibt er still erfasst                                                                                                                        |
 | a new rule about what a match report may say      | `redaktion/spielbericht.ts` — the prompt **and** the check next to it                                                                                                                                                                    |
-| which of a club's teams gets a report             | `redaktion/mannschaft.ts` — the first team only, mirrored in the workspace's counter (`berichtenswerteSpiele`)                                                                                                                           |
+| which of a club's teams is followed at all        | `redaktion/mannschaft.ts` — the first team only, applied at the door by `sportresultate-holen`; mirrored in the workspace (`berichtenswerteSpiele`)                                                                                      |
+| where a match report's source link comes from     | `redaktion/spielbericht.ts` — `verbandsQuelle`/`mitQuelle`, appended by code; the publish gate is `hatQuellenlink` in `redaktion/status.ts`                                                                                              |
 | an Abfuhrkalender the newsroom wants              | paste the PDF's address in the workspace — „Entsorgung" → „Abfuhrkalender erfassen"; one PDF per zone (Riehen) registers zone by zone into the same calendar                                                                             |
 | a weekly paper the newsroom wants read            | „Presseschau" → „Wochenblatt erfassen" with its archive URL; the platform decides the parser (`konnektor`: WordPress-Archivliste, lokalzeitungen.ch, issuu or Localpoint) — a fifth platform gets its own value in `shared/wochenblatt/` |
 | a new rule about what a press review may say      | `redaktion/presseschau.ts` — the prompt **and** the checks next to it (attribution, digits, verbatim overlap)                                                                                                                            |
@@ -619,7 +642,28 @@ Flow "Meldungen erzeugen"  (*/2)   endpoints/redaktion  (immediately)
             │                    laeufe.vorgabe steers it; earlier periods are
             │                    fetched only when a vorgabe asks for them
             └─ stage B          N× Sonnet → one article per municipality
-                                 cached system prompt, checked afterwards
+                                 cached system prompt, checked afterwards.
+                                 A REVISION re-fetches the run's period slice
+                                 from the source (once per run and pass) and
+                                 hands the municipality's FULL rows over — the
+                                 newsroom's rule: an instruction must be
+                                 answerable from the whole original. Measured
+                                 before the fix: Binningen's Motorfahrzeug
+                                 slice is 56 rows, the prompt showed 40, and
+                                 "Personenwagen" sorted past the cut — the
+                                 model answered a car question from the
+                                 Leichtmotorfahrzeug rows. Stage A stores the
+                                 full slice plus the einordnung computed over
+                                 ALL rows; the 400-row `alle_zeilen` sample is
+                                 GONE — a "Kantonsschnitt" from it was the
+                                 sample's, and no fallback recomputes one: a
+                                 row without a stored einordnung gets NULL,
+                                 the prompt says "keine Vergleichszahlen",
+                                 and the percentage check flags every claim.
+                                 The same rule holds for the other feeds: a
+                                 press-review revision sees the piece's pages,
+                                 a broadcast revision the transcript —
+                                 the overlap checks keep both in own words.
 
 hooks/meldung-status   guards every status change, on every write path
 
@@ -694,6 +738,10 @@ Flow "Sportresultate holen"  (0 30 6 * * *)
        │                 timezone arithmetic. But an unplayed fixture shows
        │                 "0 - 0", so a score is only read once the match is past.
        ├─ everything else — skipped, and the sports are named in the log
+       ├─ ersteMannschaftAbgleich()  je Verein ueber Bestand UND Neues: was
+       │                  unter der besten Liga liegt, wird nicht geschrieben —
+       │                  und was schon dasteht, geloescht (ausser eine Meldung
+       │                  zeigt darauf)
        └─ schreibeSpielberichte()  every new result gets its draft in the SAME
                           run (redaktion/spielberichte.ts, shared with the
                           button): the editor finds a written report, not a
@@ -770,19 +818,60 @@ The prompt is handed the outcome, not just the two numbers: working out who won
 means knowing which side the club played on, and that is arithmetic the model
 must not do. Afterwards every figure in the text is checked against what was
 handed over — a stray "Rang 7" is flagged, because a table position is exactly
-the kind of number that quietly turns out wrong.
+the kind of number that quietly turns out wrong. A match report is deliberately
+a SHORT NOTICE: a title and one paragraph, no lead — `hatInhalt` waives the
+lead requirement for `spiel`-Meldungen and for them alone (the three-part
+titel/lead/text parser the other feeds re-export lives on as
+`parseMeldungstext`).
 
-**Only the first team gets a report.** A village club fields four: SC Binningen
-played four times on 29 August 2026 — 2. Liga interregional, a 4th-league side,
-a 5th-league side and a women's team, and the rows say only „SC Binningen" for
-all of them. Three articles about the same club losing 0:2 and 0:12 and winning
-7:0 on one Saturday are noise, so `redaktion/mannschaft.ts` keeps the club's
-highest league (derived from its own matches, because `vereine.liga` is an
-editor's free text — measured values include „3. und 4. Liga" and null). Women's
-sides are not reported as the club — **except where the club's registered team
-IS one**: Sm'Aesch Pfeffingen plays Nationalliga A der Damen and is the flagship
-of Aesch, and a blunt rule would have silenced it. Fixtures are all still stored
-and shown; this is only about what gets written.
+**The number check learns from the editor.** Digits that arrive inside the
+handed facts — the year in a club's name, the pitch number in the venue — are
+allowed outright: flagging them taught the editor to ignore the warning. And
+publishing a report that still carries a "Zahl … steht nicht in den Angaben"
+warning is read as the editor's verdict: the meldung-status hook (an `action`,
+after the write — a lost lesson must never block a publish) stores those numbers
+in `vereine.akzeptierte_zahlen`, and the check never flags them again for that
+club. Per club on purpose, so a wrong acceptance stays on its own desk; deleting
+a number from the field turns the warning back on. Relative time references
+deliberately do NOT learn — "am Samstag" is wrong afresh every time.
+
+**Only the first team is followed at all.** A village club fields four: SC
+Binningen played four times on 29 August 2026 — 2. Liga interregional, a
+4th-league side, a 5th-league side and a women's team, and the rows say only
+„SC Binningen" for all of them. Three articles about the same club losing 0:2
+and 0:12 and winning 7:0 on one Saturday are noise, so `redaktion/mannschaft.ts`
+keeps the club's highest league (derived from its own matches, because
+`vereine.liga` is an editor's free text — measured values include „3. und 4.
+Liga" and null). Women's sides are not the club — **except where the club's
+registered team IS one**: Sm'Aesch Pfeffingen plays Nationalliga A der Damen and
+is the flagship of Aesch, and a blunt rule would have silenced it.
+
+The rule used to decide only what got WRITTEN; everything was stored and shown,
+on the theory that a fixture list is useful whole. It is not — the newsroom
+watched women's and lower-league sides sit in the tab for months with no article
+ever coming of them. **The filter is at the door now**
+(`ersteMannschaftAbgleich`, applied in `operations/sportresultate-holen`): what
+is below the club's best league is not written, and what is already stored below
+it is deleted in the same run. Two things make that safe. The decision is taken
+over the stored rows AND the newly read ones together — a weekend on which only
+the fourth team plays must not promote it to first team for a day — and a
+fixture some report already points at is spared, whatever league it turned out
+to be in. The frontend keeps its mirror of the rule
+(`berichtenswerteSpiele`) for the window before the next run and for clubs the
+newsroom has since switched off, which the run no longer walks.
+
+**Every match report carries the association page its result stands on.** It was
+the one kind of article here that named no source a reader could open. The line
+is appended by code — `mitQuelle` in `redaktion/spielbericht.ts`, the same
+division of labour as the press review and the gazette — and `pruefeUebergang`
+refuses to publish a report without it, which is what catches the drafts written
+before the rule (a migration filled in the ones on the desk). The address is
+`vereine.ergebnis_url` before `spiele.quelle_url`, and that order is not a
+preference: for football the stored `quelle_url` is the association's "what's
+on" page, which only looks FORWARD and no longer carries the match a week later
+— the club page is where the score is read back from in the first place. On a
+revision the line comes off before the prompt is built (`ohneQuelle`) and goes
+back on after, or the model copies it and it ends up twice.
 
 **Three sports have connectors: football, volleyball, handball.** Basketball,
 chess, Schwingen, swimming, American football and curling are recorded as clubs
@@ -889,7 +978,9 @@ joining the two on `Spielnummer`. Read results from there, or not at all.
   interpolating it there would break the byte-identical guarantee. `liga` is a
   snapshot that goes stale every season. Clubs proposed by a connector arrive
   with `zuordnung_geprueft = false`, the same confirm-once pattern as
-  `ankuendigungen`.
+  `ankuendigungen`. `akzeptierte_zahlen` is the club's own lesson store: the
+  numbers the editor published past the warning, written by the meldung-status
+  hook, honoured by the report checks — delete one and the warning returns.
 - `entsorgungskalender.extraktion` + `merkblatt` — what the PDF said and what was
   deliberately discarded as a regular collection. The second half is the one that
   matters later: without it, a category the model dropped by mistake is

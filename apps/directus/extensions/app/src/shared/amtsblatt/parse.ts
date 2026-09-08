@@ -424,7 +424,18 @@ function bezeichneUnterlage(url: string, beschriftung: string): Unterlage {
  * that would rot the moment a canton adds a field.
  */
 export function parseInhalt(xml: string): Inhalt {
-  const inhalt = xml.slice(xml.indexOf('<content>'))
+  // A hard error, never an empty result. `indexOf` returning -1 used to make
+  // `slice(-1)` hand the LAST CHARACTER of the document to every loop below:
+  // no angaben, no frist — and an empty `personen` list, which is the privacy
+  // guard of the whole feed disappearing without a sound. Tolerant of
+  // attributes (`<content xmlns=…>`), intolerant of absence.
+  const start = xml.search(/<content[\s>]/)
+  if (start === -1) {
+    throw new Error(
+      'Publikations-XML ohne <content>-Element — Angaben nicht lesbar.'
+    )
+  }
+  const inhalt = xml.slice(start)
   const angaben: Angabe[] = []
   const personen: string[] = []
 
@@ -473,7 +484,17 @@ export function parseInhalt(xml: string): Inhalt {
 
   const unterlagen: Unterlage[] = []
   const gesehen = new Set<string>()
-  for (const m of inhalt.matchAll(/https?:\/\/[^\s<>"'&)]+/g)) {
+  // Scanned on an entity-DECODED copy: in XML a query string reads
+  // `?id=1&amp;zone=2`, and excluding `&` from the match cut every such link at
+  // its first parameter — the truncated address was then classified, fetched
+  // and printed under published articles.
+  const dekodiert = inhalt
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+  for (const m of dekodiert.matchAll(/https?:\/\/[^\s<>"')]+/g)) {
     const url = m[0]
     if (url.includes('w3.org') || url.includes('shab.ch/')) continue
     if (gesehen.has(url)) continue

@@ -86,10 +86,10 @@ const spiele = [
 ]
 
 describe('Sportresultate', () => {
-  it('trennt gespielte von kommenden Begegnungen', () => {
+  it('trennt frische Resultate von kommenden Begegnungen', () => {
     render(<Sportresultate spiele={spiele} jetzt={JETZT} />)
 
-    const resultate = screen.getByRole('heading', { name: 'Resultate' }).closest('div')
+    const resultate = screen.getByRole('heading', { name: 'Aktuelle Resultate' }).closest('div')
       ?.parentElement as HTMLElement
     expect(within(resultate).getByText(/FC Reinach — FC Amicitia Riehen/)).toBeInTheDocument()
 
@@ -107,6 +107,76 @@ describe('Sportresultate', () => {
   it('laesst offene Begegnungen ohne Resultat', () => {
     render(<Sportresultate spiele={spiele} jetzt={JETZT} />)
     expect(screen.getAllByText('–')).toHaveLength(2)
+  })
+
+  // Die Redaktion sah monatelang Frauen- und Unterligateams im Reiter, ohne
+  // dass je eine Meldung daraus wurde. Sie gehoeren gar nicht auf den Tisch.
+  it('zeigt vom Verein nur die erste Mannschaft', () => {
+    const vereinsspiele = [
+      spiel({
+        id: 'erste',
+        heim: 'FC Pratteln',
+        gast: 'FC Möhlin',
+        wettbewerb: 'Meisterschaft - 2. Liga interregional / Gruppe 3'
+      }),
+      spiel({
+        id: 'frauen',
+        heim: 'FC Pratteln a',
+        gast: 'FC Aesch a',
+        wettbewerb: 'Meisterschaft - Frauen 4. Liga / Vorrunde'
+      }),
+      spiel({
+        id: 'fuenfte',
+        heim: 'FC Pratteln c',
+        gast: 'FC Aesch c',
+        wettbewerb: 'Meisterschaft - 5. Liga / Gruppe 2'
+      })
+    ]
+    render(<Sportresultate spiele={vereinsspiele} jetzt={JETZT} />)
+
+    expect(screen.getByText(/FC Pratteln — FC Möhlin/)).toBeInTheDocument()
+    expect(screen.queryByText(/FC Pratteln a/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/FC Pratteln c/)).not.toBeInTheDocument()
+  })
+
+  // Gespielt, aber der Verband hat noch kein Resultat publiziert: genau darauf
+  // wartet die Redaktion — die Partie steht bei den anstehenden, nicht im Archiv.
+  it('stellt Gespieltes ohne Resultat zu den kommenden Begegnungen', () => {
+    const wartend = spiel({ id: 'w', datum: '2026-08-19T18:00:00Z', heim: 'FC Wartet', gast: 'FC B' })
+    render(<Sportresultate spiele={[wartend]} jetzt={JETZT} />)
+
+    const kommend = screen.getByRole('heading', { name: 'Kommende Begegnungen' }).closest('div')
+      ?.parentElement as HTMLElement
+    expect(within(kommend).getByText(/FC Wartet — FC B/)).toBeInTheDocument()
+  })
+
+  // Aelter als fuenf Tage ist Geschichte — Resultat hin oder her.
+  it('legt aeltere Spiele ins Archiv', () => {
+    const alt = spiel({
+      id: 'alt',
+      datum: '2026-08-10T18:00:00Z',
+      heim: 'FC Alt',
+      gast: 'FC B',
+      tore_heim: 2,
+      tore_gast: 0
+    })
+    render(<Sportresultate spiele={[alt]} jetzt={JETZT} />)
+
+    const archiv = screen.getByRole('heading', { name: 'Spiele-Archiv' }).closest('div')
+      ?.parentElement as HTMLElement
+    expect(within(archiv).getByText(/FC Alt — FC B/)).toBeInTheDocument()
+  })
+
+  // Gemeinde und Meldungsstatus stehen als Chips neben der Sportart — nicht im
+  // Kleingedruckten und nicht erst im aufgeklappten Bericht.
+  it('zeigt Gemeinde und Meldungsstatus als Chips auf der Zeile', () => {
+    const gespielt = spiel({ id: 'a2', datum: '2026-08-19T18:00:00Z', tore_heim: 1, tore_gast: 0 })
+    render(<Sportresultate spiele={[gespielt]} jetzt={JETZT} berichte={[bericht('a2')]} />)
+
+    // Der Gemeindename genau einmal: als Chip auf der Zeile — die kompakte
+    // Karte hat keinen eigenen Kopf mehr.
+    expect(screen.getAllByText('Pratteln')).toHaveLength(1)
+    expect(screen.getByText('Entwurf')).toBeInTheDocument()
   })
 
   it('filtert nach Gemeinde', async () => {
@@ -275,16 +345,13 @@ describe('Sportresultate — Bericht anzeigen', () => {
     tore_gast: 3
   })
 
-  // Zugeklappt, weil ein Wochenende sechs Berichte in die Liste stellt — aber
-  // klar ersichtlich, dass einer da ist, samt Status.
-  it('zeigt den Bericht erst auf Klick, mit allen Aktionen', async () => {
+  // Eine kurze Notiz hinter einem Klick kostet nur Klicks: bei den aktuellen
+  // Resultaten steht der Bericht offen da, mit Chat und allen Aktionen.
+  it('zeigt den Bericht der aktuellen Resultate sofort, mit allen Aktionen', () => {
     render(<Sportresultate spiele={[gespielt]} jetzt={JETZT} berichte={[bericht('g1')]} />)
 
-    expect(screen.queryByText('Ein Titel')).not.toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: /Bericht anzeigen \(Entwurf\)/ }))
-
     expect(screen.getByText('Ein Titel')).toBeInTheDocument()
-    expect(screen.getByText('Ein Lead.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Bericht anzeigen/ })).not.toBeInTheDocument()
     expect(screen.getByText('Ein Absatz.')).toBeInTheDocument()
     // Die volle Karte, nicht eine Leseansicht: Chat und Einzelaktionen.
     expect(screen.getByRole('button', { name: 'Überarbeiten' })).toBeInTheDocument()
@@ -298,14 +365,31 @@ describe('Sportresultate — Bericht anzeigen', () => {
 
   it('haengt den Bericht ans richtige Spiel', () => {
     render(<Sportresultate spiele={[gespielt, ...spiele]} jetzt={JETZT} berichte={[bericht('a')]} />)
-    // Nur ein Aufklapp-Knopf, obwohl zwei Resultate vorliegen.
-    expect(screen.getAllByRole('button', { name: /Bericht anzeigen/ })).toHaveLength(1)
+    // Zwei aktuelle Resultate, aber nur eines hat eine Meldung — sie erscheint
+    // genau einmal.
+    expect(screen.getAllByText('Ein Titel')).toHaveLength(1)
   })
 
-  it('zeigt Zeit-Warnungen des Berichts nach dem Aufklappen', async () => {
+  it('zeigt Zeit-Warnungen des Berichts ohne Klick', () => {
     const mitWarnung = { ...bericht('g1'), zeit_warnungen: ['Relativer Zeitbezug: "am samstag"'] }
     render(<Sportresultate spiele={[gespielt]} jetzt={JETZT} berichte={[mitWarnung]} />)
-    await userEvent.click(screen.getByRole('button', { name: /Bericht anzeigen/ }))
     expect(screen.getByText('Relativer Zeitbezug: "am samstag"')).toBeInTheDocument()
+  })
+
+  // Im Archiv liegt die Geschichte — dort bleibt der Bericht hinter dem Klick.
+  it('klappt den Bericht im Archiv erst auf Klick auf', async () => {
+    const alt = spiel({
+      id: 'altb',
+      datum: '2026-08-10T18:00:00Z',
+      heim: 'FC Alt',
+      gast: 'FC B',
+      tore_heim: 2,
+      tore_gast: 0
+    })
+    render(<Sportresultate spiele={[alt]} jetzt={JETZT} berichte={[bericht('altb')]} />)
+
+    expect(screen.queryByText('Ein Titel')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Bericht anzeigen' }))
+    expect(screen.getByText('Ein Titel')).toBeInTheDocument()
   })
 })

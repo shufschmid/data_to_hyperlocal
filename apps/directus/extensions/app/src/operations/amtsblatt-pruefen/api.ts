@@ -151,7 +151,7 @@ export default defineOperationApi<Optionen>({
       logger.warn(fehler, 'Amtsblatt: Aufraeumen fehlgeschlagen.')
     }
 
-    const gemeinden = (await gemeindenService.readByQuery({
+    const alleAktiven = (await gemeindenService.readByQuery({
       filter: { aktiv: { _eq: true }, bfs_nummer: { _nnull: true } },
       fields: [
         'id',
@@ -162,7 +162,7 @@ export default defineOperationApi<Optionen>({
         'simap_vergabestellen'
       ],
       sort: ['name'],
-      limit: hoechstens
+      limit: -1
     })) as {
       id: string
       name: string
@@ -171,6 +171,21 @@ export default defineOperationApi<Optionen>({
       plz: string[] | null
       simap_vergabestellen: SimapVergabestelle[] | null
     }[]
+
+    // The work cap NAMES what it skips. It used to sit in the query itself:
+    // municipality #21 by alphabet was never fetched, and nothing on the desk
+    // distinguished that from "nothing was published" — the same silence the
+    // ohnePlz list exists to prevent.
+    const gemeinden = alleAktiven.slice(0, hoechstens)
+    if (alleAktiven.length > gemeinden.length) {
+      ergebnis.fehler.push(
+        `Amtsblatt: ${alleAktiven.length - gemeinden.length} aktive Gemeinden nicht geprueft (Deckel ${hoechstens}): ` +
+          alleAktiven
+            .slice(hoechstens)
+            .map((g) => g.name)
+            .join(', ')
+      )
+    }
 
     // --- simap.ch: the procurement half, collected before the municipality loop
     //
@@ -302,11 +317,18 @@ export default defineOperationApi<Optionen>({
       const beschaffungen = simapJeGemeinde.get(gemeinde.id) ?? []
 
       try {
-        const treffer = await fetchPublikationen(
+        const liste = await fetchPublikationen(
           { bfsNummer: gemeinde.bfs_nummer, plz },
           tageZurueck(nachlauf),
           abruf
         )
+        const treffer = liste.treffer
+        // Said, not swallowed — the same rule as simap's `abgeschnitten`: a
+        // truncated day must never be triaged as "nothing newsworthy".
+        if (liste.abgeschnitten)
+          ergebnis.fehler.push(
+            `Amtsblatt: Zu ${gemeinde.name} gab es mehr Publikationen, als ein Lauf liest — Nachlauf verkleinern.`
+          )
 
         const bekannt =
           treffer.length === 0

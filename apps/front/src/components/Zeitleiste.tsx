@@ -182,11 +182,15 @@ function Zeile({ eintrag, laeuft, berichte, onAuftrag, onVerwerfen }: ZeileProps
       </Box>
 
       <Stack direction="row" spacing={1} sx={{ alignItems: 'baseline', flexWrap: 'wrap' }}>
-        {eintrag.pfad === null ? (
+        {/* Der Titel fuehrt zu den Daten, sobald wir ihre Adresse kennen —
+            nicht erst, wenn eine Meldung existiert. Ein Portal-Zweig verlinkt
+            seine Seite, ein Datensatz das Portal, ein Agenda-Eintrag den
+            Artikel des Amts. */}
+        {eintrag.link === null ? (
           <Typography variant="body2">{eintrag.titel}</Typography>
         ) : (
           <Link
-            href={`https://statistik.bl.ch/web_portal/${eintrag.pfad}`}
+            href={eintrag.link}
             target="_blank"
             rel="noopener noreferrer"
             variant="body2"

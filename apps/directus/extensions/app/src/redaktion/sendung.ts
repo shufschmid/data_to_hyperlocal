@@ -9,11 +9,13 @@
  * feature for none of its value.
  */
 
-export { parseSpielbericht as parseSendungMeldung } from './spielbericht'
+export { parseMeldungstext as parseSendungMeldung } from './spielbericht'
 // Dieselbe Schreibweise wie im Amtsblatt-Feed, und aus demselben Grund dort
 // von Hand ausgeschrieben: ein reines Datum hat keine Zeitzone, und als lokaler
 // Zeitpunkt geparst verschiebt es sich oestlich von UTC um einen Tag.
 import { datumDeutsch } from './amtsblatt'
+// One direction only (presseschau → sendung would be circular in the bundle).
+import { gekuerzt } from './presseschau'
 export { ueberlappungsWarnungen } from './presseschau'
 
 /** Which show a candidate came from. Decides attribution and the source link. */
@@ -175,6 +177,13 @@ export interface Beitrag {
   text: string
   sendung: SendungsQuelle
   datum: string
+  /**
+   * True when no transcript passage could be located and `text` is only the
+   * show's own short summary. The label below then says so: a summary offered
+   * as "Wortlaut" would have the HANDELT/ERWAEHNT question answered on false
+   * premises.
+   */
+  nurZusammenfassung?: boolean
 }
 
 export function buildInventarPrompt(
@@ -190,7 +199,12 @@ export function buildInventarPrompt(
     'Nur diese Namen sind erlaubt. Andere Orte sind kein Kandidat.',
     '',
     ...(digest === '' ? [] : [digest, '']),
-    'Wortlaut des Beitrags:',
+    ...(beitrag.nurZusammenfassung === true
+      ? [
+          'Zusammenfassung des Beitrags (der Wortlaut liess sich im Transkript',
+          'nicht auffinden — urteile entsprechend vorsichtig):'
+        ]
+      : ['Wortlaut des Beitrags:']),
     beitrag.text
   ].join('\n')
 }
@@ -310,14 +324,39 @@ export function buildSendungPrompt(fakten: SendungsFakten): string {
   ].join('\n')
 }
 
-/** Same facts, previous text, editor's instruction — system prompt unchanged. */
+/**
+ * How much transcript a revision may carry. A whole show runs 15–30k
+ * characters, so the old cap of 30k sat exactly on the edge and cut the LAST
+ * minutes — of the one call whose job is answering "was stand dort zu X?".
+ * Generous now, and a cut that still happens is marked, never silent.
+ */
+const MAX_TRANSKRIPT = 120000
+
+/**
+ * Same facts, previous text, editor's instruction — system prompt unchanged.
+ *
+ * The revision ADDITIONALLY sees the show's transcript where the edition
+ * carries one — the same rule as the press review: the first write is
+ * deliberately summary-only, but an instruction must be answerable from the
+ * whole original source. The overlap check against this very transcript keeps
+ * the answer in the newsroom's own words.
+ */
 export function buildSendungRevision(
   fakten: SendungsFakten,
   bisher: { titel: string | null; lead: string | null; text: string | null },
-  anweisung: string
+  anweisung: string,
+  transkript: string | null = null
 ): string {
+  const mitTranskript = transkript !== null && transkript.trim() !== ''
   return [
     ...faktenZeilen(fakten),
+    ...(mitTranskript
+      ? [
+          '',
+          'Transkript der Sendung (zum Nachschlagen — schreibe weiterhin in EIGENEN Worten, uebernimm keine Saetze):',
+          gekuerzt(transkript as string, MAX_TRANSKRIPT)
+        ]
+      : []),
     '',
     'Bisherige Meldung:',
     `Titel: ${bisher.titel ?? ''}`,
@@ -327,7 +366,9 @@ export function buildSendungRevision(
     'Anweisung der Redaktion:',
     anweisung,
     '',
-    'Schreibe die Meldung neu. Setze die Anweisung um, aber verwende weiterhin ausschliesslich die Angaben oben.'
+    mitTranskript
+      ? 'Schreibe die Meldung neu. Setze die Anweisung um, aber verwende weiterhin ausschliesslich die Angaben und das Transkript oben.'
+      : 'Schreibe die Meldung neu. Setze die Anweisung um, aber verwende weiterhin ausschliesslich die Angaben oben.'
   ].join('\n')
 }
 

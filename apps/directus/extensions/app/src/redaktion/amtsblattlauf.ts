@@ -89,6 +89,16 @@ export interface PlanErgebnis {
   blaetter: number
 }
 
+/** Why sheets stayed out — measured reasons only, never a guessed "zu gross". */
+export function auslassungsGrund(zuGross: number, nichtGeholt: number): string {
+  const teile: string[] = []
+  if (zuGross > 0)
+    teile.push(`${zuGross} zu gross für die maschinelle Auswertung`)
+  if (nichtGeholt > 0)
+    teile.push(`${nichtGeholt} jenseits des Limits von 8 Blättern pro Lesung`)
+  return teile.length === 0 ? 'Grund unbekannt' : teile.join(', ')
+}
+
 /**
  * Reading the drawings.
  *
@@ -118,11 +128,26 @@ export async function lesePlaene(
   await kontext.meldungen.updateOne(zeile.id, { plan_status: 'liest' })
 
   try {
-    const bilder = await fetchPlanbilder(plaene.url, kontext.abruf)
+    const { bilder, gesamt, zuGross } = await fetchPlanbilder(
+      plaene.url,
+      kontext.abruf
+    )
+    const ausgelassen = gesamt - bilder.length
+    // Only what was FETCHED and measured may be called too large; a sheet
+    // beyond the eight-sheet limit was never requested, and "zu gross" about
+    // it would be a claim nobody measured.
+    const grund = auslassungsGrund(zuGross, ausgelassen - zuGross)
     if (bilder.length === 0) {
+      // Two different silences: a gallery with nothing on it, and a gallery
+      // whose sheets could not travel. The second one says so, with the real
+      // reasons — the editor still has the link and her own eyes.
       await kontext.meldungen.updateOne(zeile.id, {
         plan_status: 'nicht_lesbar',
-        plan_fazit: 'Die Auflageseite hat keine lesbaren Planbilder geliefert.'
+        plan_fazit:
+          gesamt > 0
+            ? `Keines der ${gesamt} Planblätter wurde gelesen (${grund}).`
+            : 'Die Auflageseite hat keine lesbaren Planbilder geliefert.',
+        plan_blaetter: gesamt > 0 ? { gelesen: 0, gesamt } : null
       })
       return { status: 'nicht_lesbar', befunde: [], fazit: '', blaetter: 0 }
     }
@@ -147,15 +172,23 @@ export async function lesePlaene(
       (b) => `${b.aussage} (Blatt ${b.blatt} von ${bilder.length})`
     )
 
+    // The honest denominator: what was read of what the file holds. Rides on
+    // the row so the desk shows it and the article states it — a Meldung from
+    // four of five sheets must not read as if it saw all five.
+    const fazit =
+      ausgelassen === 0
+        ? lesung.fazit
+        : `${lesung.fazit} ${ausgelassen} von ${gesamt} Blättern wurden nicht gelesen (${grund}).`
     await kontext.meldungen.updateOne(zeile.id, {
       plan_status: 'gelesen',
       planbefunde: befunde,
-      plan_fazit: lesung.fazit
+      plan_fazit: fazit,
+      plan_blaetter: { gelesen: bilder.length, gesamt }
     })
     return {
       status: 'gelesen',
       befunde,
-      fazit: lesung.fazit,
+      fazit,
       blaetter: bilder.length
     }
   } catch (fehler) {

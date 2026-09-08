@@ -398,6 +398,13 @@ export interface Verein {
   externe_id: string | null
   ergebnis_url: string | null
   /**
+   * Numbers the editor accepted by publishing a report that still carried the
+   * warning — the year in a club name is the measured case. Written by the
+   * meldung-status hook, read by the match-report checks; per club, so a wrong
+   * acceptance never travels further than its own desk.
+   */
+  akzeptierte_zahlen: string[] | null
+  /**
    * False only for clubs a connector proposed. Nothing proposes yet — every
    * club today is either seeded or typed in from the Gemeinden tab, and both
    * arrive confirmed. The flag is the affordance waiting for that connector.
@@ -763,6 +770,13 @@ export interface Amtsblattmeldung {
   planbefunde: string[] | null
   plan_status: PlanStatus
   plan_fazit: string | null
+  /**
+   * Sheets read of sheets the file holds. Unequal means some were left out —
+   * the API takes no image over 8000 pixels an edge, and scans compress too
+   * well for the byte cap to catch them. The article's honesty note is built
+   * from this, never from the model.
+   */
+  plan_blaetter: { gelesen: number; gesamt: number } | null
   /** The triage's verdict. Null means "not judged yet" — NOT "no". */
   vorschlag: boolean | null
   vorschlag_begruendung: string | null

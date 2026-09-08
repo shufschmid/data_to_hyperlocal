@@ -234,6 +234,34 @@ describe('parseInhalt', () => {
       "Der Einwohnerrat bewilligt CHF 1'180'000."
     )
   })
+
+  // indexOf() === -1 machte frueher slice(-1) daraus: das LETZTE ZEICHEN des
+  // Dokuments — leere Angaben, keine Frist, und eine leere Personenliste, also
+  // der Privatpersonen-Schutz weg, alles ohne einen Laut. Ein Fehler, kein
+  // leeres Ergebnis.
+  it('wirft, wenn das content-Element fehlt', () => {
+    expect(() => parseInhalt('<publication><meta/></publication>')).toThrow(
+      /content/
+    )
+  })
+
+  it('vertraegt ein content-Element mit Attributen', () => {
+    const xml = `<content xmlns="https://example.org/ns"><publicationText>Text da.</publicationText></content>`
+    expect(parseInhalt(xml).angaben).toContainEqual({
+      bezeichnung: 'publicationText',
+      wert: 'Text da.'
+    })
+  })
+
+  // Im XML steht ein Query-String als ?id=1&amp;zone=2 — das alte Muster
+  // schnitt am ersten Parameter ab, und die verstuemmelte Adresse stand als
+  // Unterlagen-Link unter publizierten Meldungen.
+  it('liest eine Adresse mit Query-Parametern ganz', () => {
+    const xml = `<content><a><de>https://files.example.ch/doc?id=1&amp;zone=2</de></a></content>`
+    const urls = parseInhalt(xml).unterlagen.map((u) => u.url)
+
+    expect(urls).toContain('https://files.example.ch/doc?id=1&zone=2')
+  })
 })
 
 describe('planBilder', () => {

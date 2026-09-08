@@ -19,7 +19,9 @@ import {
   quellenLaufText,
   resultat,
   seitenLink,
-  teileSpiele,
+  datensatzLink,
+  ordneSpiele,
+  reinerText,
   vereineNachGemeinde,
   nachQuartal,
   statusFarbe,
@@ -188,41 +190,63 @@ describe('filterGemeinden', () => {
   })
 })
 
-describe('teileSpiele', () => {
+describe('ordneSpiele', () => {
   const jetzt = new Date('2026-08-20T12:00:00Z')
-  const spiel = (datum: string) => ({ datum })
+  const spiel = (datum: string, tore: [number, number] | null = null) => ({
+    datum,
+    tore_heim: tore === null ? null : tore[0],
+    tore_gast: tore === null ? null : tore[1]
+  })
 
-  it('trennt an der Uhr und sortiert von der Gegenwart weg', () => {
-    const { vergangen, kommend } = teileSpiele(
+  it('legt frische Resultate zuoberst, das neueste zuerst', () => {
+    const { aktuelle } = ordneSpiele(
+      [spiel('2026-08-18T18:00:00Z', [1, 0]), spiel('2026-08-19T18:00:00Z', [2, 2])],
+      jetzt
+    )
+    expect(aktuelle.map((s) => s.datum)).toEqual(['2026-08-19T18:00:00Z', '2026-08-18T18:00:00Z'])
+  })
+
+  // Ein gespieltes Match ohne publiziertes Resultat ist genau das, worauf die
+  // Redaktion wartet — es steht bei den offenen Partien, nicht bei den News.
+  it('stellt Gespieltes ohne Resultat zu den anstehenden Partien, zuoberst', () => {
+    const { aktuelle, anstehend } = ordneSpiele(
+      [spiel('2026-08-25T18:00:00Z'), spiel('2026-08-19T18:00:00Z'), spiel('2026-08-21T18:00:00Z')],
+      jetzt
+    )
+    expect(aktuelle).toEqual([])
+    expect(anstehend.map((s) => s.datum)).toEqual([
+      '2026-08-19T18:00:00Z',
+      '2026-08-21T18:00:00Z',
+      '2026-08-25T18:00:00Z'
+    ])
+  })
+
+  // Fuenf Tage, dann ist ein Resultat Geschichte — und ein Spiel, dessen
+  // Resultat nie kam, ebenso.
+  it('verschiebt Aelteres als fuenf Tage ins Archiv, das neueste zuerst', () => {
+    const { aktuelle, anstehend, archiv } = ordneSpiele(
       [
-        spiel('2026-08-18T18:00:00Z'),
-        spiel('2026-08-25T18:00:00Z'),
-        spiel('2026-08-19T18:00:00Z'),
-        spiel('2026-08-21T18:00:00Z')
+        spiel('2026-08-10T18:00:00Z', [3, 1]),
+        spiel('2026-08-14T18:00:00Z'),
+        spiel('2026-08-19T18:00:00Z', [2, 2])
       ],
       jetzt
     )
-
-    expect(vergangen.map((s) => s.datum)).toEqual(['2026-08-19T18:00:00Z', '2026-08-18T18:00:00Z'])
-    expect(kommend.map((s) => s.datum)).toEqual(['2026-08-21T18:00:00Z', '2026-08-25T18:00:00Z'])
-  })
-
-  // A finished match whose result the source has not published yet still
-  // belongs to the past — otherwise the fixture an editor is waiting for hides
-  // among the upcoming ones.
-  it('richtet sich nach dem Datum, nicht nach dem Resultat', () => {
-    const { vergangen } = teileSpiele([spiel('2026-08-20T09:00:00Z')], jetzt)
-    expect(vergangen).toHaveLength(1)
+    expect(aktuelle.map((s) => s.datum)).toEqual(['2026-08-19T18:00:00Z'])
+    expect(anstehend).toEqual([])
+    expect(archiv.map((s) => s.datum)).toEqual(['2026-08-14T18:00:00Z', '2026-08-10T18:00:00Z'])
   })
 
   it('wirft kaputte Daten weg, statt zu raten', () => {
-    const { vergangen, kommend } = teileSpiele([spiel('kein datum')], jetzt)
-    expect(vergangen).toEqual([])
-    expect(kommend).toEqual([])
+    expect(ordneSpiele([spiel('kein datum')], jetzt)).toEqual({
+      aktuelle: [],
+      anstehend: [],
+      archiv: []
+    })
   })
 
   it('vertraegt eine leere Liste', () => {
-    expect(teileSpiele([], jetzt)).toEqual({ vergangen: [], kommend: [] })
+    expect(ordneSpiele([], jetzt)).toEqual({ aktuelle: [], anstehend: [], archiv: [] })
   })
 })
 
@@ -332,6 +356,35 @@ describe('nachQuartal', () => {
   })
 })
 
+describe('reinerText', () => {
+  // data.bl.ch liefert Katalogbeschreibungen als HTML; abgeschnitten nach 220
+  // Zeichen stand "<p>" wortwoertlich im Reiter.
+  it('entfernt Tags und loest Entitaeten auf', () => {
+    expect(reinerText('<p>Radondaten &amp; Messwerte<br/>je Geb&auml;ude</p>'.replace('&auml;', 'ä'))).toBe(
+      'Radondaten & Messwerte je Gebäude'
+    )
+  })
+
+  it('macht aus leerem HTML null statt eines leeren Strings', () => {
+    expect(reinerText('<p>  </p>')).toBeNull()
+    expect(reinerText(null)).toBeNull()
+  })
+})
+
+describe('datensatzLink', () => {
+  // Dieselbe Regel wie redaktion/quelle.ts im Backend — nur der Datenteil.
+  it('kennt beide Portale', () => {
+    expect(datensatzLink('ods', '12410')).toBe('https://data.bl.ch/explore/dataset/12410/')
+    expect(datensatzLink('statbl', '10_3')).toBe('https://statistik.bl.ch/web_portal/10_3')
+  })
+
+  it('erfindet keine Adresse', () => {
+    expect(datensatzLink('ods', '')).toBeNull()
+    expect(datensatzLink(null, '12410')).toBeNull()
+    expect(datensatzLink('agenda', '12410')).toBeNull()
+  })
+})
+
 describe('zeitleiste', () => {
   const quellen = (ueber: Partial<ZeitleistenQuellen> = {}): ZeitleistenQuellen => ({
     ankuendigungen: [],
@@ -359,6 +412,38 @@ describe('zeitleiste', () => {
     portal_modified: '2026-08-12',
     bewertung: 'Relevant: …',
     ...ueber
+  })
+
+  // Der Link zu den Daten gehoert auf die Zeile, bevor irgendeine Meldung
+  // existiert — und die Katalogbeschreibung ohne ihr rohes HTML.
+  it('verlinkt den Datensatz und bereinigt die Beschreibung', () => {
+    const { datiert } = zeitleiste(
+      quellen({
+        datensaetze: [
+          datensatz({
+            externe_id: '12410',
+            quelle: { typ: 'ods' },
+            beschreibung: '<p>Radondaten je Gebäude</p>'
+          })
+        ]
+      })
+    )
+    expect(datiert[0]?.link).toBe('https://data.bl.ch/explore/dataset/12410/')
+    expect(datiert[0]?.beschreibung).toBe('Radondaten je Gebäude')
+  })
+
+  it('verlinkt beim Agenda-Eintrag den Artikel des Amts vor den Daten', () => {
+    const { datiert } = zeitleiste(
+      quellen({
+        ankuendigungen: [
+          agenda({
+            link: 'https://www.baselland.ch/artikel',
+            datensatz: { id: 'd1', hat_gemeinde: true, externe_id: '12410', quelle: { typ: 'ods' } }
+          })
+        ]
+      })
+    )
+    expect(datiert[0]?.link).toBe('https://www.baselland.ch/artikel')
   })
 
   it('mischt die drei Quellen und sortiert neueste zuerst', () => {

@@ -6,8 +6,12 @@ import { isAuthenticated, type ApiRequest } from '../../shared/http'
 import { drain, eroeffneLaeufe, type DrainKontext } from '../../redaktion/drain'
 import {
   buildSpielberichtRevision,
+  linkWarnungen as spielLinkWarnungen,
+  mitQuelle as mitSpielQuelle,
+  ohneQuelle,
   parseSpielbericht,
   SPIELBERICHT_SYSTEM_PROMPT,
+  verbandsQuelle,
   zahlWarnungen,
   zeitWarnungen
 } from '../../redaktion/spielbericht'
@@ -169,6 +173,13 @@ const UngueltigeEntscheidung = createError(
   'INVALID_DECISION',
   'Die Entscheidung muss "ja" oder "nein" sein.',
   400
+)
+// A refusal, not a degradation: writing a Meldung from title and date alone
+// produces a text that reads complete and is not.
+const AngabenFehlen = createError(
+  'ANGABEN_FEHLEN',
+  'Die Angaben der Publikation liessen sich nicht laden — ohne sie wird keine Meldung geschrieben. Später noch einmal versuchen.',
+  422
 )
 
 const LeererTitel = createError(
@@ -1028,10 +1039,13 @@ export default defineEndpoint(
 
       const zeile = await ladeSendungsZeile(kandidatId, undefined)
       const fakten = sendungsFakten(zeile)
+      const volltext = sendungsVolltext(zeile)
       const { bericht, warnungen } = await sendungMitChecks(
         fakten,
-        sendungsVolltext(zeile),
-        buildSendungRevision(fakten, meldung, anweisung)
+        volltext,
+        // Same rule as the press review: the revision may consult the whole
+        // transcript, the overlap check keeps it in the newsroom's own words.
+        buildSendungRevision(fakten, meldung, anweisung, volltext)
       )
 
       await meldungen.updateOne(meldung.id, {
@@ -1283,6 +1297,7 @@ export default defineEndpoint(
       personen: string[] | null
       planbefunde: string[] | null
       plan_status: string
+      plan_blaetter: { gelesen: number; gesamt: number } | null
       pdf_url: string | null
       entscheid: string
       vorschlag_begruendung: string | null
@@ -1306,6 +1321,7 @@ export default defineEndpoint(
       'personen',
       'planbefunde',
       'plan_status',
+      'plan_blaetter',
       'pdf_url',
       'entscheid',
       'vorschlag_begruendung',
@@ -1326,6 +1342,7 @@ export default defineEndpoint(
         frist: zeile.frist,
         angaben: zeile.angaben ?? [],
         planbefunde: zeile.planbefunde ?? [],
+        blaetter: zeile.plan_blaetter ?? null,
         personen: zeile.personen ?? [],
         pdfUrl: zeile.pdf_url ?? '',
         unterlage: artikelUnterlage(zeile.unterlagen ?? [])
@@ -1595,6 +1612,15 @@ export default defineEndpoint(
               )
             }
             zeile = await ladeAmtsblattZeile(id, req.accountability)
+          }
+
+          // No article from a bare title. If the recovery above still could
+          // not fill the facts (simap detail unreachable, gazette XML
+          // unreadable), the honest answer is a refusal: a Meldung written
+          // from title and date alone READS complete and is not — the
+          // newsroom's rule is to not solve the task and say so.
+          if (zeile.angaben === null || zeile.angaben.length === 0) {
+            throw new AngabenFehlen()
           }
 
           const fakten = amtsblattFakten(zeile)
@@ -4221,6 +4247,8 @@ export default defineEndpoint(
       fakten: PresseschauFakten
       gemeindeId: string
       volltext: string | null
+      /** The candidate's page as printed — the original a revision may consult. */
+      quelltext: string | null
     }
 
     /** Candidate, issue and paper in one read — the facts a press review runs on. */
@@ -4245,6 +4273,7 @@ export default defineEndpoint(
           'ausgabe.datum',
           'ausgabe.pdf_url',
           'ausgabe.volltext',
+          'ausgabe.seiten_texte',
           'ausgabe.wochenblatt.name',
           'ausgabe.wochenblatt.gemeinde.id',
           'ausgabe.wochenblatt.gemeinde.name'
@@ -4264,6 +4293,7 @@ export default defineEndpoint(
           datum: string | null
           pdf_url: string | null
           volltext: string | null
+          seiten_texte: string[] | null
           wochenblatt: { name: string; gemeinde: { id: string; name: string } }
         }
       }
@@ -4281,9 +4311,27 @@ export default defineEndpoint(
       const gemeinde =
         kandidat.gemeinde ?? kandidat.ausgabe.wochenblatt.gemeinde
 
+      // The page the piece stands on — a front-page candidate carries no page
+      // number, but the front IS page one. The FOLLOWING page rides along,
+      // because a Reportage regularly runs over: a revision handed only page 8
+      // of an 8–9 piece answers "was stand dort?" from half the original.
+      const seite = kandidat.seite ?? (kandidat.frontseite ? 1 : null)
+      const seitenTexte = kandidat.ausgabe.seiten_texte ?? []
+      const quelltextTeile: string[] = []
+      if (seite !== null) {
+        for (const n of [seite, seite + 1]) {
+          const text = seitenTexte[n - 1]
+          if (typeof text === 'string' && text.trim() !== '') {
+            quelltextTeile.push(`— Seite ${n} —\n${text}`)
+          }
+        }
+      }
+
       return {
         gemeindeId: gemeinde.id,
         volltext: kandidat.ausgabe.volltext,
+        quelltext:
+          quelltextTeile.length === 0 ? null : quelltextTeile.join('\n\n'),
         fakten: {
           blatt: kandidat.ausgabe.wochenblatt.name,
           nummer: kandidat.ausgabe.nummer ?? kandidat.ausgabe.schluessel,
@@ -4388,7 +4436,14 @@ export default defineEndpoint(
       const { bericht, warnungen } = await presseschauMitChecks(
         geladen.fakten,
         geladen.volltext,
-        buildPresseschauRevision(geladen.fakten, meldung, anweisung)
+        // The revision sees the page as printed — an instruction must be
+        // answerable from the whole original, not from the fact summary alone.
+        buildPresseschauRevision(
+          geladen.fakten,
+          meldung,
+          anweisung,
+          geladen.quelltext
+        )
       )
 
       await meldungen.updateOne(meldung.id, {
@@ -4524,11 +4579,15 @@ export default defineEndpoint(
           'tore_gast',
           'wettbewerb',
           'ort',
+          'quelle_url',
           'gemeinde.name',
           'verein.id',
           'verein.name',
           'verein.liga',
-          'verein.notiz'
+          'verein.notiz',
+          'verein.quelle',
+          'verein.ergebnis_url',
+          'verein.akzeptierte_zahlen'
         ]
       })) as {
         id: string
@@ -4539,12 +4598,16 @@ export default defineEndpoint(
         tore_gast: number | null
         wettbewerb: string
         ort: string | null
+        quelle_url: string | null
         gemeinde: { name: string }
         verein: {
           id: string
           name: string
           liga: string | null
           notiz: string | null
+          quelle: string | null
+          ergebnis_url: string | null
+          akzeptierte_zahlen: string[] | null
         }
       }
 
@@ -4581,6 +4644,7 @@ export default defineEndpoint(
         gemeinde: spiel.gemeinde.name,
         liga: spiel.verein.liga,
         notiz: spiel.verein.notiz,
+        quelle: verbandsQuelle(spiel.verein, spiel.quelle_url),
         frueher: frueherRoh.map((f) => ({
           datum: f.datum,
           heim: f.heim,
@@ -4592,21 +4656,29 @@ export default defineEndpoint(
 
       const antwort = await completeJson<unknown>({
         system: SPIELBERICHT_SYSTEM_PROMPT,
-        prompt: buildSpielberichtRevision(fakten, meldung, anweisung),
+        prompt: buildSpielberichtRevision(
+          fakten,
+          { ...meldung, text: ohneQuelle(meldung.text) },
+          anweisung
+        ),
         maxTokens: 1200
       })
       const bericht = parseSpielbericht(antwort)
 
-      const alles = `${bericht.titel} ${bericht.lead} ${bericht.text}`
+      // The checks run on the model's own text — before the source line is
+      // appended, whose digits and address are nobody's claim.
+      const alles = `${bericht.titel} ${bericht.text}`
       const hinweise = [
         ...zeitWarnungen(alles),
-        ...zahlWarnungen(alles, fakten)
+        ...zahlWarnungen(alles, fakten, spiel.verein.akzeptierte_zahlen ?? []),
+        ...spielLinkWarnungen(alles)
       ]
 
       await meldungen.updateOne(meldung.id, {
         titel: bericht.titel,
-        lead: bericht.lead,
-        text: bericht.text,
+        // The short form has no lead; a legacy lead is cleared with the rewrite.
+        lead: null,
+        text: mitSpielQuelle(bericht.text, fakten),
         zeit_warnungen: hinweise.length > 0 ? hinweise : null,
         verarbeitung: 'idle',
         anweisung: null,

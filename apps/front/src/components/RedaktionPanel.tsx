@@ -149,7 +149,10 @@ async function aktion(pfad: string, body?: unknown): Promise<AktionErgebnis> {
 
   if (!antwort.ok) {
     return {
-      fehler: inhalt?.errors?.[0]?.message ?? 'Das hat nicht geklappt.',
+      // Mit HTTP-Status, wenn der Server keinen Grund nennt: ein "502" heisst
+      // Proxy oder Deploy dazwischen, ein "500" heisst Backend — ohne die Zahl
+      // ist die Meldung nicht diagnostizierbar, und genau so eine kam vor.
+      fehler: inhalt?.errors?.[0]?.message ?? `Das hat nicht geklappt (HTTP ${antwort.status}).`,
       // 401 kommt hier ausschliesslich aus dem eigenen Proxy und heisst immer
       // dasselbe: angemeldet ist niemand mehr.
       sitzungBeendet: antwort.status === 401
@@ -895,8 +898,8 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
       {reiter === 'sport' && (
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
-            Resultate und kommende Begegnungen der erfassten Vereine — nur Aktivmannschaften, kein Nachwuchs
-            und keine Testspiele. Wird täglich aus dem Match Center des Verbands nachgeführt.
+            Resultate und kommende Begegnungen der erfassten Vereine — nur die erste Mannschaft je Verein,
+            kein Nachwuchs und keine Testspiele. Wird täglich aus dem Match Center des Verbands nachgeführt.
           </Typography>
           <Sportresultate
             spiele={spiele.data?.spiele ?? []}

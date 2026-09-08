@@ -204,9 +204,18 @@ export async function ladeReihe(
   const zeilen: StatblZeile[] = [...aktuell.zeilen]
   const uebersprungen: string[] = []
 
-  const frueher = aktuell.jahre
-    .filter((jahr) => jahr !== aktuell.jahr)
-    .slice(0, hoechstens - 1)
+  const alleFrueheren = aktuell.jahre.filter((jahr) => jahr !== aktuell.jahr)
+  const frueher = alleFrueheren.slice(0, hoechstens - 1)
+
+  // The cap itself is reported like a failed year — a series that quietly
+  // starts fourteen editions back would let "seit …" claims stand on a window
+  // nobody chose. `jahre` is newest-first, so what falls off is the oldest.
+  if (alleFrueheren.length > frueher.length) {
+    const aeltester = frueher[frueher.length - 1] ?? aktuell.jahr
+    uebersprungen.push(
+      `${alleFrueheren.length - frueher.length} Jahrgaenge vor ${aeltester} nicht gelesen (Deckel ${hoechstens})`
+    )
+  }
 
   for (const jahr of frueher) {
     try {

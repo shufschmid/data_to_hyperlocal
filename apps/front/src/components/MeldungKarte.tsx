@@ -40,6 +40,12 @@ export interface MeldungKarteProps {
    * wrong newsletter, which is why it is not the default.
    */
   sofortPublizierbar?: boolean
+  /**
+   * Verkleinert, fuer die Karte IN einer Liste: der Sport-Reiter zeigt Gemeinde
+   * und Status schon als Chips auf der Spielzeile, also faellt der Kopf weg und
+   * die Karte rueckt enger zusammen. Chat und Aktionen bleiben vollstaendig.
+   */
+  kompakt?: boolean
 }
 
 export function MeldungKarte({
@@ -48,7 +54,8 @@ export function MeldungKarte({
   onAktion,
   laeuft = false,
   erscheintAm = null,
-  sofortPublizierbar = false
+  sofortPublizierbar = false,
+  kompakt = false
 }: MeldungKarteProps) {
   const [anweisung, setAnweisung] = useState('')
   const [offen, setOffen] = useState(false)
@@ -70,17 +77,28 @@ export function MeldungKarte({
   }
 
   return (
-    <Paper sx={{ p: 3 }}>
-      <Stack spacing={2}>
-        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
-          <Typography variant="h2" component="h2" sx={{ fontSize: '1.1rem' }}>
-            {meldung.gemeinde?.name ?? 'Ohne Gemeinde'}
-          </Typography>
-          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-            {beschaeftigt && <CircularProgress size={16} />}
-            <Chip size="small" label={statusText(meldung.status)} color={statusFarbe(meldung.status)} />
+    <Paper sx={{ p: kompakt ? 2 : 3 }} variant={kompakt ? 'outlined' : 'elevation'}>
+      <Stack spacing={kompakt ? 1.5 : 2}>
+        {kompakt ? (
+          beschaeftigt && (
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+              <CircularProgress size={14} />
+              <Typography variant="caption" color="text.secondary">
+                Wird überarbeitet …
+              </Typography>
+            </Stack>
+          )
+        ) : (
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography variant="h2" component="h2" sx={{ fontSize: '1.1rem' }}>
+              {meldung.gemeinde?.name ?? 'Ohne Gemeinde'}
+            </Typography>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+              {beschaeftigt && <CircularProgress size={16} />}
+              <Chip size="small" label={statusText(meldung.status)} color={statusFarbe(meldung.status)} />
+            </Stack>
           </Stack>
-        </Stack>
+        )}
 
         {/* Warnings sit above the text, because the point of them is to be seen
             before the article is judged. */}
@@ -98,12 +116,20 @@ export function MeldungKarte({
           </Typography>
         ) : (
           <>
-            <Typography variant="h3" component="h3" sx={{ fontSize: '1rem', fontWeight: 700 }}>
+            <Typography
+              variant="h3"
+              component="h3"
+              sx={{ fontSize: kompakt ? '0.95rem' : '1rem', fontWeight: 700 }}
+            >
               {meldung.titel}
             </Typography>
-            <Typography variant="body1" sx={{ fontWeight: 500 }}>
-              {meldung.lead}
-            </Typography>
+            {/* Ein Spielbericht hat bewusst keinen Lead — dann auch kein leeres
+                Element, das nur Abstand kostet. */}
+            {meldung.lead !== null && meldung.lead.trim() !== '' && (
+              <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                {meldung.lead}
+              </Typography>
+            )}
             <Artikeltext text={meldung.text} abstand={0} />
           </>
         )}

@@ -1,8 +1,11 @@
 import { completeJson, type MessageSender } from '../shared/claude'
 import {
   buildSpielberichtPrompt,
+  linkWarnungen,
+  mitQuelle,
   parseSpielbericht,
   SPIELBERICHT_SYSTEM_PROMPT,
+  verbandsQuelle,
   zahlWarnungen,
   zeitWarnungen
 } from './spielbericht'
@@ -36,12 +39,18 @@ export interface SpielZeile {
   tore_gast: number | null
   wettbewerb: string
   ort: string | null
+  /** The page the fixture was read from — the fallback address for the source line. */
+  quelle_url: string | null
   gemeinde: { id: string; name: string }
   verein: {
     id: string
     name: string
     liga: string | null
     notiz: string | null
+    quelle: string | null
+    ergebnis_url: string | null
+    /** Numbers the editor accepted by publishing past the warning. */
+    akzeptierte_zahlen: string[] | null
   }
 }
 
@@ -72,12 +81,16 @@ const SPIEL_FELDER = [
   'tore_gast',
   'wettbewerb',
   'ort',
+  'quelle_url',
   'gemeinde.id',
   'gemeinde.name',
   'verein.id',
   'verein.name',
   'verein.liga',
-  'verein.notiz'
+  'verein.notiz',
+  'verein.quelle',
+  'verein.ergebnis_url',
+  'verein.akzeptierte_zahlen'
 ]
 
 /**
@@ -105,10 +118,11 @@ export async function schreibeSpielberichte(
     limit: -1
   })) as SpielZeile[]
 
-  // Only the first team gets an article. A village club fields four, and three
-  // reports about "SC Binningen" on one Saturday — 0:2, 0:12, 7:0 — are noise,
-  // not reporting; nothing in the data even says which team is which. The
-  // fixtures stay stored and visible, this is about what gets written.
+  // Only the first team gets an article — the same rule the connector now
+  // applies at the door, repeated here because this is not only reached from
+  // there. Rows of a club the newsroom has since switched off are never pruned
+  // (the run only walks active clubs), and a fixture spared from pruning
+  // because something was already written about it is still here too.
   //
   // Decided per club over ALL its stored matches, not per pass: which league is
   // the club's best cannot be read off the handful that happen to be waiting.
@@ -165,6 +179,7 @@ export async function schreibeSpielberichte(
         gemeinde: spiel.gemeinde.name,
         liga: spiel.verein.liga,
         notiz: spiel.verein.notiz,
+        quelle: verbandsQuelle(spiel.verein, spiel.quelle_url),
         frueher
       }
 
@@ -178,18 +193,24 @@ export async function schreibeSpielberichte(
       )
       const bericht = parseSpielbericht(antwort)
 
-      const ganzerText = `${bericht.titel} ${bericht.lead} ${bericht.text}`
+      const ganzerText = `${bericht.titel} ${bericht.text}`
       const warnungen = [
         ...zeitWarnungen(ganzerText),
-        ...zahlWarnungen(ganzerText, fakten)
+        ...zahlWarnungen(
+          ganzerText,
+          fakten,
+          spiel.verein.akzeptierte_zahlen ?? []
+        ),
+        ...linkWarnungen(ganzerText)
       ]
 
       await kontext.meldungen.createOne({
         spiel: spiel.id,
         gemeinde: spiel.gemeinde.id,
         titel: bericht.titel,
-        lead: bericht.lead,
-        text: bericht.text,
+        // A match report is a short notice and deliberately has no lead.
+        lead: null,
+        text: mitQuelle(bericht.text, fakten),
         status: 'entwurf',
         verarbeitung: 'idle',
         zeit_warnungen: warnungen.length > 0 ? warnungen : null,
@@ -202,7 +223,8 @@ export async function schreibeSpielberichte(
           tore_heim: spiel.tore_heim,
           tore_gast: spiel.tore_gast,
           wettbewerb: spiel.wettbewerb,
-          datum: spiel.datum
+          datum: spiel.datum,
+          quelle_url: fakten.quelle?.url ?? null
         }
       })
       erzeugt += 1

@@ -34,17 +34,21 @@ export function istUebergangErlaubt(
   return (UEBERGAENGE[von] ?? []).includes(nach)
 }
 
-/** Fields an article must have before it may go out at all. */
+/**
+ * Fields an article must have before it may go out at all.
+ *
+ * A match report deliberately has no lead — it is a short notice, one
+ * paragraph under a title. Everything else still needs all three.
+ */
 export function hatInhalt(
-  meldung: Pick<Meldung, 'titel' | 'lead' | 'text'>
+  meldung: Pick<Meldung, 'titel' | 'lead' | 'text' | 'spiel'>
 ): boolean {
+  const gefuellt = (wert: string | null): boolean =>
+    typeof wert === 'string' && wert.trim() !== ''
   return (
-    typeof meldung.titel === 'string' &&
-    meldung.titel.trim() !== '' &&
-    typeof meldung.lead === 'string' &&
-    meldung.lead.trim() !== '' &&
-    typeof meldung.text === 'string' &&
-    meldung.text.trim() !== ''
+    gefuellt(meldung.titel) &&
+    gefuellt(meldung.text) &&
+    (meldung.spiel !== null || gefuellt(meldung.lead))
   )
 }
 
@@ -68,8 +72,34 @@ export interface Pruefung {
 
 export type MeldungZustand = Pick<
   Meldung,
-  'status' | 'titel' | 'lead' | 'text' | 'entscheidung' | 'freigegeben_am'
+  | 'status'
+  | 'titel'
+  | 'lead'
+  | 'text'
+  | 'entscheidung'
+  | 'freigegeben_am'
+  | 'spiel'
 >
+
+/**
+ * Whether a match report carries the page its result stands on.
+ *
+ * The newsroom's rule, and a narrow one: a reader who wants to check a score
+ * has to be able to. Every other feed's article names a source the reader can
+ * open — the gazette's PDF, the paper's page, the dataset — and a match report
+ * was the one kind that did not.
+ *
+ * The address is appended by code (`spielbericht.ts`), so a report written
+ * after this rule always has it. What this catches is the drafts that predate
+ * it and the one club whose page we never learned; the way out is the chat,
+ * which rewrites the report and puts the line back underneath.
+ */
+export function hatQuellenlink(
+  meldung: Pick<Meldung, 'spiel' | 'text'>
+): boolean {
+  if (meldung.spiel === null) return true
+  return /https?:\/\//i.test(meldung.text ?? '')
+}
 
 /**
  * Whether a message may move from its current state to `nach`.
@@ -116,6 +146,14 @@ export function pruefeUebergang(
         aktuell.entscheidung === null
           ? 'Es liegt noch keine Rueckmeldung aus der Gegenpruefung vor.'
           : 'Die Rueckmeldung aus der Gegenpruefung ist keine eindeutige Freigabe.'
+    }
+  }
+
+  if (nach === 'publiziert' && !hatQuellenlink(aktuell)) {
+    return {
+      erlaubt: false,
+      grund:
+        'Dem Spielbericht fehlt der Link auf die Verbandsseite. Lass ihn im Chat ueberarbeiten — die Quelle kommt dann automatisch darunter.'
     }
   }
 

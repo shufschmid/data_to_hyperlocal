@@ -3,8 +3,15 @@ import {
   absolutesDatum,
   buildSpielberichtPrompt,
   buildSpielberichtRevision,
+  linkWarnungen,
+  mitQuelle,
   nurDasResultat,
+  ohneQuelle,
+  quelleZeile,
+  gelernteZahlen,
+  parseMeldungstext,
   parseSpielbericht,
+  verbandsQuelle,
   zahlWarnungen,
   zeitWarnungen,
   type SpielFakten
@@ -23,6 +30,10 @@ const FAKTEN: SpielFakten = {
   gemeinde: 'Riehen',
   liga: null,
   notiz: 'Der groesste Fussballverein der Gemeinde.',
+  quelle: {
+    name: 'Fussballverband Nordwestschweiz',
+    url: 'https://www.fvnws.ch/verein/default.aspx?v=12345'
+  },
   frueher: []
 }
 
@@ -85,7 +96,9 @@ describe('buildSpielberichtPrompt', () => {
         }
       ]
     })
-    expect(p).toContain('Frueher in dieser Saison:')
+    expect(p).toContain(
+      'Frueher in dieser Saison (nur die letzten 5 Resultate):'
+    )
     expect(p).toContain('FC Amicitia Riehen 2:1 FC Aesch')
   })
 
@@ -133,7 +146,7 @@ describe('Kuerze, wenn nur das Resultat bekannt ist', () => {
   it('verlangt im kargen Fall zwei bis drei Saetze', () => {
     const prompt = buildSpielberichtPrompt(KARG)
     expect(prompt).toContain('SEHR kurz')
-    expect(prompt).toContain('zwei bis drei Saetzen')
+    expect(prompt).toContain('zwei bis drei Saetze')
   })
 
   it('sagt sonst nichts von Kuerze — der Normalfall bleibt unveraendert', () => {
@@ -142,18 +155,36 @@ describe('Kuerze, wenn nur das Resultat bekannt ist', () => {
 })
 
 describe('parseSpielbericht', () => {
-  it('nimmt eine vollstaendige Antwort', () => {
+  it('nimmt eine vollstaendige Antwort — Titel und ein Absatz, kein Lead', () => {
+    expect(parseSpielbericht({ titel: 'T', text: 'Ein Absatz.' })).toEqual({
+      titel: 'T',
+      text: 'Ein Absatz.'
+    })
+  })
+
+  // Die alte Form hatte einen Lead; faellt das Modell zurueck, kostet das ein
+  // Feld und nicht den ganzen Bericht.
+  it('ignoriert einen mitgelieferten Lead', () => {
     expect(
       parseSpielbericht({ titel: 'T', lead: 'L', text: 'Ein Absatz.' })
-    ).toEqual({ titel: 'T', lead: 'L', text: 'Ein Absatz.' })
+    ).toEqual({ titel: 'T', text: 'Ein Absatz.' })
   })
 
   it('weist eine unvollstaendige Antwort zurueck, statt sie zu flicken', () => {
-    expect(() => parseSpielbericht({ titel: 'T', lead: 'L' })).toThrow(/text/)
-    expect(() =>
-      parseSpielbericht({ titel: '  ', lead: 'L', text: 'x' })
-    ).toThrow(/titel/)
+    expect(() => parseSpielbericht({ titel: 'T' })).toThrow(/text/)
+    expect(() => parseSpielbericht({ titel: '  ', text: 'x' })).toThrow(/titel/)
     expect(() => parseSpielbericht(null)).toThrow()
+  })
+})
+
+describe('parseMeldungstext', () => {
+  // Presseschau, Amtsblatt und Sendung antworten weiterhin dreiteilig und
+  // re-exportieren diesen Parser unter eigenem Namen.
+  it('verlangt alle drei Teile', () => {
+    expect(
+      parseMeldungstext({ titel: 'T', lead: 'L', text: 'Ein Absatz.' })
+    ).toEqual({ titel: 'T', lead: 'L', text: 'Ein Absatz.' })
+    expect(() => parseMeldungstext({ titel: 'T', text: 'x' })).toThrow(/lead/)
   })
 })
 
@@ -251,5 +282,118 @@ describe('buildSpielberichtRevision', () => {
       'x'
     )
     expect(p).toContain('Titel: ')
+  })
+})
+
+describe('zahlWarnungen — Ziffern aus den Angaben selbst', () => {
+  // Die Jahreszahl im Vereinsnamen und die Platznummer im Spielort SIND
+  // Angaben. Sie zu melden lehrte die Redaktion nur, die Warnung zu ueberlesen.
+  it('erlaubt Zahlen, die in den uebergebenen Texten stehen', () => {
+    const fakten: SpielFakten = {
+      ...FAKTEN,
+      heim: 'FC Concordia 1907',
+      ort: 'Platz 3, Reinach',
+      notiz: 'Seit 1921 der Verein des Dorfs.'
+    }
+    const text = 'Der FC Concordia 1907 spielte auf Platz 3 — wie seit 1921.'
+    expect(zahlWarnungen(text, fakten)).toEqual([])
+  })
+
+  it('erlaubt, was die Redaktion frueher akzeptiert hat', () => {
+    expect(zahlWarnungen('Um 20 Uhr war Schluss.', FAKTEN)).toEqual([
+      'Zahl "20" steht nicht in den Angaben.'
+    ])
+    expect(zahlWarnungen('Um 20 Uhr war Schluss.', FAKTEN, ['20'])).toEqual([])
+  })
+})
+
+describe('gelernteZahlen', () => {
+  // Publizieren trotz Warnung IST das Urteil der Redaktion. Nur Zahl-Warnungen
+  // lernen — ein relativer Zeitbezug ist jedes Mal von Neuem falsch.
+  it('liest die akzeptierten Zahlen aus den Warnungen einer Meldung', () => {
+    expect(
+      gelernteZahlen([
+        'Zahl "20" steht nicht in den Angaben.',
+        'Relativer Zeitbezug: "am samstag"',
+        'Zahl "20" steht nicht in den Angaben.'
+      ])
+    ).toEqual(['20'])
+  })
+
+  it('vertraegt null und fremde Texte', () => {
+    expect(gelernteZahlen(null)).toEqual([])
+    expect(gelernteZahlen(['Irgendein Fehler'])).toEqual([])
+  })
+})
+
+describe('verbandsQuelle', () => {
+  // Die "what's on"-Seite schaut nur nach vorn: eine Woche spaeter steht das
+  // Spiel nicht mehr darauf. Die Vereinsseite behaelt es — dort wird das
+  // Resultat ohnehin nachgelesen.
+  it('nimmt die Vereinsseite und nicht die Spielplanseite', () => {
+    expect(
+      verbandsQuelle(
+        { quelle: 'fvnws', ergebnis_url: 'https://www.fvnws.ch/…?v=42' },
+        'https://www.fvnws.ch/…/meisterschaft-fvnws.aspx'
+      )
+    ).toEqual({
+      name: 'Fussballverband Nordwestschweiz',
+      url: 'https://www.fvnws.ch/…?v=42'
+    })
+  })
+
+  it('faellt auf die Adresse zurueck, aus der das Spiel gelesen wurde', () => {
+    expect(
+      verbandsQuelle(
+        { quelle: 'swissvolley', ergebnis_url: null },
+        'https://www.volleyball.ch/…/team'
+      )
+    ).toEqual({ name: 'Swiss Volley', url: 'https://www.volleyball.ch/…/team' })
+  })
+
+  // Lieber keine Zeile als eine erfundene — die Regel aus `quelle.ts`.
+  it('sagt nichts, wo keine Adresse bekannt ist', () => {
+    expect(
+      verbandsQuelle({ quelle: 'handball', ergebnis_url: null }, null)
+    ).toBeNull()
+  })
+})
+
+describe('quelleZeile / mitQuelle', () => {
+  it('haengt die Quelle als eigenen Absatz an', () => {
+    expect(mitQuelle('Ein Bericht.', FAKTEN)).toBe(
+      'Ein Bericht.\n\nQuelle: Fussballverband Nordwestschweiz, https://www.fvnws.ch/verein/default.aspx?v=12345'
+    )
+  })
+
+  it('laesst den Text in Ruhe, wo es keine Adresse gibt', () => {
+    const ohne: SpielFakten = { ...FAKTEN, quelle: null }
+    expect(quelleZeile(ohne)).toBeNull()
+    expect(mitQuelle('Ein Bericht.', ohne)).toBe('Ein Bericht.')
+  })
+})
+
+describe('ohneQuelle', () => {
+  // Sonst kopiert das Modell die Zeile in die Ueberarbeitung, `linkWarnungen`
+  // meldet sie als erfundene Adresse und `mitQuelle` haengt eine zweite an.
+  it('nimmt die angehaengte Zeile vor der Ueberarbeitung wieder weg', () => {
+    expect(ohneQuelle(mitQuelle('Ein Bericht.', FAKTEN))).toBe('Ein Bericht.')
+  })
+
+  it('vertraegt einen Text ohne Quellenzeile und null', () => {
+    expect(ohneQuelle('Ein Bericht.')).toBe('Ein Bericht.')
+    expect(ohneQuelle(null)).toBeNull()
+  })
+})
+
+describe('linkWarnungen', () => {
+  it('meldet eine Adresse, die das Modell selbst geschrieben hat', () => {
+    expect(linkWarnungen('Mehr auf https://www.fcbasel.ch dazu.')).toEqual([
+      'Der Text nennt selbst eine Adresse: https://www.fcbasel.ch'
+    ])
+  })
+
+  it('schweigt zum normalen Bericht', () => {
+    expect(linkWarnungen('Der FC Reinach spielte 3:3.')).toEqual([])
   })
 })

@@ -4,6 +4,7 @@ import {
   attributionsWarnung,
   buildInventarPrompt,
   buildSendungPrompt,
+  buildSendungRevision,
   darfWeg,
   gemeindeTreffer,
   INVENTAR_SYSTEM_PROMPT,
@@ -303,5 +304,27 @@ describe('darfWeg', () => {
     expect(
       darfWeg(zeile({ date_created: '2026-08-01T09:12:00.000Z' }), '2026-08-31')
     ).toBe(true)
+  })
+})
+
+describe('buildSendungRevision', () => {
+  // Gleiche Regel wie bei der Presseschau: die Revision darf das ganze
+  // Transkript einsehen, der Ueberlappungs-Check haelt sie bei eigenen Worten.
+  it('gibt der Revision das Transkript mit, wenn eines da ist', () => {
+    const revision = buildSendungRevision(
+      fakten(),
+      { titel: 'Alt', lead: 'Alt.', text: 'Alter Text.' },
+      'Was sagte die Gemeindepraesidentin genau?',
+      'Die Gemeindepraesidentin sagte, der Kredit komme vors Volk.'
+    )
+    expect(revision).toContain('Transkript der Sendung')
+    expect(revision).toContain('vors Volk')
+
+    const ohne = buildSendungRevision(
+      fakten(),
+      { titel: 'Alt', lead: 'Alt.', text: 'Alter Text.' },
+      'Kuerzer bitte.'
+    )
+    expect(ohne).not.toContain('Transkript der Sendung')
   })
 })

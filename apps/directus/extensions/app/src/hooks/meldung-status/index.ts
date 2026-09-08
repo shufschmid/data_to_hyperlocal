@@ -1,5 +1,6 @@
 import { createError } from '@directus/errors'
 import { defineHook } from '@directus/extensions-sdk'
+import { gelernteZahlen } from '../../redaktion/spielbericht'
 import {
   inhaltGeaendert,
   pruefeUebergang,
@@ -28,9 +29,13 @@ const UebergangError = createError<{ grund: string }>(
 
 interface MeldungenService {
   readMany(keys: string[], query?: Record<string, unknown>): Promise<unknown[]>
+  updateOne(
+    key: string,
+    payload: Record<string, unknown>
+  ): Promise<string | number>
 }
 
-export default defineHook(({ filter }, { services }) => {
+export default defineHook(({ filter, action }, { services, logger }) => {
   const ItemsService = services.ItemsService as new (
     collection: string,
     options: unknown
@@ -57,7 +62,8 @@ export default defineHook(({ filter }, { services }) => {
         'text',
         'entscheidung',
         'freigegeben_am',
-        'kandidat'
+        'kandidat',
+        'spiel'
       ]
     })) as (MeldungZustand & { id: string; kandidat: string | null })[]
 
@@ -153,5 +159,59 @@ export default defineHook(({ filter }, { services }) => {
     }
 
     return ergebnis
+  })
+
+  // Learning, after the fact: a match report PUBLISHED with a number warning
+  // still on it is the editor's verdict that the number is fine — the year in
+  // the club's name is the measured case. The verdict lands on the club
+  // (`vereine.akzeptierte_zahlen`), and the next report is not flagged for the
+  // same thing. Only number warnings learn; a relative time reference is wrong
+  // afresh every time.
+  //
+  // An `action`, not part of the filter above, on purpose: it runs after the
+  // write went through, and remembering a lesson must never be able to block
+  // or fail the publish itself.
+  action('meldungen.items.update', async (meta, context) => {
+    const daten = meta['payload'] as Record<string, unknown>
+    if (daten['status'] !== 'publiziert') return
+    const keys = (meta['keys'] as string[] | undefined) ?? []
+    if (keys.length === 0) return
+
+    try {
+      const optionen = { schema: context.schema, knex: context.database }
+      const meldungen = new ItemsService('meldungen', optionen)
+      const zeilen = (await meldungen.readMany(keys, {
+        fields: ['spiel', 'zeit_warnungen']
+      })) as Array<{ spiel: string | null; zeit_warnungen: string[] | null }>
+
+      for (const zeile of zeilen) {
+        if (zeile.spiel === null) continue
+        const zahlen = gelernteZahlen(zeile.zeit_warnungen)
+        if (zahlen.length === 0) continue
+
+        const spiele = new ItemsService('spiele', optionen)
+        const [spiel] = (await spiele.readMany([zeile.spiel], {
+          fields: ['verein']
+        })) as Array<{ verein: string | null }>
+        if (spiel === undefined || spiel.verein === null) continue
+
+        const vereine = new ItemsService('vereine', optionen)
+        const [verein] = (await vereine.readMany([spiel.verein], {
+          fields: ['akzeptierte_zahlen']
+        })) as Array<{ akzeptierte_zahlen: string[] | null }>
+        const bisher = Array.isArray(verein?.akzeptierte_zahlen)
+          ? verein.akzeptierte_zahlen
+          : []
+
+        const zusammen = [...new Set([...bisher, ...zahlen])]
+        if (zusammen.length === bisher.length) continue
+        await vereine.updateOne(spiel.verein, {
+          akzeptierte_zahlen: zusammen
+        })
+      }
+    } catch (fehler) {
+      // A lost lesson costs one repeated warning — never the publish.
+      logger.warn(fehler, 'meldung-status: Zahlen nicht gelernt.')
+    }
   })
 })

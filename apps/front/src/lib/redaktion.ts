@@ -184,38 +184,55 @@ function normalisiere(text: string): string {
   return text.toLocaleLowerCase('de-CH').normalize('NFD').replace(/\p{M}/gu, '')
 }
 
-export interface SpielGruppen<T> {
-  vergangen: T[]
-  kommend: T[]
+export interface SpielAbschnitte<T> {
+  /** Played within the last days, with a result — the news of the tab. */
+  aktuelle: T[]
+  /** What is scheduled, plus what is freshly over but has no score yet. */
+  anstehend: T[]
+  /** Everything older — history, kept but out of the way. */
+  archiv: T[]
 }
 
+/** How long a played match counts as news before it moves to the archive. */
+export const AKTUELL_TAGE = 5
+
 /**
- * Splits matches into what has happened and what is still to come.
+ * The tab's three sections, in the order an editor actually works.
  *
- * The boundary is the clock, not the presence of a score: a match can be over
- * and still have no result on the source page, and calling that "kommend"
- * would quietly hide the very fixture an editor is waiting for. Past matches
- * run newest first, coming ones soonest first — both are read from the middle
- * outwards, which is where the reader's attention actually is.
+ * At the top the fresh results (newest first, at most five days old) — that is
+ * where the reports sit. Then everything still open, soonest first: the
+ * scheduled fixtures, and BEFORE them the matches that are over but have no
+ * score on the source yet, because a finished match without a published result
+ * is exactly the one the editor is waiting for. Everything older drops into the
+ * archive, newest first — a result older than five days is history, and so is a
+ * fixture whose score never arrived.
  */
-export function teileSpiele<T extends { datum: string }>(
+export function ordneSpiele<T extends { datum: string; tore_heim: number | null; tore_gast: number | null }>(
   spiele: readonly T[],
   jetzt: Date = new Date()
-): SpielGruppen<T> {
+): SpielAbschnitte<T> {
   const grenze = jetzt.getTime()
-  const vergangen: T[] = []
-  const kommend: T[] = []
+  const archivGrenze = grenze - AKTUELL_TAGE * 24 * 60 * 60 * 1000
+
+  const aktuelle: T[] = []
+  const anstehend: T[] = []
+  const archiv: T[] = []
 
   for (const spiel of spiele) {
     const zeit = new Date(spiel.datum).getTime()
     if (Number.isNaN(zeit)) continue
-    if (zeit <= grenze) vergangen.push(spiel)
-    else kommend.push(spiel)
+
+    const hatResultat = spiel.tore_heim !== null && spiel.tore_gast !== null
+    if (zeit > grenze) anstehend.push(spiel)
+    else if (zeit < archivGrenze) archiv.push(spiel)
+    else if (hatResultat) aktuelle.push(spiel)
+    else anstehend.push(spiel)
   }
 
-  vergangen.sort((a, b) => new Date(b.datum).getTime() - new Date(a.datum).getTime())
-  kommend.sort((a, b) => new Date(a.datum).getTime() - new Date(b.datum).getTime())
-  return { vergangen, kommend }
+  aktuelle.sort((a, b) => new Date(b.datum).getTime() - new Date(a.datum).getTime())
+  anstehend.sort((a, b) => new Date(a.datum).getTime() - new Date(b.datum).getTime())
+  archiv.sort((a, b) => new Date(b.datum).getTime() - new Date(a.datum).getTime())
+  return { aktuelle, anstehend, archiv }
 }
 
 /**
@@ -336,6 +353,45 @@ function sortiereQuartal<T extends { datum: string | null }>(liste: readonly T[]
 //               Datensaetze tauchen in der Agenda nie auf, ihre Meldungen lagen
 //               bisher unter „Laeufe" ohne dass irgendwo stand, woher sie kamen.
 
+/**
+ * Katalogtexte als lesbaren Satz — data.bl.ch liefert Beschreibungen als HTML.
+ *
+ * "Radondaten Gebäude BL — 186 Zeilen · <p>" stand so im Reiter: die Zeitleiste
+ * schneidet nach 220 Zeichen ab, und was uebrig blieb, war das rohe Tag. Tags
+ * fallen weg, benannte Entitaeten werden aufgeloest, Leerraum kollabiert.
+ */
+export function reinerText(html: string | null): string | null {
+  if (html === null) return null
+  const text = html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return text === '' ? null : text
+}
+
+/**
+ * Die Adresse der Daten auf dem Portal — dieselbe Regel wie `redaktion/quelle.ts`
+ * im Backend, das den Quellenlink der Artikel besitzt. Hier nur der Datenteil:
+ * die Zeitleiste verlinkt den Datensatz, nicht den Amtsartikel.
+ */
+export function datensatzLink(
+  quelleTyp: string | null | undefined,
+  externeId: string | null | undefined
+): string | null {
+  const id = (externeId ?? '').trim()
+  if (id === '') return null
+  if (quelleTyp === 'ods') return `https://data.bl.ch/explore/dataset/${encodeURIComponent(id)}/`
+  if (quelleTyp === 'statbl') return `https://statistik.bl.ch/web_portal/${encodeURIComponent(id)}`
+  return null
+}
+
 export type ZeitleistenHerkunft = 'agenda' | 'portal' | 'datensatz'
 
 export interface ZeitleistenEintrag {
@@ -352,6 +408,8 @@ export interface ZeitleistenEintrag {
   laufId: string | null
   /** Nur bei Portalzeilen: der Pfad des Zweigs. */
   pfad: string | null
+  /** Wo die Daten liegen — sichtbar, bevor irgendeine Meldung existiert. */
+  link: string | null
   /** Nur bei undatierten Agenda-Eintraegen: ihr Quartal. */
   quartal: string | null
   /** Was der Katalog sagt: Beschreibung, Rhythmus, Zeilenzahl. */
@@ -366,8 +424,14 @@ export interface ZeitleistenQuellen {
     titel: string
     datum: string | null
     quartal: string | null
+    link?: string | null
     zuordnung_hinweis: string | null
-    datensatz: { id: string; hat_gemeinde: boolean } | null
+    datensatz: {
+      id: string
+      hat_gemeinde: boolean
+      externe_id?: string | null
+      quelle?: { typ: string } | null
+    } | null
   }[]
   bereiche: readonly {
     id: string
@@ -378,6 +442,8 @@ export interface ZeitleistenQuellen {
   }[]
   datensaetze: readonly {
     id: string
+    externe_id?: string | null
+    quelle?: { typ: string } | null
     titel: string
     status: string
     hat_gemeinde: boolean
@@ -458,6 +524,9 @@ export function zeitleiste(quellen: ZeitleistenQuellen, hoechstens = 40): Zeitle
       datensatzId: a.datensatz?.id ?? null,
       laufId: a.datensatz === null ? null : (laufZu.get(a.datensatz.id) ?? null),
       pfad: null,
+      // Der Artikel des Amts, wenn die Agenda einen nennt, sonst die Daten —
+      // dieselbe Rangfolge wie der Quellenlink der Artikel.
+      link: a.link ?? datensatzLink(a.datensatz?.quelle?.typ, a.datensatz?.externe_id) ?? null,
       quartal: a.quartal,
       beschreibung: null,
       rhythmus: null,
@@ -479,6 +548,7 @@ export function zeitleiste(quellen: ZeitleistenQuellen, hoechstens = 40): Zeitle
       datensatzId: null,
       laufId: null,
       pfad: b.pfad,
+      link: `https://statistik.bl.ch/web_portal/${b.pfad}`,
       quartal: null,
       beschreibung: null,
       rhythmus: null,
@@ -501,8 +571,9 @@ export function zeitleiste(quellen: ZeitleistenQuellen, hoechstens = 40): Zeitle
       datensatzId: d.id,
       laufId: laufZu.get(d.id) ?? null,
       pfad: null,
+      link: datensatzLink(d.quelle?.typ, d.externe_id),
       quartal: null,
-      beschreibung: d.beschreibung ?? null,
+      beschreibung: reinerText(d.beschreibung ?? null),
       rhythmus: d.rhythmus ?? null,
       zeilen: d.zeilen ?? null
     })
@@ -708,13 +779,15 @@ export function bleibtAufDemTisch(entscheid: string, meldungStatus: string | nul
   return meldungStatus !== 'publiziert' && meldungStatus !== 'verworfen'
 }
 
-// --- Welche Spiele einen Bericht bekommen -----------------------------------
+// --- Welche Spiele die Redaktion ueberhaupt fuehrt --------------------------
 //
-// Spiegelt `redaktion/mannschaft.ts` im Backend, das die Regel besitzt. Die
-// Kopie steht hier, weil der Zaehler im Sport-Reiter sonst dauerhaft Spiele
-// mitzaehlt, die nie einen Bericht bekommen — der Knopf bliebe aktiv und
-// meldete jedes Mal „nichts zu tun". Dieselbe Doppelung wie bei `seitenLink`,
-// und derselbe Auftrag: aendert sich die eine Seite, aendert sich die andere.
+// Spiegelt `redaktion/mannschaft.ts` im Backend, das die Regel besitzt. Dort
+// entscheidet sie seit dem Wechsel, was ueberhaupt gespeichert wird — Frauen-
+// teams und untere Ligen standen monatelang im Reiter, ohne dass je eine
+// Meldung daraus wurde. Die Kopie hier deckt die Luecke bis zum naechsten Lauf
+// und die Vereine, die inzwischen abgeschaltet wurden und darum nicht mehr
+// aufgeraeumt werden. Dieselbe Doppelung wie bei `seitenLink`, und derselbe
+// Auftrag: aendert sich die eine Seite, aendert sich die andere.
 
 const FRAUEN_WETTBEWERB = /\b(frauen|damen|faew|ff-\d)\b/i
 
@@ -736,7 +809,8 @@ function ligaRang(wettbewerb: string): number | null {
 }
 
 /**
- * Die Spiele, aus denen ueberhaupt eine Meldung entstehen kann.
+ * Die Spiele, die auf den Tisch gehoeren — und aus denen eine Meldung
+ * entstehen kann.
  *
  * Nur die erste Mannschaft je Verein — ein Dorfverein stellt vier, und drei
  * Meldungen ueber denselben Verein an einem Samstag sind kein Bericht. Eine

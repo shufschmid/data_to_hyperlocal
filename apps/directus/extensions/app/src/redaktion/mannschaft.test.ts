@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { ersteMannschaft, istFrauenwettbewerb, ligaRang } from './mannschaft'
+import {
+  ersteMannschaft,
+  ersteMannschaftAbgleich,
+  istFrauenwettbewerb,
+  ligaRang
+} from './mannschaft'
 
 const s = (wettbewerb: string) => ({ wettbewerb })
 
@@ -100,5 +105,75 @@ describe('ersteMannschaft', () => {
 
   it('vertraegt eine leere Liste', () => {
     expect(ersteMannschaft([], null)).toEqual([])
+  })
+})
+
+describe('ersteMannschaftAbgleich', () => {
+  const neu = (wettbewerb: string) => ({ wettbewerb })
+  const alt = (id: string, wettbewerb: string) => ({ id, wettbewerb })
+
+  // Der Grund fuer die ganze Aenderung: die Frauen- und die unteren Teams
+  // standen monatelang im Reiter, ohne dass je eine Meldung daraus wurde.
+  it('nimmt gespeicherte Frauen- und Unterligaspiele wieder heraus', () => {
+    const abgleich = ersteMannschaftAbgleich(
+      [neu('Meisterschaft - 2. Liga interregional / Gruppe 3')],
+      [
+        alt('a', 'Meisterschaft - 2. Liga interregional / Gruppe 3'),
+        alt('b', 'Meisterschaft - 2. Liga (FAEW)'),
+        alt('c', 'Meisterschaft - 5. Liga / Vorrunde / Gruppe 2')
+      ],
+      '2. Liga interregional'
+    )
+    expect(abgleich.behalten).toHaveLength(1)
+    expect(abgleich.entfernen.map((s) => s.id)).toEqual(['b', 'c'])
+  })
+
+  it('schreibt gar nicht erst, was unter der ersten Mannschaft liegt', () => {
+    const abgleich = ersteMannschaftAbgleich(
+      [
+        neu('Meisterschaft - 2. Liga interregional / Gruppe 3'),
+        neu('Meisterschaft - 4. Liga / Gruppe 3'),
+        neu('Meisterschaft - Frauen 4. Liga / Vorrunde')
+      ],
+      [],
+      null
+    )
+    expect(abgleich.behalten).toEqual([
+      neu('Meisterschaft - 2. Liga interregional / Gruppe 3')
+    ])
+    expect(abgleich.entfernen).toEqual([])
+  })
+
+  // Der Grund, warum Gespeichertes ueberhaupt mitzaehlt: an einem Wochenende
+  // ohne Spiel der ersten Mannschaft waere sonst die vierte die erste — mit
+  // Resultat, Meldung und allem.
+  it('kennt die beste Liga aus dem Bestand, auch wenn sie heute nicht spielt', () => {
+    const abgleich = ersteMannschaftAbgleich(
+      [neu('Meisterschaft - 4. Liga / Gruppe 3')],
+      [alt('a', 'Meisterschaft - 2. Liga interregional / Gruppe 3')],
+      null
+    )
+    expect(abgleich.behalten).toEqual([])
+    expect(abgleich.entfernen).toEqual([])
+  })
+
+  // Sm'Aesch Pfeffingen: die eigene Mannschaft IST eine Damenmannschaft.
+  it('laesst dem Damenverein seine Spiele', () => {
+    const abgleich = ersteMannschaftAbgleich(
+      [neu('Nationalliga A (Damen)')],
+      [alt('a', 'Nationalliga A (Damen)')],
+      'Nationalliga A (Damen)'
+    )
+    expect(abgleich.behalten).toHaveLength(1)
+    expect(abgleich.entfernen).toEqual([])
+  })
+
+  it('raeumt nichts weg, wo sich nichts einordnen laesst', () => {
+    const abgleich = ersteMannschaftAbgleich(
+      [],
+      [alt('a', 'Irgendein Turnier'), alt('b', 'Anderes Turnier')],
+      null
+    )
+    expect(abgleich.entfernen).toEqual([])
   })
 })

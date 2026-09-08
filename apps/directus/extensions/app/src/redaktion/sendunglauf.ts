@@ -59,6 +59,14 @@ export interface SichtungsBeitrag {
   titel: string
   text: string
   zeitmarkeSekunden: number | null
+  /**
+   * True when no passage of the transcript could be located for this topic and
+   * `text` is only headline plus the show's own 2-3-sentence summary. The
+   * inventory prompt then LABELS it as a summary — asking the HANDELT/ERWAEHNT
+   * distinction of a text presented as "Wortlaut" that is no such thing is how
+   * a verdict gets computed on false premises.
+   */
+  nurZusammenfassung?: boolean
 }
 
 /**
@@ -151,7 +159,8 @@ export function beitraegeAusEdition(edition: {
       text: [thema.headline, thema.summary ?? '', eigenerText]
         .filter((t) => t !== '')
         .join('\n\n'),
-      zeitmarkeSekunden: thema.paragraphSeconds
+      zeitmarkeSekunden: thema.paragraphSeconds,
+      nurZusammenfassung: eigenerText === ''
     })
   }
   return beitraege
@@ -189,12 +198,41 @@ export function beitraegeAusPunkt6(edition: {
     }
   ]
   for (const thema of edition.extra_topics ?? []) {
+    const eigenerText = schnitt(thema.startSeconds, thema.endSeconds)
     beitraege.push({
       titel: thema.headline,
-      text: [thema.summary ?? '', schnitt(thema.startSeconds, thema.endSeconds)]
+      text: [thema.summary ?? '', eigenerText]
         .filter((t) => t !== '')
         .join('\n\n'),
-      zeitmarkeSekunden: thema.startSeconds
+      zeitmarkeSekunden: thema.startSeconds,
+      nurZusammenfassung: eigenerText === ''
+    })
+  }
+
+  // Everything no clip claims — before the first, between two, after the last.
+  // The Regionaljournal's main contribution keeps unclaimed text by
+  // construction; punkt6's clip marks are LITERAL start/end pairs from the
+  // page, with no guarantee of covering the show. Without this, a story in one
+  // of the gaps reached no prompt at all — the Sichtung judged a broadcast it
+  // had never fully read. (The unsegmented fallback is untouched: with no
+  // marks at all, the main slice above is already the whole show.)
+  const fenster: Array<{ von: number | null; bis: number | null }> = [
+    { von: edition.main_start_seconds, bis: edition.main_end_seconds },
+    ...(edition.extra_topics ?? []).map((t) => ({
+      von: t.startSeconds,
+      bis: t.endSeconds
+    }))
+  ]
+  const abgedeckt = (s: number): boolean =>
+    fenster.some(
+      (f) => (f.von === null || s >= f.von) && (f.bis === null || s < f.bis)
+    )
+  const rest = absaetze.filter((p) => !abgedeckt(p.seconds))
+  if (rest.length > 0) {
+    beitraege.push({
+      titel: `${edition.headline} — Sendungsteile ohne eigenes Kapitel`,
+      text: rest.map((p) => p.text).join('\n'),
+      zeitmarkeSekunden: rest[0]?.seconds ?? null
     })
   }
   return beitraege
@@ -274,7 +312,8 @@ export async function sichteBeitraege(
               titel: beitrag.titel,
               text: beitrag.text,
               sendung: bezug.quelle,
-              datum: bezug.datum
+              datum: bezug.datum,
+              nurZusammenfassung: beitrag.nurZusammenfassung
             },
             treffer,
             digest

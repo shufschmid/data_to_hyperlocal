@@ -8,6 +8,7 @@ import {
 } from '../../shared/matchcenter/parse'
 import { parseGameCenter } from '../../shared/swissvolley/parse'
 import { parseHandball } from '../../shared/handball/parse'
+import { ersteMannschaftAbgleich } from '../../redaktion/mannschaft'
 import { schreibeSpielberichte } from '../../redaktion/spielberichte'
 
 // Reads the Match Center once a day and records what our clubs are playing.
@@ -272,6 +273,81 @@ export default defineOperationApi<Optionen>({
       }
     }
 
+    const meldungenService = new ItemsService('meldungen', {
+      schema,
+      knex: database
+    })
+
+    // The first team only — and nothing else even gets stored.
+    //
+    // Decided per club over the stored rows and the newly read ones TOGETHER:
+    // today's window alone does not say which league is a club's best, and a
+    // weekend on which only the fourth team plays would otherwise promote it
+    // for a day. See `redaktion/mannschaft.ts`.
+    //
+    // It runs in both directions. What the source just delivered below the
+    // club's best league is dropped before it is written, and what is already
+    // stored below it is deleted — the women's and lower-league sides the old
+    // rule kept and never wrote a line about.
+    const gespeichert = new Map<
+      string,
+      Array<{ id: string; wettbewerb: string }>
+    >()
+    for (const spiel of (await spieleService.readByQuery({
+      fields: ['id', 'verein', 'wettbewerb'],
+      limit: -1
+    })) as Array<{ id: string; verein: string | null; wettbewerb: string }>) {
+      if (spiel.verein === null) continue
+      const bisher = gespeichert.get(spiel.verein)
+      if (bisher === undefined)
+        gespeichert.set(spiel.verein, [
+          { id: spiel.id, wettbewerb: spiel.wettbewerb }
+        ])
+      else bisher.push({ id: spiel.id, wettbewerb: spiel.wettbewerb })
+    }
+
+    const zuSchreiben: Zeile[] = []
+    const ueberzaehlig: string[] = []
+    for (const verein of vereine) {
+      const abgleich = ersteMannschaftAbgleich(
+        zeilen.filter((z) => z.verein === verein.id),
+        gespeichert.get(verein.id) ?? [],
+        verein.liga
+      )
+      zuSchreiben.push(...abgleich.behalten)
+      ueberzaehlig.push(...abgleich.entfernen.map((s) => s.id))
+    }
+    const uebersprungen = zeilen.length - zuSchreiben.length
+
+    let entfernt = 0
+    if (ueberzaehlig.length > 0) {
+      try {
+        // A fixture somebody already wrote about stays, whatever league it
+        // turned out to be in: the article points at it, and deleting the row
+        // under a published report would leave the report standing on nothing.
+        const beschrieben = (await meldungenService.readByQuery({
+          filter: { spiel: { _in: ueberzaehlig } },
+          fields: ['spiel'],
+          limit: -1
+        })) as Array<{ spiel: string }>
+        const geschont = new Set(beschrieben.map((m) => m.spiel))
+
+        const weg = ueberzaehlig.filter((id) => !geschont.has(id))
+        if (weg.length > 0) {
+          await spieleService.deleteMany(weg)
+          entfernt = weg.length
+        }
+      } catch (ausnahme) {
+        // Housekeeping must never cost the run its actual work.
+        logger.warn(ausnahme, 'sportresultate: Aufraeumen fehlgeschlagen.')
+      }
+    }
+    if (uebersprungen > 0 || entfernt > 0) {
+      logger.info(
+        `sportresultate: ${uebersprungen} Begegnung(en) nicht der ersten Mannschaft uebergangen, ${entfernt} gespeicherte entfernt.`
+      )
+    }
+
     const MIT_KONNEKTOR = new Set(['fvnws', 'swissvolley', 'handball'])
     const ohneKonnektor = [
       ...new Set(
@@ -284,7 +360,14 @@ export default defineOperationApi<Optionen>({
     let neu = 0
     let aktualisiert = 0
 
-    for (const felder of zeilen.slice(0, hoechstens)) {
+    // The work cap says when it bites — fixtures beyond it are not stored this
+    // run, and a silent cut here would read as "no match happened".
+    if (zuSchreiben.length > hoechstens) {
+      logger.warn(
+        `sportresultate: ${zuSchreiben.length - hoechstens} Begegnungen nicht gespeichert (Deckel ${hoechstens}) — naechster Lauf holt sie nach.`
+      )
+    }
+    for (const felder of zuSchreiben.slice(0, hoechstens)) {
       const begegnung = {
         toreHeim: felder.tore_heim,
         toreGast: felder.tore_gast,
@@ -345,7 +428,7 @@ export default defineOperationApi<Optionen>({
     // other scheduled call — a backlog is worked off over several mornings.
     const berichte = await schreibeSpielberichte({
       spiele: spieleService,
-      meldungen: new ItemsService('meldungen', { schema, knex: database }),
+      meldungen: meldungenService,
       logger
     })
     if (berichte.offen > 0) {
@@ -362,6 +445,8 @@ export default defineOperationApi<Optionen>({
       gefunden: zeilen.length,
       neu,
       aktualisiert,
+      uebersprungen,
+      entfernt,
       nachgetragen,
       berichte: berichte.erzeugt,
       ohneKonnektor,

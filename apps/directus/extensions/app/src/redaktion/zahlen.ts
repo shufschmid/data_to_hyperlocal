@@ -43,8 +43,15 @@ export function unbelegteProzentangaben(
   )
 }
 
-/** Pulls the percentages out of what `beschreibeEinordnung` produced. */
-export function erlaubteProzentangaben(einordnung: string): number[] {
+/**
+ * Pulls the percentages out of what `beschreibeEinordnung` produced.
+ *
+ * Null einordnung means null allowance: without a complete comparison basis
+ * there is no legitimate percentage, so every one the model writes gets
+ * flagged. This used to bless percentages derived from a 400-row sample.
+ */
+export function erlaubteProzentangaben(einordnung: string | null): number[] {
+  if (einordnung === null) return []
   return findeProzentangaben(einordnung)
 }
 

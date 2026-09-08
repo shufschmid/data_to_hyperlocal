@@ -1,6 +1,10 @@
 import type Anthropic from '@anthropic-ai/sdk'
 import { describe, expect, it, vi } from 'vitest'
-import { beitraegeAusEdition, sichteSendung } from './sendunglauf'
+import {
+  beitraegeAusEdition,
+  beitraegeAusPunkt6,
+  sichteSendung
+} from './sendunglauf'
 
 // A reprocessed edition (telebasel.ch markers arriving late, a second button
 // press) must diff like the press review's re-inventory: open candidates are
@@ -130,6 +134,10 @@ describe('beitraegeAusEdition', () => {
 
     expect(beitraege).toHaveLength(2)
     expect(beitraege[1]!.text).toBe('Unauffindbares Thema\n\nKurz.')
+    // Und es sagt, was es ist: eine Zusammenfassung, kein Wortlaut. Der
+    // Sichtungs-Prompt etikettiert danach.
+    expect(beitraege[1]!.nurZusammenfassung).toBe(true)
+    expect(beitraege[0]!.nurZusammenfassung).not.toBe(true)
     // Ohne Grenze bleibt dem Hauptbeitrag der ganze Volltext — es gibt keine
     // Passage, die ihm streitig gemacht wuerde.
     expect(beitraege[0]!.text).toContain('Sven entscheidet spontan')
@@ -139,6 +147,76 @@ describe('beitraegeAusEdition', () => {
     const beitraege = beitraegeAusEdition({ ...SENDUNG, extra_topics: [] })
     expect(beitraege).toHaveLength(1)
     expect(beitraege[0]!.text).toContain('Sven entscheidet spontan')
+  })
+})
+
+describe('beitraegeAusPunkt6', () => {
+  const EPISODE = {
+    headline: 'punkt6 vom 30.08.',
+    lead: 'Der Abend in Basel.',
+    transcript: [
+      { timestamp: '00:00:10', seconds: 10, text: 'Begruessung und Anriss.' },
+      {
+        timestamp: '00:01:00',
+        seconds: 60,
+        text: 'Hauptbeitrag ueber die Messe.'
+      },
+      {
+        timestamp: '00:03:00',
+        seconds: 180,
+        text: 'Zwischenstueck ohne eigenes Kapitel: Feuerwehr Aesch.'
+      },
+      {
+        timestamp: '00:04:00',
+        seconds: 240,
+        text: 'Kapitel zwei: Theater in Pratteln.'
+      },
+      {
+        timestamp: '00:06:00',
+        seconds: 360,
+        text: 'Verabschiedung nach dem letzten Kapitel.'
+      }
+    ],
+    extra_topics: [
+      {
+        headline: 'Theater in Pratteln',
+        startSeconds: 240,
+        endSeconds: 360,
+        summary: null
+      }
+    ],
+    main_start_seconds: 10,
+    main_end_seconds: 180
+  }
+
+  // Die Clip-Marken der Seite sind woertliche Start/Ende-Paare — nichts
+  // garantiert, dass sie die Sendung abdecken. Was kein Clip beansprucht,
+  // erreichte frueher KEINEN Prompt: eine Geschichte in der Luecke wurde nie
+  // gesichtet.
+  it('sammelt die Absaetze ein, die kein Clip beansprucht', () => {
+    const beitraege = beitraegeAusPunkt6(EPISODE)
+
+    const rest = beitraege.find((b) => b.titel.includes('ohne eigenes Kapitel'))
+    expect(rest).toBeDefined()
+    expect(rest!.text).toContain('Feuerwehr Aesch')
+    expect(rest!.text).toContain('Verabschiedung')
+    expect(rest!.zeitmarkeSekunden).toBe(180)
+    // Nichts doppelt: der Rest traegt nicht, was Haupt oder Kapitel schon haben.
+    expect(rest!.text).not.toContain('Messe')
+    expect(rest!.text).not.toContain('Theater')
+  })
+
+  // Der unsegmentierte Fallback (keine Marken) bleibt unangetastet: der
+  // Hauptbeitrag ist dann schon die ganze Sendung, ein Rest waere ein Duplikat.
+  it('erzeugt ohne Marken keinen Rest-Beitrag', () => {
+    const beitraege = beitraegeAusPunkt6({
+      ...EPISODE,
+      extra_topics: [],
+      main_start_seconds: null,
+      main_end_seconds: null
+    })
+    expect(beitraege).toHaveLength(1)
+    expect(beitraege[0]!.text).toContain('Feuerwehr Aesch')
   })
 })
 

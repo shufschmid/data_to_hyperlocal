@@ -3,12 +3,15 @@ import {
   beschreibeEinordnung,
   beschreibeKanton,
   beschreibeKantonZeitreihe,
+  beschreibeZeitreihen,
+  arbeitsmaterial,
   datengrundlage,
   duenneAus,
   findeDimensionen,
   formatZahl,
   kennzahlen,
   verdichteZeilen,
+  verworfeneKategorien,
   zeitreihen
 } from './kontext'
 
@@ -63,11 +66,49 @@ describe('findeDimensionen', () => {
   // A column with a distinct value per row is an identifier; grouping by it
   // would give every average a sample size of one.
   it('ignoriert eine Spalte mit zu vielen Auspraegungen', () => {
-    const viele = Array.from({ length: 40 }, (_, i) => ({
+    const viele = Array.from({ length: 100 }, (_, i) => ({
       vorlage_id: `v${i}`,
       wert: i
     }))
     expect(findeDimensionen(viele)).not.toContain('vorlage_id')
+  })
+
+  // Die Motorfahrzeug-Lektion: `fahrzeugart` hat ~15 Kategorien, und beim
+  // alten Deckel 12 fiel sie als Dimension weg — Mofas und Personenwagen
+  // landeten im selben Topf, der "Schnitt je Kategorie" mittelte darueber.
+  it('behaelt eine echte Kategorienspalte mit 15 Auspraegungen', () => {
+    const viele = Array.from({ length: 45 }, (_, i) => ({
+      fahrzeugart: `Art ${i % 15}`,
+      anzahl: i
+    }))
+    expect(findeDimensionen(viele)).toContain('fahrzeugart')
+  })
+})
+
+describe('verworfeneKategorien', () => {
+  const breit = Array.from({ length: 100 }, (_, i) => ({
+    adresse: `Strasse ${i}`,
+    wert: i
+  }))
+
+  it('nennt die Spalte, die zu breit zum Gruppieren ist', () => {
+    expect(verworfeneKategorien(breit)).toEqual([
+      { feld: 'adresse', auspraegungen: 100 }
+    ])
+  })
+
+  it('laesst ausgenommene Spalten in Ruhe — die Periodenspalte einer Reihe', () => {
+    expect(verworfeneKategorien(breit, ['adresse'])).toEqual([])
+  })
+
+  // Die Regel der Redaktion: lieber keine Kennzahl als eine ueber
+  // unvergleichbare Zeilen gemittelte. Die Verweigerung nennt ihren Grund.
+  it('laesst beschreibeKanton und beschreibeEinordnung verweigern statt mitteln', () => {
+    expect(beschreibeKanton(breit)).toContain('keine vergleichbaren Kennzahlen')
+    expect(beschreibeKanton(breit)).toContain('"adresse"')
+    expect(beschreibeEinordnung(breit.slice(0, 2), breit)).toContain(
+      'keine vergleichbaren Kennzahlen'
+    )
   })
 })
 
@@ -252,6 +293,46 @@ describe('datengrundlage', () => {
   })
 })
 
+describe('arbeitsmaterial', () => {
+  const zeile = (gemeinde: string, anzahl: number) => ({ gemeinde, anzahl })
+
+  // Frisch geholt schlaegt gespeichert: die Anweisung der Redaktion muss aus
+  // dem GANZEN Umfang der Original-Quelle beantwortbar sein, nicht aus dem
+  // Ausschnitt, den ein aelterer Deckel uebrig liess.
+  it('nimmt die frischen Zeilen und rechnet die Einordnung ueber alles', () => {
+    const mat = arbeitsmaterial(
+      { zeilen: [zeile('Aesch', 1)], einordnung: 'alt' },
+      {
+        eigene: [zeile('Aesch', 1), zeile('Aesch', 2)],
+        alle: [zeile('Aesch', 1), zeile('Aesch', 2), zeile('Pratteln', 9)]
+      }
+    )
+    expect(mat.frisch).toBe(true)
+    expect(mat.zeilen).toHaveLength(2)
+    expect(mat.einordnung).not.toBe('alt')
+  })
+
+  it('nimmt sonst das Gespeicherte, samt seiner Einordnung', () => {
+    const mat = arbeitsmaterial(
+      { zeilen: [zeile('Aesch', 1)], einordnung: 'gespeichert' },
+      null
+    )
+    expect(mat.frisch).toBe(false)
+    expect(mat.zeilen).toHaveLength(1)
+    expect(mat.einordnung).toBe('gespeichert')
+  })
+
+  // Die Regel der Redaktion: vollstaendig rechnen oder ehrlich verzichten.
+  // Frueher sprang hier die 400-Zeilen-Stichprobe aus lauf.kontext ein — deren
+  // "Kantonsschnitt" stand als Tatsache im Artikel. Null heisst: der Prompt
+  // sagt "keine Vergleichszahlen", und jede Prozentangabe wird geflaggt.
+  it('erfindet ohne vollstaendige Grundlage KEINE Einordnung', () => {
+    const mat = arbeitsmaterial({ zeilen: [zeile('Aesch', 1)] }, null)
+    expect(mat.frisch).toBe(false)
+    expect(mat.einordnung).toBeNull()
+  })
+})
+
 describe('zeitreihen', () => {
   const arbeitsstaetten = [
     {
@@ -381,5 +462,54 @@ describe('beschreibeKantonZeitreihe', () => {
     expect(
       beschreibeKantonZeitreihe([{ jahr: '2023', wert: 1 }], 'jahr')
     ).toContain('keine kantonalen Vergleichswerte')
+  })
+
+  // Eine ausgeduennte Reihe muss es sagen: "kontinuierlich gesunken" ueber
+  // Jahre, die das Modell nie gesehen hat, ist genau der Satz, den dieses
+  // Projekt nicht drucken darf.
+  it('deklariert die Ausduennung einer langen Reihe', () => {
+    const lang = Array.from({ length: 30 }, (_, i) => ({
+      jahr: String(1994 + i),
+      wert: i + 1
+    }))
+    const text = beschreibeKantonZeitreihe(lang, 'jahr')
+
+    expect(text).toContain('12 von 30 Perioden gezeigt')
+    expect(text).toContain('Zwischenperioden sind ausgelassen')
+  })
+})
+
+describe('beschreibeZeitreihen — Ehrlichkeit der Kuerzungen', () => {
+  it('deklariert eine ausgeduennte gespeicherte Reihe', () => {
+    const text = beschreibeZeitreihen([
+      {
+        gruppe: 'Glas',
+        feld: 'wert',
+        werte: [
+          { periode: '1994', wert: 1 },
+          { periode: '2023', wert: 2 }
+        ],
+        perioden_gesamt: 30
+      }
+    ])
+    expect(text).toContain('2 von 30 Perioden gezeigt')
+    expect(text).toContain('Zwischenperioden sind ausgelassen')
+  })
+
+  // Reihen aus der Zeit vor dem Feld tragen kein perioden_gesamt — sie gelten
+  // als vollstaendig, statt eine Kuerzung zu erfinden.
+  it('schweigt bei einer vollstaendigen oder alten Reihe', () => {
+    const text = beschreibeZeitreihen([
+      {
+        gruppe: 'Glas',
+        feld: 'wert',
+        werte: [
+          { periode: '2022', wert: 1 },
+          { periode: '2023', wert: 2 }
+        ]
+      }
+    ])
+    expect(text).not.toContain('Perioden gezeigt')
+    expect(text).not.toContain('ausgelassen')
   })
 })

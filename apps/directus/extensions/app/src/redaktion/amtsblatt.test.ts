@@ -45,6 +45,7 @@ function fakten(ueber: Partial<AmtsblattFakten> = {}): AmtsblattFakten {
     gruppe: 'bauen',
     quelleTyp: 'amtsblatt',
     amt: 'Kanton Basel-Landschaft - Bauinspektorat',
+    blaetter: null,
     publiziertAm: '2026-08-27',
     frist: '2026-09-07',
     angaben: [
@@ -341,6 +342,43 @@ describe('Planlesung', () => {
 
     expect(lesung.befunde).toEqual([{ blatt: 1, aussage: 'Vier Wohnungen.' }])
     expect(lesung.fazit).toBe('Die Plaene tragen die Meldung.')
+  })
+})
+
+describe('unvollstaendig gelesene Plaene', () => {
+  const teilweise = { gelesen: 4, gesamt: 5 }
+
+  // Die Ehrlichkeitszeile stammt aus dem Code, nie vom Modell: eine Meldung
+  // aus vier von fuenf Blaettern muss das sagen — jedes Mal, nicht meistens.
+  it('haengt den Hinweis unter die Meldung', () => {
+    const zeile = quelleZeile(fakten({ blaetter: teilweise }))
+    expect(zeile).toContain(
+      'Hinweis: Für diese Meldung konnten 4 von 5 Planblättern maschinell ausgewertet werden.'
+    )
+  })
+
+  it('schweigt, wo alle Blaetter gelesen wurden', () => {
+    expect(
+      quelleZeile(fakten({ blaetter: { gelesen: 5, gesamt: 5 } }))
+    ).not.toContain('Hinweis')
+    expect(quelleZeile(fakten({ blaetter: null }))).not.toContain('Hinweis')
+  })
+
+  it('sagt es auch dem Prompt, damit der Text keine Vollstaendigkeit behauptet', () => {
+    const prompt = buildAmtsblattPrompt(fakten({ blaetter: teilweise }))
+    expect(prompt).toContain('nur 4 von 5 Planblaettern')
+    expect(prompt).toContain('Behaupte keine Vollstaendigkeit')
+    expect(buildAmtsblattPrompt(fakten({ blaetter: null }))).not.toContain(
+      'Planblaettern'
+    )
+  })
+
+  it('erlaubt die beiden Zahlen des Hinweises im Text', () => {
+    const warnungen = zahlWarnungen(
+      'Nur 4 von 5 Blaettern wurden gelesen.',
+      fakten({ blaetter: teilweise })
+    )
+    expect(warnungen).toEqual([])
   })
 })
 

@@ -44,7 +44,10 @@ describe('parseArtikel', () => {
 
   it('deckelt die Laenge', () => {
     const lang = parseArtikel(`<p>${'wort '.repeat(4000)}</p>`)
-    expect(lang.text.length).toBeLessThanOrEqual(ARTIKEL_MAX_ZEICHEN)
+    // Der Deckel plus die sichtbare Naht: ein Text, der einfach aufhoert,
+    // liest sich als vollstaendig — der Marker sagt, dass er es nicht ist.
+    expect(lang.text.length).toBeLessThanOrEqual(ARTIKEL_MAX_ZEICHEN + 30)
+    expect(lang.text).toContain('[Artikel gekuerzt]')
   })
 
   it('macht aus einer kaputten Seite kein Drama', () => {
