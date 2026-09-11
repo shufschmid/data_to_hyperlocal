@@ -221,10 +221,15 @@ export function kennzahlen(
   )
 }
 
-/** One line per row, identity columns removed. */
+/**
+ * One line per row, identity columns removed — unless `zeigeIdentitaet` is on:
+ * the deep-revision block hands the WHOLE period over, and there the
+ * municipality name is the one column the rows are useless without.
+ */
 export function verdichteZeilen(
   zeilen: readonly OdsRecord[],
-  hoechstens = 40
+  hoechstens = 40,
+  zeigeIdentitaet = false
 ): string {
   const zeilenTexte: string[] = []
 
@@ -232,7 +237,9 @@ export function verdichteZeilen(
     const teile: string[] = []
 
     for (const [feld, wert] of Object.entries(zeile)) {
-      if (IDENTITAETSFELDER.has(feld.toLowerCase())) continue
+      if (!zeigeIdentitaet && IDENTITAETSFELDER.has(feld.toLowerCase())) {
+        continue
+      }
       const text = beschreibeWert(wert)
       if (text === null) continue
       teile.push(`${feld}: ${text}`)
@@ -364,6 +371,11 @@ export function datengrundlage(
 export interface FrischeZeilen {
   eigene: OdsRecord[]
   alle: OdsRecord[]
+  /**
+   * The municipality's rows across ALL periods, when the deep fetch brought
+   * them — the revision's time axis, fresh instead of whatever a run stored.
+   */
+  verlaufEigene?: OdsRecord[]
 }
 
 export interface Arbeitsmaterial {

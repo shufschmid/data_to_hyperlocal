@@ -342,6 +342,43 @@ export function buildArtikelSystemPrompt(
 }
 
 /**
+ * The system prompt of a DEEP revision: the run's prompt plus the whole
+ * current-period slice, all municipalities.
+ *
+ * Per run, not per municipality — this block is what the prompt cache carries
+ * across a batch instruction over nine articles, which is what makes an Opus
+ * pass over the full dataset affordable. The newsroom asked for exactly this:
+ * "beim Formulieren der Meldung muss der ganze Datensatz nochmals zur
+ * Verfuegung stehen", and an instruction like "wie ist der Anteil Elektro,
+ * verglichen mit den anderen Gemeinden?" is only answerable with the other
+ * municipalities' rows in view.
+ *
+ * The arithmetic permission is deliberate and BOUNDED: shares and changes,
+ * derived only from handed numbers — `ableitbareProzentangaben` pre-computes
+ * that space, so every percentage in the answer is still verifiable.
+ */
+export function buildTiefenSystemPrompt(
+  basis: string,
+  alleZeilenText: string
+): string {
+  return [
+    basis,
+    '',
+    'ZUSATZMATERIAL FUER DIESE UEBERARBEITUNG — DIE GANZE PERIODE, ALLE GEMEINDEN',
+    'Eine Zeile je Datensatzzeile:',
+    alleZeilenText,
+    '',
+    'Zusaetzlich erlaubt, NUR aus den uebergebenen Zahlen: Anteile (etwa der',
+    'Elektro-Anteil an den Personenwagen) und Veraenderungen ueber die Zeit.',
+    'Rechne EXAKT und runde erst am Schluss — auf eine Dezimalstelle ("5,4',
+    'Prozent") oder eine ganze Zahl; ein geschaetzter Prozentwert wird als',
+    'Fehler beanstandet. Absolute Bestaende verschieden grosser Gemeinden',
+    'bleiben unvergleichbar; relative Groessen (Anteile in Prozent) duerfen',
+    'zwischen Gemeinden verglichen werden.'
+  ].join('\n')
+}
+
+/**
  * Shape an article answer must have.
  *
  * This is the one that earns its keep: a German article body carries

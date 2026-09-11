@@ -3,7 +3,9 @@ import {
   erlaubteProzentangaben,
   findeProzentangaben,
   unbelegteProzentangaben,
-  zahlenKorrekturHinweis
+  zahlenKorrekturHinweis,
+  ableitbareProzentangaben,
+  ungenaueProzentangaben
 } from './zahlen'
 
 describe('findeProzentangaben', () => {
@@ -91,5 +93,66 @@ describe('zahlenKorrekturHinweis', () => {
 
   it('schweigt, wenn nichts zu beanstanden ist', () => {
     expect(zahlenKorrekturHinweis([])).toBe('')
+  })
+})
+
+describe('ableitbareProzentangaben', () => {
+  // Der Motorfahrzeug-Fall: Anteil Elektro an den Personenwagen.
+  const zeilen = [
+    { fahrzeugart: 'Personenwagen', treibstoff: 'Benzin', anzahl: 900 },
+    { fahrzeugart: 'Personenwagen', treibstoff: 'Elektrisch', anzahl: 100 },
+    { fahrzeugart: 'Motorrad', treibstoff: 'Benzin', anzahl: 500 },
+    { fahrzeugart: 'Motorrad', treibstoff: 'Elektrisch', anzahl: 500 }
+  ]
+
+  it('leitet Familien-Anteile ab: Elektro an den Personenwagen', () => {
+    const erlaubt = ableitbareProzentangaben(zeilen)
+    expect(erlaubt).toContain(10) // 100 von 1000 Personenwagen
+    expect(erlaubt).toContain(50) // 500 von 1000 Motorraedern
+  })
+
+  it('leitet Anteile am Ganzen ab', () => {
+    expect(ableitbareProzentangaben(zeilen)).toContain(5) // 100 von 2000
+  })
+
+  it('leitet Veraenderungen zwischen allen Punkten einer Reihe ab', () => {
+    const erlaubt = ableitbareProzentangaben(
+      [],
+      [
+        {
+          gruppe: 'Personenwagen · Elektrisch',
+          feld: 'anzahl',
+          werte: [
+            { periode: '2024-05', wert: 289 },
+            { periode: '2025-05', wert: 369 },
+            { periode: '2026-08', wert: 511 }
+          ]
+        }
+      ]
+    )
+    // 289 → 511 ueber die ganze Reihe, 369 → 511 seit dem Vorjahr.
+    expect(erlaubt).toContain(76.82)
+    expect(erlaubt).toContain(38.48)
+  })
+})
+
+describe('ungenaueProzentangaben', () => {
+  // Gemessen an der ersten Tiefen-Ueberarbeitung: 511 von 9399 sind 5.44
+  // Prozent, der Artikel schrieb "5,2" — innerhalb der Ein-Punkt-Toleranz,
+  // ausserhalb jeder ehrlichen Rundung.
+  it('meldet eine Dezimalangabe, die keine Rundung des Quellwerts ist', () => {
+    expect(
+      ungenaueProzentangaben('Der Anteil liegt bei 5,2 Prozent.', [5.44])
+    ).toEqual([{ zahl: 5.2, naechster: 5.44 }])
+  })
+
+  it('laesst ehrliche Rundungen durch — Dezimale eng, Ganzzahl grosszuegig', () => {
+    expect(ungenaueProzentangaben('5,4 Prozent', [5.44])).toEqual([])
+    expect(ungenaueProzentangaben('rund 5 Prozent', [5.44])).toEqual([])
+    expect(ungenaueProzentangaben('62 Prozent', [61.83])).toEqual([])
+  })
+
+  it('ueberlaesst voellig unbelegte Werte dem groben Check', () => {
+    expect(ungenaueProzentangaben('99 Prozent', [5.44])).toEqual([])
   })
 })

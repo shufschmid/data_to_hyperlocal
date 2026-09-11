@@ -39,6 +39,7 @@ import {
   buildArtikelSystemPrompt,
   buildArtikelUserPrompt,
   buildBriefingPrompt,
+  buildTiefenSystemPrompt,
   BRIEFING_SCHEMA,
   BRIEFING_SYSTEM_PROMPT,
   parseArtikel,
@@ -66,8 +67,11 @@ import { attributionsKorrektur, fehlendeAttribution } from './attribution'
 import { fetchWebartikel, istWebartikel } from '../shared/agenda'
 import { optionalEnv } from '../shared/env'
 import {
+  ableitbareProzentangaben,
   erlaubteProzentangaben,
   unbelegteProzentangaben,
+  ungenaueProzentangaben,
+  ungenauKorrekturHinweis,
   zahlenKorrekturHinweis
 } from './zahlen'
 import type {
@@ -675,12 +679,31 @@ interface LaufMaterial {
   /** Built once per run — this exact string is what the prompt cache carries. */
   systemPrompt: string
   /**
-   * Fresh rows per municipality, loaded lazily for revisions. `undefined`
-   * means "not tried yet", null "tried and failed" — the stored rows then
-   * stand in, which for anything written before the caps fell is a slice.
+   * Fresh rows, loaded lazily for revisions. `undefined` means "not tried
+   * yet", null "tried and failed" — the stored rows then stand in, which for
+   * anything written before the caps fell is a slice.
    */
-  frisch?: Map<string, FrischeZeilen> | null
+  frisch?: FrischesMaterial | null
+  /**
+   * The deep-revision system prompt — the run's prompt plus the WHOLE period
+   * slice. Built once per run so the cache carries the big block across a
+   * batch instruction; per run it is byte-identical by construction.
+   */
+  tiefenSystem?: string
 }
+
+/** What one deep fetch brings back for a run. */
+interface FrischesMaterial {
+  jeGemeinde: Map<string, FrischeZeilen>
+  /** The full current-period slice, all municipalities. */
+  alle: OdsRecord[]
+  periodenFeld: string | null
+}
+
+/** The deliberate cost of a revision: the strongest model over the most data. */
+const TIEFEN_MODELL = 'claude-opus-5'
+/** Rendering ceiling for the alle-Gemeinden block; overflow is declared. */
+const MAX_ALLE_ZEILEN = 4000
 
 async function ladeLaufMaterial(
   kontext: DrainKontext,
@@ -757,7 +780,7 @@ async function ladeFrischeZeilen(
   kontext: DrainKontext,
   datensatzId: string,
   periode: string
-): Promise<Map<string, FrischeZeilen> | null> {
+): Promise<FrischesMaterial | null> {
   const { services, schema, logger } = kontext
   const { ItemsService } = services
 
@@ -785,13 +808,16 @@ async function ladeFrischeZeilen(
 
     const periodenFeld =
       quelle.typ === 'statbl' ? JAHR_SPALTE : detectPeriodField(felder)
-    const { zeilen } = await holeZeilen(
+    // WITH the history: "wie hat sich der Bestand ueber die Jahre veraendert?"
+    // is the question the newsroom actually asks a revision, and it has no
+    // answer in a single-period slice.
+    const { zeilen, verlauf } = await holeZeilen(
       quelle,
       datensatz,
       felder,
       periode,
       periodenFeld,
-      false
+      periodenFeld !== null
     )
     if (zeilen.length === 0) return null
 
@@ -808,14 +834,23 @@ async function ladeFrischeZeilen(
       aktive,
       gemeindeFelder.bfsField
     )
+    const verlaufAbdeckung =
+      verlauf.length === 0
+        ? null
+        : matchMunicipalities(verlauf, aktive, gemeindeFelder.bfsField)
+
     const jeGemeinde = new Map<string, FrischeZeilen>()
     for (const treffer of abdeckung.matched) {
       jeGemeinde.set(treffer.gemeinde.id, {
         eigene: treffer.rows,
-        alle: zeilen
+        alle: zeilen,
+        verlaufEigene:
+          verlaufAbdeckung?.matched.find(
+            (m) => m.gemeinde.id === treffer.gemeinde.id
+          )?.rows ?? undefined
       })
     }
-    return jeGemeinde
+    return { jeGemeinde, alle: zeilen, periodenFeld }
   } catch (fehler) {
     logger.warn(
       fehler,
@@ -844,16 +879,25 @@ async function schreibeMeldung(
     verlauf?: unknown
     einordnung?: unknown
   }
-  const mat = arbeitsmaterial(
-    grundlage,
-    meldung.anweisung === null
-      ? null
-      : (material.frisch?.get(meldung.gemeinde) ?? null)
-  )
+  const frisch = meldung.anweisung === null ? null : (material.frisch ?? null)
+  const frischEigene = frisch?.jeGemeinde.get(meldung.gemeinde) ?? null
+  const mat = arbeitsmaterial(grundlage, frischEigene)
   const eigeneZeilen = mat.zeilen
-  const verlauf = Array.isArray(grundlage.verlauf)
-    ? beschreibeZeitreihen(grundlage.verlauf as Zeitreihe[])
+
+  // The time axis: fresh and complete when the deep fetch brought it, else
+  // whatever the run stored. "Wie hat sich der Bestand veraendert?" is the
+  // question revisions actually get.
+  const frischeReihen =
+    frischEigene?.verlaufEigene !== undefined &&
+    frischEigene.verlaufEigene.length > 0 &&
+    frisch?.periodenFeld != null
+      ? zeitreihen(frischEigene.verlaufEigene, frisch.periodenFeld)
+      : null
+  const gespeicherteReihen = Array.isArray(grundlage.verlauf)
+    ? (grundlage.verlauf as Zeitreihe[])
     : null
+  const reihen = frischeReihen ?? gespeicherteReihen
+  const verlauf = reihen === null ? null : beschreibeZeitreihen(reihen)
 
   const frueherText = await ladeFruehereMeldung(
     kontext,
@@ -888,33 +932,71 @@ async function schreibeMeldung(
     ...(meldung.anweisung === null ? {} : { korrektur: meldung.anweisung })
   }
 
+  // A REVISION with fresh material runs deep: the strongest model, adaptive
+  // thinking, and the whole current-period slice in the (per-run, cached)
+  // system prompt. The newsroom's decision — an instruction is a deliberate,
+  // expensive step, and "der ganze Datensatz muss nochmals zur Verfuegung
+  // stehen". First writes stay on the fast path.
+  const tief = frischEigene !== null
+  if (tief && material.tiefenSystem === undefined && frisch !== null) {
+    material.tiefenSystem = buildTiefenSystemPrompt(
+      material.systemPrompt,
+      verdichteZeilen(frisch.alle, MAX_ALLE_ZEILEN, true)
+    )
+  }
+
   // The system half is byte-identical across every article of this run, so the
   // cache carries it; only the user turn varies. Never move anything
   // municipality-specific into `system`.
-  const system = cacheableSystem(material.systemPrompt)
+  const system = cacheableSystem(
+    tief && material.tiefenSystem !== undefined
+      ? material.tiefenSystem
+      : material.systemPrompt
+  )
+  const aufruf = {
+    model: tief ? TIEFEN_MODELL : DEFAULT_MODEL,
+    // Generous: adaptive thinking spends from the same budget, and a truncated
+    // JSON answer is the classic silent failure.
+    maxTokens: tief ? 8000 : 2000,
+    thinking: tief ? ('adaptive' as const) : ('disabled' as const),
+    effort: tief ? ('high' as const) : ('low' as const)
+  }
 
   let artikel = parseArtikel(
     await completeJson<unknown>(
       {
         system,
         prompt: buildArtikelUserPrompt(eingabe),
-        model: DEFAULT_MODEL,
-        maxTokens: 2000,
-        thinking: 'disabled',
-        effort: 'low',
+        ...aufruf,
         schema: ARTIKEL_SCHEMA
       },
       kontext.send
     )
   )
 
-  const erlaubteProzente = erlaubteProzentangaben(eingabe.einordnung)
+  // Legitimate percentages: what the einordnung states, plus everything honest
+  // arithmetic can derive from the handed rows — the municipality's shares and
+  // changes always, and in the deep pass the other municipalities' shares too,
+  // so "Binningen liegt beim Elektro-Anteil vor Allschwil" verifies.
+  const erlaubteProzente = [
+    ...erlaubteProzentangaben(eingabe.einordnung),
+    ...ableitbareProzentangaben(eigeneZeilen, reihen ?? []),
+    ...(frisch === null
+      ? []
+      : [
+          ...ableitbareProzentangaben(frisch.alle),
+          ...[...frisch.jeGemeinde.values()].flatMap((g) =>
+            ableitbareProzentangaben(g.eigene)
+          )
+        ])
+  ]
 
   const pruefeAlles = (
     a: typeof artikel
   ): {
     zeit: ReturnType<typeof pruefeZeitbezug>
     unbelegt: number[]
+    ungenau: ReturnType<typeof ungenaueProzentangaben>
     ohneQuelle: boolean
     linkFehler: string | null
     bestanden: boolean
@@ -922,6 +1004,10 @@ async function schreibeMeldung(
     const ganzerText = `${a.titel} ${a.lead} ${a.text}`
     const zeit = pruefeZeitbezug(ganzerText, material.briefing.jahr)
     const unbelegt = unbelegteProzentangaben(ganzerText, erlaubteProzente)
+    // Sloppy arithmetic hides INSIDE the coarse tolerance: the first deep
+    // revision printed "5,2 Prozent" where 511 of 9'399 is 5,44 — passed at
+    // tolerance 1, wrong all the same. A decimal claim asserts precision.
+    const ungenau = ungenaueProzentangaben(ganzerText, erlaubteProzente)
     const ohneQuelle = fehlendeAttribution(ganzerText)
     // Only the body carries the link; a title with markup in it would be wrong
     // everywhere it is shown.
@@ -929,11 +1015,13 @@ async function schreibeMeldung(
     return {
       zeit,
       unbelegt,
+      ungenau,
       ohneQuelle,
       linkFehler,
       bestanden:
         zeit.bestanden &&
         unbelegt.length === 0 &&
+        ungenau.length === 0 &&
         !ohneQuelle &&
         linkFehler === null
     }
@@ -955,6 +1043,7 @@ async function schreibeMeldung(
     const korrektur = [
       korrekturHinweis(pruefung.zeit, material.briefing.jahr),
       zahlenKorrekturHinweis(pruefung.unbelegt),
+      ungenauKorrekturHinweis(pruefung.ungenau),
       pruefung.ohneQuelle ? attributionsKorrektur() : '',
       pruefung.linkFehler ?? ''
     ]
@@ -966,10 +1055,7 @@ async function schreibeMeldung(
         {
           system,
           prompt: buildArtikelUserPrompt({ ...eingabe, korrektur }),
-          model: DEFAULT_MODEL,
-          maxTokens: 2000,
-          thinking: 'disabled',
-          effort: 'low',
+          ...aufruf,
           schema: ARTIKEL_SCHEMA
         },
         kontext.send
@@ -988,6 +1074,9 @@ async function schreibeMeldung(
       ? pruefung.zeit.weich
       : [...pruefung.zeit.hart, ...pruefung.zeit.weich]),
     ...pruefung.unbelegt.map((z) => `ungepruefte Prozentangabe: ${z}%`),
+    ...pruefung.ungenau.map(
+      (u) => `ungenaue Prozentangabe: ${u.zahl}% (berechnet: ${u.naechster}%)`
+    ),
     ...(pruefung.ohneQuelle ? ['Quelle nicht im Text genannt'] : []),
     ...(pruefung.linkFehler === null ? [] : [pruefung.linkFehler])
   ]
@@ -1003,16 +1092,14 @@ async function schreibeMeldung(
   await new ItemsService('meldungen', { schema }).updateOne(meldung.id, {
     ...artikelFelder(gesichert, warnungen),
     // The evidence follows the rewrite: the text was written and checked
-    // against THESE rows, so they replace the slice an older cap stored. The
-    // stored time series stays — the fresh fetch deliberately skips it.
+    // against THESE rows and series, so they replace whatever an older write
+    // stored.
     ...(mat.frisch
       ? {
           datengrundlage: {
             ...datengrundlage(eigeneZeilen, material.periode),
             einordnung: mat.einordnung,
-            ...(Array.isArray(grundlage.verlauf)
-              ? { verlauf: grundlage.verlauf }
-              : {})
+            ...(reihen === null ? {} : { verlauf: reihen })
           }
         }
       : {})
