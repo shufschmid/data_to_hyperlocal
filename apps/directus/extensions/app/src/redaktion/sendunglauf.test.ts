@@ -143,6 +143,43 @@ describe('beitraegeAusEdition', () => {
     expect(beitraege[0]!.text).toContain('Sven entscheidet spontan')
   })
 
+  // Gemessen an der Morgensendung vom 11.09.2026: "Feuerverbote" und "Radio
+  // Basilisk" wurden beide auf Sekunde 206 aufgeloest und trugen danach
+  // buchstaeblich denselben Text. Die Sichtung beurteilte dieselbe Passage
+  // zweimal unter zwei Ueberschriften, und wer den zweiten Abschnitt las, bekam
+  // eine Passage, die nicht von seiner Ueberschrift handelt.
+  it('gibt eine Passage nur dem ersten Thema, das ihre Stelle beansprucht', () => {
+    const beitraege = beitraegeAusEdition({
+      ...SENDUNG,
+      extra_topics: [
+        {
+          headline: 'Strompreise in den beiden Basel unterschiedlich',
+          paragraphTimestamp: '00:06:37',
+          paragraphSeconds: 397,
+          summary: 'Unterschiedliche Preise.'
+        },
+        {
+          headline: 'Dasselbe Absatz-Los',
+          paragraphTimestamp: '00:06:37',
+          paragraphSeconds: 397,
+          summary: 'Zweites Thema, gleiche Stelle.'
+        }
+      ]
+    })
+
+    const [, erstes, zweites] = beitraege
+    expect(erstes!.text).toContain('Primeo')
+    expect(erstes!.nurZusammenfassung).toBe(false)
+
+    // Das zweite bekommt keine fremde Passage mehr, sagt das ehrlich — und
+    // behaelt die Zeitmarke, die als Sprungmarke ins Audio weiter taugt.
+    expect(zweites!.text).toBe(
+      'Dasselbe Absatz-Los\n\nZweites Thema, gleiche Stelle.'
+    )
+    expect(zweites!.nurZusammenfassung).toBe(true)
+    expect(zweites!.zeitmarkeSekunden).toBe(397)
+  })
+
   it('vertraegt eine Sendung ohne Nebenthemen', () => {
     const beitraege = beitraegeAusEdition({ ...SENDUNG, extra_topics: [] })
     expect(beitraege).toHaveLength(1)

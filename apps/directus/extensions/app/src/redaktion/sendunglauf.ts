@@ -85,11 +85,12 @@ export interface SichtungsBeitrag {
  * such pairs, and the copy from the full text carried no timestamp, so it
  * pointed the editor at no passage at all.
  *
- * So each topic now gets its OWN passage, `beitraegeAusPunkt6`-style. Where a
- * topic appears more than once, the long passage is the one that counts — the
- * resolution step already looked for exactly that, "der Timecode, ab dem das
- * Thema wirklich inhaltlich behandelt wird (nicht die blosse Erwaehnung am
- * Anfang)" (`dossiers/topics-prompt.ts`).
+ * So each topic now gets its OWN passage, `beitraegeAusPunkt6`-style — its own
+ * or none, never a copy of its neighbour's (see the first-claim rule below).
+ * Where a topic appears more than once, the long passage is the one that
+ * counts — the resolution step already looked for exactly that, "der Timecode,
+ * ab dem das Thema wirklich inhaltlich behandelt wird (nicht die blosse
+ * Erwaehnung am Anfang)" (`dossiers/topics-prompt.ts`).
  *
  * The main contribution keeps everything the topics do NOT claim, and that is
  * deliberate rather than lazy: it holds the opening trail, its own report, and
@@ -146,14 +147,26 @@ export function beitraegeAusEdition(edition: {
     }
   ]
 
+  // A passage belongs to the FIRST topic that claimed its paragraph. Two topics
+  // can resolve to the same one — measured on the 11.09.2026 morning edition,
+  // where "Feuerverbote" and "Radio Basilisk" both landed on second 206 — and
+  // handing the slice to both produces two contributions with byte-identical
+  // text: the Sichtung then judges the same passage twice under two headlines,
+  // and a reader gets a passage that is not about its own heading. The later
+  // ones keep their timestamp (it is still a usable jump mark) but are labelled
+  // `nurZusammenfassung`, exactly like a topic whose passage was never found —
+  // which is the honest description of what they now carry.
+  const vergeben = new Set<number>()
+
   for (const thema of themen) {
+    const beginn = thema.paragraphSeconds
+    const schonVergeben = beginn !== null && vergeben.has(beginn)
+    if (beginn !== null) vergeben.add(beginn)
+
     const eigenerText =
-      thema.paragraphSeconds === null
+      beginn === null || schonVergeben
         ? ''
-        : schnitt(
-            thema.paragraphSeconds,
-            naechsteGrenze(thema.paragraphSeconds)
-          )
+        : schnitt(beginn, naechsteGrenze(beginn))
     beitraege.push({
       titel: thema.headline,
       text: [thema.headline, thema.summary ?? '', eigenerText]

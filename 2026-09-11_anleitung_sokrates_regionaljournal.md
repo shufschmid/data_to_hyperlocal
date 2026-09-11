@@ -137,6 +137,9 @@ Eine Radiosendung hat eine Form, und die Abschnitte bilden sie ab:
   der Stelle, wo es wirklich behandelt wird — nicht ab der blossen Erwähnung im
   Anriss. Eine Gemeinde wird in einer Sendung typischerweise dreimal genannt
   (Anriss, Beitrag, Rückblick); der lange Abschnitt ist die Geschichte.
+  Seine eigene Passage oder gar keine: fallen zwei Themen auf dieselbe Stelle,
+  bekommt sie das erste, und das zweite ist als `nur_zusammenfassung`
+  gekennzeichnet. Zwei Abschnitte tragen also nie denselben Text.
 - `zeitmarke_sekunden` ist der Einstiegspunkt in Sekunden ab Sendungsbeginn —
   passend zur `audio_url`. `null` heisst: keine Stelle gefunden.
 - **`nur_zusammenfassung: true` ist eine Warnung und muss beachtet werden.**
