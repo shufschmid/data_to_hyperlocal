@@ -1,4 +1,5 @@
 import { completeJson, type MessageSender } from '../shared/claude'
+import { parseTelegrammSeite } from '../shared/matchcenter/parse'
 import {
   buildSpielberichtPrompt,
   linkWarnungen,
@@ -28,10 +29,15 @@ interface ItemsServiceLike {
   // Directus types the key as `PrimaryKey` (string | number); nothing here uses
   // the return value, so it stays as wide as the service declares it.
   createOne(payload: Record<string, unknown>): Promise<string | number>
+  updateOne(
+    key: string,
+    payload: Record<string, unknown>
+  ): Promise<string | number>
 }
 
 export interface SpielZeile {
   id: string
+  spielnummer: string
   datum: string
   heim: string
   gast: string
@@ -41,6 +47,8 @@ export interface SpielZeile {
   ort: string | null
   /** The page the fixture was read from — the fallback address for the source line. */
   quelle_url: string | null
+  /** The association's telegram page, where the run discovered one. */
+  telegramm_url: string | null
   gemeinde: { id: string; name: string }
   verein: {
     id: string
@@ -58,6 +66,12 @@ export interface SpielberichtKontext {
   spiele: ItemsServiceLike
   meldungen: ItemsServiceLike
   logger: { warn: (e: unknown, m?: string) => void }
+  /**
+   * Fetches a telegram page as markdown, null on any failure — a report is
+   * still worth writing without it. Injected so this module needs no crawler
+   * key of its own and tests need no network.
+   */
+  holeTelegramm?: (url: string) => Promise<string | null>
   /** Test seam, exactly as in shared/claude.ts. */
   send?: MessageSender
 }
@@ -66,6 +80,8 @@ export interface SpielberichtErgebnis {
   erzeugt: number
   /** How many results were taken on in this pass. */
   offen: number
+  /** Drafts rewritten because their telegram arrived after the first write. */
+  erneuert: number
   fehlgeschlagen: string[]
 }
 
@@ -74,6 +90,7 @@ export interface SpielberichtErgebnis {
 // on a field that looks present.
 const SPIEL_FELDER = [
   'id',
+  'spielnummer',
   'datum',
   'heim',
   'gast',
@@ -82,6 +99,7 @@ const SPIEL_FELDER = [
   'wettbewerb',
   'ort',
   'quelle_url',
+  'telegramm_url',
   'gemeinde.id',
   'gemeinde.name',
   'verein.id',
@@ -102,14 +120,26 @@ const SPIEL_FELDER = [
  */
 export async function schreibeSpielberichte(
   kontext: SpielberichtKontext,
-  hoechstens: number = SPIELBERICHTE_JE_LAUF
+  hoechstens: number = SPIELBERICHTE_JE_LAUF,
+  /**
+   * Matches whose telegram arrived AFTER their report was written. Their
+   * machine-written DRAFTS are rewritten with the richer material; anything an
+   * editor already moved on (freigegeben, publiziert, in Gegenpruefung) is
+   * never touched behind their back.
+   */
+  mitNeuemTelegramm: ReadonlySet<string> = new Set()
 ): Promise<SpielberichtErgebnis> {
   const beschrieben = (await kontext.meldungen.readByQuery({
     filter: { spiel: { _nnull: true } },
-    fields: ['spiel'],
+    fields: ['id', 'spiel', 'status'],
     limit: -1
-  })) as Array<{ spiel: string }>
+  })) as Array<{ id: string; spiel: string; status: string }>
   const schonBeschrieben = new Set(beschrieben.map((m) => m.spiel))
+  const entwurfZu = new Map(
+    beschrieben
+      .filter((m) => m.status === 'entwurf')
+      .map((m) => [m.spiel, m.id])
+  )
 
   const mitResultat = (await kontext.spiele.readByQuery({
     filter: { tore_heim: { _nnull: true } },
@@ -141,15 +171,36 @@ export async function schreibeSpielberichte(
   }
 
   const offen = mitResultat
-    .filter((spiel) => !schonBeschrieben.has(spiel.id))
+    .filter(
+      (spiel) =>
+        !schonBeschrieben.has(spiel.id) ||
+        (mitNeuemTelegramm.has(spiel.id) && entwurfZu.has(spiel.id))
+    )
     .filter((spiel) => berichtenswert.has(spiel.id))
     .slice(0, Math.max(hoechstens, 0))
 
   let erzeugt = 0
+  let erneuert = 0
   const fehlgeschlagen: string[] = []
 
   for (const spiel of offen) {
     try {
+      // The association's own report, where one exists. Fetched per write —
+      // a handful of matches a week — and verified against the Spielnummer
+      // the page itself prints: a mismatched telegram is DROPPED with a log
+      // line, because scorers from the wrong match are worse than none.
+      let telegramm: string | null = null
+      if (spiel.telegramm_url !== null && kontext.holeTelegramm !== undefined) {
+        const seite = await kontext.holeTelegramm(spiel.telegramm_url)
+        const gelesen = seite === null ? null : parseTelegrammSeite(seite)
+        if (gelesen !== null && gelesen.spielnummer !== spiel.spielnummer) {
+          kontext.logger.warn(
+            `spielberichte: Telegramm zu ${spiel.heim} – ${spiel.gast} nennt Spielnummer ${gelesen.spielnummer} statt ${spiel.spielnummer} — verworfen.`
+          )
+        } else {
+          telegramm = gelesen?.text ?? null
+        }
+      }
       // The club's own earlier results — the memory this project keeps.
       const frueher = mitResultat
         .filter(
@@ -179,7 +230,14 @@ export async function schreibeSpielberichte(
         gemeinde: spiel.gemeinde.name,
         liga: spiel.verein.liga,
         notiz: spiel.verein.notiz,
-        quelle: verbandsQuelle(spiel.verein, spiel.quelle_url),
+        // The verified telegram page outranks the club page as the source
+        // link — the reader lands on the match, not on a rolling list.
+        quelle: verbandsQuelle(
+          spiel.verein,
+          spiel.quelle_url,
+          telegramm === null ? null : spiel.telegramm_url
+        ),
+        telegramm,
         frueher
       }
 
@@ -204,9 +262,7 @@ export async function schreibeSpielberichte(
         ...linkWarnungen(ganzerText)
       ]
 
-      await kontext.meldungen.createOne({
-        spiel: spiel.id,
-        gemeinde: spiel.gemeinde.id,
+      const felder = {
         titel: bericht.titel,
         // A match report is a short notice and deliberately has no lead.
         lead: null,
@@ -215,7 +271,8 @@ export async function schreibeSpielberichte(
         verarbeitung: 'idle',
         zeit_warnungen: warnungen.length > 0 ? warnungen : null,
         // Provenance, so the figures in the article can be checked against what
-        // was handed over.
+        // was handed over — the telegram excerpt included, because the page
+        // behind the link is the association's and can change or vanish.
         datengrundlage: {
           quelle: 'matchcenter',
           heim: spiel.heim,
@@ -224,10 +281,25 @@ export async function schreibeSpielberichte(
           tore_gast: spiel.tore_gast,
           wettbewerb: spiel.wettbewerb,
           datum: spiel.datum,
-          quelle_url: fakten.quelle?.url ?? null
+          quelle_url: fakten.quelle?.url ?? null,
+          ...(telegramm === null
+            ? {}
+            : { telegramm_url: spiel.telegramm_url, telegramm })
         }
-      })
-      erzeugt += 1
+      }
+
+      const entwurf = entwurfZu.get(spiel.id)
+      if (schonBeschrieben.has(spiel.id) && entwurf !== undefined) {
+        await kontext.meldungen.updateOne(entwurf, felder)
+        erneuert += 1
+      } else {
+        await kontext.meldungen.createOne({
+          spiel: spiel.id,
+          gemeinde: spiel.gemeinde.id,
+          ...felder
+        })
+        erzeugt += 1
+      }
     } catch (fehler) {
       // One bad match must not cost the others their report.
       kontext.logger.warn(
@@ -238,5 +310,5 @@ export async function schreibeSpielberichte(
     }
   }
 
-  return { erzeugt, offen: offen.length, fehlgeschlagen }
+  return { erzeugt, offen: offen.length, erneuert, fehlgeschlagen }
 }

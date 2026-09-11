@@ -33,6 +33,13 @@ export interface SpielFakten {
   notiz: string | null
   /** Where a reader can see the result for themselves. Null only if we have no address. */
   quelle: SpielQuelle | null
+  /**
+   * The association's own telegram to this match — scorers with minutes, cards,
+   * the event ticker — extracted by `parseTelegrammSeite` and verified against
+   * the Spielnummer. Null for the many matches that have none; the report then
+   * stays the short notice it always was.
+   */
+  telegramm: string | null
   /** Earlier results of the same club this season, newest first. */
   frueher: ReadonlyArray<{
     datum: string
@@ -46,8 +53,10 @@ export interface SpielFakten {
 export const SPIELBERICHT_SYSTEM_PROMPT = `Du schreibst kurze Spielberichte fuer eine lokale Redaktion in der Region Basel.
 
 Regeln, ohne Ausnahme:
-- Schreibe NUR, was in den Angaben steht. Erfinde nichts: keine Torschuetzen, keine
-  Spielminuten, keine Zuschauerzahlen, keine Stimmen, keinen Spielverlauf.
+- Schreibe NUR, was in den Angaben steht. Erfinde nichts aus eigenem Wissen:
+  keine Torschuetzen, Spielminuten, Zuschauerzahlen, Stimmen oder Verlaeufe,
+  die nicht in den Angaben stehen. (Liegt ein Telegramm des Verbands bei,
+  SIND dessen Torschuetzen, Karten und Verlauf Angaben.)
 - Uebernimm das Resultat exakt und in Spielrichtung: Heimteam zuerst.
 - Rechne nichts aus, was nicht dasteht. Keine Tabellenplaetze, keine Punktzahlen,
   keine Torbilanzen.
@@ -110,6 +119,19 @@ function faktenZeilen(fakten: SpielFakten): string[] {
     ausgang(fakten)
   ].filter((z): z is string => z !== null)
 
+  if (fakten.telegramm !== null && fakten.telegramm.trim() !== '') {
+    zeilen.push(
+      '',
+      'Telegramm des Verbands zu diesem Spiel (Torschuetzen, Karten, Verlauf —',
+      'das sind Angaben, verwende sie):',
+      fakten.telegramm,
+      '',
+      'Mit dem Telegramm darf der Bericht ZWEI kurze Absaetze haben: einer zum',
+      'Ausgang, einer zum Verlauf mit den wichtigsten Torschuetzen. Nenne nicht',
+      'jede Karte einzeln.'
+    )
+  }
+
   if (fakten.frueher.length > 0) {
     // Labelled as the selection it is: from "the last five" the model cannot
     // derive season totals ("erst der fuenfte Sieg") — from an unlabelled list
@@ -136,7 +158,12 @@ function faktenZeilen(fakten: SpielFakten): string[] {
  */
 export function nurDasResultat(fakten: SpielFakten): boolean {
   return (
-    fakten.liga === null && fakten.notiz === null && fakten.frueher.length === 0
+    fakten.liga === null &&
+    fakten.notiz === null &&
+    fakten.frueher.length === 0 &&
+    // A telegram IS more than the result — the shrink instruction would fight
+    // the material it exists to compensate for.
+    (fakten.telegramm === null || fakten.telegramm.trim() === '')
   )
 }
 
@@ -225,9 +252,12 @@ export function verbandsName(quelle: string | null): string {
  */
 export function verbandsQuelle(
   verein: { quelle: string | null; ergebnis_url: string | null },
-  fixtureUrl: string | null
+  fixtureUrl: string | null,
+  telegrammUrl: string | null = null
 ): SpielQuelle | null {
-  const url = (verein.ergebnis_url ?? fixtureUrl ?? '').trim()
+  // The telegram outranks both: it is the association's page for THIS match —
+  // the reader lands on the report, not on a list the match will roll off.
+  const url = (telegrammUrl ?? verein.ergebnis_url ?? fixtureUrl ?? '').trim()
   if (url === '') return null
   return { name: verbandsName(verein.quelle), url }
 }
@@ -422,7 +452,10 @@ export function zahlWarnungen(
     fakten.verein,
     fakten.gemeinde,
     fakten.ort ?? '',
-    fakten.notiz ?? ''
+    fakten.notiz ?? '',
+    // The telegram's minutes, scorers' shirt numbers and running scores are
+    // handed material — flagging them would bury the real warnings.
+    fakten.telegramm ?? ''
   ]
   for (const angabe of angaben) {
     for (const treffer of angabe.matchAll(/\d+/g)) erlaubt.add(treffer[0])

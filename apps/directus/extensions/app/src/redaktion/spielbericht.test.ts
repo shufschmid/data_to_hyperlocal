@@ -34,6 +34,7 @@ const FAKTEN: SpielFakten = {
     name: 'Fussballverband Nordwestschweiz',
     url: 'https://www.fvnws.ch/verein/default.aspx?v=12345'
   },
+  telegramm: null,
   frueher: []
 }
 
@@ -395,5 +396,47 @@ describe('linkWarnungen', () => {
 
   it('schweigt zum normalen Bericht', () => {
     expect(linkWarnungen('Der FC Reinach spielte 3:3.')).toEqual([])
+  })
+})
+
+describe('Telegramm im Bericht', () => {
+  const telegramm =
+    "Cup - Basler Cup - Spielnummer: 513497\n12' 0:1 Tor Aesch Torschütze Daniel Colanero"
+
+  it('stellt das Telegramm als Angabe in den Prompt und erlaubt zwei Absaetze', () => {
+    const prompt = buildSpielberichtPrompt({ ...FAKTEN, telegramm })
+    expect(prompt).toContain('Telegramm des Verbands')
+    expect(prompt).toContain('Daniel Colanero')
+    expect(prompt).toContain('ZWEI kurze Absaetze')
+  })
+
+  // Ein Telegramm IST mehr als das Resultat — die Kurz-Anweisung wuerde gegen
+  // genau das Material kaempfen, das sie kompensieren soll.
+  it('hebt die Kurz-Regel auf, sobald ein Telegramm da ist', () => {
+    expect(
+      nurDasResultat({
+        ...FAKTEN,
+        liga: null,
+        notiz: null,
+        frueher: [],
+        telegramm
+      })
+    ).toBe(false)
+  })
+
+  it('erlaubt die Ziffern des Telegramms', () => {
+    expect(
+      zahlWarnungen('In der 12. Minute fiel das 0:1.', { ...FAKTEN, telegramm })
+    ).toEqual([])
+  })
+
+  // Der Leser landet auf dem Spiel, nicht auf einer Liste, von der es rollt.
+  it('zieht die Telegramm-Seite als Quelle der Vereinsseite vor', () => {
+    const quelle = verbandsQuelle(
+      { quelle: 'fvnws', ergebnis_url: 'https://matchcenter.example/v=482' },
+      null,
+      'https://matchcenter.example/v=482&tg=4403552'
+    )
+    expect(quelle?.url).toContain('tg=4403552')
   })
 })

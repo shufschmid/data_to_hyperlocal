@@ -15,9 +15,22 @@ import { optionalEnv, requireEnv } from '../env'
 
 export interface ScrapeErgebnis {
   markdown: string
+  /**
+   * Every href of the RENDERED page, absolute — only when `formats` asked for
+   * `links`. This is what carries the Match Center's telegram buttons, which
+   * the markdown conversion drops (measured: 29 `tg=` links on a club page
+   * whose markdown carries zero).
+   */
+  links: string[]
   /** `httpx` or `playwright` — which path the service took. Useful in logs. */
   renderer: string | null
   statusCode: number | null
+  /**
+   * True when the service cut the markdown at its ceiling (v2.7.0 reports it
+   * per format; measured ~96k on the "what's on" page even with a raised
+   * `max_chars`). Callers report this instead of guessing from the length.
+   */
+  abgeschnitten: boolean
 }
 
 export class CrawlerFehler extends Error {
@@ -34,7 +47,14 @@ interface CrawlerAntwort {
   success?: boolean
   data?: {
     markdown?: string
-    metadata?: { renderer?: string; statusCode?: number; status_code?: number }
+    links?: unknown
+    metadata?: {
+      renderer?: string
+      statusCode?: number
+      status_code?: number
+      truncated?: boolean
+      truncation?: Record<string, boolean>
+    }
   }
   error?: string
 }
@@ -52,6 +72,10 @@ export async function scrape(
     forcePlaywright?: boolean
     timeoutMs?: number
     fetchImpl?: typeof fetch
+    /** Defaults to markdown only. Add 'links' for the rendered page's hrefs. */
+    formats?: readonly string[]
+    /** Raise the service's markdown ceiling; it caps server-side regardless. */
+    maxChars?: number
   } = {}
 ): Promise<ScrapeErgebnis> {
   const basis = requireEnv('CRAWLER_URL').replace(/\/+$/, '')
@@ -73,8 +97,11 @@ export async function scrape(
       },
       body: JSON.stringify({
         url,
-        formats: ['markdown'],
-        force_playwright: optionen.forcePlaywright ?? true
+        formats: optionen.formats ?? ['markdown'],
+        force_playwright: optionen.forcePlaywright ?? true,
+        ...(optionen.maxChars === undefined
+          ? {}
+          : { max_chars: optionen.maxChars })
       }),
       signal: abbruch.signal
     })
@@ -88,19 +115,28 @@ export async function scrape(
 
     const körper = (await antwort.json()) as CrawlerAntwort
     const markdown = körper.data?.markdown ?? ''
+    const formate = optionen.formats ?? ['markdown']
 
     // An empty body is a failure wearing a success: swimrankings.net answers
     // this way, and treating it as "no matches this week" would quietly stop
     // the feed instead of reporting a broken source.
-    if (markdown.trim() === '') {
+    if (formate.includes('markdown') && markdown.trim() === '') {
       throw new CrawlerFehler('Crawler lieferte eine leere Seite.', url)
     }
 
     const metadaten = körper.data?.metadata
+    const links = Array.isArray(körper.data?.links)
+      ? körper.data.links.filter((l): l is string => typeof l === 'string')
+      : []
     return {
       markdown,
+      links,
       renderer: metadaten?.renderer ?? null,
-      statusCode: metadaten?.statusCode ?? metadaten?.status_code ?? null
+      statusCode: metadaten?.statusCode ?? metadaten?.status_code ?? null,
+      // The per-format map is the precise one; the flat flag covers v2.5-era
+      // answers where neither exists — then nothing is claimed.
+      abgeschnitten:
+        metadaten?.truncation?.['markdown'] ?? metadaten?.truncated ?? false
     }
   } catch (fehler) {
     if (fehler instanceof CrawlerFehler) throw fehler

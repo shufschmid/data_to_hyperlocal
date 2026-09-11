@@ -237,6 +237,182 @@ export interface Resultat {
  * Rows without exactly two numbers are skipped: a fixture that has not been
  * played prints none, and a single number is a group or a table position.
  */
+// ---------------------------------------------------------------------------
+// Telegramme — the association's own match report behind the little icon
+// ---------------------------------------------------------------------------
+
+export interface Telegrammfund {
+  /** The telegram page, absolute. */
+  url: string
+  heim: string
+  gast: string
+  toreHeim: number
+  toreGast: number
+  /** `YYYY-MM-DD` from the nearest date heading, or null. */
+  datum: string | null
+}
+
+const TELEGRAMM_URL = /^\]?\((https?:[^)]*[?&]tg=\d+[^)]*)\)$/
+const TELEGRAMM_INLINE =
+  /^\[(?:!\[\]\([^)]*\))?\s*\]\((https?:[^)]*[?&]tg=\d+[^)]*)\)$/
+const TELEGRAMM_ID = /[?&]tg=(\d+)/
+
+/** The telegram's id inside a Match Center address, or null. */
+export function telegrammId(url: string): number | null {
+  const treffer = TELEGRAMM_ID.exec(url)
+  const roh = treffer?.[1]
+  if (roh === undefined) return null
+  const zahl = Number.parseInt(roh, 10)
+  return Number.isFinite(zahl) ? zahl : null
+}
+
+/**
+ * Every telegram address among a rendered page's links — deduplicated by id
+ * (the same telegram is linked from several rows and several pages) and NEWEST
+ * FIRST, because the probe that follows is bounded: the fresh matches are the
+ * ones still waiting for their telegram, the old ones were caught on earlier
+ * runs.
+ */
+export function telegrammLinks(links: readonly string[]): string[] {
+  const jeId = new Map<number, string>()
+  for (const link of links) {
+    const id = telegrammId(link)
+    if (id !== null && !jeId.has(id)) jeId.set(id, link)
+  }
+  return [...jeId.entries()].sort(([a], [b]) => b - a).map(([, url]) => url)
+}
+
+/** Strips a markdown link down to its text: `[FC X](url)` → `FC X`. */
+function ohneLink(zeile: string): string {
+  const m = /^\[([^\]]+)\]\([^)]*\)$/.exec(zeile)
+  return (m?.[1] ?? zeile).replace(/\\/g, '')
+}
+
+/**
+ * Every telegram the page's markdown still carries, with the match it belongs
+ * to.
+ *
+ * This is the FREE half of discovery: where the icon survives the markdown
+ * conversion (measured: the "Resultate + Ranglisten" view keeps it as
+ * `[\n](…tg=…)` anchors), the row shape names both teams and the score, so the
+ * telegram attaches to its fixture without another request. Where the icon is
+ * a JavaScript handler instead (the club's front page — zero anchors), the
+ * crawler's `links` format still sees the address, but bare: those go through
+ * `telegrammLinks` and the bounded probe, which fetches the page and matches
+ * on the Spielnummer it prints.
+ *
+ * The row shape it anchors on, verbatim from the a=rr page: the anchor, then
+ * home, away, and the two score digits, each on its own line.
+ */
+export function parseTelegramme(markdown: string): Telegrammfund[] {
+  const zeilen = markdown
+    .split('\n')
+    .map((z) => z.trim())
+    .filter((z) => z !== '')
+
+  const funde: Telegrammfund[] = []
+  const gesehen = new Set<string>()
+  let datum: string | null = null
+
+  for (let i = 0; i < zeilen.length; i += 1) {
+    const zeile = zeilen[i] as string
+
+    const tag = TAG.exec(zeile)
+    if (tag !== null) {
+      datum = `${tag[4]}-${tag[3]}-${tag[2]}`
+      continue
+    }
+
+    // The anchor comes in two prints: `[` and `](url)` on separate lines, or
+    // the whole (possibly icon-carrying) link on one.
+    let url: string | null = null
+    let start = i
+    const inline = TELEGRAMM_INLINE.exec(zeile)
+    if (inline !== null) {
+      url = inline[1] ?? null
+      start = i + 1
+    } else if (zeile === '[') {
+      const naechste = TELEGRAMM_URL.exec(zeilen[i + 1] ?? '')
+      if (naechste !== null) {
+        url = naechste[1] ?? null
+        start = i + 2
+      }
+    }
+    if (url === null || gesehen.has(url)) continue
+
+    const heim = ohneLink(zeilen[start] ?? '')
+    const gast = ohneLink(zeilen[start + 1] ?? '')
+    const tore1 = zeilen[start + 2] ?? ''
+    const tore2 = zeilen[start + 3] ?? ''
+    // Shape or nothing: an anchor inside a ranking table is followed by rank
+    // rows, not by two teams and two digits, and is dropped here.
+    if (
+      heim === '' ||
+      gast === '' ||
+      NUR_ZAHL.test(heim) ||
+      NUR_ZAHL.test(gast) ||
+      !NUR_ZAHL.test(tore1) ||
+      !NUR_ZAHL.test(tore2)
+    ) {
+      continue
+    }
+
+    gesehen.add(url)
+    funde.push({
+      url,
+      heim,
+      gast,
+      toreHeim: Number.parseInt(tore1, 10),
+      toreGast: Number.parseInt(tore2, 10),
+      datum
+    })
+  }
+
+  return funde
+}
+
+export interface Telegramm {
+  /** The Spielnummer the page itself names — the guard against a wrong link. */
+  spielnummer: string
+  /** Header, scorers, cards and the event ticker — the lineups stay out. */
+  text: string
+}
+
+/**
+ * The telegram page's own content, cut to what a report can use.
+ *
+ * Measured on tg=4403552 (US Olympia 1963 – FC Aesch, Basler Cup): one header
+ * line carrying `Spielnummer: 513497`, the two teams with their scorers and
+ * minutes, the running score, one long ticker line with every goal and card —
+ * then the lineups under `#### <team>` headings, which are bulk and stay out.
+ */
+export function parseTelegrammSeite(
+  markdown: string,
+  maxZeichen = 3500
+): Telegramm | null {
+  const zeilen = markdown.split('\n')
+  const start = zeilen.findIndex((z) => /Spielnummer:\s*\d+/.test(z))
+  if (start === -1) return null
+
+  const nummer = /Spielnummer:\s*(\d+)/.exec(zeilen[start] as string)
+  if (nummer?.[1] === undefined) return null
+
+  const teile: string[] = []
+  for (let i = start; i < zeilen.length; i += 1) {
+    const zeile = (zeilen[i] as string).trim()
+    if (i > start && zeile.startsWith('#### ')) break
+    if (zeile !== '') teile.push(zeile)
+  }
+
+  const ganz = teile.join('\n')
+  const text =
+    ganz.length > maxZeichen
+      ? `${ganz.slice(0, maxZeichen)}\n[… Telegramm gekuerzt]`
+      : ganz
+
+  return { spielnummer: nummer[1], text }
+}
+
 export function parseVereinsseite(markdown: string): Resultat[] {
   const zeilen = markdown
     .split('\n')

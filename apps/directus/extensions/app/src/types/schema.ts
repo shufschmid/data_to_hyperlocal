@@ -436,6 +436,13 @@ export interface Spiel {
   ort: string | null
   status: string | null
   quelle_url: string | null
+  /**
+   * The association telegram for this match (matchcenter, tg=...), discovered
+   * from the results pages' markdown or the rendered pages' links — possibly
+   * later than the score. A report with one gets scorers, cards and the
+   * ticker, and links this page as its source.
+   */
+  telegramm_url: string | null
   date_created: string | null
   date_updated: string | null
 }

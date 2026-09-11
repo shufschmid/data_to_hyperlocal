@@ -3,8 +3,13 @@ import { CrawlerFehler, scrape, WHATS_ON_URL } from '../../shared/crawler'
 import {
   istInteressant,
   ordneVereinZu,
+  parseTelegramme,
+  parseTelegrammSeite,
   parseVereinsseite,
-  parseWhatsOn
+  parseWhatsOn,
+  telegrammId,
+  telegrammLinks,
+  type Telegrammfund
 } from '../../shared/matchcenter/parse'
 import { parseGameCenter } from '../../shared/swissvolley/parse'
 import { parseHandball } from '../../shared/handball/parse'
@@ -89,9 +94,32 @@ export default defineOperationApi<Optionen>({
     // connector yet — those clubs are simply skipped, which is why the tab can
     // be right about football and empty about handball at the same time.
     const fussball = vereine.filter((verein) => verein.quelle === 'fvnws')
+    // Telegrams found along the way — attached to stored rows after the
+    // fixture writes, because a match can arrive together with its result.
+    const telegramme: Telegrammfund[] = []
+    // Every address the rendered football pages linked. The crawler's `links`
+    // format is where the JS-handler telegram icons live (measured: 29 tg
+    // links on a club page whose markdown carried zero).
+    const telegrammAdressen: string[] = []
+
     if (fussball.length > 0) {
       try {
-        const ergebnis = await scrape(WHATS_ON_URL)
+        const ergebnis = await scrape(WHATS_ON_URL, {
+          formats: ['markdown', 'links']
+        })
+        // The service says when it cut the markdown (measured: this very page
+        // hits the ~96k ceiling even with a raised max_chars). Fixtures beyond
+        // the cut are invisible — said here, per the newsroom's rule.
+        if (ergebnis.abgeschnitten) {
+          logger.warn(
+            'sportresultate: "what\'s on" ist abgeschnitten — spaetere Spiele fehlen dann.'
+          )
+          fehler.push(
+            'fvnws: Spielliste abgeschnitten (Markdown-Deckel des Crawlers).'
+          )
+        }
+        telegrammAdressen.push(...ergebnis.links)
+        telegramme.push(...parseTelegramme(ergebnis.markdown))
         const alle = parseWhatsOn(ergebnis.markdown)
         let getroffen = 0
         for (const begegnung of alle) {
@@ -232,7 +260,14 @@ export default defineOperationApi<Optionen>({
     for (const verein of fussball) {
       if (verein.ergebnis_url === null) continue
       try {
-        const ergebnis = await scrape(verein.ergebnis_url)
+        // `links` rides along at no extra request: the club page's telegram
+        // icons are JavaScript handlers the markdown never shows, but the
+        // rendered page's hrefs carry them all.
+        const ergebnis = await scrape(verein.ergebnis_url, {
+          formats: ['markdown', 'links']
+        })
+        telegrammAdressen.push(...ergebnis.links)
+        telegramme.push(...parseTelegramme(ergebnis.markdown))
         const resultate = parseVereinsseite(ergebnis.markdown)
         let getragen = 0
 
@@ -422,18 +457,153 @@ export default defineOperationApi<Optionen>({
     }
     logger.info(`sportresultate: ${neu} neu, ${aktualisiert} aktualisiert.`)
 
+    // Attach discovered telegrams — AFTER the fixture writes, so a match that
+    // arrived together with its result (a cup round never seen upcoming) can
+    // receive its telegram in the same run.
+    //
+    // Two paths, cheapest first. Where a page's markdown kept the icon, the
+    // row names both teams and the score and the telegram attaches without
+    // another request. Everything else lives only in the rendered pages'
+    // `links` — bare addresses with no match attached — and is PROBED: fetch
+    // the telegram page, read the Spielnummer it prints, attach it to the
+    // stored fixture still waiting. Bounded, newest first, and early-stopping:
+    // no open need, no request.
+    let telegrammeNeu = 0
+    const spieleMitNeuemTelegramm = new Set<string>()
+    for (const fund of telegramme) {
+      try {
+        const kandidaten = (await spieleService.readByQuery({
+          filter: {
+            heim: { _eq: fund.heim },
+            gast: { _eq: fund.gast },
+            tore_heim: { _eq: fund.toreHeim },
+            tore_gast: { _eq: fund.toreGast },
+            telegramm_url: { _null: true }
+          },
+          fields: ['id'],
+          limit: 1
+        })) as Array<{ id: string }>
+        const spiel = kandidaten[0]
+        if (spiel === undefined) continue
+        await spieleService.updateOne(spiel.id, { telegramm_url: fund.url })
+        telegrammeNeu += 1
+        spieleMitNeuemTelegramm.add(spiel.id)
+      } catch (ausnahme) {
+        logger.warn(
+          ausnahme,
+          `sportresultate: Telegramm ${fund.url} nicht zuzuordnen.`
+        )
+      }
+    }
+
+    // What still lacks a telegram, keyed by the Spielnummer a telegram page
+    // prints. Football only — the SFV's Spielnummer is the join key, and the
+    // other sports' composed keys can never appear on one. The ten-day window
+    // is the probe's brake: a telegram arrives days after the result or not at
+    // all, and without the window every telegram-less fixture would keep the
+    // probe burning its budget forever.
+    const offenNachNummer = new Map<string, string>()
+    if (fussball.length > 0 && telegrammAdressen.length > 0) {
+      const fenster = new Date(Date.now() - 10 * 24 * 3600 * 1000)
+        .toISOString()
+        .slice(0, 10)
+      for (const spiel of (await spieleService.readByQuery({
+        filter: {
+          verein: { _in: fussball.map((v) => v.id) },
+          tore_heim: { _nnull: true },
+          telegramm_url: { _null: true },
+          datum: { _gte: fenster }
+        },
+        fields: ['id', 'spielnummer'],
+        limit: -1
+      })) as Array<{ id: string; spielnummer: string }>) {
+        offenNachNummer.set(spiel.spielnummer, spiel.id)
+      }
+    }
+
+    if (offenNachNummer.size > 0) {
+      // Telegrams already attached — this run or any earlier one — are known
+      // by their id and never fetched again.
+      const bekannt = new Set<number>()
+      for (const spiel of (await spieleService.readByQuery({
+        filter: { telegramm_url: { _nnull: true } },
+        fields: ['telegramm_url'],
+        limit: -1
+      })) as Array<{ telegramm_url: string }>) {
+        const id = telegrammId(spiel.telegramm_url)
+        if (id !== null) bekannt.add(id)
+      }
+
+      const kandidaten = telegrammLinks(telegrammAdressen).filter((url) => {
+        const id = telegrammId(url)
+        return id !== null && !bekannt.has(id)
+      })
+
+      // Most linked telegrams belong to other clubs' matches — the pages carry
+      // the whole association's. The cap keeps a big day bounded; what it cuts
+      // is retried tomorrow, newest first, as long as a need remains.
+      const PROBE_DECKEL = 15
+      let geprobt = 0
+      for (const url of kandidaten) {
+        if (offenNachNummer.size === 0 || geprobt >= PROBE_DECKEL) break
+        geprobt += 1
+        try {
+          const seite = await scrape(url)
+          const telegramm = parseTelegrammSeite(seite.markdown)
+          if (telegramm === null) continue
+          const spielId = offenNachNummer.get(telegramm.spielnummer)
+          if (spielId === undefined) continue
+          await spieleService.updateOne(spielId, { telegramm_url: url })
+          offenNachNummer.delete(telegramm.spielnummer)
+          telegrammeNeu += 1
+          spieleMitNeuemTelegramm.add(spielId)
+        } catch (ausnahme) {
+          // Telegrams are enrichment: a failing page must not cost the run.
+          logger.warn(
+            ausnahme,
+            `sportresultate: Telegramm ${url} nicht lesbar.`
+          )
+        }
+      }
+      if (geprobt >= PROBE_DECKEL && offenNachNummer.size > 0) {
+        logger.info(
+          `sportresultate: ${kandidaten.length - geprobt} Telegramm-Adressen nicht geprueft (Deckel ${PROBE_DECKEL}) — der naechste Lauf prueft weiter.`
+        )
+      }
+    }
+    if (telegrammeNeu > 0) {
+      logger.info(`sportresultate: ${telegrammeNeu} Telegramm(e) entdeckt.`)
+    }
+
     // A result without an article is work nobody asked for twice: every new
     // score gets its draft in the same run, so the editor finds a written
     // report rather than a fixture to press a button on. Bounded like every
     // other scheduled call — a backlog is worked off over several mornings.
-    const berichte = await schreibeSpielberichte({
-      spiele: spieleService,
-      meldungen: meldungenService,
-      logger
-    })
+    const berichte = await schreibeSpielberichte(
+      {
+        spiele: spieleService,
+        meldungen: meldungenService,
+        logger,
+        // Injected here, where the crawler key is known to exist: a failing
+        // telegram page costs the detail, never the report.
+        holeTelegramm: async (url) => {
+          try {
+            return (await scrape(url)).markdown
+          } catch (ausnahme) {
+            logger.warn(
+              ausnahme,
+              `sportresultate: Telegramm ${url} nicht lesbar.`
+            )
+            return null
+          }
+        }
+      },
+      undefined,
+      spieleMitNeuemTelegramm
+    )
     if (berichte.offen > 0) {
       logger.info(
-        `sportresultate: ${berichte.erzeugt} von ${berichte.offen} Spielberichten geschrieben.`
+        `sportresultate: ${berichte.erzeugt} von ${berichte.offen} Spielberichten geschrieben, ${berichte.erneuert} mit neuem Telegramm erneuert.`
       )
     }
     for (const gescheitert of berichte.fehlgeschlagen) {

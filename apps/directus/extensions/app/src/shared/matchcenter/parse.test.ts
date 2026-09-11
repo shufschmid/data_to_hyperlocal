@@ -2,8 +2,12 @@ import { describe, expect, it } from 'vitest'
 import {
   istInteressant,
   ordneVereinZu,
+  parseTelegramme,
+  parseTelegrammSeite,
   parseVereinsseite,
-  parseWhatsOn
+  parseWhatsOn,
+  telegrammId,
+  telegrammLinks
 } from './parse'
 
 // Verbatim from the FVNWS "what's on" page, 17 August 2026 — including the
@@ -293,5 +297,164 @@ describe('parseVereinsseite', () => {
 
   it('vertraegt eine leere Seite', () => {
     expect(parseVereinsseite('')).toEqual([])
+  })
+})
+
+// Wortwoertlich von der "Resultate + Ranglisten"-Seite des FC Aesch (a=rr) am
+// 10.09.2026: der Telegramm-Anker ueberlebt die Markdown-Konvertierung dort
+// als leerer Link ueber zwei Zeilen, gefolgt von Heim, Gast und zwei Ziffern.
+const RESULTATE_SEITE = `
+#### Junioren D-9 - Stärkeklasse 2 - Herbstrunde - Gruppe 1
+
+Sa 05.09.2026
+
+[
+](https://matchcenter.fvnws.ch/default.aspx?oid=8&lng=1&ln=&v=482&tg=4359182)
+
+FC Black Stars D2
+
+BCO Alemannia Basel a
+
+5
+
+3
+
+[
+](https://matchcenter.fvnws.ch/default.aspx?oid=8&lng=1&ln=&v=482&tg=4359185)
+
+FC Möhlin-Riburg/ACLI D-12 blau
+
+FC Dardania
+
+6
+
+2
+
+| 1. | [FC Reinach](https://matchcenter.fvnws.ch/default.aspx?oid=8&lng=1&v=502) | 4 | 3 |
+
+[![](https://matchcenter.fvnws.ch/portaldata/1/nisRD/images/red/button.png)](https://matchcenter.fvnws.ch/default.aspx?oid=8&lng=1&v=482&tg=4357076)
+
+| 2. | Rangzeile | 9 | 9 |
+`
+
+describe('parseTelegramme', () => {
+  it('liest die Telegramm-Anker mit Teams, Resultat und Datum', () => {
+    const funde = parseTelegramme(RESULTATE_SEITE)
+
+    expect(funde).toHaveLength(2)
+    expect(funde[0]).toEqual({
+      url: 'https://matchcenter.fvnws.ch/default.aspx?oid=8&lng=1&ln=&v=482&tg=4359182',
+      heim: 'FC Black Stars D2',
+      gast: 'BCO Alemannia Basel a',
+      toreHeim: 5,
+      toreGast: 3,
+      datum: '2026-09-05'
+    })
+  })
+
+  // Anker in Rangtabellen tragen keine zwei Teams mit zwei Ziffern dahinter —
+  // die Formpruefung laesst sie fallen, statt Raenge als Resultate zu lesen.
+  it('verwirft Anker, denen die Spielform nicht folgt', () => {
+    const funde = parseTelegramme(RESULTATE_SEITE)
+    expect(funde.some((f) => f.url.includes('4357076'))).toBe(false)
+  })
+
+  it('vertraegt eine Seite ohne Anker — die Vereinsseite versteckt sie hinter JavaScript', () => {
+    expect(
+      parseTelegramme('# Verein\nFC Aesch\n2\n6\nSpielnummer 513497')
+    ).toEqual([])
+  })
+})
+
+// Gekuerzt von tg=4403552 (US Olympia 1963 - FC Aesch, Basler Cup 1/16,
+// 08.09.2026) — Kopfzeile mit Spielnummer, Torschuetzen, Ticker, dann die
+// Aufstellungen unter ####-Ueberschriften.
+const TELEGRAMM_SEITE = `
+# Verein
+
+Cup - Basler Cup - 1/16 - Final - 08.09.2026 20:45 - Spielnummer: 513497 - Sportzentrum Pfaffenholz, Basel
+
+US Olympia 1963
+
+42' | Ömer Dilaver Yagimli |
+
+2:6
+
+(2:5)
+
+FC Aesch
+
+12' | Daniel Colanero |
+
+80' Verwarnung Wilson Cardoso (Olympia 1963)12' 0:1Tor AeschTorschütze Daniel Colanero
+
+#### US Olympia 1963
+
+1 |
+Salem Fahdy
+Tor
+|
+`
+
+describe('parseTelegrammSeite', () => {
+  it('liest Spielnummer und Inhalt, ohne die Aufstellungen', () => {
+    const telegramm = parseTelegrammSeite(TELEGRAMM_SEITE)
+
+    expect(telegramm?.spielnummer).toBe('513497')
+    expect(telegramm?.text).toContain('Daniel Colanero')
+    expect(telegramm?.text).toContain('Basler Cup')
+    // Die Aufstellungen bleiben draussen — Ballast, nicht Bericht.
+    expect(telegramm?.text).not.toContain('Salem Fahdy')
+  })
+
+  it('markiert eine Kuerzung sichtbar', () => {
+    const telegramm = parseTelegrammSeite(TELEGRAMM_SEITE, 60)
+    expect(telegramm?.text).toContain('[… Telegramm gekuerzt]')
+  })
+
+  it('antwortet null, wo keine Spielnummer steht', () => {
+    expect(parseTelegrammSeite('# Verein\nirgendwas')).toBeNull()
+  })
+})
+
+describe('telegrammId', () => {
+  it('liest die Id aus einer Match-Center-Adresse', () => {
+    expect(
+      telegrammId(
+        'https://matchcenter.fvnws.ch/default.aspx?oid=8&lng=1&v=482&tg=4403552'
+      )
+    ).toBe(4403552)
+  })
+
+  it('antwortet null fuer Adressen ohne tg-Parameter', () => {
+    expect(
+      telegrammId('https://matchcenter.fvnws.ch/default.aspx?oid=8&v=482')
+    ).toBeNull()
+    // `tg` muss ein Parameter sein, nicht ein Teil eines anderen Werts.
+    expect(
+      telegrammId('https://matchcenter.fvnws.ch/default.aspx?stg=123')
+    ).toBeNull()
+  })
+})
+
+describe('telegrammLinks', () => {
+  it('filtert, dedupliziert nach Id und sortiert neuste zuerst', () => {
+    const links = [
+      'https://matchcenter.fvnws.ch/default.aspx?oid=8&v=482',
+      'https://matchcenter.fvnws.ch/default.aspx?oid=8&v=482&tg=4359182',
+      'https://matchcenter.fvnws.ch/default.aspx?oid=8&v=482&tg=4403552',
+      // Dieselbe Id, von einer anderen Seite aus verlinkt.
+      'https://matchcenter.fvnws.ch/default.aspx?oid=8&v=999&tg=4403552',
+      'https://matchcenter.fvnws.ch/kontakt.aspx'
+    ]
+
+    expect(telegrammLinks(links)).toEqual([
+      'https://matchcenter.fvnws.ch/default.aspx?oid=8&v=482&tg=4403552',
+      'https://matchcenter.fvnws.ch/default.aspx?oid=8&v=482&tg=4359182'
+    ])
+  })
+
+  it('vertraegt eine leere Liste', () => {
+    expect(telegrammLinks([])).toEqual([])
   })
 })

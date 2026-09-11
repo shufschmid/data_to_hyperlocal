@@ -2,6 +2,8 @@ import { createError } from '@directus/errors'
 import { defineEndpoint } from '@directus/extensions-sdk'
 import type { NextFunction, Response } from 'express'
 import { completeChatJson, completeJson } from '../../shared/claude'
+import { scrape } from '../../shared/crawler'
+import { parseTelegrammSeite } from '../../shared/matchcenter/parse'
 import { isAuthenticated, type ApiRequest } from '../../shared/http'
 import { drain, eroeffneLaeufe, type DrainKontext } from '../../redaktion/drain'
 import {
@@ -3195,7 +3197,15 @@ export default defineEndpoint(
           const ergebnis = await schreibeSpielberichte({
             spiele: spieleService,
             meldungen: meldungenService,
-            logger
+            logger,
+            holeTelegramm: async (url) => {
+              try {
+                return (await scrape(url)).markdown
+              } catch (fehler) {
+                logger.warn(fehler, `redaktion: Telegramm ${url} nicht lesbar.`)
+                return null
+              }
+            }
           })
 
           if (ergebnis.offen === 0) return next(new NichtsZuTun())
@@ -4572,6 +4582,7 @@ export default defineEndpoint(
       const spiel = (await spiele.readOne(spielId, {
         fields: [
           'id',
+          'spielnummer',
           'datum',
           'heim',
           'gast',
@@ -4580,6 +4591,7 @@ export default defineEndpoint(
           'wettbewerb',
           'ort',
           'quelle_url',
+          'telegramm_url',
           'gemeinde.name',
           'verein.id',
           'verein.name',
@@ -4591,6 +4603,7 @@ export default defineEndpoint(
         ]
       })) as {
         id: string
+        spielnummer: string
         datum: string
         heim: string
         gast: string
@@ -4599,6 +4612,7 @@ export default defineEndpoint(
         wettbewerb: string
         ort: string | null
         quelle_url: string | null
+        telegramm_url: string | null
         gemeinde: { name: string }
         verein: {
           id: string
@@ -4613,6 +4627,25 @@ export default defineEndpoint(
 
       if (spiel.tore_heim === null || spiel.tore_gast === null) {
         throw new NichtsZuTun()
+      }
+
+      // The revision sees the telegram too, where one exists — verified
+      // against the Spielnummer, and a failing fetch costs the detail, not
+      // the rewrite.
+      let telegramm: string | null = null
+      if (spiel.telegramm_url !== null) {
+        try {
+          const seite = await scrape(spiel.telegramm_url)
+          const gelesen = parseTelegrammSeite(seite.markdown)
+          if (gelesen !== null && gelesen.spielnummer === spiel.spielnummer) {
+            telegramm = gelesen.text
+          }
+        } catch (fehler) {
+          logger.warn(
+            fehler,
+            `redaktion: Telegramm ${spiel.telegramm_url} nicht lesbar.`
+          )
+        }
       }
 
       const frueherRoh = (await spiele.readByQuery({
@@ -4644,7 +4677,12 @@ export default defineEndpoint(
         gemeinde: spiel.gemeinde.name,
         liga: spiel.verein.liga,
         notiz: spiel.verein.notiz,
-        quelle: verbandsQuelle(spiel.verein, spiel.quelle_url),
+        quelle: verbandsQuelle(
+          spiel.verein,
+          spiel.quelle_url,
+          telegramm === null ? null : spiel.telegramm_url
+        ),
+        telegramm,
         frueher: frueherRoh.map((f) => ({
           datum: f.datum,
           heim: f.heim,
