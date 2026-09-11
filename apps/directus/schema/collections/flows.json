@@ -143,15 +143,15 @@
     "_syncId": "9bfef9c8-6baf-4dc2-a801-30374bdd1e4e"
   },
   {
-    "name": "Regionaljournal holen",
+    "name": "Regionaljournal holen und verarbeiten",
     "icon": "podcasts",
     "color": null,
-    "description": "Holt die Regionaljournal-Dossiers aus dem Postfach. Legt nur pending-Zeilen an.",
+    "description": "Holt die Regionaljournal-Dossiers aus dem Postfach (Mail ~14:32) und verarbeitet sie in derselben Kette — die Sokrates-Schnittstelle braucht die neue Sendung ab 14:35. Wiederholungen (14:42/14:49, abends) sind gratis: der Ingest dedupliziert ueber source_subject.",
     "status": "active",
     "trigger": "schedule",
     "accountability": "all",
     "options": {
-      "cron": "30 20 * * *"
+      "cron": "0 35,42,49 14,20 * * *"
     },
     "operation": "54faa99b-58af-4c50-8645-951d334cf255",
     "_syncId": "da8f13bc-82db-471e-8dcf-08fe36562c43"

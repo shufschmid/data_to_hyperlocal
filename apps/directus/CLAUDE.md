@@ -163,6 +163,16 @@ export default defineEndpoint((router, { services, getSchema, logger }) => {
   every outside thing is injected, so the whole API is unit-tested without a
   database. The switch `BLOG_API_OFFEN` is explicit and never a fallback.
   Contract for consumers: [SCHNITTSTELLE.md](SCHNITTSTELLE.md).
+- **The one endpoint gated by a key instead of a login:** `src/endpoints/sokrates/`
+  (`GET /sokrates/sendungen`) serves the day's Regionaljournal editions —
+  Abschnitte plus whole transcript — to Sokrates, the „Frage des Tages" AI.
+  The key (`SOKRATES_API_KEY`) travels in the **`X-Sokrates-Key` header, never
+  in `Authorization`**: Directus' own auth middleware runs before every custom
+  endpoint and answers 401 `INVALID_CREDENTIALS` to any Bearer token it cannot
+  resolve as one of its own — a foreign key in that header never reaches the
+  endpoint's code (measured here). Unset key → 503 on the content route, wrong
+  key → 401, comparison timing-safe (`pruefeZugang`). The rules live in
+  `sokrates.ts` next to the wiring and are unit-tested without a database.
 
 ### Hook — react to a write, from any source
 

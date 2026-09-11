@@ -104,6 +104,12 @@ services:
       # Absicht offen ist, ist es zu unrecht. "ja" schaltet sie ein.
       BLOG_API_OFFEN: ${BLOG_API_OFFEN:-}
 
+      # Die geschuetzte Sokrates-Schnittstelle (/sokrates/sendungen): die KI
+      # hinter der "Frage des Tages" liest die neuen Regionaljournal-Sendungen
+      # ungeprueft (Abschnitte + ganzes Transkript). Schluessel in der
+      # Kopfzeile "X-Sokrates-Key"; leer heisst abgeschaltet (503).
+      SOKRATES_API_KEY: ${SOKRATES_API_KEY:-}
+
       EXTENSIONS_PATH: ./extensions
       # Auto-reload watches the filesystem; pointless in an immutable image.
       EXTENSIONS_AUTO_RELOAD: 'false'

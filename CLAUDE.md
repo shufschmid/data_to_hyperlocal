@@ -455,6 +455,22 @@ them is wrong even if it works.
    „Riehen" inside „Riehenring" — Basel city addresses these two shows mention
    constantly. A substring match would propose the wrong municipality almost
    daily. There is a test.
+   **The Regionaljournal has a SECOND consumer, and it is a program in a
+   hurry.** Sokrates — the AI helping the newsroom formulate the „Frage des
+   Tages" — needs the day's broadcast UNREVIEWED and fast: the transcript mail
+   lands around 14:32, so the Flow „Regionaljournal holen und verarbeiten"
+   runs at 14:35 (with free idempotent retries at 14:42/14:49 and an evening
+   pass — ingest dedupes on `source_subject`) and chains processing directly
+   after the ingest in the same Flow. What it produces is served by
+   `endpoints/sokrates/` (`GET /sokrates/sendungen`): each Sendung prepared as
+   the same Abschnitte the Sichtung judges (`beitraegeAusEdition`, honest
+   `nur_zusammenfassung` labels included) plus the WHOLE transcript. Nothing
+   is published by serving it, and unreviewed content still never reaches the
+   Dorfkönig API — this door is separate, non-public, and gated by
+   `SOKRATES_API_KEY` in the `X-Sokrates-Key` header (unset → 503, wrong →
+   401, compared timing-safe). NOT `Authorization`: that header belongs to
+   Directus, whose auth middleware rejects a foreign Bearer token before any
+   custom endpoint runs — measured on the running instance.
 
    „Gemeinden" is a flat, searchable list — not grouped by district. The
    districts were dropped because they hid what they organised: Riehen, the
@@ -643,23 +659,31 @@ Flow "Meldungen erzeugen"  (*/2)   endpoints/redaktion  (immediately)
             │                    fetched only when a vorgabe asks for them
             └─ stage B          N× Sonnet → one article per municipality
                                  cached system prompt, checked afterwards.
-                                 A REVISION re-fetches the run's period slice
-                                 from the source (once per run and pass) and
-                                 hands the municipality's FULL rows over — the
-                                 newsroom's rule: an instruction must be
-                                 answerable from the whole original. Measured
-                                 before the fix: Binningen's Motorfahrzeug
-                                 slice is 56 rows, the prompt showed 40, and
-                                 "Personenwagen" sorted past the cut — the
-                                 model answered a car question from the
-                                 Leichtmotorfahrzeug rows. Stage A stores the
-                                 full slice plus the einordnung computed over
-                                 ALL rows; the 400-row `alle_zeilen` sample is
-                                 GONE — a "Kantonsschnitt" from it was the
-                                 sample's, and no fallback recomputes one: a
-                                 row without a stored einordnung gets NULL,
-                                 the prompt says "keine Vergleichszahlen",
-                                 and the percentage check flags every claim.
+                                 A REVISION runs DEEP (the newsroom's explicit
+                                 decision — an instruction is a deliberate,
+                                 expensive step): Opus with adaptive thinking,
+                                 a fresh fetch of the run's WHOLE period slice
+                                 plus the municipality's complete history, and
+                                 the full all-municipalities slice riding in
+                                 the per-run cached system prompt
+                                 (`buildTiefenSystemPrompt`) so "wie ist der
+                                 Elektro-Anteil, verglichen mit den anderen?"
+                                 is answerable. Shares and time changes MAY be
+                                 computed there — from handed numbers only, and
+                                 `ableitbareProzentangaben` pre-computes that
+                                 space so every percentage still verifies.
+                                 Measured before all this: Binningen's
+                                 Motorfahrzeug slice is 56 rows, the prompt
+                                 showed 40, "Personenwagen" sorted past the
+                                 cut, and the model answered a car question
+                                 from the Leichtmotorfahrzeug rows. Stage A
+                                 stores the full slice plus the einordnung
+                                 computed over ALL rows; the 400-row
+                                 `alle_zeilen` sample is GONE — no fallback
+                                 recomputes one: a row without a stored
+                                 einordnung gets NULL, the prompt says "keine
+                                 Vergleichszahlen", and the percentage check
+                                 flags every claim.
                                  The same rule holds for the other feeds: a
                                  press-review revision sees the piece's pages,
                                  a broadcast revision the transcript —
@@ -834,6 +858,31 @@ in `vereine.akzeptierte_zahlen`, and the check never flags them again for that
 club. Per club on purpose, so a wrong acceptance stays on its own desk; deleting
 a number from the field turns the warning back on. Relative time references
 deliberately do NOT learn — "am Samstag" is wrong afresh every time.
+
+**Telegramme: the association's own match report, where it exists.** The Match
+Center hangs a small icon next to some results (`…&tg=<id>`); the page behind it
+carries scorers with minutes, cards, the event ticker AND the Spielnummer.
+Discovery has two paths, cheapest first, and their limits are measured, not
+guessed. Where the icon survives the markdown conversion (the "Resultate +
+Ranglisten" view), `parseTelegramme` reads teams + score off the row and the
+telegram attaches without another request. Where it is a JavaScript handler
+(the club's front page — zero anchors in markdown), the FaaS-Crawler's `links`
+format (v2.7.0, built for this) still carries the address (measured: 29 tg
+links on a club page whose markdown had none), but bare — so those are PROBED:
+fetch the page, read the Spielnummer it prints, attach it to the stored fixture
+still waiting. The probe is bounded (15 per run, newest id first) and
+early-stops on two brakes: no football fixture with a result and without a
+telegram inside the last ten days means no request at all, and ids already
+attached are never fetched twice. The report writer re-fetches the page and
+TRUSTS it only if its printed Spielnummer matches (`parseTelegrammSeite`) —
+scorers from the wrong match are worse than none. With a telegram the report
+may grow to two paragraphs, its digits are handed material, the telegram page
+becomes the source link, and a telegram arriving AFTER the report rewrites the
+machine draft (status `entwurf` only — never behind an editor's back). Also
+measured: the crawler caps markdown server-side (~96k even with a raised
+`max_chars`) and reports it honestly per format — `scrape()` surfaces that as
+`abgeschnitten`, and the run says so in `fehler` instead of reading a truncated
+day as quiet.
 
 **Only the first team is followed at all.** A village club fields four: SC
 Binningen played four times on 29 August 2026 — 2. Liga interregional, a

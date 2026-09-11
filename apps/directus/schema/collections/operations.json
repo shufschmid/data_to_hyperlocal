@@ -24,7 +24,7 @@
     "options": {
       "limit": 5
     },
-    "resolve": null,
+    "resolve": "ccdecd9e-1b14-41b9-bad9-b92441bc552d",
     "reject": null,
     "flow": "da8f13bc-82db-471e-8dcf-08fe36562c43",
     "_syncId": "54faa99b-58af-4c50-8645-951d334cf255"
@@ -161,5 +161,19 @@
     "reject": null,
     "flow": "9bfef9c8-6baf-4dc2-a801-30374bdd1e4e",
     "_syncId": "72c6e871-2ba9-4348-bfa8-fa1d6f7c6f84"
+  },
+  {
+    "name": "Verarbeiten",
+    "key": "verarbeiten",
+    "type": "dossiers-process-pending",
+    "position_x": 37,
+    "position_y": 1,
+    "options": {
+      "limit": 5
+    },
+    "resolve": null,
+    "reject": null,
+    "flow": "da8f13bc-82db-471e-8dcf-08fe36562c43",
+    "_syncId": "ccdecd9e-1b14-41b9-bad9-b92441bc552d"
   }
 ]

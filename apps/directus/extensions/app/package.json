@@ -87,6 +87,11 @@
         "source": "src/endpoints/api/index.ts"
       },
       {
+        "type": "endpoint",
+        "name": "sokrates",
+        "source": "src/endpoints/sokrates/index.ts"
+      },
+      {
         "type": "hook",
         "name": "kandidat-gemeinde",
         "source": "src/hooks/kandidat-gemeinde/index.ts"
