@@ -19,7 +19,7 @@ import { kandidatenJeEdition, meldungJeKandidat } from '@/lib/sendungen'
 import { EditionCard } from './EditionCard'
 import { Punkt6EditionCard } from './Punkt6EditionCard'
 import type { SendungsKandidatProps } from './SendungsKandidat'
-import type { MeldungAktion } from './MeldungKarte'
+import type { MeldungAktion, MeldungAktionKoerper } from './MeldungKarte'
 
 export interface SendungsDurchsichtProps {
   sendung: 'regionaljournal' | 'punkt6'
@@ -35,7 +35,7 @@ export interface SendungsDurchsichtProps {
   onAblehnen?: (id: string, grund: string, kommentar: string | null) => Promise<void> | void
   onWeiterreichen?: (id: string, begruendung: string | null) => Promise<void> | void
   onChat?: (id: string, anweisung: string) => Promise<void>
-  onAktion?: (id: string, aktion: MeldungAktion) => Promise<void>
+  onAktion?: (id: string, aktion: MeldungAktion, koerper?: MeldungAktionKoerper) => Promise<void>
   /**
    * Laedt die Daten neu, die eine Ebene hoeher liegen — vor allem die
    * Gemeinde-Kandidaten.

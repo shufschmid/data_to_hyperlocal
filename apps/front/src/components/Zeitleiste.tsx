@@ -16,7 +16,7 @@ import {
   type ZeitleistenErgebnis
 } from '@/lib/redaktion'
 import { LaufBerichte } from './LaufBerichte'
-import type { MeldungAktion } from './MeldungKarte'
+import type { MeldungAktion, MeldungAktionKoerper } from './MeldungKarte'
 
 // Woher unser Material kommt — in einer Liste, nach Datum.
 //
@@ -49,7 +49,7 @@ export interface ZeitleisteProps {
   onStapelChat?: (laufId: string, anweisung: string) => Promise<void>
   onStapelAktion?: (laufId: string, aktion: 'pruefung' | 'publizieren') => Promise<void>
   onChat?: (id: string, anweisung: string) => Promise<void>
-  onAktion?: (id: string, aktion: MeldungAktion) => Promise<void>
+  onAktion?: (id: string, aktion: MeldungAktion, koerper?: MeldungAktionKoerper) => Promise<void>
   onAuftrag: (eintrag: ZeitleistenEintrag) => void
   /** „Vergiss es" — dauerhaft, die tägliche Prüfung holt es nicht zurück. */
   onVerwerfen: (eintrag: ZeitleistenEintrag) => void
@@ -144,7 +144,7 @@ interface BerichteBuendel {
   onStapelChat?: (laufId: string, anweisung: string) => Promise<void>
   onStapelAktion?: (laufId: string, aktion: 'pruefung' | 'publizieren') => Promise<void>
   onChat?: (id: string, anweisung: string) => Promise<void>
-  onAktion?: (id: string, aktion: MeldungAktion) => Promise<void>
+  onAktion?: (id: string, aktion: MeldungAktion, koerper?: MeldungAktionKoerper) => Promise<void>
 }
 
 interface ZeileProps {

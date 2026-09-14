@@ -16,17 +16,18 @@ import {
   INVENTAR_SYSTEM_PROMPT,
   lernDigest,
   parseInventar,
-  type FaehrtenUrteil,
-  type GemeindeKorrektur,
-  type InventarQuelle,
-  type LernEintrag
+  type InventarQuelle
 } from '../../redaktion/presseschau'
+import { ladeWochenblattSignale } from '../../redaktion/lernsignale'
+import { ladeRegeln } from '../../redaktion/gedaechtnis'
+import {
+  automatischeWeitergabe,
+  regelnBlock,
+  SICHTUNGSREGELN_UEBERSCHRIFT
+} from '../../redaktion/lernen'
+import { kandidatAlsHinweis, reicheWeiter } from '../../redaktion/weiterreichen'
 import { optionalEnv } from '../../shared/env'
-import type {
-  Wochenblatt,
-  Wochenblattausgabe,
-  Wochenblattkandidat
-} from '../../types/schema'
+import type { Wochenblatt, Wochenblattausgabe } from '../../types/schema'
 
 // The 09:00 look at every registered weekly paper.
 //
@@ -59,9 +60,6 @@ interface Ergebnis {
   fehler: string[]
   hinweise: string[]
 }
-
-/** How many past decisions ride into the inventory as examples. */
-const LERN_FENSTER = 20
 
 export default defineOperationApi<Optionen>({
   id: 'wochenblatt-pruefen',
@@ -96,6 +94,10 @@ export default defineOperationApi<Optionen>({
       knex: database
     })
     const hinweiseService = new ItemsService('recherchehinweise', {
+      schema,
+      knex: database
+    })
+    const wissenService = new ItemsService('redaktionswissen', {
       schema,
       knex: database
     })
@@ -303,7 +305,35 @@ export default defineOperationApi<Optionen>({
     ): Promise<number> {
       const abdeckung = abdeckungVon(blatt)
       const gemeindeIds = new Map(abdeckung.map((g) => [g.name, g.id]))
-      const digest = lernDigest(...(await ladeLernSignale(blatt.id)))
+      // What this paper's desk taught us — decisions, corrections, lead
+      // verdicts — plus the tally of what was left lying. One loader, shared
+      // with the re-inventory button, so the two cannot drift.
+      const signale = await ladeWochenblattSignale(
+        {
+          zeilen: kandidatenService,
+          hinweise: hinweiseService,
+          meldungen: meldungenService,
+          ausgaben: ausgabenService
+        },
+        blatt.id
+      )
+      const digest = lernDigest(
+        signale.entscheide,
+        signale.korrekturen,
+        signale.faehrten,
+        { ...signale.rahmen, perlen: signale.perlen }
+      )
+      // What the newsroom taught in words — the desk's Sichtung rules,
+      // numbered so an answer can cite one.
+      const regelzeilen = await ladeRegeln(
+        wissenService,
+        { bereich: 'presseschau', stufe: 'sichtung' },
+        { warn: (m: string) => logger.warn(m) }
+      )
+      const sichtungsregeln = regelnBlock(
+        regelzeilen,
+        SICHTUNGSREGELN_UEBERSCHRIFT
+      )
       const seiten = layer.seiten
 
       // A file past the API's request limit travels as its text layer — the
@@ -322,7 +352,8 @@ export default defineOperationApi<Optionen>({
             nummer,
             datum
           },
-          digest
+          digest,
+          sichtungsregeln.text
         ),
         model: 'claude-opus-5',
         // Thinking and answer share the budget, and a text-dense paper (the
@@ -339,19 +370,51 @@ export default defineOperationApi<Optionen>({
       )
 
       for (const kandidat of inventar.kandidaten) {
-        await kandidatenService.createOne({
+        const gemeindeId =
+          gemeindeIds.get(kandidat.gemeinde) ?? blatt.gemeinde.id
+        const neuId = (await kandidatenService.createOne({
           ausgabe: ausgabeId,
           titel: kandidat.titel,
           seite: kandidat.seite,
           typ: kandidat.typ,
-          gemeinde: gemeindeIds.get(kandidat.gemeinde) ?? blatt.gemeinde.id,
+          gemeinde: gemeindeId,
           frontseite: kandidat.frontseite,
           warum_exklusiv: kandidat.warum_exklusiv,
           zusammenfassung: kandidat.zusammenfassung,
           perle_vorschlag: kandidat.perle_vorschlag,
           perle_begruendung: kandidat.perle_begruendung,
           entscheid: 'offen'
-        })
+        })) as string
+
+        // A rule the editor armed may hand the candidate straight to the
+        // Chefredaktion — as a lead, marked, reversible. Never a Meldung:
+        // that still takes a person.
+        const regel = automatischeWeitergabe(
+          kandidat,
+          sichtungsregeln.nummern,
+          regelzeilen
+        )
+        if (regel !== null) {
+          await reicheWeiter(
+            { hinweise: hinweiseService, ursprung: kandidatenService },
+            {
+              ursprungId: neuId,
+              felder: kandidatAlsHinweis(
+                {
+                  id: neuId,
+                  titel: kandidat.titel,
+                  seite: kandidat.seite,
+                  warum_exklusiv: kandidat.warum_exklusiv,
+                  gemeinde: gemeindeId,
+                  ausgabe: { id: ausgabeId, seiten_texte: layer.seitenTexte }
+                },
+                `Automatisch weitergereicht nach Regel: ${regel.regel}`
+              ),
+              automatisch: true,
+              regel: regel.id
+            }
+          )
+        }
       }
 
       // Research leads land in their own collection — never candidates, never
@@ -387,17 +450,19 @@ export default defineOperationApi<Optionen>({
     }
 
     /**
-     * Undecided CANDIDATES of a paper's OLDER issues, cleared once a newer
-     * one is inventoried — the editor's desk must not pile up week over week.
+     * Undecided CANDIDATES of a paper's OLDER issues, marked `verfallen` once
+     * a newer one is inventoried — the editor's desk must not pile up week
+     * over week, and the desk hides everything that is not open.
      *
-     * An open candidate the editor never touched carries no learning signal
-     * and no meaning once the next issue is out. Everything decided
-     * (uebernommen, abgelehnt, weitergereicht) stays untouched: those rows
-     * ARE the memory. Perle proposals are spared too: their verdict belongs
-     * to the Chefredaktion and survives new issues — pending on her desk,
-     * decided as memory. Research leads are deliberately NOT expired here —
-     * they sit on the Chefredaktion desk until judged, however long that
-     * takes.
+     * Marked, not deleted: an open candidate the editor never touched IS a
+     * signal — "not worth a click" is the loudest form of "too many
+     * proposals", and deleting those rows made the tally the next inventory
+     * sees a flattering sample. Everything decided (uebernommen, abgelehnt,
+     * weitergereicht) stays untouched: those rows ARE the memory. Perle
+     * proposals are spared too: their verdict belongs to the Chefredaktion
+     * and survives new issues — pending on her desk, decided as memory.
+     * Research leads are deliberately NOT expired here — they sit on the
+     * Chefredaktion desk until judged, however long that takes.
      */
     async function raeumeAlteVorschlaegeAuf(
       blattId: string,
@@ -418,7 +483,8 @@ export default defineOperationApi<Optionen>({
       if (alteOffene.length === 0) return
 
       // An open candidate cannot have a Meldung (taking one over sets
-      // uebernommen), but an admin edit could — never orphan a Meldung.
+      // uebernommen), but an admin edit could — a row with a Meldung is not
+      // "left lying" and keeps its state.
       const verknuepfte = (await meldungenService.readByQuery({
         filter: { kandidat: { _in: alteOffene.map((k) => k.id) } },
         fields: ['kandidat'],
@@ -427,104 +493,11 @@ export default defineOperationApi<Optionen>({
       const mitMeldung = new Set(verknuepfte.map((m) => m.kandidat))
       for (const kandidat of alteOffene) {
         if (!mitMeldung.has(kandidat.id)) {
-          await kandidatenService.deleteOne(kandidat.id)
+          await kandidatenService.updateOne(kandidat.id, {
+            entscheid: 'verfallen'
+          })
         }
       }
-    }
-
-    /**
-     * The recent teaching of THIS paper — take/reject decisions, municipality
-     * corrections and lead verdicts. What in Binningen is a Doublette says
-     * nothing about Muttenz, so everything is deliberately per paper.
-     */
-    async function ladeLernSignale(
-      blattId: string
-    ): Promise<[LernEintrag[], GemeindeKorrektur[], FaehrtenUrteil[]]> {
-      // Decided candidates — plus the ones whose Perle question the
-      // Chefredaktion answered even though nobody took or rejected them:
-      // that verdict is a learning signal of its own.
-      const kandidaten = (await kandidatenService.readByQuery({
-        filter: {
-          _and: [
-            { ausgabe: { wochenblatt: { _eq: blattId } } },
-            {
-              _or: [
-                { entscheid: { _neq: 'offen' } },
-                { perle: { _nnull: true } }
-              ]
-            }
-          ]
-        },
-        sort: ['-date_updated'],
-        fields: [
-          'id',
-          'titel',
-          'typ',
-          'entscheid',
-          'ablehnungsgrund',
-          'ablehnungskommentar',
-          'perle_vorschlag',
-          'perle'
-        ],
-        limit: LERN_FENSTER
-      })) as Array<
-        Pick<
-          Wochenblattkandidat,
-          | 'id'
-          | 'titel'
-          | 'typ'
-          | 'entscheid'
-          | 'ablehnungsgrund'
-          | 'ablehnungskommentar'
-          | 'perle_vorschlag'
-          | 'perle'
-        >
-      >
-
-      const korrigierte = (await kandidatenService.readByQuery({
-        filter: {
-          gemeinde_korrigiert: { _eq: true },
-          ausgabe: { wochenblatt: { _eq: blattId } }
-        },
-        sort: ['-date_updated'],
-        fields: ['titel', 'gemeinde.name'],
-        limit: LERN_FENSTER
-      })) as Array<{ titel: string; gemeinde: { name: string } | null }>
-      const korrekturen: GemeindeKorrektur[] = korrigierte
-        .filter((k) => k.gemeinde !== null)
-        .map((k) => ({
-          titel: k.titel,
-          gemeinde: (k.gemeinde as { name: string }).name
-        }))
-
-      const beurteilte = (await hinweiseService.readByQuery({
-        filter: {
-          status: { _neq: 'offen' },
-          ausgabe: { wochenblatt: { _eq: blattId } }
-        },
-        sort: ['-date_updated'],
-        fields: ['titel', 'status', 'kommentar'],
-        limit: LERN_FENSTER
-      })) as Array<{ titel: string; status: string; kommentar: string | null }>
-      const faehrten: FaehrtenUrteil[] = beurteilte.map((f) => ({
-        titel: f.titel,
-        brauchbar: f.status === 'brauchbar',
-        kommentar: f.kommentar
-      }))
-
-      // The verdict lives on the candidate itself; null means it still sits
-      // on the Chefredaktion's desk, undecided, not "no".
-      const eintraege: LernEintrag[] = kandidaten.map((k) => ({
-        titel: k.titel,
-        typ: k.typ,
-        entscheid: k.entscheid,
-        ablehnungsgrund: k.ablehnungsgrund,
-        ablehnungskommentar: k.ablehnungskommentar,
-        perleVorschlag: k.perle_vorschlag,
-        perleBestaetigt: k.perle
-      }))
-
-      return [eintraege, korrekturen, faehrten]
     }
   }
 })

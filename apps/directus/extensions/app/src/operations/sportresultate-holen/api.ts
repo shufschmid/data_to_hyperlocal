@@ -15,6 +15,7 @@ import { parseGameCenter } from '../../shared/swissvolley/parse'
 import { parseHandball } from '../../shared/handball/parse'
 import { ersteMannschaftAbgleich } from '../../redaktion/mannschaft'
 import { schreibeSpielberichte } from '../../redaktion/spielberichte'
+import { ladeRegeln } from '../../redaktion/gedaechtnis'
 
 // Reads the Match Center once a day and records what our clubs are playing.
 //
@@ -584,6 +585,15 @@ export default defineOperationApi<Optionen>({
         spiele: spieleService,
         meldungen: meldungenService,
         logger,
+        // The sport desk's text rules ("Gelerntes") — the ones the sport chat
+        // used to file under statistics.
+        regeln: (
+          await ladeRegeln(
+            new ItemsService('redaktionswissen', { schema }),
+            { bereich: 'sport', stufe: 'text' },
+            { warn: (m: string) => logger.warn(m) }
+          )
+        ).map((r) => r.regel),
         // Injected here, where the crawler key is known to exist: a failing
         // telegram page costs the detail, never the report.
         holeTelegramm: async (url) => {

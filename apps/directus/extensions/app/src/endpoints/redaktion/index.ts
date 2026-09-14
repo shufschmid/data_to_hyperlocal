@@ -20,13 +20,6 @@ import {
 import { schreibeSpielberichte } from '../../redaktion/spielberichte'
 import { pruefeGemeinde, pruefeVerein } from '../../redaktion/stammdaten'
 import {
-  buildWissenPrompt,
-  parseWissen,
-  WISSEN_SCHEMA,
-  WISSEN_SYSTEM_PROMPT,
-  wissenFelder
-} from '../../redaktion/wissen'
-import {
   ablaufDatum,
   befundText,
   createToken,
@@ -110,12 +103,30 @@ import {
   PRESSESCHAU_SYSTEM_PROMPT,
   ueberlappungsWarnungen,
   zahlWarnungenPresseschau,
-  type FaehrtenUrteil,
-  type GemeindeKorrektur,
   type InventarQuelle,
-  type LernEintrag,
   type PresseschauFakten
 } from '../../redaktion/presseschau'
+import { ladeWochenblattSignale } from '../../redaktion/lernsignale'
+import {
+  ladeRegeln,
+  lerneAusEntscheid,
+  merkeWissenAus,
+  pausiereAutomatikWennNoetig,
+  type EntscheidSignal
+} from '../../redaktion/gedaechtnis'
+import {
+  automatischeWeitergabe,
+  regelnBlock,
+  SICHTUNGSREGELN_UEBERSCHRIFT
+} from '../../redaktion/lernen'
+import type { WissenBereich, WissenStufe } from '../../types/schema'
+import {
+  kandidatAlsHinweis,
+  publikationAlsHinweis,
+  reicheWeiter,
+  sendungAlsHinweis
+} from '../../redaktion/weiterreichen'
+import { wissenFelderManuell } from '../../redaktion/wissen'
 import {
   extrahiereText,
   fetchAusgabenliste,
@@ -304,6 +315,21 @@ const HauptgemeindeBleibt = createError(
 const UngueltigerAblehnungsgrund = createError(
   'INVALID_REASON',
   'Unbekannter Ablehnungsgrund.',
+  400
+)
+const UngueltigeRegel = createError<{ reason: string }>(
+  'INVALID_RULE',
+  ({ reason }) => reason,
+  400
+)
+const FaehrteSchonEntschieden = createError(
+  'LEAD_DECIDED',
+  'Diese Faehrte ist schon entschieden.',
+  400
+)
+const FaehrteOhneTisch = createError(
+  'LEAD_WITHOUT_ORIGIN',
+  'Diese Faehrte stammt vom Inventar selbst — es gibt keinen Tisch, auf den sie zurueck koennte.',
   400
 )
 
@@ -699,9 +725,25 @@ export default defineEndpoint(
 
           try {
             const pdfDaten = await lesePdf(schema, ausgabe.pdf as string)
-            const digest = lernDigest(
-              ...(await ladeLernEintraege(schema, ausgabe.wochenblatt.id))
+            const faehrtenService = new ItemsService('recherchehinweise', {
+              schema
+            })
+            const signale = await ladeWochenblattSignale(
+              {
+                zeilen: kandidatenService,
+                hinweise: faehrtenService,
+                meldungen: meldungenService,
+                ausgaben: system
+              },
+              ausgabe.wochenblatt.id
             )
+            const digest = lernDigest(
+              signale.entscheide,
+              signale.korrekturen,
+              signale.faehrten,
+              { ...signale.rahmen, perlen: signale.perlen }
+            )
+            const regeln = await sichtungsregeln('presseschau')
 
             // Covered municipalities, main one first — names and ids in step.
             const abdeckung = [ausgabe.wochenblatt.gemeinde]
@@ -732,7 +774,8 @@ export default defineEndpoint(
                   nummer: ausgabe.nummer,
                   datum: ausgabe.datum
                 },
-                digest
+                digest,
+                regeln.text
               ),
               model: 'claude-opus-5',
               // Same budget as the operation — see the comment there.
@@ -789,21 +832,51 @@ export default defineEndpoint(
               }
             }
             for (const neu of neuNachSchluessel.values()) {
-              await kandidatenService.createOne({
+              const gemeindeId =
+                gemeindeIds.get(neu.gemeinde) ?? ausgabe.wochenblatt.gemeinde.id
+              const neuId = (await kandidatenService.createOne({
                 ausgabe: id,
                 titel: neu.titel,
                 seite: neu.seite,
                 typ: neu.typ,
-                gemeinde:
-                  gemeindeIds.get(neu.gemeinde) ??
-                  ausgabe.wochenblatt.gemeinde.id,
+                gemeinde: gemeindeId,
                 frontseite: neu.frontseite,
                 warum_exklusiv: neu.warum_exklusiv,
                 zusammenfassung: neu.zusammenfassung,
                 perle_vorschlag: neu.perle_vorschlag,
                 perle_begruendung: neu.perle_begruendung,
                 entscheid: 'offen'
-              })
+              })) as string
+
+              // A rule the editor armed may hand the candidate straight to
+              // the Chefredaktion — as a lead, marked, reversible. Never a
+              // Meldung: that still takes a person.
+              const regel = automatischeWeitergabe(
+                neu,
+                regeln.nummern,
+                regeln.zeilen
+              )
+              if (regel !== null) {
+                await reicheWeiter(
+                  { hinweise: faehrtenService, ursprung: kandidatenService },
+                  {
+                    ursprungId: neuId,
+                    felder: kandidatAlsHinweis(
+                      {
+                        id: neuId,
+                        titel: neu.titel,
+                        seite: neu.seite,
+                        warum_exklusiv: neu.warum_exklusiv,
+                        gemeinde: gemeindeId,
+                        ausgabe: { id, seiten_texte: layer.seitenTexte }
+                      },
+                      `Automatisch weitergereicht nach Regel: ${regel.regel}`
+                    ),
+                    automatisch: true,
+                    regel: regel.id
+                  }
+                )
+              }
             }
 
             // Research leads: diffed like the candidates. A verdict the
@@ -1047,7 +1120,13 @@ export default defineEndpoint(
         volltext,
         // Same rule as the press review: the revision may consult the whole
         // transcript, the overlap check keeps it in the newsroom's own words.
-        buildSendungRevision(fakten, meldung, anweisung, volltext)
+        buildSendungRevision(
+          fakten,
+          meldung,
+          anweisung,
+          volltext,
+          await regelnFuer('sendung', 'text')
+        )
       )
 
       await meldungen.updateOne(meldung.id, {
@@ -1096,7 +1175,7 @@ export default defineEndpoint(
           const { bericht, warnungen } = await sendungMitChecks(
             fakten,
             sendungsVolltext(zeile),
-            buildSendungPrompt(fakten)
+            buildSendungPrompt(fakten, await regelnFuer('sendung', 'text'))
           )
 
           const meldungId = (await meldungenService.createOne({
@@ -1180,6 +1259,14 @@ export default defineEndpoint(
             ablehnungsgrund: koerper.grund,
             ablehnungskommentar: kommentar
           })
+          lerne({
+            tisch: 'sendung',
+            art: 'entscheid',
+            zeileId: id,
+            entscheid: 'abgelehnt',
+            grund: koerper.grund,
+            kommentar
+          })
 
           return res.json({ data: { kandidat: id, entscheid: 'abgelehnt' } })
         } catch (error) {
@@ -1217,17 +1304,35 @@ export default defineEndpoint(
             return next(new KandidatSchonEntschieden())
 
           // The facts travel with the lead in `quelltext`, so it outlives the
-          // broadcast row the daily cleanup will eventually delete.
-          const hinweisId = (await hinweiseService.createOne({
-            gemeinde: zeile.gemeinde.id,
-            titel: zeile.titel,
-            fundort: `${SENDUNGEN[zeile.quelle].name} vom ${sendungsFakten(zeile).datum}`,
-            begruendung: begruendung ?? zeile.begruendung,
-            quelltext: zeile.zusammenfassung,
-            status: 'offen'
-          })) as string
+          // broadcast row the daily cleanup will eventually retire — and the
+          // lead keeps its origin, so the Chefredaktion's verdict reads back.
+          const hinweisId = await reicheWeiter(
+            { hinweise: hinweiseService, ursprung: kandidaten },
+            {
+              ursprungId: id,
+              felder: sendungAlsHinweis(
+                {
+                  id: zeile.id,
+                  titel: zeile.titel,
+                  quelle: zeile.quelle,
+                  begruendung: zeile.begruendung,
+                  zusammenfassung: zeile.zusammenfassung,
+                  gemeinde: zeile.gemeinde,
+                  datum: sendungsFakten(zeile).datum
+                },
+                begruendung
+              )
+            }
+          )
 
-          await kandidaten.updateOne(id, { entscheid: 'weitergereicht' })
+          lerne({
+            tisch: 'sendung',
+            art: 'entscheid',
+            zeileId: id,
+            entscheid: 'weitergereicht',
+            grund: null,
+            kommentar: begruendung
+          })
 
           return res.json({ data: { hinweis: hinweisId } })
         } catch (error) {
@@ -1440,7 +1545,12 @@ export default defineEndpoint(
       const fakten = amtsblattFakten(zeile)
       const { bericht, warnungen } = await amtsblattMitChecks(
         fakten,
-        buildAmtsblattRevision(fakten, meldung, anweisung)
+        buildAmtsblattRevision(
+          fakten,
+          meldung,
+          anweisung,
+          await regelnFuer('amtsblatt', 'text')
+        )
       )
 
       await meldungen.updateOne(meldung.id, {
@@ -1628,7 +1738,7 @@ export default defineEndpoint(
           const fakten = amtsblattFakten(zeile)
           const { bericht, warnungen } = await amtsblattMitChecks(
             fakten,
-            buildAmtsblattPrompt(fakten)
+            buildAmtsblattPrompt(fakten, await regelnFuer('amtsblatt', 'text'))
           )
 
           const meldungId = (await meldungenService.createOne({
@@ -1716,6 +1826,14 @@ export default defineEndpoint(
             ablehnungsgrund: koerper.grund,
             ablehnungskommentar: kommentar
           })
+          lerne({
+            tisch: 'amtsblatt',
+            art: 'entscheid',
+            zeileId: id,
+            entscheid: 'abgelehnt',
+            grund: koerper.grund,
+            kommentar
+          })
 
           return res.json({ data: { publikation: id, entscheid: 'abgelehnt' } })
         } catch (error) {
@@ -1756,32 +1874,24 @@ export default defineEndpoint(
           // A publication worth pursuing but not worth publishing as-is becomes
           // the chief editor's work — same collection as the press review's
           // leads, so her desk stays one pile. The facts travel with it in
-          // `quelltext`, so the lead outlives the row it came from.
-          const hinweisId = (await hinweiseService.createOne({
-            gemeinde: zeile.gemeinde.id,
-            titel: zeile.titel,
-            fundort: `Amtliche Publikation ${zeile.publikations_id}${
-              zeile.rubrik_name === null ? '' : ` (${zeile.rubrik_name})`
-            }`,
-            begruendung: begruendung ?? zeile.vorschlag_begruendung ?? null,
-            quelltext: [
-              zeile.titel,
-              zeile.amt === null ? '' : `Publiziert von: ${zeile.amt}`,
-              zeile.frist === null ? '' : `Frist: ${zeile.frist}`,
-              ...(zeile.angaben ?? []).map(
-                (a) => `${a.bezeichnung}: ${a.wert}`
-              ),
-              ...(zeile.planbefunde ?? []).map((b) => `Aus den Plaenen: ${b}`),
-              zeile.pdf_url ?? ''
-            ]
-              .filter((z) => z !== '')
-              .join('\n'),
-            status: 'offen'
-          })) as string
+          // `quelltext`, so the lead outlives the row it came from, and the
+          // lead keeps its origin, so her verdict reads back onto the row.
+          const hinweisId = await reicheWeiter(
+            { hinweise: hinweiseService, ursprung: publikationen },
+            {
+              ursprungId: id,
+              felder: publikationAlsHinweis(zeile, begruendung)
+            }
+          )
 
-          // Its own decision value: rejecting would teach the triage "don't
-          // propose such publications", which is the opposite of the truth.
-          await publikationen.updateOne(id, { entscheid: 'weitergereicht' })
+          lerne({
+            tisch: 'amtsblatt',
+            art: 'entscheid',
+            zeileId: id,
+            entscheid: 'weitergereicht',
+            grund: null,
+            kommentar: begruendung
+          })
 
           return res.json({ data: { hinweis: hinweisId } })
         } catch (error) {
@@ -1905,6 +2015,14 @@ export default defineEndpoint(
             ablehnungsgrund: koerper.grund,
             ablehnungskommentar: kommentar
           })
+          lerne({
+            tisch: 'presseschau',
+            art: 'entscheid',
+            zeileId: id,
+            entscheid: 'abgelehnt',
+            grund: koerper.grund,
+            kommentar
+          })
 
           return res.json({ data: { kandidat: id, entscheid: 'abgelehnt' } })
         } catch (error) {
@@ -1963,27 +2081,23 @@ export default defineEndpoint(
 
           // A good piece the desk cannot verify today becomes the chief
           // editor's work instead of a Meldung: same collection as the
-          // inventory's own leads, so her desk has one pile.
-          const hinweisId = (await hinweiseService.createOne({
-            ausgabe: kandidat.ausgabe.id,
-            gemeinde: kandidat.gemeinde,
-            titel: kandidat.titel,
-            fundort:
-              `Beitrag "${kandidat.titel}"` +
-              (kandidat.seite === null ? '' : `, S. ${kandidat.seite}`),
-            seite: kandidat.seite,
-            begruendung: begruendung ?? kandidat.warum_exklusiv,
-            quelltext:
-              kandidat.seite === null
-                ? null
-                : (kandidat.ausgabe.seiten_texte?.[kandidat.seite - 1] ?? null),
-            status: 'offen'
-          })) as string
+          // inventory's own leads, so her desk has one pile. The lead keeps
+          // its origin, so her verdict can be read back onto the candidate.
+          const hinweisId = await reicheWeiter(
+            { hinweise: hinweiseService, ursprung: kandidatenService },
+            {
+              ursprungId: id,
+              felder: kandidatAlsHinweis(kandidat, begruendung)
+            }
+          )
 
-          // Its own decision value: rejecting would teach the inventory
-          // "don't propose such pieces", which is the opposite of the truth.
-          await kandidatenService.updateOne(id, {
-            entscheid: 'weitergereicht'
+          lerne({
+            tisch: 'presseschau',
+            art: 'entscheid',
+            zeileId: id,
+            entscheid: 'weitergereicht',
+            grund: null,
+            kommentar: begruendung
           })
 
           return res.json({ data: { kandidat: id, hinweis: hinweisId } })
@@ -1998,10 +2112,18 @@ export default defineEndpoint(
       async (req: ApiRequest, res: Response, next: NextFunction) => {
         if (!isAuthenticated(req)) return next(new NichtAngemeldet())
 
-        const koerper = (req.body ?? {}) as { perle?: unknown }
+        const koerper = (req.body ?? {}) as {
+          perle?: unknown
+          kommentar?: unknown
+        }
         if (typeof koerper.perle !== 'boolean') {
           return next(new UngueltigerAblehnungsgrund())
         }
+        const perleKommentar =
+          typeof koerper.kommentar === 'string' &&
+          koerper.kommentar.trim() !== ''
+            ? koerper.kommentar.trim()
+            : null
 
         try {
           const id = pruefeId(req.params['id'])
@@ -2013,8 +2135,20 @@ export default defineEndpoint(
 
           // The chief editor's verdict lives on the CANDIDATE — independent
           // of whether a Meldung ever came of it. A pending proposal survives
-          // the desk cleanup; this call is what takes it off her desk.
-          await kandidaten.updateOne(id, { perle: koerper.perle })
+          // the desk cleanup; this call is what takes it off her desk. Her
+          // optional reason is the learning signal the verdict alone lacks.
+          await kandidaten.updateOne(id, {
+            perle: koerper.perle,
+            perle_kommentar: perleKommentar
+          })
+          lerne({
+            tisch: 'presseschau',
+            art: 'perle',
+            zeileId: id,
+            entscheid: koerper.perle ? 'perle_ja' : 'perle_nein',
+            grund: null,
+            kommentar: perleKommentar
+          })
 
           // A published Meldung carries a copy for downstream readers. The
           // hook stamps future publishes; this covers one published already.
@@ -2038,6 +2172,45 @@ export default defineEndpoint(
           }
 
           return res.json({ data: { id, perle: koerper.perle } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    // --- a learned rule, typed in by hand -------------------------------------
+    //
+    // "Gelerntes" → "Regel erfassen": the cheapest learning of all, and the
+    // only path for "ich will das nie wieder sehen" said once. An endpoint
+    // rather than a GraphQL create for the reason documented at the
+    // ankuendigungen mutation: the create input types the m2o fields as
+    // nested creates. The rule's shape is decided in `wissenFelderManuell`.
+    router.post(
+      '/wissen',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        let felder: Record<string, unknown>
+        try {
+          felder = wissenFelderManuell(
+            (req.body ?? {}) as Record<string, unknown>
+          )
+        } catch (fehler) {
+          return next(
+            new UngueltigeRegel({
+              reason:
+                fehler instanceof Error ? fehler.message : 'Ungueltige Regel.'
+            })
+          )
+        }
+
+        try {
+          const wissen = new ItemsService('redaktionswissen', {
+            schema: await getSchema(),
+            accountability: req.accountability
+          })
+          const id = (await wissen.createOne(felder)) as string
+          return res.json({ data: { id } })
         } catch (error) {
           return next(uebersetze(error))
         }
@@ -2335,11 +2508,46 @@ export default defineEndpoint(
           })
 
           // The other half of the lead loop: "war das ein Recherchehinweis
-          // oder nicht?" — the verdict teaches the next inventory.
+          // oder nicht?" — the verdict teaches the next inventory, at the desk
+          // the lead came from.
+          const herkunft = (await hinweise.readOne(id, {
+            fields: [
+              'kandidat',
+              'amtsblattmeldung',
+              'sendungskandidat',
+              'regel'
+            ]
+          })) as {
+            kandidat: string | null
+            amtsblattmeldung: string | null
+            sendungskandidat: string | null
+            regel: string | null
+          }
           await hinweise.updateOne(id, {
             status: koerper.brauchbar ? 'brauchbar' : 'kein_hinweis',
             kommentar
           })
+          lerne({
+            tisch:
+              herkunft.amtsblattmeldung !== null
+                ? 'amtsblatt'
+                : herkunft.sendungskandidat !== null
+                  ? 'sendung'
+                  : 'presseschau',
+            art: 'faehrte',
+            zeileId:
+              herkunft.kandidat ??
+              herkunft.amtsblattmeldung ??
+              herkunft.sendungskandidat ??
+              null,
+            hinweisId: id,
+            entscheid: koerper.brauchbar ? 'brauchbar' : 'kein_hinweis',
+            grund: null,
+            kommentar
+          })
+          if (herkunft.regel !== null) {
+            void pruefeAutomatik(herkunft.regel)
+          }
 
           return res.json({
             data: {
@@ -2347,6 +2555,84 @@ export default defineEndpoint(
               status: koerper.brauchbar ? 'brauchbar' : 'kein_hinweis'
             }
           })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    /**
+     * Two rejections in a row pause a rule's automation — after the fact and
+     * fire-and-forget, like every lesson here.
+     */
+    function pruefeAutomatik(regelId: string): void {
+      void (async () => {
+        const schema = await getSchema()
+        await pausiereAutomatikWennNoetig(
+          {
+            hinweise: new ItemsService('recherchehinweise', { schema }),
+            wissen: new ItemsService('redaktionswissen', { schema }),
+            logger
+          },
+          regelId,
+          heuteIso()
+        )
+      })().catch((fehler: unknown) => {
+        logger.warn(fehler, 'redaktion: Automatik nicht geprueft')
+      })
+    }
+
+    // The way back for a hand-up — the editor's, or a rule's: the origin row
+    // reopens on its desk, the lead is closed as given back. A lead the
+    // inventory proposed itself has no desk to return to.
+    router.post(
+      '/hinweise/:id/zurueck',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const schema = await getSchema()
+          const hinweise = new ItemsService('recherchehinweise', {
+            schema,
+            accountability: req.accountability
+          })
+          const lead = (await hinweise.readOne(id, {
+            fields: [
+              'status',
+              'kandidat',
+              'amtsblattmeldung',
+              'sendungskandidat',
+              'regel'
+            ]
+          })) as {
+            status: string
+            kandidat: string | null
+            amtsblattmeldung: string | null
+            sendungskandidat: string | null
+            regel: string | null
+          }
+          if (lead.status !== 'offen')
+            return next(new FaehrteSchonEntschieden())
+
+          const ursprung: [string, string] | null =
+            lead.kandidat !== null
+              ? ['wochenblattkandidaten', lead.kandidat]
+              : lead.amtsblattmeldung !== null
+                ? ['amtsblattmeldungen', lead.amtsblattmeldung]
+                : lead.sendungskandidat !== null
+                  ? ['sendungskandidaten', lead.sendungskandidat]
+                  : null
+          if (ursprung === null) return next(new FaehrteOhneTisch())
+
+          await new ItemsService(ursprung[0], {
+            schema,
+            accountability: req.accountability
+          }).updateOne(ursprung[1], { entscheid: 'offen' })
+          await hinweise.updateOne(id, { status: 'zurueckgegeben' })
+          if (lead.regel !== null) void pruefeAutomatik(lead.regel)
+
+          return res.json({ data: { hinweis: id, ursprung: ursprung[1] } })
         } catch (error) {
           return next(uebersetze(error))
         }
@@ -2723,6 +3009,7 @@ export default defineEndpoint(
               'kandidat',
               'amtsblattmeldung',
               'sendungskandidat',
+              'lauf.datensatz',
               'titel',
               'lead',
               'text'
@@ -2734,6 +3021,7 @@ export default defineEndpoint(
             kandidat: string | null
             amtsblattmeldung: string | null
             sendungskandidat: string | null
+            lauf: { datensatz: string | null } | null
             titel: string | null
             lead: string | null
             text: string | null
@@ -2770,7 +3058,11 @@ export default defineEndpoint(
                     : `Neu formuliert — mit Hinweisen: ${warnungen.join(' · ')}`,
                 position: position + 1
               })
-              merkeWissenSport(anweisung, id)
+              merkeAnweisung(
+                anweisung,
+                'sport',
+                'Spielbericht (Sportresultate)'
+              )
               return res.json({ data: { meldung: id, warnungen } })
             } catch (fehler) {
               await meldungen.updateOne(id, {
@@ -2795,6 +3087,11 @@ export default defineEndpoint(
                 meldung,
                 meldung.kandidat,
                 anweisung
+              )
+              merkeAnweisung(
+                anweisung,
+                'presseschau',
+                'Presseschau-Meldung (Wochenblatt)'
               )
               await chat.createOne({
                 meldung: id,
@@ -2825,6 +3122,11 @@ export default defineEndpoint(
             await meldungen.updateOne(id, { verarbeitung: 'laeuft', anweisung })
             try {
               const warnungen = await ueberarbeiteErinnerung(meldung, anweisung)
+              merkeAnweisung(
+                anweisung,
+                'entsorgung',
+                'Abfuhr-Erinnerung (Entsorgung)'
+              )
               await chat.createOne({
                 meldung: id,
                 rolle: 'assistant',
@@ -2861,6 +3163,7 @@ export default defineEndpoint(
                 meldung.amtsblattmeldung,
                 anweisung
               )
+              merkeAnweisung(anweisung, 'amtsblatt', 'Amtsblatt-Meldung')
               await chat.createOne({
                 meldung: id,
                 rolle: 'assistant',
@@ -2896,6 +3199,11 @@ export default defineEndpoint(
                 meldung.sendungskandidat,
                 anweisung
               )
+              merkeAnweisung(
+                anweisung,
+                'sendung',
+                'Sendungs-Meldung (Regionaljournal, punkt6)'
+              )
               await chat.createOne({
                 meldung: id,
                 rolle: 'assistant',
@@ -2924,6 +3232,11 @@ export default defineEndpoint(
             verarbeitung: 'geplant',
             versuche: 0
           })
+          // The single-article instruction learns like the run-wide one did:
+          // the same classifier decides whether it is a fix or a rule.
+          if (meldung.lauf?.datensatz != null) {
+            void merkeWissen(anweisung, meldung.lauf.datensatz)
+          }
 
           await chat.createOne({
             meldung: id,
@@ -2966,11 +3279,82 @@ export default defineEndpoint(
           const zustellung =
             ziel === 'in_pruefung' ? await mintFreigabe(meldungen, id) : null
 
+          // Discarding may carry a reason — optional, one text field. It is
+          // the one signal the desks had no channel for: an article rejected
+          // as prose, as opposed to a proposal rejected as a topic.
+          const koerper = (req.body ?? {}) as { kommentar?: unknown }
+          const verwerfungsgrund =
+            ziel === 'verworfen' &&
+            typeof koerper.kommentar === 'string' &&
+            koerper.kommentar.trim() !== ''
+              ? koerper.kommentar.trim()
+              : null
+
           // Publishing deliberately does NOT decide the Perle question: the
           // Chefredaktion answers it on the CANDIDATE, whenever she gets to
           // it (POST /kandidaten/:id/perle). If she already has, the
           // meldung-status hook copies her verdict onto the Meldung here.
-          await meldungen.updateOne(id, { status: ziel })
+          await meldungen.updateOne(id, {
+            status: ziel,
+            ...(verwerfungsgrund === null ? {} : { verwerfungsgrund })
+          })
+
+          if (verwerfungsgrund !== null) {
+            const herkunft = (await meldungen.readOne(id, {
+              fields: [
+                'kandidat',
+                'amtsblattmeldung',
+                'sendungskandidat',
+                'spiel',
+                'erscheint_am',
+                'lauf.datensatz'
+              ]
+            })) as {
+              kandidat: string | null
+              amtsblattmeldung: string | null
+              sendungskandidat: string | null
+              spiel: string | null
+              erscheint_am: string | null
+              lauf: { datensatz: string | null } | null
+            }
+            const tisch =
+              herkunft.kandidat !== null
+                ? 'presseschau'
+                : herkunft.amtsblattmeldung !== null
+                  ? 'amtsblatt'
+                  : herkunft.sendungskandidat !== null
+                    ? 'sendung'
+                    : null
+            if (tisch !== null) {
+              lerne({
+                tisch,
+                art: 'verwerfen',
+                zeileId:
+                  herkunft.kandidat ??
+                  herkunft.amtsblattmeldung ??
+                  herkunft.sendungskandidat,
+                entscheid: 'verworfen',
+                grund: null,
+                kommentar: verwerfungsgrund
+              })
+            } else if (herkunft.spiel !== null) {
+              merkeAnweisung(
+                verwerfungsgrund,
+                'sport',
+                'Spielbericht (Sportresultate) — verworfen',
+                'kommentar'
+              )
+            } else if (herkunft.erscheint_am !== null) {
+              merkeAnweisung(
+                verwerfungsgrund,
+                'entsorgung',
+                'Abfuhr-Erinnerung (Entsorgung) — verworfen',
+                'kommentar'
+              )
+            } else if (herkunft.lauf?.datensatz != null) {
+              void merkeWissen(verwerfungsgrund, herkunft.lauf.datensatz)
+            }
+          }
 
           return res.json({
             data: {
@@ -3198,6 +3582,7 @@ export default defineEndpoint(
             spiele: spieleService,
             meldungen: meldungenService,
             logger,
+            regeln: await regelnFuer('sport', 'text'),
             holeTelegramm: async (url) => {
               try {
                 return (await scrape(url)).markdown
@@ -4425,7 +4810,7 @@ export default defineEndpoint(
       return presseschauMitChecks(
         fakten,
         volltext,
-        buildPresseschauPrompt(fakten)
+        buildPresseschauPrompt(fakten, await regelnFuer('presseschau', 'text'))
       )
     }
 
@@ -4452,7 +4837,8 @@ export default defineEndpoint(
           geladen.fakten,
           meldung,
           anweisung,
-          geladen.quelltext
+          geladen.quelltext,
+          await regelnFuer('presseschau', 'text')
         )
       )
 
@@ -4467,102 +4853,6 @@ export default defineEndpoint(
       })
 
       return warnungen
-    }
-
-    /**
-     * The learning half of the press review, endpoint-side: the same signals
-     * the 09:00 operation gathers, for the re-inventory button — take/reject
-     * decisions, municipality corrections and lead verdicts, all per paper.
-     */
-    async function ladeLernEintraege(
-      schema: Awaited<ReturnType<typeof getSchema>>,
-      blattId: string
-    ): Promise<[LernEintrag[], GemeindeKorrektur[], FaehrtenUrteil[]]> {
-      const kandidatenService = new ItemsService('wochenblattkandidaten', {
-        schema
-      })
-      const hinweiseService = new ItemsService('recherchehinweise', { schema })
-
-      // Decided candidates — plus the ones whose Perle question the
-      // Chefredaktion answered even though nobody took or rejected them:
-      // that verdict is a learning signal of its own.
-      const kandidaten = (await kandidatenService.readByQuery({
-        filter: {
-          _and: [
-            { ausgabe: { wochenblatt: { _eq: blattId } } },
-            {
-              _or: [
-                { entscheid: { _neq: 'offen' } },
-                { perle: { _nnull: true } }
-              ]
-            }
-          ]
-        },
-        sort: ['-date_updated'],
-        fields: [
-          'id',
-          'titel',
-          'typ',
-          'entscheid',
-          'ablehnungsgrund',
-          'ablehnungskommentar',
-          'perle_vorschlag',
-          'perle'
-        ],
-        limit: 20
-      })) as Array<{
-        id: string
-        titel: string
-        typ: LernEintrag['typ']
-        entscheid: LernEintrag['entscheid']
-        ablehnungsgrund: LernEintrag['ablehnungsgrund']
-        ablehnungskommentar: string | null
-        perle_vorschlag: boolean
-        perle: boolean | null
-      }>
-
-      const korrigierte = (await kandidatenService.readByQuery({
-        filter: {
-          gemeinde_korrigiert: { _eq: true },
-          ausgabe: { wochenblatt: { _eq: blattId } }
-        },
-        sort: ['-date_updated'],
-        fields: ['titel', 'gemeinde.name'],
-        limit: 20
-      })) as Array<{ titel: string; gemeinde: { name: string } | null }>
-      const korrekturen: GemeindeKorrektur[] = korrigierte
-        .filter((k) => k.gemeinde !== null)
-        .map((k) => ({
-          titel: k.titel,
-          gemeinde: (k.gemeinde as { name: string }).name
-        }))
-
-      const beurteilte = (await hinweiseService.readByQuery({
-        filter: {
-          status: { _neq: 'offen' },
-          ausgabe: { wochenblatt: { _eq: blattId } }
-        },
-        sort: ['-date_updated'],
-        fields: ['titel', 'status', 'kommentar'],
-        limit: 20
-      })) as Array<{ titel: string; status: string; kommentar: string | null }>
-      const faehrten: FaehrtenUrteil[] = beurteilte.map((f) => ({
-        titel: f.titel,
-        brauchbar: f.status === 'brauchbar',
-        kommentar: f.kommentar
-      }))
-
-      const eintraege: LernEintrag[] = kandidaten.map((k) => ({
-        titel: k.titel,
-        typ: k.typ,
-        entscheid: k.entscheid,
-        ablehnungsgrund: k.ablehnungsgrund,
-        ablehnungskommentar: k.ablehnungskommentar,
-        perleVorschlag: k.perle_vorschlag,
-        perleBestaetigt: k.perle
-      }))
-
-      return [eintraege, korrekturen, faehrten]
     }
 
     async function ueberarbeiteSpielbericht(
@@ -4697,7 +4987,8 @@ export default defineEndpoint(
         prompt: buildSpielberichtRevision(
           fakten,
           { ...meldung, text: ohneQuelle(meldung.text) },
-          anweisung
+          anweisung,
+          await regelnFuer('sport', 'text')
         ),
         maxTokens: 1200
       })
@@ -4876,14 +5167,15 @@ export default defineEndpoint(
           })
         )
 
-      let erinnerung = await schreibe(buildErinnerungPrompt(fakten))
+      const regeln = await regelnFuer('entsorgung', 'text')
+      let erinnerung = await schreibe(buildErinnerungPrompt(fakten, regeln))
       let alles = `${erinnerung.titel} ${erinnerung.lead} ${erinnerung.text}`
       let zeit = zeitPruefungErinnerung(alles, fakten.jahr)
 
       if (!zeit.bestanden) {
         const korrektur = erinnerungKorrekturHinweis(zeit, fakten.jahr)
         erinnerung = await schreibe(
-          `${buildErinnerungPrompt(fakten)}\n\n${korrektur}`
+          `${buildErinnerungPrompt(fakten, regeln)}\n\n${korrektur}`
         )
         alles = `${erinnerung.titel} ${erinnerung.lead} ${erinnerung.text}`
         zeit = zeitPruefungErinnerung(alles, fakten.jahr)
@@ -5058,7 +5350,12 @@ export default defineEndpoint(
         messages: [
           {
             role: 'user',
-            content: buildErinnerungRevision(fakten, meldung, anweisung)
+            content: buildErinnerungRevision(
+              fakten,
+              meldung,
+              anweisung,
+              await regelnFuer('entsorgung', 'text')
+            )
           }
         ],
         maxTokens: 2000
@@ -5089,58 +5386,94 @@ export default defineEndpoint(
     }
 
     /**
-     * The sport twin of `merkeWissen` below: same classification, but a match
-     * report has no dataset and its sources are not rows in `quellen` — so a
-     * rule that survives is stored globally, never scoped to a dataset that
-     * does not exist.
+     * A decision on its way into the rule store — fire-and-forget, never in
+     * the request's path. The learner loads the row itself, so an endpoint
+     * reports only what it decided.
      */
-    function merkeWissenSport(anweisung: string, meldungId: string): void {
+    function lerne(signal: EntscheidSignal): void {
       void (async () => {
-        try {
-          const schema = await getSchema()
-          const antwort = await completeJson<unknown>({
-            system: WISSEN_SYSTEM_PROMPT,
-            prompt: buildWissenPrompt(
-              anweisung,
-              'Spielbericht (Sportresultate)'
-            ),
-            maxTokens: 600,
-            thinking: 'disabled',
-            effort: 'low',
-            schema: WISSEN_SCHEMA
-          })
-          const urteil = parseWissen(antwort)
-          const felder = wissenFelder(
-            {
-              ...urteil,
-              geltungsbereich: urteil.dauerhaft
-                ? 'global'
-                : urteil.geltungsbereich
-            },
-            { datensatzId: '', quelleId: null }
-          )
-          if (felder === null) return
+        const schema = await getSchema()
+        const sammlung =
+          signal.tisch === 'presseschau'
+            ? 'wochenblattkandidaten'
+            : signal.tisch === 'amtsblatt'
+              ? 'amtsblattmeldungen'
+              : 'sendungskandidaten'
+        await lerneAusEntscheid(
+          {
+            zeilen: new ItemsService(sammlung, { schema }),
+            hinweise: new ItemsService('recherchehinweise', { schema }),
+            wissen: new ItemsService('redaktionswissen', { schema }),
+            logger
+          },
+          signal
+        )
+      })().catch((fehler: unknown) => {
+        logger.warn(fehler, 'redaktion: Entscheid nicht gelernt')
+      })
+    }
 
-          await new ItemsService('redaktionswissen', { schema }).createOne(
-            felder
-          )
-          logger.info(
-            `redaktion: neue Regel gemerkt (Sport) — ${String(felder['regel'])}`
-          )
-        } catch (fehler) {
-          logger.warn(
-            fehler,
-            `redaktion: Sport-Anweisung zu Meldung ${meldungId} konnte nicht bewertet werden`
-          )
-        }
-      })()
+    /** The desk's text rules for an article prompt — texts only, the shape the builders take. */
+    async function regelnFuer(
+      bereich: WissenBereich,
+      stufe: WissenStufe
+    ): Promise<string[]> {
+      const schema = await getSchema()
+      const zeilen = await ladeRegeln(
+        new ItemsService('redaktionswissen', { schema }),
+        { bereich, stufe },
+        { warn: (m: string) => logger.warn(m) }
+      )
+      return zeilen.map((r) => r.regel)
     }
 
     /**
-     * Asks whether the instruction is a durable rule and stores it if so.
+     * The numbered rule block a Sichtung gets, plus the map its answer is
+     * checked against — a hand-up may only cite a rule that is really there.
+     */
+    async function sichtungsregeln(bereich: WissenBereich): Promise<
+      ReturnType<typeof regelnBlock> & {
+        zeilen: Awaited<ReturnType<typeof ladeRegeln>>
+      }
+    > {
+      const schema = await getSchema()
+      const zeilen = await ladeRegeln(
+        new ItemsService('redaktionswissen', { schema }),
+        { bereich, stufe: 'sichtung' },
+        { warn: (m: string) => logger.warn(m) }
+      )
+      return { ...regelnBlock(zeilen, SICHTUNGSREGELN_UEBERSCHRIFT), zeilen }
+    }
+
+    /**
+     * A desk's chat instruction on its way into the rule store.
      *
-     * Fire-and-forget on purpose: the editor should not wait on it, and a failure
-     * here costs a remembered preference, not the revision itself.
+     * Fire-and-forget on purpose: the editor should not wait on it, and a
+     * failure here costs a remembered preference, not the revision itself.
+     * Desk rules are global within their desk — there is no dataset to scope
+     * them to, and the decision rows carry the local memory.
+     */
+    function merkeAnweisung(
+      anweisung: string,
+      bereich: WissenBereich,
+      titel: string,
+      herkunft: 'chat' | 'kommentar' = 'chat'
+    ): void {
+      void (async () => {
+        const schema = await getSchema()
+        await merkeWissenAus(
+          { wissen: new ItemsService('redaktionswissen', { schema }), logger },
+          anweisung,
+          { bereich, titel, erlaubt: ['global'], herkunft }
+        )
+      })().catch((fehler: unknown) => {
+        logger.warn(fehler, 'redaktion: Anweisung nicht gemerkt')
+      })
+    }
+
+    /**
+     * The statistics twin: scoped to the dataset and its portal, so a rule
+     * meant for one statistic never leaks into every article.
      */
     async function merkeWissen(
       anweisung: string,
@@ -5153,24 +5486,16 @@ export default defineEndpoint(
           fields: ['id', 'titel', 'quelle']
         })) as Pick<Datensatz, 'id' | 'titel' | 'quelle'>
 
-        const antwort = await completeJson<unknown>({
-          system: WISSEN_SYSTEM_PROMPT,
-          prompt: buildWissenPrompt(anweisung, datensatz.titel),
-          maxTokens: 600,
-          thinking: 'disabled',
-          effort: 'low',
-          schema: WISSEN_SCHEMA
-        })
-
-        const felder = wissenFelder(parseWissen(antwort), {
-          datensatzId: datensatz.id,
-          quelleId: datensatz.quelle
-        })
-        if (felder === null) return
-
-        await new ItemsService('redaktionswissen', { schema }).createOne(felder)
-        logger.info(
-          `redaktion: neue Regel gemerkt — ${String(felder['regel'])}`
+        await merkeWissenAus(
+          { wissen: new ItemsService('redaktionswissen', { schema }), logger },
+          anweisung,
+          {
+            bereich: 'statistik',
+            titel: datensatz.titel,
+            erlaubt: ['datensatz', 'quelle', 'global'],
+            datensatzId: datensatz.id,
+            quelleId: datensatz.quelle
+          }
         )
       } catch (error) {
         logger.warn(error, 'redaktion: Anweisung konnte nicht bewertet werden')

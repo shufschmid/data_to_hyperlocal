@@ -126,6 +126,62 @@ describe('EntsorgungKalender', () => {
     expect(NICHTS.onBestaetigen).toHaveBeenCalledWith(['t-9'])
   })
 
+  it('zeigt zwei Abfuhren desselben Tags in einer Zeile', () => {
+    // Altmetall und Sonderabfall am gleichen Mittwoch sind eine Erinnerung —
+    // zwei Zeilen saehen aus wie zwei.
+    render(
+      <EntsorgungKalender
+        kalender={kalender({})}
+        termine={[
+          termin({ id: 'a', kategorie: 'Altmetall', zone: null, datum: '2026-01-07' }),
+          termin({ id: 'b', kategorie: 'Sonderabfall', zone: null, datum: '2026-01-07' })
+        ]}
+        {...NICHTS}
+      />
+    )
+
+    expect(screen.getAllByText('Mi 07.01.')).toHaveLength(1)
+    expect(screen.getByText('Altmetall')).toBeInTheDocument()
+    expect(screen.getByText('Sonderabfall')).toBeInTheDocument()
+    expect(screen.getByText('2 Abfuhren an 1 Tagen')).toBeInTheDocument()
+  })
+
+  it('zeigt zwei Kreise desselben Tags in einer Zeile', () => {
+    render(
+      <EntsorgungKalender
+        kalender={kalender({})}
+        termine={[
+          termin({ id: 'a', kategorie: 'Papier', zone: 'Kreis West', datum: '2026-01-14' }),
+          termin({ id: 'b', kategorie: 'Karton', zone: 'Kreis Ost', datum: '2026-01-14' })
+        ]}
+        {...NICHTS}
+      />
+    )
+
+    expect(screen.getAllByText('Mi 14.01.')).toHaveLength(1)
+    expect(screen.getByText('Kreis West')).toBeInTheDocument()
+    expect(screen.getByText('Kreis Ost')).toBeInTheDocument()
+  })
+
+  it('bestaetigt alle Abfuhren eines Tags mit einem Klick', async () => {
+    render(
+      <EntsorgungKalender
+        kalender={kalender({})}
+        termine={[
+          termin({ id: 'a', kategorie: 'Papier', zone: 'Kreis West' }),
+          termin({ id: 'b', kategorie: 'Karton', zone: 'Kreis Ost' }),
+          termin({ id: 'c', kategorie: 'Altmetall', zone: null, geprueft: true })
+        ]}
+        {...NICHTS}
+      />
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: 'Bestaetigen' }))
+
+    // Nur die offenen — der bestaetigte Termin wird nicht noch einmal geschrieben.
+    expect(NICHTS.onBestaetigen).toHaveBeenCalledWith(['b', 'a'])
+  })
+
   it('zaehlt die offenen Bestaetigungen im Knopf', () => {
     render(
       <EntsorgungKalender

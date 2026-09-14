@@ -177,7 +177,9 @@ describe('lernDigest', () => {
       }
     ])
 
-    expect(digest).toContain('[Riehen] "Nur erwaehnt" → nein (nur_erwaehnt)')
+    expect(digest).toContain(
+      '[Riehen] "Nur erwaehnt" → nein (nur am Rand erwaehnt)'
+    )
     expect(digest).toContain(
       '[Aesch] "Schulhaus" → ja, daraus wurde eine Meldung'
     )
@@ -326,5 +328,134 @@ describe('buildSendungRevision', () => {
       'Kuerzer bitte.'
     )
     expect(ohne).not.toContain('Transkript der Sendung')
+  })
+})
+
+describe('lernDigest mit Kommentar, verworfener Meldung und Urteil der Chefredaktion', () => {
+  it('liest den Kommentar der Redaktion zurueck — er wurde gespeichert und nie gelesen', () => {
+    const digest = lernDigest([
+      {
+        titel: 'Aeschenplatz',
+        gemeinde: 'Aesch',
+        entscheid: 'abgelehnt',
+        grund: 'nicht_relevant',
+        kommentar: 'Basler Strassenname, nicht die Gemeinde'
+      }
+    ])
+    expect(digest).toContain(
+      '→ nein (nicht relevant: Basler Strassenname, nicht die Gemeinde)'
+    )
+  })
+
+  it('markiert eine danach verworfene Meldung und liest die Faehrte nach dem Urteil', () => {
+    const digest = lernDigest([
+      {
+        titel: 'Tempo 30',
+        gemeinde: 'Muenchenstein',
+        entscheid: 'uebernommen',
+        grund: null,
+        meldungVerworfen: { grund: 'stand schon im Amtsblatt' }
+      },
+      {
+        titel: 'Tramumbau',
+        gemeinde: 'Muttenz',
+        entscheid: 'weitergereicht',
+        grund: null,
+        faehrte: { status: 'kein_hinweis', kommentar: null, automatisch: false }
+      },
+      {
+        titel: 'Automatisch',
+        gemeinde: 'Muttenz',
+        entscheid: 'weitergereicht',
+        grund: null,
+        faehrte: { status: 'offen', kommentar: null, automatisch: true }
+      }
+    ])
+    expect(digest).toContain(
+      'ja, daraus wurde eine Meldung — die Meldung dazu wurde danach verworfen: stand schon im Amtsblatt'
+    )
+    expect(digest).toContain(
+      '"Tramumbau" → nein — die Chefredaktion legte die Faehrte ab'
+    )
+    // Von einer Regel weitergereicht und noch nicht beurteilt: kein Beispiel,
+    // sonst fuettert die Automatik sich selbst.
+    expect(digest).not.toContain('Automatisch')
+  })
+
+  it('stellt Bilanz und liegen Gelassenes vor die Beispiele und deklariert die Kappung', () => {
+    const digest = lernDigest(
+      [
+        { titel: 'X', gemeinde: 'Aesch', entscheid: 'uebernommen', grund: null }
+      ],
+      20,
+      {
+        bilanz:
+          'Bilanz der letzten 30 Tage dieser Sendung: 12 Vorschlaege — 2 uebernommen, 0 weitergereicht, 3 abgelehnt, 7 liegen gelassen.',
+        verfallene: ['Liegengeblieben'],
+        kappung: '(5 weitere Entscheide nicht aufgefuehrt)'
+      }
+    )
+    const zeilen = digest.split('\n')
+    expect(zeilen[1]).toContain('Bilanz der letzten 30 Tage')
+    expect(digest.indexOf('Liegengeblieben')).toBeLessThan(
+      digest.indexOf('"X"')
+    )
+    expect(zeilen[zeilen.length - 1]).toBe(
+      '(5 weitere Entscheide nicht aufgefuehrt)'
+    )
+  })
+})
+
+describe('Regeln der Redaktion im Prompt', () => {
+  it('stellt die Sichtungsregeln vor die Beispiele, vor dem Wortlaut', () => {
+    const prompt = buildInventarPrompt(
+      {
+        titel: 'Tempo 30',
+        text: 'In Muenchenstein gilt bald Tempo 30.',
+        sendung: 'regionaljournal',
+        datum: '2026-09-01'
+      },
+      ['Muenchenstein'],
+      'So hat die Redaktion bei dieser Sendung zuletzt entschieden: …',
+      'Regeln der Redaktion:\nR1: Verkehrsanordnungen sind Kandidaten.'
+    )
+    expect(prompt.indexOf('R1: Verkehrsanordnungen')).toBeLessThan(
+      prompt.indexOf('So hat die Redaktion')
+    )
+    expect(prompt.indexOf('So hat die Redaktion')).toBeLessThan(
+      prompt.indexOf('Wortlaut des Beitrags')
+    )
+    expect(INVENTAR_SYSTEM_PROMPT).not.toContain(
+      'Verkehrsanordnungen sind Kandidaten'
+    )
+  })
+
+  it('gibt einer Meldung die Textregeln als Redaktionelle Vorgaben mit', () => {
+    const prompt = buildSendungPrompt(fakten(), [
+      'Nenne die Sendung im ersten Satz.'
+    ])
+    expect(prompt).toContain('- Nenne die Sendung im ersten Satz.')
+  })
+})
+
+describe('parseInventar — Empfehlung zum Weiterreichen', () => {
+  it('traegt Empfehlung und Regelnummer durch', () => {
+    const [kandidat] = parseInventar(
+      {
+        kandidaten: [
+          {
+            gemeinde: 'Muttenz',
+            titel: 'Tramumbau',
+            zusammenfassung: 'x',
+            begruendung: 'y',
+            empfehlung: 'weiterreichen',
+            empfehlung_regel: 'R1'
+          }
+        ]
+      },
+      ['Muttenz']
+    )
+    expect(kandidat?.empfehlung).toBe('weiterreichen')
+    expect(kandidat?.empfehlung_regel).toBe('R1')
   })
 })

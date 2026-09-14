@@ -16,7 +16,7 @@ import type {
 import { EntsorgungKalender } from './EntsorgungKalender'
 import { EntsorgungMeldungen } from './EntsorgungMeldungen'
 import { KalenderErfassen } from './KalenderErfassen'
-import type { MeldungAktion } from './MeldungKarte'
+import type { MeldungAktion, MeldungAktionKoerper } from './MeldungKarte'
 import { erinnerungenZuGemeinde } from '@/lib/entsorgung'
 
 // The Entsorgung tab: one calendar at a time.
@@ -44,7 +44,7 @@ export interface EntsorgungProps {
   onMeldungen: (kalender: string) => Promise<void>
   onFreigeben: (kalender: string) => Promise<void>
   onChat: (id: string, anweisung: string) => Promise<void>
-  onAktion: (id: string, aktion: MeldungAktion) => Promise<void>
+  onAktion: (id: string, aktion: MeldungAktion, koerper?: MeldungAktionKoerper) => Promise<void>
   laeuft?: boolean
   jetzt?: Date
 }

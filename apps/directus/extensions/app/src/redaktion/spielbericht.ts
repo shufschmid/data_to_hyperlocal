@@ -10,6 +10,8 @@
 // worst offender: "am Samstag", "letzte Runde", "nächste Woche" all rot within
 // days. The prompt demands absolute dates and the check below catches the rest.
 
+import { vorgabenZeilen } from './lernen'
+
 /** The association page a report points at, and how the source line names it. */
 export interface SpielQuelle {
   name: string
@@ -167,9 +169,13 @@ export function nurDasResultat(fakten: SpielFakten): boolean {
   )
 }
 
-export function buildSpielberichtPrompt(fakten: SpielFakten): string {
+export function buildSpielberichtPrompt(
+  fakten: SpielFakten,
+  regeln: readonly string[] = []
+): string {
   return [
     ...faktenZeilen(fakten),
+    ...vorgabenZeilen(regeln),
     '',
     // In the USER turn, never in the system prompt: that one has to stay
     // byte-identical across a run for the prompt cache, and the revision path
@@ -198,10 +204,12 @@ export function buildSpielberichtPrompt(fakten: SpielFakten): string {
 export function buildSpielberichtRevision(
   fakten: SpielFakten,
   bisher: { titel: string | null; lead: string | null; text: string | null },
-  anweisung: string
+  anweisung: string,
+  regeln: readonly string[] = []
 ): string {
   return [
     ...faktenZeilen(fakten),
+    ...vorgabenZeilen(regeln),
     '',
     'Bisheriger Bericht:',
     `Titel: ${bisher.titel ?? ''}`,

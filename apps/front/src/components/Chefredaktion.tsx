@@ -40,7 +40,20 @@ export interface ChefredaktionProps {
   perlen: readonly PerleFelder[]
   laeuft?: boolean
   onHinweisUrteil: (hinweisId: string, brauchbar: boolean, kommentar: string) => Promise<void>
-  onPerle: (kandidatId: string, perle: boolean) => Promise<void>
+  /** The verdict plus her optional reason — the learning signal the click alone lacks. */
+  onPerle: (kandidatId: string, perle: boolean, kommentar: string) => Promise<void>
+  /** Gives a hand-up back to its desk — the way back for a lead a rule made. */
+  onZurueck?: (hinweisId: string) => Promise<void>
+}
+
+/** Which desk a lead came from — read off the origin link, never stored twice. */
+export function herkunftVon(h: RecherchehinweisFelder): string {
+  if (h.kandidat !== null) return 'Wochenblatt'
+  if (h.amtsblattmeldung !== null) return 'Amtsblatt'
+  if (h.sendungskandidat !== null) {
+    return h.sendungskandidat.quelle === 'punkt6' ? 'punkt6' : 'Regionaljournal'
+  }
+  return 'Inventar'
 }
 
 export function Chefredaktion({
@@ -48,13 +61,16 @@ export function Chefredaktion({
   perlen,
   laeuft = false,
   onHinweisUrteil,
-  onPerle
+  onPerle,
+  onZurueck
 }: ChefredaktionProps) {
   const [urteil, setUrteil] = useState<{
     hinweis: RecherchehinweisFelder
     brauchbar: boolean
   } | null>(null)
   const [urteilKommentar, setUrteilKommentar] = useState('')
+  const [perlenUrteil, setPerlenUrteil] = useState<{ perle: PerleFelder; ja: boolean } | null>(null)
+  const [perlenKommentar, setPerlenKommentar] = useState('')
 
   const offeneHinweise = useMemo(() => hinweise.filter((h) => h.status === 'offen'), [hinweise])
 
@@ -63,6 +79,13 @@ export function Chefredaktion({
     await onHinweisUrteil(urteil.hinweis.id, urteil.brauchbar, urteilKommentar.trim())
     setUrteil(null)
     setUrteilKommentar('')
+  }
+
+  async function perleEntscheiden() {
+    if (perlenUrteil === null) return
+    await onPerle(perlenUrteil.perle.id, perlenUrteil.ja, perlenKommentar.trim())
+    setPerlenUrteil(null)
+    setPerlenKommentar('')
   }
 
   return (
@@ -124,12 +147,16 @@ export function Chefredaktion({
                       size="small"
                       variant="contained"
                       color="secondary"
-                      onClick={() => void onPerle(p.id, true)}
+                      onClick={() => setPerlenUrteil({ perle: p, ja: true })}
                       disabled={laeuft}
                     >
                       Als Perle markieren
                     </Button>
-                    <Button size="small" onClick={() => void onPerle(p.id, false)} disabled={laeuft}>
+                    <Button
+                      size="small"
+                      onClick={() => setPerlenUrteil({ perle: p, ja: false })}
+                      disabled={laeuft}
+                    >
                       Keine Perle
                     </Button>
                   </Stack>
@@ -159,6 +186,15 @@ export function Chefredaktion({
                       </Typography>
                       {h.gemeinde !== null && (
                         <Chip size="small" variant="outlined" label={h.gemeinde.name} />
+                      )}
+                      {/* Where it came from: her verdict teaches THAT desk's next Sichtung. */}
+                      <Chip size="small" variant="outlined" color="default" label={herkunftVon(h)} />
+                      {h.automatisch && (
+                        <Chip
+                          size="small"
+                          color="warning"
+                          label={`automatisch · Regel: ${h.regel?.regel ?? '–'}`}
+                        />
                       )}
                       {h.ausgabe !== null &&
                         (pdfUrl !== null ? (
@@ -201,6 +237,13 @@ export function Chefredaktion({
                       >
                         Kein Hinweis
                       </Button>
+                      {/* A rule handed it up; the desk may want it back. Two
+                          such returns in a row pause the rule's automation. */}
+                      {h.automatisch && onZurueck !== undefined && (
+                        <Button size="small" onClick={() => void onZurueck(h.id)} disabled={laeuft}>
+                          Zurück auf den Tisch
+                        </Button>
+                      )}
                     </Stack>
                   </Stack>
                 </Box>
@@ -234,6 +277,35 @@ export function Chefredaktion({
         <DialogActions>
           <Button onClick={() => setUrteil(null)}>Abbrechen</Button>
           <Button variant="contained" onClick={() => void beurteilen()} disabled={laeuft}>
+            Speichern
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* The Perle verdict dialog — the same shape as the lead verdict: the
+          click is the decision, the optional comment is what teaches the next
+          inventory WHY (taste is the newsroom's, and "keine Perle" alone says
+          nothing about the class). */}
+      <Dialog open={perlenUrteil !== null} onClose={() => setPerlenUrteil(null)} fullWidth maxWidth="xs">
+        <DialogTitle>{perlenUrteil?.ja === true ? 'Als Perle markieren' : 'Keine Perle'}</DialogTitle>
+        <DialogContent>
+          <Stack spacing={1}>
+            <Typography variant="body2" color="text.secondary">
+              {perlenUrteil?.perle.titel}
+            </Typography>
+            <TextField
+              label="Kommentar (optional, hilft dem Lernen)"
+              size="small"
+              multiline
+              minRows={2}
+              value={perlenKommentar}
+              onChange={(e) => setPerlenKommentar(e.target.value)}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPerlenUrteil(null)}>Abbrechen</Button>
+          <Button variant="contained" onClick={() => void perleEntscheiden()} disabled={laeuft}>
             Speichern
           </Button>
         </DialogActions>

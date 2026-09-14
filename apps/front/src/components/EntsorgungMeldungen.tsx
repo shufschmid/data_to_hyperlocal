@@ -9,7 +9,7 @@ import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import type { AlleMeldungFelder, MeldungFelder } from '@/graphql/redaktion'
-import { MeldungKarte, type MeldungAktion } from './MeldungKarte'
+import { MeldungKarte, type MeldungAktion, type MeldungAktionKoerper } from './MeldungKarte'
 import {
   erinnerungenNachMonat,
   faelligUnfreigegeben,
@@ -33,7 +33,7 @@ import {
 export interface EntsorgungMeldungenProps {
   meldungen: readonly AlleMeldungFelder[]
   onChat: (id: string, anweisung: string) => Promise<void>
-  onAktion: (id: string, aktion: MeldungAktion) => Promise<void>
+  onAktion: (id: string, aktion: MeldungAktion, koerper?: MeldungAktionKoerper) => Promise<void>
   laeuft?: boolean
   /** Injected in tests. */
   jetzt?: Date

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  INVENTAR_SYSTEM_PROMPT,
   attributionsWarnung,
   brauchtTextTransport,
   buildInventarMessages,
@@ -484,5 +485,236 @@ describe('Prompts', () => {
       'Kuerzer bitte.'
     )
     expect(ohne).not.toContain('Originaltext der Seite')
+  })
+})
+
+describe('lernDigest mit Rahmen: Bilanz, Liegengelassenes, Urteile, Perlen aller Blaetter', () => {
+  const eintrag = (ueber: Partial<LernEintrag>): LernEintrag => ({
+    titel: 'Ein Beitrag',
+    typ: 'reportage',
+    entscheid: 'offen',
+    ablehnungsgrund: null,
+    ablehnungskommentar: null,
+    perleVorschlag: false,
+    perleBestaetigt: null,
+    ...ueber
+  })
+
+  it('stellt die Bilanz und das Liegengelassene vor die Beispiele', () => {
+    const digest = lernDigest(
+      [eintrag({ titel: 'Gutes Interview', entscheid: 'uebernommen' })],
+      [],
+      [],
+      {
+        bilanz:
+          'Bilanz der letzten 3 Ausgaben dieses Blatts: 61 Vorschlaege — 9 uebernommen, 3 weitergereicht, 14 abgelehnt, 35 liegen gelassen.',
+        verfallene: ['Vereinsjubilaeum', 'Kirchenzettel'],
+        kappung: '(6 weitere Entscheide nicht aufgefuehrt)'
+      }
+    )
+    const zeilen = digest.split('\n')
+    expect(zeilen[2]).toContain('Bilanz der letzten 3 Ausgaben')
+    expect(digest.indexOf('Liegen gelassen')).toBeLessThan(
+      digest.indexOf('Uebernommen')
+    )
+    expect(digest).toContain('- "Vereinsjubilaeum"')
+    expect(digest).toContain('(6 weitere Entscheide nicht aufgefuehrt)')
+  })
+
+  it('liest Weitergereichtes nach dem Urteil der Chefredaktion', () => {
+    const digest = lernDigest([
+      eintrag({
+        titel: 'Offen',
+        entscheid: 'weitergereicht',
+        faehrte: { status: 'offen', kommentar: null, automatisch: false }
+      }),
+      eintrag({
+        titel: 'Bestaetigt',
+        entscheid: 'weitergereicht',
+        faehrte: {
+          status: 'brauchbar',
+          kommentar: 'lohnt sich',
+          automatisch: false
+        }
+      }),
+      eintrag({
+        titel: 'Abgelegt',
+        entscheid: 'weitergereicht',
+        faehrte: {
+          status: 'kein_hinweis',
+          kommentar: 'blosse Stimmung',
+          automatisch: false
+        }
+      }),
+      eintrag({
+        titel: 'Regelwerk',
+        entscheid: 'weitergereicht',
+        faehrte: { status: 'offen', kommentar: null, automatisch: true }
+      })
+    ])
+
+    expect(digest).toContain(
+      'An die Chefredaktion weitergereicht (gute Vorschlaege'
+    )
+    expect(digest).toContain('- "Offen" (reportage)')
+    expect(digest).toContain('als brauchbare Faehrte bestaetigt')
+    expect(digest).toContain('- "Bestaetigt" (reportage) — lohnt sich')
+    expect(digest).toContain(
+      'abgelegt — kein Hinweis (solche nicht mehr vorschlagen)'
+    )
+    expect(digest).toContain('- "Abgelegt" (reportage) — blosse Stimmung')
+    // Von einer Regel weitergereicht und unbeurteilt: kein Beispiel.
+    expect(digest).not.toContain('Regelwerk')
+  })
+
+  it('nennt eine danach verworfene Meldung und den Perlen-Kommentar', () => {
+    const digest = lernDigest([
+      eintrag({
+        titel: 'Duenn',
+        entscheid: 'uebernommen',
+        meldungVerworfen: { grund: 'zu wenig Substanz' }
+      }),
+      eintrag({
+        titel: 'Esel',
+        entscheid: 'offen',
+        perleVorschlag: true,
+        perleBestaetigt: false,
+        perleKommentar: 'kurios, aber rein lokal'
+      })
+    ])
+    expect(digest).toContain(
+      '- "Duenn" (reportage) — die Meldung dazu wurde danach verworfen: zu wenig Substanz'
+    )
+    expect(digest).toContain(
+      '"Esel": doch keine Perle — kurios, aber rein lokal'
+    )
+  })
+
+  it('zeigt die Perlen-Urteile aller Blaetter, wenn sie mitgegeben sind — Geschmack ist global', () => {
+    const digest = lernDigest(
+      [
+        eintrag({
+          titel: 'Lokal',
+          entscheid: 'offen',
+          perleVorschlag: true,
+          perleBestaetigt: true
+        })
+      ],
+      [],
+      [],
+      {
+        perlen: [
+          {
+            titel: 'Sauschwaenzlibrugg',
+            blatt: 'Riehener Zeitung',
+            bestaetigt: true,
+            kommentar: null
+          },
+          {
+            titel: 'Runder Geburtstag',
+            blatt: 'Binninger Wochenblatt',
+            bestaetigt: false,
+            kommentar: 'keine Zutaten'
+          }
+        ]
+      }
+    )
+    expect(digest).toContain(
+      'Perlen-Urteile der Chefredaktion, ueber alle Blaetter'
+    )
+    expect(digest).toContain(
+      '- "Sauschwaenzlibrugg" (Riehener Zeitung): als Perle bestaetigt'
+    )
+    expect(digest).toContain(
+      '- "Runder Geburtstag" (Binninger Wochenblatt): doch keine Perle — keine Zutaten'
+    )
+    // Der Block je Blatt weicht dem globalen — dieselbe Perle stuende sonst doppelt.
+    expect(digest).not.toContain('Perlen-Urteile der Redaktion:')
+  })
+
+  it('verlangt im System-Prompt, dass liegen gelassene Vorschlaege als Fehlvorschlaege zaehlen', () => {
+    expect(INVENTAR_SYSTEM_PROMPT).toContain('Liegen gelassene und abgelehnte')
+  })
+})
+
+describe('Regeln der Redaktion im Prompt', () => {
+  it('stellt die Sichtungsregeln vor die Beispiele — im User-Turn, der System-Prompt bleibt', () => {
+    const [nachricht] = buildInventarMessages(
+      { art: 'pdf', base64: 'JVBERi0=' },
+      {
+        name: 'Binninger Wochenblatt',
+        gemeinden: ['Binningen'],
+        nummer: '35',
+        datum: null
+      },
+      'Was die Redaktion entschieden hat: …',
+      'Regeln der Redaktion:\nR1: Kirchenzettel nie vorschlagen.'
+    )
+    const inhalt = nachricht?.content
+    if (!Array.isArray(inhalt)) throw new Error('Content fehlt')
+    const text = inhalt.find((b) => b.type === 'text')
+    if (text === undefined || text.type !== 'text')
+      throw new Error('Textblock fehlt')
+
+    expect(text.text.indexOf('R1: Kirchenzettel')).toBeLessThan(
+      text.text.indexOf('Was die Redaktion entschieden hat')
+    )
+    expect(INVENTAR_SYSTEM_PROMPT).not.toContain('R1:')
+  })
+
+  it('gibt einer Meldung die Textregeln als Redaktionelle Vorgaben mit', () => {
+    const prompt = buildPresseschauPrompt(FAKTEN, [
+      'Nenne das Blatt im ersten Satz.'
+    ])
+    expect(prompt).toContain('Redaktionelle Vorgaben:')
+    expect(prompt).toContain('- Nenne das Blatt im ersten Satz.')
+    expect(buildPresseschauPrompt(FAKTEN)).not.toContain(
+      'Redaktionelle Vorgaben'
+    )
+  })
+})
+
+describe('parseInventar — Empfehlung zum Weiterreichen', () => {
+  const kandidat = (extra: Record<string, unknown>) => ({
+    titel: 'Daemme am Birsig',
+    seite: 2,
+    typ: 'hintergrund',
+    gemeinde: 'Binningen',
+    frontseite: false,
+    warum_exklusiv: 'Nur hier.',
+    zusammenfassung: 'Sechs Meter hohe Daemme geplant.',
+    perle_vorschlag: false,
+    perle_begruendung: null,
+    ...extra
+  })
+
+  it('traegt die Empfehlung samt Regelnummer durch — als Behauptung, geprueft wird spaeter', () => {
+    const inventar = parseInventar(
+      {
+        kandidaten: [
+          kandidat({ empfehlung: 'weiterreichen', empfehlung_regel: 'R1' })
+        ],
+        recherchehinweise: [],
+        hinweise: []
+      },
+      10,
+      ['Binningen']
+    )
+    expect(inventar.kandidaten[0]?.empfehlung).toBe('weiterreichen')
+    expect(inventar.kandidaten[0]?.empfehlung_regel).toBe('R1')
+  })
+
+  it('setzt ohne Empfehlung beides auf null — auch wenn nur eine Nummer dasteht', () => {
+    const inventar = parseInventar(
+      {
+        kandidaten: [kandidat({ empfehlung: null, empfehlung_regel: 'R1' })],
+        recherchehinweise: [],
+        hinweise: []
+      },
+      10,
+      ['Binningen']
+    )
+    expect(inventar.kandidaten[0]?.empfehlung).toBeNull()
+    expect(inventar.kandidaten[0]?.empfehlung_regel).toBeNull()
   })
 })

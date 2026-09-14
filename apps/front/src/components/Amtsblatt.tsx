@@ -21,7 +21,7 @@ import ArticleOutlined from '@mui/icons-material/ArticleOutlined'
 import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined'
 import MapOutlined from '@mui/icons-material/MapOutlined'
 import type { AlleMeldungFelder, AmtsblattFelder, GemeindeFelder } from '@/graphql/redaktion'
-import { MeldungKarte, type MeldungAktion } from './MeldungKarte'
+import { MeldungKarte, type MeldungAktion, type MeldungAktionKoerper } from './MeldungKarte'
 import {
   ABLEHNUNGSGRUENDE,
   GRUPPEN,
@@ -47,7 +47,7 @@ export interface AmtsblattProps {
   heute: string
   laeuft?: boolean
   onChat?: (id: string, anweisung: string) => Promise<void>
-  onAktion?: (id: string, aktion: MeldungAktion) => Promise<void>
+  onAktion?: (id: string, aktion: MeldungAktion, koerper?: MeldungAktionKoerper) => Promise<void>
   onLauf?: () => Promise<void> | void
   onUebernehmen?: (id: string) => Promise<void> | void
   onAblehnen?: (id: string, grund: string, kommentar: string | null) => Promise<void> | void
@@ -88,6 +88,8 @@ export function Amtsblatt({
   const [ablehnung, setAblehnung] = useState<AmtsblattFelder | null>(null)
   const [grund, setGrund] = useState('nicht_relevant')
   const [kommentar, setKommentar] = useState('')
+  const [weitergabe, setWeitergabe] = useState<AmtsblattFelder | null>(null)
+  const [begruendung, setBegruendung] = useState('')
   const [beschaeftigt, setBeschaeftigt] = useState<string | null>(null)
 
   const meldungZu = useMemo(() => meldungJePublikation(meldungen), [meldungen])
@@ -271,7 +273,10 @@ export function Amtsblatt({
               <Button
                 size="small"
                 disabled={beschaeftigt === eintrag.id}
-                onClick={() => fuehreAus(eintrag.id, () => onWeiterreichen?.(eintrag.id, null))}
+                onClick={() => {
+                  setWeitergabe(eintrag)
+                  setBegruendung('')
+                }}
               >
                 An Chefredaktion
               </Button>
@@ -433,6 +438,44 @@ export function Amtsblatt({
             }}
           >
             Ablehnen
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* The hand-up asks for a reason like the press review does — optional,
+          and the learning signal a bare click cannot carry. */}
+      <Dialog open={weitergabe !== null} onClose={() => setWeitergabe(null)} fullWidth maxWidth="sm">
+        <DialogTitle>An die Chefredaktion weiterreichen</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              {weitergabe?.titel}
+            </Typography>
+            <TextField
+              label="Begründung (optional)"
+              value={begruendung}
+              onChange={(e) => setBegruendung(e.target.value)}
+              multiline
+              minRows={2}
+              helperText="Hilft der Chefredaktion — und lehrt die nächste Sichtung, was weitergereicht gehört."
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setWeitergabe(null)}>Abbrechen</Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              const eintrag = weitergabe
+              setWeitergabe(null)
+              if (eintrag !== null) {
+                void fuehreAus(eintrag.id, () =>
+                  onWeiterreichen?.(eintrag.id, begruendung.trim() === '' ? null : begruendung.trim())
+                )
+              }
+            }}
+          >
+            Weiterreichen
           </Button>
         </DialogActions>
       </Dialog>

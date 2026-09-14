@@ -114,7 +114,9 @@ Regeln, ohne Ausnahme:
   ihn nicht, auch wenn er dir zu einem Datum nicht zu passen scheint.
 - Hat die Gemeinde Zonen (Plateaus, Gebiete, Quartiere), ist jede Zone eine
   eigene Zeile mit ihren eigenen Daten. Verwende die Bezeichnungen des
-  Kalenders. Ohne Zonen: null.
+  Kalenders. Ohne Zonen: null. Gilt eine Abfuhr fuer ALLE Zonen der Gemeinde,
+  ist "zone" null — schreibe nicht "Sektor 1-4". Gilt sie fuer einige Zonen,
+  gib je Zone eine Zeile zurueck.
 - "bereitstellung" ist die Regel, wann und wie das Material bereitstehen muss
   ("fruehestens 18 Uhr am Vorabend, spaetestens 7 Uhr am Abfuhrtag"), woertlich
   aus dem Kalender.
@@ -328,15 +330,17 @@ export function parseExtraktion(
   const zonen: string[] =
     dokumentZone !== null
       ? [dokumentZone]
-      : Array.isArray(roh.zonen)
-        ? [
-            ...new Set(
-              roh.zonen.filter(
-                (z): z is string => typeof z === 'string' && z.trim() !== ''
-              )
-            )
-          ]
-        : []
+      : bereinigeZonen(
+          Array.isArray(roh.zonen)
+            ? [
+                ...new Set(
+                  roh.zonen.filter(
+                    (z): z is string => typeof z === 'string' && z.trim() !== ''
+                  )
+                )
+              ]
+            : []
+        )
 
   const regelmaessig: RegelmaessigeAbfuhr[] = Array.isArray(roh.regelmaessig)
     ? roh.regelmaessig.flatMap((eintrag) => {
@@ -360,18 +364,24 @@ export function parseExtraktion(
     const kategorie = text(e.kategorie)
     if (kategorie === null || !Array.isArray(e.daten)) continue
 
-    const zone = dokumentZone ?? text(e.zone)
+    // A label naming several zones is unfolded here: "Sektor 1-4" where the
+    // calendar knows four sectors means the whole municipality, "Sektor 1+2"
+    // means two rows. Moot for per-zone documents, where the zone is forced.
+    const zoneRoh = dokumentZone ?? text(e.zone)
+    const zonenDerZeile: (string | null)[] =
+      dokumentZone !== null ? [dokumentZone] : entfalteZone(zoneRoh, zonen)
     // A zone the calendar never declared is a sign the model invented a split;
-    // keep the dates, report the zone. Moot for per-zone documents, where the
-    // zone is forced above.
+    // keep the dates, report the zone.
     if (
       dokumentZone === null &&
-      zone !== null &&
+      zoneRoh !== null &&
       zonen.length > 0 &&
-      !zonen.includes(zone)
+      !zonen.includes(zoneRoh) &&
+      zonenDerZeile.length === 1 &&
+      zonenDerZeile[0] === zoneRoh
     ) {
       hinweise.push(
-        `Zone "${zone}" kommt in der Zonenliste des Kalenders nicht vor.`
+        `Zone "${zoneRoh}" kommt in der Zonenliste des Kalenders nicht vor.`
       )
     }
 
@@ -400,6 +410,9 @@ export function parseExtraktion(
         ? tageVorherRoh
         : null
 
+    // Dates are validated once per row, not once per zone the row unfolds
+    // into — otherwise an unreadable date would be reported four times.
+    const gueltigeDaten: string[] = []
     for (const rohesDatum of e.daten) {
       const datum = text(rohesDatum)
       if (datum === null) continue
@@ -419,37 +432,45 @@ export function parseExtraktion(
         )
         continue
       }
+      gueltigeDaten.push(datum)
+    }
 
-      const schluessel = `${kategorie}|${zone ?? ''}|${datum}`
-      if (gesehen.has(schluessel)) continue
-      gesehen.add(schluessel)
+    if (
+      anmeldungWochentag !== null &&
+      wochentagNummer(anmeldungWochentag) === null
+    ) {
+      hinweise.push(
+        `"${kategorie}": Anmeldetag "${anmeldungWochentag}" ist kein Wochentag — Frist weggelassen.`
+      )
+    }
 
-      // Two printed shapes of the same fact, both computed here rather than by
-      // the model: "bis zum Mittwoch vorher" walks back to that weekday,
-      // "bis vier Tage vorher" (Pratteln) subtracts days.
-      const anmeldeschluss =
-        anmeldungWochentag !== null
-          ? letzterWochentagVor(datum, anmeldungWochentag)
-          : tageVorher !== null
-            ? verschiebe(datum, -tageVorher)
-            : null
+    for (const zone of zonenDerZeile) {
+      for (const datum of gueltigeDaten) {
+        const schluessel = `${kategorie}|${zone ?? ''}|${datum}`
+        if (gesehen.has(schluessel)) continue
+        gesehen.add(schluessel)
 
-      if (anmeldungWochentag !== null && anmeldeschluss === null) {
-        hinweise.push(
-          `"${kategorie}": Anmeldetag "${anmeldungWochentag}" ist kein Wochentag — Frist weggelassen.`
-        )
+        // Two printed shapes of the same fact, both computed here rather than
+        // by the model: "bis zum Mittwoch vorher" walks back to that weekday,
+        // "bis vier Tage vorher" (Pratteln) subtracts days.
+        const anmeldeschluss =
+          anmeldungWochentag !== null
+            ? letzterWochentagVor(datum, anmeldungWochentag)
+            : tageVorher !== null
+              ? verschiebe(datum, -tageVorher)
+              : null
+
+        termine.push({
+          kategorie,
+          zone,
+          datum,
+          wochentag_laut_pdf: wochentagLautPdf,
+          bereitstellung,
+          anmeldung,
+          anmeldeschluss,
+          anmeldeschluss_zeit: anmeldeschluss === null ? null : anmeldungUhrzeit
+        })
       }
-
-      termine.push({
-        kategorie,
-        zone,
-        datum,
-        wochentag_laut_pdf: wochentagLautPdf,
-        bereitstellung,
-        anmeldung,
-        anmeldeschluss,
-        anmeldeschluss_zeit: anmeldeschluss === null ? null : anmeldungUhrzeit
-      })
     }
   }
 
@@ -469,6 +490,123 @@ export function parseExtraktion(
     regelmaessig,
     hinweise
   }
+}
+
+/** Words a calendar uses for "everywhere" — the whole municipality, no zone. */
+const SAMMELWORT = /\b(alle|s[aä]e?mtliche|gesamt\w*|ganze[nr]?\s+gemeinde)\b/i
+
+/** "1-4", "1–4", "1 bis 4" — a numeric range of zones. */
+const BEREICH = /(\d+)\s*(?:-|–|—|bis)\s*(\d+)/i
+
+function zahlenIn(wert: string): number[] {
+  return [...wert.matchAll(/\d+/g)].map((treffer) => Number(treffer[0]))
+}
+
+/** The zone's own number — "Sektor 3" ↔ 3. Null where the name carries none. */
+function zonenNummer(zone: string): number | null {
+  const [erste] = zahlenIn(zone)
+  return erste ?? null
+}
+
+/**
+ * The declared zones a label stands for, by its FORM alone.
+ *
+ * A range ("Sektor 1-4"), a list ("1, 2 und 4", "Zone 1+2"), a collective
+ * word ("alle Sektoren") or two declared names in one label ("Ostplateau und
+ * Westplateau") all say "several". A plain name — even one the calendar never
+ * declared — says one, and stays one. Returns the numbers or names found; the
+ * callers decide what covering all of them means.
+ */
+function mitglieder(
+  etikett: string,
+  atomar: readonly string[]
+): { alle: boolean; zonen: string[]; sammel: boolean } {
+  if (SAMMELWORT.test(etikett)) return { alle: true, zonen: [], sammel: true }
+
+  const klein = etikett.toLowerCase()
+  const namen = atomar.filter(
+    (zone) => zone.toLowerCase() !== klein && klein.includes(zone.toLowerCase())
+  )
+  if (namen.length >= 2) return { alle: false, zonen: namen, sammel: true }
+
+  const bereich = BEREICH.exec(etikett)
+  let nummern: number[] = []
+  if (bereich !== null) {
+    const von = Number(bereich[1])
+    const bis = Number(bereich[2])
+    // Bounded: "1-40" is a house number, not forty zones.
+    if (von < bis && bis - von <= 20) {
+      nummern = Array.from({ length: bis - von + 1 }, (_, i) => von + i)
+    }
+  } else {
+    const gefunden = zahlenIn(etikett)
+    if (gefunden.length >= 2) nummern = gefunden
+  }
+  if (nummern.length === 0) return { alle: false, zonen: [], sammel: false }
+
+  const passende = nummern.flatMap((nummer) =>
+    atomar.filter((zone) => zonenNummer(zone) === nummer)
+  )
+  return { alle: false, zonen: [...new Set(passende)], sammel: true }
+}
+
+/**
+ * The declared zone list without the labels that only repeat it.
+ *
+ * Asked for the zones, a model reading Allschwil answers "Sektor 1", …,
+ * "Sektor 4" — and sometimes adds "Sektor 1-4" because the calendar prints
+ * that too. The collective label is not a fifth sector; kept, it would make
+ * every "all sectors" test fail. A list consisting of nothing but collective
+ * labels is left alone: there is nothing to unfold them into, and
+ * `entfalteZone` reads them as the whole municipality.
+ */
+export function bereinigeZonen(zonen: readonly string[]): string[] {
+  const atomar = zonen.filter(
+    (zone) =>
+      !mitglieder(
+        zone,
+        zonen.filter((andere) => andere !== zone)
+      ).sammel
+  )
+  return atomar.length > 0 ? atomar : [...zonen]
+}
+
+/**
+ * Which zone rows a zone label produces.
+ *
+ * The newsroom's rule: a label covering every zone the calendar has means the
+ * whole municipality (`null`), a label covering some means one row per zone,
+ * and anything else is left as written. Allschwil is the measured case — the
+ * model wrote "Sektor 1-4" on municipality-wide collections and the desk
+ * showed a fifth zone. Only the label's form makes it collective: a single
+ * declared zone such as Aesch's "Östlich der Hauptstrasse" is a real zone and
+ * must not become the whole municipality just because it is the only one.
+ */
+export function entfalteZone(
+  etikett: string | null,
+  zonen: readonly string[]
+): (string | null)[] {
+  if (etikett === null) return [null]
+
+  const atomar = zonen.filter(
+    (zone) =>
+      !mitglieder(
+        zone,
+        zonen.filter((andere) => andere !== zone)
+      ).sammel
+  )
+  // A declared, non-collective zone is itself — whatever it is called.
+  if (atomar.includes(etikett)) return [etikett]
+
+  const befund = mitglieder(etikett, atomar)
+  if (!befund.sammel) return [etikett]
+  // A collective label with no declared zones to unfold into ("Sektor 1-4"
+  // and nothing else declared) can only mean everywhere.
+  if (befund.alle || atomar.length === 0) return [null]
+  if (befund.zonen.length === 0) return [etikett]
+
+  const deckt = atomar.every((zone) => befund.zonen.includes(zone))
+  return deckt ? [null] : befund.zonen
 }
 
 /**

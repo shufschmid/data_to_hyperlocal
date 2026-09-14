@@ -6,10 +6,8 @@ import Accordion from '@mui/material/Accordion'
 import AccordionDetails from '@mui/material/AccordionDetails'
 import AccordionSummary from '@mui/material/AccordionSummary'
 import Alert from '@mui/material/Alert'
-import Chip from '@mui/material/Chip'
 import Badge from '@mui/material/Badge'
 import CircularProgress from '@mui/material/CircularProgress'
-import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import Tab from '@mui/material/Tab'
 import Tabs from '@mui/material/Tabs'
@@ -41,6 +39,9 @@ import {
   PORTAL_QUERY,
   QUELLEN_QUERY,
   WISSEN_QUERY,
+  WISSEN_AKTIV_MUTATION,
+  WISSEN_WIRKUNG_MUTATION,
+  type WissenSchalterErgebnis,
   type AnkuendigungDatensatzErgebnis,
   type AnkuendigungenErgebnis,
   type DatensaetzeErgebnis,
@@ -81,6 +82,7 @@ import MenuItem from '@mui/material/MenuItem'
 import { anzahlOffen as anzahlSendungskandidaten } from '@/lib/sendungen'
 import { anzahlOffen, liestUnterlagen } from '@/lib/amtsblatt'
 import { Chefredaktion } from './Chefredaktion'
+import { Gelerntes } from './Gelerntes'
 import { Zeitleiste } from './Zeitleiste'
 import { AuftragDialog, type AuftragZiel } from './AuftragDialog'
 import { GemeindenAuswahl } from './GemeindenAuswahl'
@@ -329,6 +331,8 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
   }, [wirdInventarisiert, blattPollingStart, blattPollingStop, hinweiseNeuLaden])
 
   const [setzeAktiv] = useMutation<GemeindeAktivErgebnis>(GEMEINDE_AKTIV_MUTATION)
+  const [schalteRegel] = useMutation<WissenSchalterErgebnis>(WISSEN_AKTIV_MUTATION)
+  const [setzeWirkung] = useMutation<WissenSchalterErgebnis>(WISSEN_WIRKUNG_MUTATION)
 
   // Loaded with the tab, not on demand: 181 rows is one small query, and a
   // picker that has to fetch before it can offer anything feels broken.
@@ -806,8 +810,8 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             onChat={async (id, anweisung) => {
               await fuehreAus(`meldungen/${id}/chat`, { anweisung })
             }}
-            onAktion={async (id, was) => {
-              await fuehreAus(`meldungen/${id}/${was}`)
+            onAktion={async (id, was, koerper) => {
+              await fuehreAus(`meldungen/${id}/${was}`, koerper)
             }}
             onAuftrag={(eintrag) =>
               setAuftragFuer({
@@ -920,8 +924,8 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             onChat={async (id, anweisung) => {
               await fuehreAus(`meldungen/${id}/chat`, { anweisung })
             }}
-            onAktion={async (id, was) => {
-              await fuehreAus(`meldungen/${id}/${was}`)
+            onAktion={async (id, was, koerper) => {
+              await fuehreAus(`meldungen/${id}/${was}`, koerper)
             }}
           />
         </Stack>
@@ -969,8 +973,8 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             onChat={async (id, anweisung) => {
               await fuehreAus(`meldungen/${id}/chat`, { anweisung })
             }}
-            onAktion={async (id, was) => {
-              await fuehreAus(`meldungen/${id}/${was}`)
+            onAktion={async (id, was, koerper) => {
+              await fuehreAus(`meldungen/${id}/${was}`, koerper)
             }}
           />
         </Stack>
@@ -1026,10 +1030,10 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             onChat={async (id, anweisung) => {
               await fuehreAus(`meldungen/${id}/chat`, { anweisung })
             }}
-            onAktion={async (id, was) => {
+            onAktion={async (id, was, koerper) => {
               // Publiziert oder verworfen heisst: weg vom Tisch. Die Karten
               // filtern über den Meldungsstatus, den fuehreAus frisch holt.
-              await fuehreAus(`meldungen/${id}/${was}`)
+              await fuehreAus(`meldungen/${id}/${was}`, koerper)
             }}
           />
         </Stack>
@@ -1051,8 +1055,8 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             onChat={async (id, anweisung) => {
               await fuehreAus(`meldungen/${id}/chat`, { anweisung })
             }}
-            onAktion={async (id, was) => {
-              await fuehreAus(`meldungen/${id}/${was}`)
+            onAktion={async (id, was, koerper) => {
+              await fuehreAus(`meldungen/${id}/${was}`, koerper)
             }}
             heute={new Date().toISOString().slice(0, 10)}
             laeuft={sendet || liestUnterlagen(amtsblatt.data?.amtsblattmeldungen ?? [])}
@@ -1126,8 +1130,8 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             onChat={async (id, anweisung) => {
               await fuehreAus(`meldungen/${id}/chat`, { anweisung })
             }}
-            onAktion={async (id, was) => {
-              await fuehreAus(`meldungen/${id}/${was}`)
+            onAktion={async (id, was, koerper) => {
+              await fuehreAus(`meldungen/${id}/${was}`, koerper)
             }}
             onAktualisieren={allesNeuLaden}
           />
@@ -1153,11 +1157,25 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
               })
               await recherchehinweise.refetch()
             }}
-            onPerle={async (id, perle) => {
+            onPerle={async (id, perle, kommentar) => {
               // Das Urteil hängt am Kandidaten — ob je eine Meldung daraus
-              // wurde, spielt keine Rolle.
-              await fuehreAus(`kandidaten/${id}/perle`, { perle })
+              // wurde, spielt keine Rolle. Ihr Warum ist optional.
+              await fuehreAus(`kandidaten/${id}/perle`, {
+                perle,
+                ...(kommentar === '' ? {} : { kommentar })
+              })
               await offenePerlen.refetch()
+            }}
+            onZurueck={async (id) => {
+              // Der Ursprung liegt wieder offen auf seinem Tisch — alle drei
+              // Tische neu laden, welcher es war, weiss nur der Endpoint.
+              await fuehreAus(`hinweise/${id}/zurueck`)
+              await Promise.all([
+                recherchehinweise.refetch(),
+                wochenblaetter.refetch(),
+                amtsblatt.refetch(),
+                sendungskandidaten.refetch()
+              ])
             }}
           />
         </Stack>
@@ -1187,21 +1205,23 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
       )}
 
       {reiter === 'gelerntes' && (
-        <Stack spacing={1}>
-          <Typography variant="body2" color="text.secondary">
-            Regeln, die aus deinen Anweisungen gelernt wurden. Sie fliessen in jede weitere Meldung ein — auch
-            nächstes Jahr.
-          </Typography>
-          {wissen.data?.redaktionswissen.length === 0 && <Alert severity="info">Noch nichts gelernt.</Alert>}
-          {wissen.data?.redaktionswissen.map((w) => (
-            <Paper key={w.id} sx={{ p: 2 }}>
-              <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
-                <Chip size="small" label={w.geltungsbereich} />
-                <Typography variant="body2">{w.regel}</Typography>
-              </Stack>
-            </Paper>
-          ))}
-        </Stack>
+        <Gelerntes
+          regeln={wissen.data?.redaktionswissen ?? []}
+          hinweise={recherchehinweise.data?.recherchehinweise ?? []}
+          laeuft={sendet}
+          onAktiv={async (id, aktiv) => {
+            await schalteRegel({ variables: { id, aktiv } })
+            await wissen.refetch()
+          }}
+          onWirkung={async (id, wirkung) => {
+            await setzeWirkung({ variables: { id, wirkung } })
+            await wissen.refetch()
+          }}
+          onAnlegen={async (regel) => {
+            await fuehreAus('wissen', regel)
+            await wissen.refetch()
+          }}
+        />
       )}
 
       {reiter === 'gemeinden' && (

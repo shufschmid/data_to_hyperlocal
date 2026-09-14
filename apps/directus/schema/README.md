@@ -15,32 +15,40 @@ in `.env`. The container entrypoint uses the admin credentials.
 
 ## What is applied, and what is only recorded
 
-This is the important part, and it is not symmetric:
+Since August 2026 both halves are applied — the earlier split (snapshot owned by
+migrations, pushed with `--no-snapshot`) is gone, together with the model
+migrations:
 
-| Folder                                                                                                                | Owned by             | Applied by `schema:load`?     |
-| --------------------------------------------------------------------------------------------------------------------- | -------------------- | ----------------------------- |
-| `collections/` — flows, operations, roles, policies, permissions, settings, presets, dashboards, panels, translations | **this folder**      | **yes**                       |
-| `snapshot/` — collections, fields, relations                                                                          | **`../migrations/`** | **no** (`push --no-snapshot`) |
+| Folder                                                                                                                | Owned by        | Applied by `schema:load`? |
+| --------------------------------------------------------------------------------------------------------------------- | --------------- | ------------------------- |
+| `collections/` — flows, operations, roles, policies, permissions, settings, presets, dashboards, panels, translations | **this folder** | **yes**                   |
+| `snapshot/` — collections, fields, relations                                                                          | **this folder** | **yes**                   |
 
-`snapshot/` is dumped so the data model is readable in a diff and so `schema:diff`
-can prove a migration wrote what Directus itself would have written. It is
-deliberately **not** pushed.
+`npm run schema:load` is a plain `directus-sync push`, and the container runs it
+on every boot. That has a consequence worth knowing: **hand-written snapshot
+files are applied.** The practice in this repo is to write a new field's
+`snapshot/fields/<collection>/<field>.json` (and its `relations/…` file for an
+m2o) next to the code that needs it — copied from a sibling file, `sort` and
+`max_length` checked — and to let `schema:dump` regenerate `specs/` afterwards;
+`schema:diff` against a running instance is the gate that proves the file says
+what Directus would have written.
 
-The reason is a sharp edge: `directus-sync push` treats the snapshot as the whole
-truth and **deletes any collection that is not in it**. Add a migration, boot the
-container before re-dumping, and the push silently drops the collections that
-migration just created — tables gone, no error in the log. Excluding the snapshot
-from the push removes that failure mode entirely.
+The sharp edge that used to justify the split still exists: `directus-sync push`
+treats the snapshot as the whole truth and **deletes any collection that is not
+in it**. Never create a collection outside the snapshot, and never run
+`schema:load` against an instance whose model is newer than this folder.
 
 ## The one rule
 
-Every collection is owned by exactly one mechanism — either this folder or
-`../migrations/`. Never both. In this project the split is fixed:
+Structure is owned by this folder, never by `../migrations/`:
 
-- **Data model** (tables, fields, relations) → migrations, always.
+- **Data model** (tables, fields, relations) → `snapshot/`, built in the admin UI
+  and dumped, or written by hand as described above.
 - **Configuration** (Flows and their cron triggers, roles, permissions, settings)
-  → this folder, always.
+  → `collections/`, always dumped.
+- **Migrations** → row data and the indexes Directus does not manage (partial
+  unique indexes), nothing else.
 
-After changing a migration, run `npm run schema:dump` and check that
-`npm run schema:diff` comes back with no changes. That is the gate: an empty diff
-means the migration and Directus agree. See `apps/directus/CLAUDE.md`.
+After any change, run `npm run schema:dump` and check that `npm run schema:diff`
+comes back with no changes. That is the gate: an empty diff means this folder and
+Directus agree. See `apps/directus/CLAUDE.md`.

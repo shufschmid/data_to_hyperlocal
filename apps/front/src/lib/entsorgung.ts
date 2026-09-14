@@ -98,6 +98,40 @@ export function termineNachMonat(
   return nachMonat(termine, (termin) => termin.datum)
 }
 
+export interface Abfuhrtag<T> {
+  datum: string
+  termine: T[]
+}
+
+/**
+ * The collections of one calendar by collection DAY.
+ *
+ * A day is the unit the newsroom reminds about: Altmetall and Sonderabfall on
+ * the same Wednesday, or Papier in Kreis West and Karton in Kreis Ost, become
+ * one reminder — so the list shows them as one row too, not as two that look
+ * like two reminders. Mirrors `abfuhrtage` in the backend's `erinnerung.ts`.
+ * Within a day: zone first (unzoned ahead), then category.
+ */
+export function termineNachTag<T extends { datum: string; zone: string | null; kategorie: string }>(
+  termine: readonly T[]
+): Abfuhrtag<T>[] {
+  const nachDatum = new Map<string, T[]>()
+  for (const termin of termine) {
+    const bisher = nachDatum.get(termin.datum)
+    if (bisher === undefined) nachDatum.set(termin.datum, [termin])
+    else bisher.push(termin)
+  }
+
+  return [...nachDatum.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([datum, liste]) => ({
+      datum,
+      termine: [...liste].sort(
+        (a, b) => (a.zone ?? '').localeCompare(b.zone ?? '') || a.kategorie.localeCompare(b.kategorie)
+      )
+    }))
+}
+
 /** Only the waste-collection reminders, by the month they appear in. */
 export function erinnerungenNachMonat(
   meldungen: readonly AlleMeldungFelder[]

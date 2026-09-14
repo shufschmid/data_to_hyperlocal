@@ -14,6 +14,9 @@ apps/directus/
 ├── extensions/app/          ← ALL server-side logic (one bundle, own package.json)
 │   └── src/
 │       ├── shared/          claude.ts · env.ts · http.ts   (reusable, no domain logic)
+│       ├── redaktion/       the newsroom's rules: prompts, checks, and the learning layer
+│       │                    (lernsignale · gedaechtnis · lernen · weiterreichen — see below)
+│       ├── dossiers/ punkt6/  the two broadcast pipelines, copied from the sister project
 │       ├── endpoints/       custom HTTP routes
 │       ├── hooks/           filter/action hooks on collection writes
 │       ├── operations/      steps a Flow can call (this is how cron works)
@@ -60,6 +63,18 @@ dashboards, translations and Flows. The loop never changes:
 A fresh database reaches the current model with `schema:load` alone. That is the whole
 mechanism, and it is also the reason it stays reliable: one owner, one artefact to
 review in a diff.
+
+**The dump is not the only way to write the snapshot.** `schema:load` is a plain
+`directus-sync push` and the container runs it on every boot, so a field file written
+by hand is applied like a dumped one. That is the practice for a field a code change
+needs: copy a sibling `schema/snapshot/fields/<collection>/<field>.json` (an enum
+from `redaktionswissen/geltungsbereich.json`, a text from
+`recherchehinweise/kommentar.json`, an m2o from `redaktionswissen/datensatz.json`
+plus its `relations/…` twin), check `sort` and `max_length`, and commit it with the
+code. The gate is unchanged: `schema:diff` against a running instance must come back
+empty, and the next `schema:dump` regenerates `specs/`. Adding a value to an existing
+enum is an edit to the field's `choices` — Directus stores no CHECK for it, so the
+column takes the new value the moment the code writes it.
 
 Use it for structure _and_ for everything with presentation metadata — interfaces,
 field order, icons, translations, roles, permissions, dashboards, Flows. Directus
@@ -254,6 +269,47 @@ const validated = parseSummary(answer) // never trust the shape
 - Model: `ANTHROPIC_MODEL`, default `claude-sonnet-5`. Reach for `claude-opus-5` for
   genuinely hard reasoning, not by default.
 - `ANTHROPIC_API_KEY` lives **here**, never in the frontend.
+
+## Learning from the editor
+
+Every desk decision in the workspace is used three times — as an EXAMPLE in the
+next Sichtung's user turn, as a candidate RULE in `redaktionswissen`, and, for one
+armed kind of rule, as an ACTION. Four modules in `src/redaktion/` carry it, and
+the split between them is the split between pure and Directus-bound code:
+
+| Module             | Pure? | What it does                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------ | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lernsignale.ts`   | no    | ONE loader per desk (`ladeWochenblattSignale`, `ladeAmtsblattSignale`, `ladeSendungSignale`) for the scheduled run and the re-inventory button alike: decided rows of the window (last three issues / 30 days), the Verwerfen join, the Chefredaktion's verdict via the lead's origin FK, the `verfallen` titles and a `Bilanz`. Pure helpers `bilanzZeile`, `deklariereKappung`.                        |
+| `lernen.ts`        | yes   | The rules of learning: `lohntLernen` (a comment always, a bare click only after two same-direction decisions, doublette/veraltet/falsche Gemeinde never), the Lern prompt and schema, `parseLernUrteil` with its code guards, `regelnBlock` (R1…Rn for a Sichtung), `vorgabenZeilen` (for an article prompt), `automatischeWeitergabe` (fail-closed) and `automatikPausieren` (two rejections in a row). |
+| `gedaechtnis.ts`   | no    | The store: `ladeRegeln(bereich, stufe)` capped at 30 with a warning, `merkeWissenAus` for words (chat, comments, Begründungen), `lerneAusEntscheid` for decisions (fire-and-forget, `logger.warn` on failure, one promise chain per desk so two quick decisions cannot create twin rules) and `pausiereAutomatikWennNoetig`.                                                                             |
+| `weiterreichen.ts` | mixed | Three pure mappers build a lead from a candidate / publication / broadcast candidate with its origin FK; `reicheWeiter` creates the lead FIRST and marks the origin `weitergereicht` second. The endpoints and the three Sichtungen share it — an automatic hand-up is `automatisch: true` plus the `regel` that asked for it.                                                                           |
+
+Four things a change here must keep:
+
+- **Desk rules never reach the cached prefix.** `buildArtikelSystemPrompt` is
+  byte-identical across a run; only `bereich: statistik` rules go through `drain.ts`
+  into it. Every other desk gets its rules in the USER turn — numbered in a
+  Sichtung, as „Redaktionelle Vorgaben" in an article prompt. There are tests.
+- **Learning never blocks a write.** `lerneAusEntscheid` runs after the row is
+  stored and swallows its own failure. A lost lesson is a warning in the log; a
+  blocked reject would be a bug.
+- **Automation creates a lead, never a Meldung.** `automatischeWeitergabe` answers
+  only for `empfehlung: 'weiterreichen'` with a cited rule that is loaded, active,
+  `stufe: sichtung` and `wirkung: weiterreichen`. Anything else is null.
+- **Automatic hand-ups are no examples until judged.** `lernDigest` skips a lead
+  that is `automatisch` and still `offen`, or the automation would feed itself.
+
+Endpoints of the learning layer, all in `src/endpoints/redaktion/`:
+
+- `POST /redaktion/wissen` — a rule entered by hand in „Gelerntes"
+  (`wissenFelderManuell` validates, German messages); `herkunft: manuell`.
+- `POST /redaktion/hinweise/:id/zurueck` — „Zurück auf den Tisch": the lead must be
+  `offen` and carry an origin FK; the origin goes back to `offen`, the lead becomes
+  `zurueckgegeben`, and a `regel` on it counts toward the pause.
+- `POST /redaktion/hinweise/:id/bewerten`, the three `…/ablehnen`, the three
+  `…/weiterreichen`, `…/kandidaten/:id/perle` and `…/meldungen/:id/verwerfen` all
+  store first and then call `lerne(signal)`; the optional `kommentar` in their
+  bodies is what makes the lesson immediate.
 
 ## Environment variables
 

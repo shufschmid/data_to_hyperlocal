@@ -25,6 +25,10 @@
         {
           "text": "Kein Hinweis",
           "value": "kein_hinweis"
+        },
+        {
+          "text": "Zurueck auf den Tisch der Redaktion",
+          "value": "zurueckgegeben"
         }
       ]
     },

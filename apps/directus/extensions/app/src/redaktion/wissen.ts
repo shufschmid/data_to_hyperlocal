@@ -1,4 +1,9 @@
-import type { Geltungsbereich } from '../types/schema'
+import type {
+  Geltungsbereich,
+  WissenBereich,
+  WissenStufe,
+  WissenWirkung
+} from '../types/schema'
 
 // Deciding which editorial instructions are worth remembering.
 //
@@ -8,6 +13,10 @@ import type { Geltungsbereich } from '../types/schema'
 // handled from now on. Storing everything would fill the cached prompt prefix
 // with one-offs; storing nothing means re-explaining the same preference every
 // year.
+//
+// Since the desks learn too, a rule carries the desk it belongs to
+// (`bereich`) and what it governs (`stufe`). Desk rules are always global
+// within their desk — the decision rows are the local memory there.
 //
 // Prompt building and answer validation only — no Directus, no network.
 
@@ -53,12 +62,22 @@ export interface WissenUrteil {
   geltungsbereich: Geltungsbereich
 }
 
+const BEREICHE: readonly Geltungsbereich[] = ['datensatz', 'quelle', 'global']
+
 export function buildWissenPrompt(
   anweisung: string,
-  datensatzTitel: string
+  kontextTitel: string,
+  erlaubt: readonly Geltungsbereich[] = BEREICHE
 ): string {
+  const nurGlobal = erlaubt.length === 1 && erlaubt[0] === 'global'
   return [
-    `Datensatz: ${datensatzTitel}`,
+    nurGlobal ? `Kontext: ${kontextTitel}` : `Datensatz: ${kontextTitel}`,
+    ...(nurGlobal
+      ? [
+          'Hier gibt es keinen Datensatz und keine Quelle: eine dauerhafte Regel',
+          'gilt fuer alle Meldungen dieses Tischs — "geltungsbereich" ist immer "global".'
+        ]
+      : []),
     '',
     'Anweisung der Redaktion:',
     anweisung
@@ -66,9 +85,11 @@ export function buildWissenPrompt(
 }
 
 const MAX_REGEL = 300
-const BEREICHE: readonly Geltungsbereich[] = ['datensatz', 'quelle', 'global']
 
-export function parseWissen(value: unknown): WissenUrteil {
+export function parseWissen(
+  value: unknown,
+  erlaubt: readonly Geltungsbereich[] = BEREICHE
+): WissenUrteil {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     throw new Error('Claude-Antwort zum Redaktionswissen ist kein Objekt.')
   }
@@ -92,11 +113,13 @@ export function parseWissen(value: unknown): WissenUrteil {
   // as one-off is the safe reading — nothing is lost that a human cannot add.
   const dauerhaft = kandidat.dauerhaft && regel !== null
 
-  const geltungsbereich = BEREICHE.includes(
+  // An answer outside the allowed scopes falls back to the narrowest one the
+  // caller permits — "datensatz" for statistics, "global" for a desk.
+  const geltungsbereich = erlaubt.includes(
     kandidat.geltungsbereich as Geltungsbereich
   )
     ? (kandidat.geltungsbereich as Geltungsbereich)
-    : 'datensatz'
+    : (erlaubt[0] ?? 'datensatz')
 
   return { dauerhaft, regel: dauerhaft ? regel : null, geltungsbereich }
 }
@@ -105,21 +128,91 @@ export function parseWissen(value: unknown): WissenUrteil {
  * The columns a durable rule is stored in.
  *
  * `datensatz` and `quelle` are set according to the scope, so a rule meant for
- * one statistic never leaks into every article the application writes.
+ * one statistic never leaks into every article the application writes. A
+ * desk rule (`bereich` other than statistik) is global within its desk and
+ * binds to neither. Rules from words are text rules: an instruction to the
+ * writing tool says how to write, not what to propose.
  */
 export function wissenFelder(
   urteil: WissenUrteil,
-  bezug: { datensatzId: string; quelleId: string | null }
+  bezug: {
+    datensatzId: string | null
+    quelleId: string | null
+    bereich?: WissenBereich
+    herkunft?: 'chat' | 'kommentar'
+    beleg?: string | null
+  }
 ): Record<string, unknown> | null {
   if (!urteil.dauerhaft || urteil.regel === null) return null
 
+  const bereich = bezug.bereich ?? 'statistik'
+  const geltungsbereich =
+    bereich === 'statistik' ? urteil.geltungsbereich : 'global'
   return {
     regel: urteil.regel,
-    geltungsbereich: urteil.geltungsbereich,
-    herkunft: 'chat',
+    geltungsbereich,
+    herkunft: bezug.herkunft ?? 'chat',
     aktiv: true,
-    datensatz:
-      urteil.geltungsbereich === 'datensatz' ? bezug.datensatzId : null,
-    quelle: urteil.geltungsbereich === 'quelle' ? bezug.quelleId : null
+    bereich,
+    stufe: 'text',
+    wirkung: 'hinweis',
+    beleg: bezug.beleg ?? null,
+    datensatz: geltungsbereich === 'datensatz' ? bezug.datensatzId : null,
+    quelle: geltungsbereich === 'quelle' ? bezug.quelleId : null
+  }
+}
+
+const WISSEN_BEREICHE: readonly WissenBereich[] = [
+  'statistik',
+  'sport',
+  'entsorgung',
+  'presseschau',
+  'amtsblatt',
+  'sendung'
+]
+const WISSEN_STUFEN: readonly WissenStufe[] = ['sichtung', 'text']
+const WISSEN_WIRKUNGEN: readonly WissenWirkung[] = ['hinweis', 'weiterreichen']
+
+/**
+ * A rule the editor typed into "Gelerntes" herself — the cheapest learning
+ * of all, and the only path for "ich will das nie wieder sehen" said once.
+ *
+ * Validates the request body; the caller turns an Error into a 400. Manual
+ * rules are global within their desk; `weiterreichen` is only meaningful on a
+ * Sichtung rule and is dropped otherwise, so a text rule can never arm the
+ * automation by accident.
+ */
+export function wissenFelderManuell(eingabe: {
+  bereich?: unknown
+  stufe?: unknown
+  regel?: unknown
+  wirkung?: unknown
+}): Record<string, unknown> {
+  const regel = typeof eingabe.regel === 'string' ? eingabe.regel.trim() : ''
+  if (regel === '') throw new Error('Die Regel darf nicht leer sein.')
+  if (!WISSEN_BEREICHE.includes(eingabe.bereich as WissenBereich)) {
+    throw new Error('Unbekannter Bereich.')
+  }
+  if (!WISSEN_STUFEN.includes(eingabe.stufe as WissenStufe)) {
+    throw new Error('Unbekannte Stufe.')
+  }
+  const stufe = eingabe.stufe as WissenStufe
+  const wirkung =
+    stufe === 'sichtung' &&
+    WISSEN_WIRKUNGEN.includes(eingabe.wirkung as WissenWirkung)
+      ? (eingabe.wirkung as WissenWirkung)
+      : 'hinweis'
+
+  return {
+    regel: regel.slice(0, MAX_REGEL),
+    geltungsbereich: 'global',
+    herkunft: 'manuell',
+    aktiv: true,
+    bereich: eingabe.bereich as WissenBereich,
+    stufe,
+    wirkung,
+    beleg: 'Von Hand erfasst.',
+    datensatz: null,
+    quelle: null
   }
 }

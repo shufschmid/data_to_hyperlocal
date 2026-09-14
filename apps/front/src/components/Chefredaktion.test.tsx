@@ -14,6 +14,11 @@ function hinweis(ueber: Partial<RecherchehinweisFelder>): RecherchehinweisFelder
     status: 'offen',
     kommentar: null,
     date_created: null,
+    automatisch: false,
+    regel: null,
+    kandidat: null,
+    amtsblattmeldung: null,
+    sendungskandidat: null,
     gemeinde: { id: 'g-1', name: 'Binningen' },
     ausgabe: {
       id: 'a-1',
@@ -96,11 +101,64 @@ describe('Chefredaktion', () => {
       'href',
       'https://www.binninger-wochenblatt.ch/wp-content/uploads/2026/08/BWB-KW34-2026.pdf#page=3'
     )
+    // Das Urteil fragt nach dem Warum — optional, wie bei den Faehrten.
     await userEvent.click(screen.getByRole('button', { name: 'Als Perle markieren' }))
-    expect(NICHTS.onPerle).toHaveBeenCalledWith('k-1', true)
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }))
+    expect(NICHTS.onPerle).toHaveBeenCalledWith('k-1', true, '')
+  })
+
+  it('reicht das Warum zu «keine Perle» mit — Geschmack laesst sich sonst nicht lernen', async () => {
+    render(<Chefredaktion hinweise={[]} perlen={[perle({})]} {...NICHTS} />)
 
     await userEvent.click(screen.getByRole('button', { name: 'Keine Perle' }))
-    expect(NICHTS.onPerle).toHaveBeenCalledWith('k-1', false)
+    await userEvent.type(
+      screen.getByLabelText('Kommentar (optional, hilft dem Lernen)'),
+      'kurios, aber rein lokal'
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }))
+    expect(NICHTS.onPerle).toHaveBeenCalledWith('k-1', false, 'kurios, aber rein lokal')
+  })
+
+  it('zeigt an jeder Faehrte, von welchem Tisch sie kommt', () => {
+    render(
+      <Chefredaktion
+        hinweise={[
+          hinweis({ id: 'h-1', titel: 'Aus dem Blatt', kandidat: { id: 'k-9' } }),
+          hinweis({ id: 'h-2', titel: 'Aus dem Amtsblatt', amtsblattmeldung: { id: 'p-9' } }),
+          hinweis({ id: 'h-3', titel: 'Aus der Sendung', sendungskandidat: { id: 's-9', quelle: 'punkt6' } })
+        ]}
+        perlen={[]}
+        {...NICHTS}
+      />
+    )
+
+    expect(screen.getByText('Wochenblatt')).toBeInTheDocument()
+    expect(screen.getByText('Amtsblatt')).toBeInTheDocument()
+    expect(screen.getByText('punkt6')).toBeInTheDocument()
+  })
+
+  it('zeigt automatische Faehrten mit ihrer Regel und bietet den Weg zurueck an', async () => {
+    const onZurueck = jest.fn().mockResolvedValue(undefined)
+    render(
+      <Chefredaktion
+        hinweise={[
+          hinweis({
+            automatisch: true,
+            kandidat: { id: 'k-9' },
+            regel: { id: 'r-1', regel: 'Leserbriefe zu Bauprojekten an die Chefredaktion.' }
+          })
+        ]}
+        perlen={[]}
+        {...NICHTS}
+        onZurueck={onZurueck}
+      />
+    )
+
+    expect(
+      screen.getByText('automatisch · Regel: Leserbriefe zu Bauprojekten an die Chefredaktion.')
+    ).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Zurück auf den Tisch' }))
+    expect(onZurueck).toHaveBeenCalledWith('h-1')
   })
 
   it('haelt fuer den Perlen-Entscheid den Originaltext bereit', async () => {

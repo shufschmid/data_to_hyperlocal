@@ -29,6 +29,10 @@
         {
           "text": "An Chefredaktion weitergereicht",
           "value": "weitergereicht"
+        },
+        {
+          "text": "Verfallen (liegen gelassen)",
+          "value": "verfallen"
         }
       ]
     },

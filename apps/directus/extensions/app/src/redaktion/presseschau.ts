@@ -13,6 +13,8 @@
 
 import type Anthropic from '@anthropic-ai/sdk'
 import { seitenLink } from '../shared/wochenblatt/parse'
+import { vorgabenZeilen } from './lernen'
+import type { HinweisUrteil, Verwurf } from './lernsignale'
 import type {
   Ablehnungsgrund,
   KandidatEntscheid,
@@ -112,9 +114,19 @@ Bruecke, die "Sauschwaenzlibrugg" heisst; eine weltweit einmalige Messreihe).
 Blosse Betroffenheit macht keine Perle. Markiere solche Kandidaten mit
 "perle_vorschlag": true und begruende — und sei damit zurueckhaltend.
 
+Weiterreichen an die Chefredaktion: NUR wenn eine der nummerierten Regeln der
+Redaktion (R1, R2, …) verlangt, dass solche Beitraege an die Chefredaktion
+gehen, setze "empfehlung": "weiterreichen" und nenne die Nummer dieser Regel
+in "empfehlung_regel". Ohne eine solche Regel sind beide null — du erfindest
+keine Weitergabe.
+
 Regeln, ohne Ausnahme:
 - Was unklar ist, gehoert nach "hinweise" — rate nicht. Ein fehlender Kandidat
   wird von der Redaktion nachgetragen; ein erfundener kostet Vertrauen.
+- Jeder Vorschlag kostet die Redaktion Zeit. Liegen gelassene und abgelehnte
+  Vorschlaege sind Fehlvorschlaege. Schlage nur vor, was die Redaktion nach
+  ihren Regeln und Beispielen uebernehmen wuerde — lieber drei treffende
+  Kandidaten als zehn, von denen sie sieben ignoriert.
 - Schweizer Rechtschreibung: "ss" statt "ß".`
 
 export const INVENTAR_SCHEMA = {
@@ -136,7 +148,9 @@ export const INVENTAR_SCHEMA = {
           'warum_exklusiv',
           'zusammenfassung',
           'perle_vorschlag',
-          'perle_begruendung'
+          'perle_begruendung',
+          'empfehlung',
+          'empfehlung_regel'
         ],
         properties: {
           titel: { type: 'string' },
@@ -147,7 +161,12 @@ export const INVENTAR_SCHEMA = {
           warum_exklusiv: { type: 'string' },
           zusammenfassung: { type: 'string' },
           perle_vorschlag: { type: 'boolean' },
-          perle_begruendung: { type: ['string', 'null'] }
+          perle_begruendung: { type: ['string', 'null'] },
+          empfehlung: {
+            type: ['string', 'null'],
+            enum: ['weiterreichen', null]
+          },
+          empfehlung_regel: { type: ['string', 'null'] }
         }
       }
     },
@@ -183,6 +202,12 @@ export interface LernEintrag {
    * — independent of any Meldung. Null while it sits on her desk.
    */
   perleBestaetigt: boolean | null
+  /** Her reason, where she gave one. */
+  perleKommentar?: string | null
+  /** Taken over, but the Meldung written from it was discarded afterwards. */
+  meldungVerworfen?: Verwurf | null
+  /** For a hand-up: what the Chefredaktion made of it. Null while unknown. */
+  faehrte?: HinweisUrteil | null
 }
 
 const GRUND_TEXT: Record<Ablehnungsgrund, string> = {
@@ -206,6 +231,28 @@ export interface FaehrtenUrteil {
   kommentar: string | null
 }
 
+/** A Perle verdict across ALL papers — taste is the newsroom's, not a paper's. */
+export interface PerlenUrteil {
+  titel: string
+  blatt: string | null
+  bestaetigt: boolean
+  kommentar: string | null
+}
+
+/** What frames the examples — see `lernsignale.ts`, where it is computed. */
+export interface DigestRahmen {
+  bilanz?: string
+  verfallene?: readonly string[]
+  kappung?: string
+  perlen?: readonly PerlenUrteil[]
+}
+
+/** The example line for a taken-over row, with its fate if it had one. */
+function verwurfText(v: Verwurf | null | undefined): string {
+  if (v === null || v === undefined) return ''
+  return ` — die Meldung dazu wurde danach verworfen${v.grund === null ? '' : `: ${v.grund}`}`
+}
+
 /**
  * What the newsroom taught us, as examples for the next inventory.
  *
@@ -213,27 +260,57 @@ export interface FaehrtenUrteil {
  * the memory, and this renders the recent ones as few-shot examples. Belongs
  * in the USER turn — it changes with every decision, and the system prompt
  * must stay byte-identical.
+ *
+ * A hand-up is rendered by what the Chefredaktion made of it: still on her
+ * desk, confirmed as a lead, or binned. Rendering every hand-up as "good" —
+ * as this did before — taught the inventory to propose more of what she
+ * threw out, and a hand-up a RULE made is no example at all until she judged
+ * it, or the automation would feed itself.
  */
 export function lernDigest(
   entscheide: readonly LernEintrag[],
   korrekturen: readonly GemeindeKorrektur[] = [],
-  faehrten: readonly FaehrtenUrteil[] = []
+  faehrten: readonly FaehrtenUrteil[] = [],
+  rahmen: DigestRahmen = {}
 ): string {
   const uebernommen = entscheide.filter((e) => e.entscheid === 'uebernommen')
   const abgelehnt = entscheide.filter((e) => e.entscheid === 'abgelehnt')
   const weitergereicht = entscheide.filter(
-    (e) => e.entscheid === 'weitergereicht'
+    (e) =>
+      e.entscheid === 'weitergereicht' &&
+      !(e.faehrte?.automatisch === true && e.faehrte.status === 'offen')
   )
-  const perlen = entscheide.filter(
-    (e) => e.perleVorschlag && e.perleBestaetigt !== null
+  const offenBeiChefin = weitergereicht.filter(
+    (e) =>
+      e.faehrte === null ||
+      e.faehrte === undefined ||
+      e.faehrte.status === 'offen'
   )
+  const bestaetigt = weitergereicht.filter(
+    (e) => e.faehrte?.status === 'brauchbar'
+  )
+  const abgelegt = weitergereicht.filter(
+    (e) =>
+      e.faehrte?.status === 'kein_hinweis' ||
+      e.faehrte?.status === 'zurueckgegeben'
+  )
+  const perlenGlobal = rahmen.perlen ?? []
+  const perlen =
+    perlenGlobal.length > 0
+      ? []
+      : entscheide.filter((e) => e.perleVorschlag && e.perleBestaetigt !== null)
+  const verfallene = rahmen.verfallene ?? []
+  const bilanz = rahmen.bilanz ?? ''
   if (
     uebernommen.length === 0 &&
     abgelehnt.length === 0 &&
     weitergereicht.length === 0 &&
     perlen.length === 0 &&
+    perlenGlobal.length === 0 &&
     korrekturen.length === 0 &&
-    faehrten.length === 0
+    faehrten.length === 0 &&
+    verfallene.length === 0 &&
+    bilanz === ''
   ) {
     return ''
   }
@@ -241,9 +318,19 @@ export function lernDigest(
   const zeilen: string[] = [
     'Was die Redaktion bei frueheren Ausgaben dieses Blatts entschieden hat:'
   ]
+  if (bilanz !== '') zeilen.push('', bilanz)
+  if (verfallene.length > 0) {
+    zeilen.push(
+      '',
+      'Liegen gelassen — Vorschlaege, die der Redaktion nicht einmal einen Klick wert waren:'
+    )
+    for (const titel of verfallene) zeilen.push(`- "${titel}"`)
+  }
   if (uebernommen.length > 0) {
     zeilen.push('', 'Uebernommen (solche Vorschlaege waren gut):')
-    for (const e of uebernommen) zeilen.push(`- "${e.titel}" (${e.typ})`)
+    for (const e of uebernommen) {
+      zeilen.push(`- "${e.titel}" (${e.typ})${verwurfText(e.meldungVerworfen)}`)
+    }
   }
   if (abgelehnt.length > 0) {
     zeilen.push('', 'Abgelehnt (solche Vorschlaege nicht mehr machen):')
@@ -255,18 +342,56 @@ export function lernDigest(
       zeilen.push(`- "${e.titel}" (${e.typ})${grund}${kommentar}`)
     }
   }
-  if (weitergereicht.length > 0) {
+  if (offenBeiChefin.length > 0) {
     zeilen.push(
       '',
       'An die Chefredaktion weitergereicht (gute Vorschlaege, die erst verifiziert werden muessen — weiter solche machen):'
     )
-    for (const e of weitergereicht) zeilen.push(`- "${e.titel}" (${e.typ})`)
+    for (const e of offenBeiChefin) zeilen.push(`- "${e.titel}" (${e.typ})`)
   }
-  if (perlen.length > 0) {
+  if (bestaetigt.length > 0) {
+    zeilen.push(
+      '',
+      'Weitergereicht und von der Chefredaktion als brauchbare Faehrte bestaetigt (weiter solche machen):'
+    )
+    for (const e of bestaetigt) {
+      const kommentar =
+        e.faehrte?.kommentar == null ? '' : ` — ${e.faehrte.kommentar}`
+      zeilen.push(`- "${e.titel}" (${e.typ})${kommentar}`)
+    }
+  }
+  if (abgelegt.length > 0) {
+    zeilen.push(
+      '',
+      'Weitergereicht, aber von der Chefredaktion abgelegt — kein Hinweis (solche nicht mehr vorschlagen):'
+    )
+    for (const e of abgelegt) {
+      const kommentar =
+        e.faehrte?.kommentar == null ? '' : ` — ${e.faehrte.kommentar}`
+      zeilen.push(`- "${e.titel}" (${e.typ})${kommentar}`)
+    }
+  }
+  if (rahmen.kappung !== undefined && rahmen.kappung !== '') {
+    zeilen.push(rahmen.kappung)
+  }
+  if (perlenGlobal.length > 0) {
+    zeilen.push(
+      '',
+      'Perlen-Urteile der Chefredaktion, ueber alle Blaetter (Perle heisst: auch die Stadt will die Geschichte):'
+    )
+    for (const p of perlenGlobal) {
+      const blatt = p.blatt === null ? '' : ` (${p.blatt})`
+      const kommentar = p.kommentar === null ? '' : ` — ${p.kommentar}`
+      zeilen.push(
+        `- "${p.titel}"${blatt}: ${p.bestaetigt ? 'als Perle bestaetigt' : 'doch keine Perle'}${kommentar}`
+      )
+    }
+  } else if (perlen.length > 0) {
     zeilen.push('', 'Perlen-Urteile der Redaktion:')
     for (const e of perlen) {
+      const kommentar = e.perleKommentar == null ? '' : ` — ${e.perleKommentar}`
       zeilen.push(
-        `- "${e.titel}": ${e.perleBestaetigt === true ? 'als Perle bestaetigt' : 'doch keine Perle'}`
+        `- "${e.titel}": ${e.perleBestaetigt === true ? 'als Perle bestaetigt' : 'doch keine Perle'}${kommentar}`
       )
     }
   }
@@ -323,7 +448,9 @@ export function buildInventarMessages(
     nummer: string | null
     datum: string | null
   },
-  digest: string
+  digest: string,
+  /** The desk's Sichtung rules, already rendered (`regelnBlock`) — user turn, like the digest. */
+  regeln = ''
 ): Anthropic.MessageParam[] {
   const abdeckung =
     blatt.gemeinden.length === 1
@@ -367,6 +494,7 @@ export function buildInventarMessages(
           text: [
             kopf,
             '',
+            ...(regeln === '' ? [] : [regeln, '']),
             ...(digest === '' ? [] : [digest, '']),
             'Inventarisiere die exklusiven Beitraege dieser Ausgabe als',
             'Kandidaten, und alles Unklare als "hinweise".'
@@ -388,6 +516,9 @@ export interface InventarKandidat {
   zusammenfassung: string
   perle_vorschlag: boolean
   perle_begruendung: string | null
+  /** Only ever set when a numbered rule of the newsroom asked for it — checked by code. */
+  empfehlung: 'weiterreichen' | null
+  empfehlung_regel: string | null
 }
 
 export interface InventarFaehrte {
@@ -403,6 +534,27 @@ export interface Inventar {
   kandidaten: InventarKandidat[]
   recherchehinweise: InventarFaehrte[]
   hinweise: string[]
+}
+
+/**
+ * The hand-up recommendation as the answer carries it — a claim, kept as
+ * given; `automatischeWeitergabe` in `lernen.ts` decides whether the cited
+ * rule exists and is armed. Shared by the three Sichtungen.
+ */
+export function empfehlungAus(e: Record<string, unknown>): {
+  empfehlung: 'weiterreichen' | null
+  empfehlung_regel: string | null
+} {
+  const empfehlung =
+    e['empfehlung'] === 'weiterreichen' ? 'weiterreichen' : null
+  const nummer =
+    typeof e['empfehlung_regel'] === 'string'
+      ? e['empfehlung_regel'].trim()
+      : ''
+  return {
+    empfehlung,
+    empfehlung_regel: empfehlung === null || nummer === '' ? null : nummer
+  }
 }
 
 /**
@@ -513,7 +665,8 @@ export function parseInventar(
         typeof e.perle_begruendung === 'string' &&
         e.perle_begruendung.trim() !== ''
           ? e.perle_begruendung.trim()
-          : null
+          : null,
+      ...empfehlungAus(e)
     })
   }
 
@@ -636,9 +789,13 @@ function faktenZeilen(fakten: PresseschauFakten): string[] {
   ]
 }
 
-export function buildPresseschauPrompt(fakten: PresseschauFakten): string {
+export function buildPresseschauPrompt(
+  fakten: PresseschauFakten,
+  regeln: readonly string[] = []
+): string {
   return [
     ...faktenZeilen(fakten),
+    ...vorgabenZeilen(regeln),
     '',
     'Schreibe die Presseschau-Meldung. Verwende ausschliesslich diese Angaben.'
   ].join('\n')
@@ -672,11 +829,13 @@ export function buildPresseschauRevision(
   fakten: PresseschauFakten,
   bisher: { titel: string | null; lead: string | null; text: string | null },
   anweisung: string,
-  quelltext: string | null = null
+  quelltext: string | null = null,
+  regeln: readonly string[] = []
 ): string {
   const mitQuelltext = quelltext !== null && quelltext.trim() !== ''
   return [
     ...faktenZeilen(fakten),
+    ...vorgabenZeilen(regeln),
     ...(mitQuelltext
       ? [
           '',

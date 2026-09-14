@@ -19,6 +19,14 @@
           "value": "chat"
         },
         {
+          "text": "Aus einem Kommentar zu einem Entscheid",
+          "value": "kommentar"
+        },
+        {
+          "text": "Aus wiederholten Entscheiden abgeleitet",
+          "value": "entscheid"
+        },
+        {
           "text": "Von Hand",
           "value": "manuell"
         }

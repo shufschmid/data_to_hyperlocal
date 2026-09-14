@@ -256,8 +256,28 @@ describe('Amtsblatt', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Meldung schreiben' }))
     expect(onUebernehmen).toHaveBeenCalledWith('a')
 
+    // Weiterreichen fragt nach dem Warum — optional; ohne Text kommt null an.
     await userEvent.click(screen.getByRole('button', { name: 'An Chefredaktion' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Weiterreichen' }))
     expect(onWeiterreichen).toHaveBeenCalledWith('a', null)
+  })
+
+  it('reicht eine Begruendung beim Weiterreichen mit', async () => {
+    const onWeiterreichen = jest.fn().mockResolvedValue(undefined)
+    render(
+      <Amtsblatt
+        eintraege={[eintrag()]}
+        gemeinden={GEMEINDEN}
+        heute={HEUTE}
+        onWeiterreichen={onWeiterreichen}
+      />
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: 'An Chefredaktion' }))
+    await userEvent.type(screen.getByLabelText('Begründung (optional)'), 'Bauherrschaft zuerst abklären')
+    await userEvent.click(screen.getByRole('button', { name: 'Weiterreichen' }))
+
+    expect(onWeiterreichen).toHaveBeenCalledWith('a', 'Bauherrschaft zuerst abklären')
   })
 
   // The reason is the learning signal — it rides into the next triage.

@@ -13,9 +13,11 @@ export { parseMeldungstext as parseSendungMeldung } from './spielbericht'
 // Dieselbe Schreibweise wie im Amtsblatt-Feed, und aus demselben Grund dort
 // von Hand ausgeschrieben: ein reines Datum hat keine Zeitzone, und als lokaler
 // Zeitpunkt geparst verschiebt es sich oestlich von UTC um einen Tag.
-import { datumDeutsch } from './amtsblatt'
+import { datumDeutsch, verwurfText, weitergereichtText } from './amtsblatt'
+import { vorgabenZeilen } from './lernen'
+import type { Beispielrahmen, HinweisUrteil, Verwurf } from './lernsignale'
 // One direction only (presseschau → sendung would be circular in the bundle).
-import { gekuerzt } from './presseschau'
+import { empfehlungAus, gekuerzt } from './presseschau'
 export { ueberlappungsWarnungen } from './presseschau'
 
 /** Which show a candidate came from. Decides attribution and the source link. */
@@ -107,8 +109,17 @@ Fuer jeden Kandidaten:
   nicht sagt, und nichts fehlen, was die Meldung braucht.
 - "begruendung": ein Satz, warum das die Leserschaft der Gemeinde angeht.
 
+Jeder Kandidat kostet die Redaktion Zeit: liegen gelassene und abgelehnte
+Kandidaten sind Fehlvorschlaege. Schlage nur vor, was sie nach ihren Regeln
+und Beispielen uebernehmen wuerde.
+
+Weiterreichen an die Chefredaktion: NUR wenn eine der nummerierten Regeln der
+Redaktion (R1, R2, …) verlangt, dass solche Beitraege an die Chefredaktion
+gehen, setze "empfehlung": "weiterreichen" und nenne die Nummer dieser Regel
+in "empfehlung_regel". Ohne eine solche Regel sind beide null.
+
 Antworte ausschliesslich mit JSON:
-{"kandidaten": [{"gemeinde": "...", "titel": "...", "zusammenfassung": "...", "begruendung": "..."}]}`
+{"kandidaten": [{"gemeinde": "...", "titel": "...", "zusammenfassung": "...", "begruendung": "...", "empfehlung": null, "empfehlung_regel": null}]}`
 
 export const INVENTAR_SCHEMA = {
   type: 'object',
@@ -121,9 +132,21 @@ export const INVENTAR_SCHEMA = {
           gemeinde: { type: 'string' },
           titel: { type: 'string' },
           zusammenfassung: { type: 'string' },
-          begruendung: { type: 'string' }
+          begruendung: { type: 'string' },
+          empfehlung: {
+            type: ['string', 'null'],
+            enum: ['weiterreichen', null]
+          },
+          empfehlung_regel: { type: ['string', 'null'] }
         },
-        required: ['gemeinde', 'titel', 'zusammenfassung', 'begruendung'],
+        required: [
+          'gemeinde',
+          'titel',
+          'zusammenfassung',
+          'begruendung',
+          'empfehlung',
+          'empfehlung_regel'
+        ],
         additionalProperties: false
       }
     }
@@ -138,6 +161,21 @@ export interface LernEintrag {
   gemeinde: string
   entscheid: 'uebernommen' | 'abgelehnt' | 'weitergereicht'
   grund: string | null
+  /** The editor's own words on a rejection — stored since day one, read since now. */
+  kommentar?: string | null
+  /** Taken over, but the Meldung written from it was discarded afterwards. */
+  meldungVerworfen?: Verwurf | null
+  /** For a hand-up: what the Chefredaktion made of it. */
+  faehrte?: HinweisUrteil | null
+}
+
+const GRUND_TEXT: Record<string, string> = {
+  nicht_relevant: 'nicht relevant',
+  nur_erwaehnt: 'nur am Rand erwaehnt',
+  doublette: 'Doublette',
+  veraltet: 'veraltet',
+  falsche_gemeinde: 'falsche Gemeinde',
+  andere: 'anderer Grund'
 }
 
 /**
@@ -147,27 +185,58 @@ export interface LernEintrag {
  * same arrangement as the press review and the gazette. Per show rather than
  * per municipality: what counts as "only mentioned" is a property of how a
  * programme talks, and the two shows talk very differently.
+ *
+ * `nur_erwaehnt` is rendered in words — it is the distinction the system
+ * prompt asks for, and the example should say it the way the prompt does.
  */
 export function lernDigest(
   eintraege: readonly LernEintrag[],
-  max = 20
+  max = 20,
+  rahmen: Partial<Beispielrahmen> = {}
 ): string {
-  const letzte = eintraege.slice(0, max)
-  if (letzte.length === 0) return ''
+  const sichtbar = eintraege.filter(
+    (e) =>
+      !(
+        e.entscheid === 'weitergereicht' &&
+        e.faehrte?.automatisch === true &&
+        e.faehrte.status === 'offen'
+      )
+  )
+  const letzte = sichtbar.slice(0, max)
+  const bilanz = rahmen.bilanz ?? ''
+  const verfallene = rahmen.verfallene ?? []
+  if (letzte.length === 0 && bilanz === '' && verfallene.length === 0) return ''
 
   const zeile = (e: LernEintrag): string => {
-    const urteil =
-      e.entscheid === 'uebernommen'
-        ? 'ja, daraus wurde eine Meldung'
-        : e.entscheid === 'weitergereicht'
-          ? 'ja, aber zuerst zu recherchieren'
-          : 'nein'
-    return `- [${e.gemeinde}] "${e.titel}" → ${urteil}${e.grund === null ? '' : ` (${e.grund})`}`
+    let urteil: string
+    if (e.entscheid === 'uebernommen') {
+      urteil = `ja, daraus wurde eine Meldung${verwurfText(e.meldungVerworfen)}`
+    } else if (e.entscheid === 'weitergereicht') {
+      urteil = weitergereichtText(e.faehrte)
+    } else {
+      const grund = e.grund === null ? '' : (GRUND_TEXT[e.grund] ?? e.grund)
+      const kommentar = e.kommentar == null ? '' : `: ${e.kommentar}`
+      urteil =
+        grund === '' && kommentar === ''
+          ? 'nein'
+          : `nein (${grund}${kommentar})`
+    }
+    return `- [${e.gemeinde}] "${e.titel}" → ${urteil}`
   }
 
   return [
     'So hat die Redaktion bei dieser Sendung zuletzt entschieden — richte dich danach:',
-    ...letzte.map(zeile)
+    ...(bilanz === '' ? [] : [bilanz]),
+    ...(verfallene.length === 0
+      ? []
+      : [
+          'Liegen gelassen — Kandidaten, die der Redaktion nicht einmal einen Klick wert waren:',
+          ...verfallene.map((t) => `- "${t}"`)
+        ]),
+    ...letzte.map(zeile),
+    ...(rahmen.kappung === undefined || rahmen.kappung === ''
+      ? []
+      : [rahmen.kappung])
   ].join('\n')
 }
 
@@ -189,7 +258,9 @@ export interface Beitrag {
 export function buildInventarPrompt(
   beitrag: Beitrag,
   gemeinden: readonly string[],
-  digest: string
+  digest: string,
+  /** The desk's Sichtung rules, already rendered (`regelnBlock`) — user turn, like the digest. */
+  regeln = ''
 ): string {
   return [
     `Sendung: ${SENDUNGEN[beitrag.sendung].name} vom ${beitrag.datum}`,
@@ -198,6 +269,7 @@ export function buildInventarPrompt(
     `Gemeinden der Redaktion, die im Text vorkommen: ${gemeinden.join(', ')}`,
     'Nur diese Namen sind erlaubt. Andere Orte sind kein Kandidat.',
     '',
+    ...(regeln === '' ? [] : [regeln, '']),
     ...(digest === '' ? [] : [digest, '']),
     ...(beitrag.nurZusammenfassung === true
       ? [
@@ -214,6 +286,9 @@ export interface InventarKandidat {
   titel: string
   zusammenfassung: string
   begruendung: string
+  /** Only ever set when a numbered rule of the newsroom asked for it — checked by code. */
+  empfehlung: 'weiterreichen' | null
+  empfehlung_regel: string | null
 }
 
 /**
@@ -260,7 +335,8 @@ export function parseInventar(
       begruendung:
         typeof k.begruendung === 'string'
           ? k.begruendung.trim().slice(0, 500)
-          : ''
+          : '',
+      ...empfehlungAus(k)
     })
   }
   return kandidaten
@@ -316,9 +392,13 @@ function faktenZeilen(fakten: SendungsFakten): string[] {
   ]
 }
 
-export function buildSendungPrompt(fakten: SendungsFakten): string {
+export function buildSendungPrompt(
+  fakten: SendungsFakten,
+  regeln: readonly string[] = []
+): string {
   return [
     ...faktenZeilen(fakten),
+    ...vorgabenZeilen(regeln),
     '',
     'Schreibe die Meldung. Verwende ausschliesslich diese Angaben.'
   ].join('\n')
@@ -345,11 +425,13 @@ export function buildSendungRevision(
   fakten: SendungsFakten,
   bisher: { titel: string | null; lead: string | null; text: string | null },
   anweisung: string,
-  transkript: string | null = null
+  transkript: string | null = null,
+  regeln: readonly string[] = []
 ): string {
   const mitTranskript = transkript !== null && transkript.trim() !== ''
   return [
     ...faktenZeilen(fakten),
+    ...vorgabenZeilen(regeln),
     ...(mitTranskript
       ? [
           '',

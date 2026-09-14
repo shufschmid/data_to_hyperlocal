@@ -61,8 +61,21 @@ describe('SendungsKandidat', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Meldung schreiben' }))
     expect(onMeldung).toHaveBeenCalledWith('k1')
 
+    // Weiterreichen fragt nach dem Warum — optional; ohne Text kommt null an.
     await userEvent.click(screen.getByRole('button', { name: 'An Chefredaktion' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Weiterreichen' }))
     expect(onWeiterreichen).toHaveBeenCalledWith('k1', null)
+  })
+
+  it('reicht eine Begruendung beim Weiterreichen mit', async () => {
+    const onWeiterreichen = jest.fn().mockResolvedValue(undefined)
+    render(<SendungsKandidat kandidat={kandidat()} onWeiterreichen={onWeiterreichen} />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'An Chefredaktion' }))
+    await userEvent.type(screen.getByLabelText('Begründung (optional)'), 'Zahlen beim Kanton nachfragen')
+    await userEvent.click(screen.getByRole('button', { name: 'Weiterreichen' }))
+
+    expect(onWeiterreichen).toHaveBeenCalledWith('k1', 'Zahlen beim Kanton nachfragen')
   })
 
   // Der Grund ist das Lernsignal — „nur am Rand erwähnt" lehrt die nächste

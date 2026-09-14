@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
+  bereinigeZonen,
   buildExtraktionMessages,
   diffTermine,
+  entfalteZone,
   fasseZonenZusammen,
   letzterWochentagVor,
   merkblattGesamt,
@@ -641,5 +643,194 @@ describe('buildExtraktionMessages', () => {
     expect(inhalt[1]?.type).toBe('text')
     expect(String(inhalt[1]?.text)).toContain('Binningen')
     expect(String(inhalt[1]?.text)).toContain('2026')
+  })
+})
+
+describe('entfalteZone', () => {
+  // Allschwil: der Kalender kennt vier Sektoren, gemeindeweite Abfuhren
+  // stehen dort mit "Sektor 1-4" — das ist keine fuenfte Zone.
+  const SEKTOREN = ['Sektor 1', 'Sektor 2', 'Sektor 3', 'Sektor 4']
+
+  it('liest "Sektor 1-4" bei vier Sektoren als ganze Gemeinde', () => {
+    expect(entfalteZone('Sektor 1-4', SEKTOREN)).toEqual([null])
+    expect(entfalteZone('Sektoren 1–4', SEKTOREN)).toEqual([null])
+    expect(entfalteZone('Sektor 1 bis 4', SEKTOREN)).toEqual([null])
+  })
+
+  it('liest ein Sammelwort als ganze Gemeinde', () => {
+    expect(entfalteZone('alle Sektoren', SEKTOREN)).toEqual([null])
+    expect(entfalteZone('ganze Gemeinde', SEKTOREN)).toEqual([null])
+  })
+
+  it('zerlegt "Sektor 1+2" bei vier Sektoren in zwei Zonen', () => {
+    expect(entfalteZone('Sektor 1+2', SEKTOREN)).toEqual([
+      'Sektor 1',
+      'Sektor 2'
+    ])
+    expect(entfalteZone('Sektor 1, 2 und 4', SEKTOREN)).toEqual([
+      'Sektor 1',
+      'Sektor 2',
+      'Sektor 4'
+    ])
+  })
+
+  it('zerlegt zwei Namen in einem Etikett', () => {
+    expect(
+      entfalteZone('Ostplateau und Westplateau', ['Westplateau', 'Ostplateau'])
+    ).toEqual([null])
+    expect(
+      entfalteZone('Kreis Ost / Kreis West', [
+        'Kreis Ost',
+        'Kreis West',
+        'Kreis Nord'
+      ])
+    ).toEqual(['Kreis Ost', 'Kreis West'])
+  })
+
+  it('laesst eine deklarierte Zone stehen', () => {
+    expect(entfalteZone('Sektor 3', SEKTOREN)).toEqual(['Sektor 3'])
+  })
+
+  it('laesst eine einzige echte Zone stehen — Aesch: oestlich der Hauptstrasse', () => {
+    // Nur die FORM macht ein Etikett zum Sammel-Etikett. Eine einzelne Zone
+    // ist eine Zone, auch wenn der Kalender keine zweite nennt.
+    expect(
+      entfalteZone('Östlich der Hauptstrasse', ['Östlich der Hauptstrasse'])
+    ).toEqual(['Östlich der Hauptstrasse'])
+  })
+
+  it('laesst ein unbekanntes Etikett stehen', () => {
+    expect(entfalteZone('Quartier Neuewelt', SEKTOREN)).toEqual([
+      'Quartier Neuewelt'
+    ])
+    // Eine Zahl allein ist kein Bereich und keine Liste.
+    expect(entfalteZone('Sektor 7', SEKTOREN)).toEqual(['Sektor 7'])
+  })
+
+  it('liest ein Sammel-Etikett ohne deklarierte Zonen als ganze Gemeinde', () => {
+    expect(entfalteZone('Sektor 1-4', [])).toEqual([null])
+    expect(entfalteZone('Sektor 1-4', ['Sektor 1-4'])).toEqual([null])
+  })
+
+  it('gibt fuer null die ganze Gemeinde zurueck', () => {
+    expect(entfalteZone(null, SEKTOREN)).toEqual([null])
+  })
+})
+
+describe('bereinigeZonen', () => {
+  it('nimmt das Sammel-Etikett aus der Zonenliste', () => {
+    expect(
+      bereinigeZonen([
+        'Sektor 1',
+        'Sektor 2',
+        'Sektor 3',
+        'Sektor 4',
+        'Sektor 1-4'
+      ])
+    ).toEqual(['Sektor 1', 'Sektor 2', 'Sektor 3', 'Sektor 4'])
+  })
+
+  it('laesst eine einzige echte Zone stehen (Aesch)', () => {
+    expect(bereinigeZonen(['Östlich der Hauptstrasse'])).toEqual([
+      'Östlich der Hauptstrasse'
+    ])
+  })
+
+  it('laesst eine Liste aus nur einem Sammel-Etikett unangetastet', () => {
+    expect(bereinigeZonen(['Sektor 1-4'])).toEqual(['Sektor 1-4'])
+  })
+
+  it('ruehrt Binningens Plateaus nicht an', () => {
+    expect(bereinigeZonen(['Westplateau', 'Ostplateau'])).toEqual([
+      'Westplateau',
+      'Ostplateau'
+    ])
+  })
+})
+
+describe('parseExtraktion mit Sammel-Etiketten (Allschwil-Fall)', () => {
+  const SEKTOREN = ['Sektor 1', 'Sektor 2', 'Sektor 3', 'Sektor 4']
+  const zeile = (zone: string | null, kategorie = 'Haeckseldienst') => ({
+    kategorie,
+    zone,
+    wochentag_laut_pdf: 'Mittwoch',
+    daten: ['2026-03-04'],
+    bereitstellung: null,
+    anmeldung: null,
+    anmeldung_wochentag: null,
+    anmeldung_uhrzeit: null
+  })
+
+  it('setzt ein Etikett fuer alle Sektoren auf ganze Gemeinde', () => {
+    const extraktion = parseExtraktion(
+      { ...ANTWORT, zonen: SEKTOREN, abfuhren: [zeile('Sektor 1-4')] },
+      2026
+    )
+
+    expect(extraktion.termine).toHaveLength(1)
+    expect(extraktion.termine[0]?.zone).toBeNull()
+    expect(extraktion.hinweise).toEqual([])
+  })
+
+  it('zerlegt ein Etikett fuer einige Sektoren in Termine je Sektor', () => {
+    const extraktion = parseExtraktion(
+      {
+        ...ANTWORT,
+        zonen: SEKTOREN,
+        abfuhren: [zeile('Sektor 1+2', 'Papier')]
+      },
+      2026
+    )
+
+    expect(extraktion.termine.map((t) => t.zone)).toEqual([
+      'Sektor 1',
+      'Sektor 2'
+    ])
+  })
+
+  it('nimmt das Sammel-Etikett aus der deklarierten Zonenliste', () => {
+    const extraktion = parseExtraktion(
+      {
+        ...ANTWORT,
+        zonen: [...SEKTOREN, 'Sektor 1-4'],
+        abfuhren: [zeile('Sektor 1-4')]
+      },
+      2026
+    )
+
+    expect(extraktion.zonen).toEqual(SEKTOREN)
+    expect(extraktion.termine[0]?.zone).toBeNull()
+  })
+
+  it('meldet ein unbekanntes Etikett weiterhin, statt es zu raten', () => {
+    const extraktion = parseExtraktion(
+      { ...ANTWORT, zonen: SEKTOREN, abfuhren: [zeile('Quartier Neuewelt')] },
+      2026
+    )
+
+    expect(extraktion.termine[0]?.zone).toBe('Quartier Neuewelt')
+    expect(extraktion.hinweise).toEqual([
+      'Zone "Quartier Neuewelt" kommt in der Zonenliste des Kalenders nicht vor.'
+    ])
+  })
+
+  it('meldet einen unbrauchbaren Anmeldetag nur einmal je Zeile', () => {
+    const extraktion = parseExtraktion(
+      {
+        ...ANTWORT,
+        zonen: SEKTOREN,
+        abfuhren: [
+          {
+            ...zeile('Sektor 1+2'),
+            daten: ['2026-03-04', '2026-04-01'],
+            anmeldung_wochentag: 'Irgendwann'
+          }
+        ]
+      },
+      2026
+    )
+
+    expect(extraktion.termine).toHaveLength(4)
+    expect(extraktion.hinweise).toHaveLength(1)
   })
 })

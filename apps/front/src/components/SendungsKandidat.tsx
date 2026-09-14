@@ -15,7 +15,7 @@ import Typography from '@mui/material/Typography'
 import CampaignOutlined from '@mui/icons-material/CampaignOutlined'
 import type { AlleMeldungFelder, SendungskandidatFelder } from '@/graphql/redaktion'
 import { ABLEHNUNGSGRUENDE, zeitText } from '@/lib/sendungen'
-import { MeldungKarte, type MeldungAktion } from './MeldungKarte'
+import { MeldungKarte, type MeldungAktion, type MeldungAktionKoerper } from './MeldungKarte'
 
 export interface SendungsKandidatProps {
   kandidat: SendungskandidatFelder
@@ -25,7 +25,7 @@ export interface SendungsKandidatProps {
   onAblehnen?: (id: string, grund: string, kommentar: string | null) => Promise<void> | void
   onWeiterreichen?: (id: string, begruendung: string | null) => Promise<void> | void
   onChat?: (id: string, anweisung: string) => Promise<void>
-  onAktion?: (id: string, aktion: MeldungAktion) => Promise<void>
+  onAktion?: (id: string, aktion: MeldungAktion, koerper?: MeldungAktionKoerper) => Promise<void>
 }
 
 /**
@@ -50,6 +50,8 @@ export function SendungsKandidat({
   const [ablehnung, setAblehnung] = useState(false)
   const [grund, setGrund] = useState('nicht_relevant')
   const [kommentar, setKommentar] = useState('')
+  const [weitergabe, setWeitergabe] = useState(false)
+  const [begruendung, setBegruendung] = useState('')
 
   return (
     <Box
@@ -106,7 +108,14 @@ export function SendungsKandidat({
           <Button size="small" disabled={laeuft} onClick={() => setAblehnung(true)}>
             Ablehnen
           </Button>
-          <Button size="small" disabled={laeuft} onClick={() => void onWeiterreichen?.(kandidat.id, null)}>
+          <Button
+            size="small"
+            disabled={laeuft}
+            onClick={() => {
+              setBegruendung('')
+              setWeitergabe(true)
+            }}
+          >
             An Chefredaktion
           </Button>
         </Stack>
@@ -149,6 +158,39 @@ export function SendungsKandidat({
             }}
           >
             Ablehnen
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Weiterreichen fragt nach dem Warum — optional, wie im Wochenblatt.
+          Ein blosser Klick traegt kein Lernsignal. */}
+      <Dialog open={weitergabe} onClose={() => setWeitergabe(false)} fullWidth maxWidth="sm">
+        <DialogTitle>An die Chefredaktion weiterreichen</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              {kandidat.titel}
+            </Typography>
+            <TextField
+              label="Begründung (optional)"
+              value={begruendung}
+              onChange={(e) => setBegruendung(e.target.value)}
+              multiline
+              minRows={2}
+              helperText="Hilft der Chefredaktion — und lehrt die nächste Sichtung, was weitergereicht gehört."
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setWeitergabe(false)}>Abbrechen</Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              setWeitergabe(false)
+              void onWeiterreichen?.(kandidat.id, begruendung.trim() === '' ? null : begruendung.trim())
+            }}
+          >
+            Weiterreichen
           </Button>
         </DialogActions>
       </Dialog>

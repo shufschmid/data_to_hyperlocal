@@ -7,6 +7,7 @@ import {
   kurzesDatum,
   langesDatum,
   termineNachMonat,
+  termineNachTag,
   vorgeschlagenesJahr,
   naechsteErinnerungen,
   blogOhneErinnerungsflut
@@ -118,6 +119,30 @@ describe('termineNachMonat', () => {
     const gruppen = termineNachMonat([termin({ datum: '2026-12-14' }), termin({ datum: '2027-01-06' })])
 
     expect(gruppen.map((g) => g.monat)).toEqual(['Dezember 2026', 'Januar 2027'])
+  })
+})
+
+describe('termineNachTag', () => {
+  it('fasst Abfuhren desselben Tags zusammen, nach Zone und Kategorie sortiert', () => {
+    // Reinach: Kreis West Papier und Kreis Ost Karton am selben Mittwoch sind
+    // EINE Erinnerung — also auch eine Zeile.
+    const tage = termineNachTag([
+      termin({ id: 'a', kategorie: 'Papier', zone: 'Kreis West' }),
+      termin({ id: 'b', kategorie: 'Karton', zone: 'Kreis Ost' }),
+      termin({ id: 'c', kategorie: 'Altmetall', zone: null })
+    ])
+
+    expect(tage).toHaveLength(1)
+    expect(tage[0]?.termine.map((t) => t.id)).toEqual(['c', 'b', 'a'])
+  })
+
+  it('haelt Tage auseinander, chronologisch', () => {
+    const tage = termineNachTag([
+      termin({ id: 'b', datum: '2026-03-04' }),
+      termin({ id: 'a', datum: '2026-01-07' })
+    ])
+
+    expect(tage.map((t) => t.datum)).toEqual(['2026-01-07', '2026-03-04'])
   })
 })
 

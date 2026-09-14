@@ -13,6 +13,9 @@
 import type Anthropic from '@anthropic-ai/sdk'
 import type { Angabe, Gruppe, Planbild, Unterlage } from '../shared/amtsblatt'
 import { GRUPPEN_TEXT } from '../shared/amtsblatt'
+import { vorgabenZeilen } from './lernen'
+import type { Beispielrahmen, HinweisUrteil, Verwurf } from './lernsignale'
+import { empfehlungAus } from './presseschau'
 import type { AmtsblattQuelleTyp } from '../types/schema'
 
 export { parseMeldungstext as parseAmtsblattMeldung } from './spielbericht'
@@ -54,12 +57,19 @@ Vorhaben selbst war schon eine Meldung.
 
 Im Zweifel: nein. Die abgelehnten Publikationen verschwinden nicht, sie stehen
 der Redaktion weiterhin zur Verfuegung — ein falsches Ja kostet Aufmerksamkeit,
-ein falsches Nein kostet einen Klick.
+ein falsches Nein kostet einen Klick. Die Bilanz und die Beispiele der
+Redaktion zeigen, was sie tatsaechlich aufgreift: ein Vorschlag, den sie liegen
+liess, war ein Fehlvorschlag.
 
 Begruende jeden Entscheid in EINEM kurzen Satz, der sagt WARUM, nicht WAS.
 
+Weiterreichen an die Chefredaktion: NUR wenn eine der nummerierten Regeln der
+Redaktion (R1, R2, …) verlangt, dass solche Publikationen an die Chefredaktion
+gehen, setze "empfehlung": "weiterreichen" und nenne die Nummer dieser Regel
+in "empfehlung_regel". Ohne eine solche Regel sind beide null.
+
 Antworte ausschliesslich mit JSON:
-{"urteile": [{"nummer": 1, "vorschlag": true, "begruendung": "..."}]}`
+{"urteile": [{"nummer": 1, "vorschlag": true, "begruendung": "...", "empfehlung": null, "empfehlung_regel": null}]}`
 
 export const TRIAGE_SCHEMA = {
   type: 'object',
@@ -71,9 +81,20 @@ export const TRIAGE_SCHEMA = {
         properties: {
           nummer: { type: 'integer' },
           vorschlag: { type: 'boolean' },
-          begruendung: { type: 'string' }
+          begruendung: { type: 'string' },
+          empfehlung: {
+            type: ['string', 'null'],
+            enum: ['weiterreichen', null]
+          },
+          empfehlung_regel: { type: ['string', 'null'] }
         },
-        required: ['nummer', 'vorschlag', 'begruendung'],
+        required: [
+          'nummer',
+          'vorschlag',
+          'begruendung',
+          'empfehlung',
+          'empfehlung_regel'
+        ],
         additionalProperties: false
       }
     }
@@ -97,6 +118,21 @@ export interface LernEintrag {
   rubrikName: string
   entscheid: 'uebernommen' | 'abgelehnt' | 'weitergereicht'
   grund: string | null
+  /** The editor's own words on a rejection — stored since day one, read since now. */
+  kommentar?: string | null
+  /** Taken over, but the Meldung written from it was discarded afterwards. */
+  meldungVerworfen?: Verwurf | null
+  /** For a hand-up: what the Chefredaktion made of it. */
+  faehrte?: HinweisUrteil | null
+}
+
+const GRUND_TEXT: Record<string, string> = {
+  nicht_relevant: 'nicht relevant',
+  zu_privat: 'zu privat',
+  doublette: 'Doublette',
+  veraltet: 'veraltet',
+  falsche_gemeinde: 'falsche Gemeinde',
+  andere: 'anderer Grund'
 }
 
 /**
@@ -105,34 +141,87 @@ export interface LernEintrag {
  * The decision rows ARE the memory — no distillation call, no second store,
  * exactly as in the press review. Scoped per municipality on purpose: what
  * counts as local news in Riehen says little about Dornach.
+ *
+ * A hand-up reads by the Chefredaktion's verdict, not as a blanket "yes": one
+ * she binned is a wrong proposal too. And a hand-up a RULE made is no example
+ * until she judged it — otherwise the automation would teach itself.
  */
 export function lernDigest(
   eintraege: readonly LernEintrag[],
-  max = 20
+  max = 20,
+  rahmen: Partial<Beispielrahmen> = {}
 ): string {
-  const letzte = eintraege.slice(0, max)
-  if (letzte.length === 0) return ''
+  const sichtbar = eintraege.filter(
+    (e) =>
+      !(
+        e.entscheid === 'weitergereicht' &&
+        e.faehrte?.automatisch === true &&
+        e.faehrte.status === 'offen'
+      )
+  )
+  const letzte = sichtbar.slice(0, max)
+  const bilanz = rahmen.bilanz ?? ''
+  const verfallene = rahmen.verfallene ?? []
+  if (letzte.length === 0 && bilanz === '' && verfallene.length === 0) return ''
 
   const zeile = (e: LernEintrag): string => {
-    const urteil =
-      e.entscheid === 'uebernommen'
-        ? 'ja, daraus wurde eine Meldung'
-        : e.entscheid === 'weitergereicht'
-          ? 'ja, aber zuerst zu recherchieren'
-          : 'nein'
-    return `- [${e.rubrikName}] "${e.titel}" → ${urteil}${e.grund === null ? '' : ` (${e.grund})`}`
+    let urteil: string
+    if (e.entscheid === 'uebernommen') {
+      urteil = `ja, daraus wurde eine Meldung${verwurfText(e.meldungVerworfen)}`
+    } else if (e.entscheid === 'weitergereicht') {
+      urteil = weitergereichtText(e.faehrte)
+    } else {
+      const grund = e.grund === null ? '' : (GRUND_TEXT[e.grund] ?? e.grund)
+      const kommentar = e.kommentar == null ? '' : `: ${e.kommentar}`
+      urteil =
+        grund === '' && kommentar === ''
+          ? 'nein'
+          : `nein (${grund}${kommentar})`
+    }
+    return `- [${e.rubrikName}] "${e.titel}" → ${urteil}`
   }
 
   return [
     'So hat die Redaktion bei dieser Gemeinde zuletzt entschieden — richte dich danach:',
-    ...letzte.map(zeile)
+    ...(bilanz === '' ? [] : [bilanz]),
+    ...(verfallene.length === 0
+      ? []
+      : [
+          'Liegen gelassen — Vorschlaege, die der Redaktion nicht einmal einen Klick wert waren:',
+          ...verfallene.map((t) => `- "${t}"`)
+        ]),
+    ...letzte.map(zeile),
+    ...(rahmen.kappung === undefined || rahmen.kappung === ''
+      ? []
+      : [rahmen.kappung])
   ].join('\n')
+}
+
+/** What a taken-over row's discarded Meldung adds to its example line. */
+export function verwurfText(v: Verwurf | null | undefined): string {
+  if (v === null || v === undefined) return ''
+  return ` — die Meldung dazu wurde danach verworfen${v.grund === null ? '' : `: ${v.grund}`}`
+}
+
+/** A hand-up, read by the Chefredaktion's verdict. */
+export function weitergereichtText(
+  f: HinweisUrteil | null | undefined
+): string {
+  if (f == null || f.status === 'offen') {
+    return 'ja, aber zuerst zu recherchieren (liegt bei der Chefredaktion)'
+  }
+  const kommentar = f.kommentar === null ? '' : ` — ${f.kommentar}`
+  return f.status === 'brauchbar'
+    ? `ja — die Chefredaktion bestaetigte die Faehrte${kommentar}`
+    : `nein — die Chefredaktion legte die Faehrte ab (kein Hinweis)${kommentar}`
 }
 
 export function buildTriagePrompt(
   gemeinde: string,
   zeilen: readonly TriageZeile[],
-  digest: string
+  digest: string,
+  /** The desk's Sichtung rules, already rendered (`regelnBlock`) — user turn, like the digest. */
+  regeln = ''
 ): string {
   return [
     `Gemeinde: ${gemeinde}`,
@@ -143,6 +232,7 @@ export function buildTriagePrompt(
         `${i + 1}. [${GRUPPEN_TEXT[z.gruppe]} · ${z.rubrikName}] "${z.titel}"` +
         (z.amt === '' ? '' : ` — publiziert von ${z.amt}`)
     ),
+    ...(regeln === '' ? [] : ['', regeln]),
     ...(digest === '' ? [] : ['', digest]),
     '',
     `Beurteile alle ${zeilen.length} und antworte fuer jede mit ihrer Nummer.`
@@ -153,6 +243,9 @@ export interface TriageUrteil {
   id: string
   vorschlag: boolean
   begruendung: string
+  /** Only ever set when a numbered rule of the newsroom asked for it — checked by code. */
+  empfehlung: 'weiterreichen' | null
+  empfehlung_regel: string | null
 }
 
 /**
@@ -186,7 +279,8 @@ export function parseTriage(
       begruendung:
         typeof u.begruendung === 'string'
           ? u.begruendung.trim().slice(0, 300)
-          : ''
+          : '',
+      ...empfehlungAus(u)
     })
   }
   return treffer
@@ -239,6 +333,24 @@ export function darfWeg(
   if (zeile.frist !== null) return zeile.frist < heute
   if (zeile.vorschlag === true) return false
   return alter !== null && alter >= tage
+}
+
+/**
+ * What the cleanup does with a stale row: mark it, or delete it.
+ *
+ * A PROPOSAL the editor let expire is a signal — "not worth a click" is the
+ * loudest form of "too many proposals" — so it stays as `verfallen` and is
+ * counted in the next triage's tally. A row the triage never proposed carries
+ * no such lesson and goes, as before.
+ */
+export function aufraeumAktion(
+  zeile: AufraeumZeile,
+  heute: string,
+  tage = AUFRAEUM_TAGE,
+  fensterTage = 0
+): 'verfallen' | 'loeschen' | null {
+  if (!darfWeg(zeile, heute, tage, fensterTage)) return null
+  return zeile.vorschlag === true ? 'verfallen' : 'loeschen'
 }
 
 function alterInTagen(datum: string | null, heute: string): number | null {
@@ -491,9 +603,13 @@ function faktenZeilen(fakten: AmtsblattFakten): string[] {
   ]
 }
 
-export function buildAmtsblattPrompt(fakten: AmtsblattFakten): string {
+export function buildAmtsblattPrompt(
+  fakten: AmtsblattFakten,
+  regeln: readonly string[] = []
+): string {
   return [
     ...faktenZeilen(fakten),
+    ...vorgabenZeilen(regeln),
     '',
     'Schreibe die Meldung. Verwende ausschliesslich diese Angaben.'
   ].join('\n')
@@ -503,10 +619,12 @@ export function buildAmtsblattPrompt(fakten: AmtsblattFakten): string {
 export function buildAmtsblattRevision(
   fakten: AmtsblattFakten,
   bisher: { titel: string | null; lead: string | null; text: string | null },
-  anweisung: string
+  anweisung: string,
+  regeln: readonly string[] = []
 ): string {
   return [
     ...faktenZeilen(fakten),
+    ...vorgabenZeilen(regeln),
     '',
     'Bisherige Meldung:',
     `Titel: ${bisher.titel ?? ''}`,

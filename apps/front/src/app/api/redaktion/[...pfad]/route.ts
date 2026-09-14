@@ -27,7 +27,8 @@ const ERLAUBT: RegExp[] = [
   /^wochenblaetter\/pruefen$/i,
   /^ausgaben\/[0-9a-f-]{36}\/inventar$/i,
   /^kandidaten\/[0-9a-f-]{36}\/(meldung|ablehnen|gemeinde|weiterreichen|perle)$/i,
-  /^hinweise\/[0-9a-f-]{36}\/bewerten$/i,
+  /^hinweise\/[0-9a-f-]{36}\/(bewerten|zurueck)$/i,
+  /^wissen$/i,
   /^sendungen\/[0-9a-f-]{36}\/(meldung|ablehnen|weiterreichen)$/i,
   /^amtsblatt\/pruefen$/i,
   /^amtsblatt\/[0-9a-f-]{36}\/(meldung|ablehnen|weiterreichen|unterlagen)$/i

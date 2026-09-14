@@ -227,6 +227,8 @@ export interface Meldung {
    * Unpublished never carries a Perle.
    */
   perle: boolean | null
+  /** The optional reason an editor gave when discarding — a lesson for the origin desk. */
+  verwerfungsgrund: string | null
   gemeinde: string
 
   titel: string | null
@@ -355,7 +357,19 @@ export interface ChatNachricht {
 }
 
 export type Geltungsbereich = 'datensatz' | 'quelle' | 'global'
-export type WissenHerkunft = 'chat' | 'manuell'
+export type WissenHerkunft = 'chat' | 'kommentar' | 'entscheid' | 'manuell'
+/** Which desk reads the rule. Only `statistik` rules reach the cached article prefix. */
+export type WissenBereich =
+  | 'statistik'
+  | 'sport'
+  | 'entsorgung'
+  | 'presseschau'
+  | 'amtsblatt'
+  | 'sendung'
+/** A Sichtung rule steers what is proposed; a text rule, how a Meldung is written. */
+export type WissenStufe = 'sichtung' | 'text'
+/** `weiterreichen` lets a Sichtung hand a matching proposal to the Chefredaktion by itself. */
+export type WissenWirkung = 'hinweis' | 'weiterreichen'
 
 export interface Redaktionswissen {
   id: string
@@ -365,6 +379,11 @@ export interface Redaktionswissen {
   geltungsbereich: Geltungsbereich
   herkunft: WissenHerkunft
   aktiv: boolean
+  bereich: WissenBereich
+  stufe: WissenStufe
+  wirkung: WissenWirkung
+  /** What the rule was learned from — the editor's words, or the decisions it was distilled from. */
+  beleg: string | null
   date_created: string | null
   date_updated: string | null
 }
@@ -591,6 +610,8 @@ export type KandidatEntscheid =
   | 'uebernommen'
   | 'abgelehnt'
   | 'weitergereicht'
+  /** Left undecided until the desk moved on — counted, never an example. */
+  | 'verfallen'
 
 export type Ablehnungsgrund =
   | 'nicht_relevant'
@@ -607,7 +628,12 @@ export interface Wochenblattgemeinde {
   date_created: string | null
 }
 
-export type HinweisStatus = 'offen' | 'brauchbar' | 'kein_hinweis'
+export type HinweisStatus =
+  | 'offen'
+  | 'brauchbar'
+  | 'kein_hinweis'
+  /** Given back to the desk — the origin row is open again. */
+  | 'zurueckgegeben'
 
 /**
  * A research lead the paper carries — usually a Leserbrief. NEVER published
@@ -628,6 +654,18 @@ export interface Recherchehinweis {
   quelltext: string | null
   status: HinweisStatus
   kommentar: string | null
+  /**
+   * Where a hand-up came from — at most one is set; all null means the
+   * inventory proposed the lead itself. The digests read the Chefredaktion's
+   * verdict back through these, and "Zurueck auf den Tisch" finds the row.
+   */
+  kandidat: string | null
+  amtsblattmeldung: string | null
+  sendungskandidat: string | null
+  /** Handed up by a learned rule, not by a person. */
+  automatisch: boolean
+  /** The rule that did it — the automation's track record hangs on this. */
+  regel: string | null
   date_created: string | null
   date_updated: string | null
 }
@@ -668,6 +706,8 @@ export interface Wochenblattkandidat {
    * pending proposal survives the desk cleanup on purpose.
    */
   perle: boolean | null
+  /** Her optional reason — the learning signal the verdict alone lacks. */
+  perle_kommentar: string | null
   entscheid: KandidatEntscheid
   /** The learning signal: flows into the next inventory's digest. */
   ablehnungsgrund: Ablehnungsgrund | null
@@ -723,6 +763,7 @@ export type AmtsblattEntscheid =
   | 'uebernommen'
   | 'abgelehnt'
   | 'weitergereicht'
+  | 'verfallen'
 
 /** How far we got with the documents a publication points at. */
 export type PlanStatus =

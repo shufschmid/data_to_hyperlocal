@@ -64,6 +64,7 @@ import {
   type Quellenlink
 } from './quelle'
 import { attributionsKorrektur, fehlendeAttribution } from './attribution'
+import { ladeRegeln as ladeRegelnAus } from './gedaechtnis'
 import { fetchWebartikel, istWebartikel } from '../shared/agenda'
 import { optionalEnv } from '../shared/env'
 import {
@@ -1144,6 +1145,13 @@ async function schliesseLaeufeAb(
 
 // --- memory ------------------------------------------------------------------
 
+/**
+ * The statistics feed's rules for this dataset — global ones, the dataset's
+ * own, and the portal's. Only `bereich: statistik` reaches this pipeline: a
+ * rule a desk learned must never enter the cached article prefix
+ * (`buildArtikelSystemPrompt` is byte-identical per run), and until the
+ * store had a `bereich` the sport chat's rules did exactly that.
+ */
 async function ladeRegeln(
   kontext: DrainKontext,
   datensatzId: string,
@@ -1151,35 +1159,15 @@ async function ladeRegeln(
 ): Promise<Pick<Redaktionswissen, 'regel'>[]> {
   const { services, schema } = kontext
   const { ItemsService } = services
-
-  const passend: Record<string, unknown>[] = [
-    { geltungsbereich: { _eq: 'global' } },
-    { datensatz: { _eq: datensatzId } }
-  ]
-  if (quelleId !== null) passend.push({ quelle: { _eq: quelleId } })
-
-  // NEWEST first, and one more than the cap: sorted ascending, a full memory
-  // meant every rule learned after the thirtieth was silently ignored for
-  // ever — the opposite of learning. Now the latest lesson always applies,
-  // and a full cap is said out loud so an editor can retire old rules in
-  // "Gelerntes" instead of wondering why a new one changes nothing.
-  const REGEL_DECKEL = 30
-  const regeln = (await new ItemsService('redaktionswissen', {
-    schema
-  }).readByQuery({
-    filter: { aktiv: { _eq: true }, _or: passend },
-    fields: ['regel'],
-    sort: ['-date_created'],
-    // Bounded so the cached prefix cannot grow without limit as memory builds.
-    limit: REGEL_DECKEL + 1
-  })) as Pick<Redaktionswissen, 'regel'>[]
-
-  if (regeln.length > REGEL_DECKEL) {
-    kontext.logger.warn(
-      `drain: mehr als ${REGEL_DECKEL} aktive Regeln fuer Datensatz ${datensatzId} — die aeltesten werden nicht mehr angewendet. Im Reiter "Gelerntes" ausmisten.`
-    )
-  }
-  return regeln.slice(0, REGEL_DECKEL)
+  return ladeRegelnAus(
+    new ItemsService('redaktionswissen', { schema }),
+    {
+      bereich: 'statistik',
+      stufe: 'text',
+      scope: { datensatz: datensatzId, quelle: quelleId }
+    },
+    { warn: (m: string) => kontext.logger.warn(m) }
+  )
 }
 
 /**

@@ -27,7 +27,7 @@ import type {
   WochenblattFelder
 } from '@/graphql/redaktion'
 import { bleibtAufDemTisch, seitenLink } from '@/lib/redaktion'
-import { MeldungKarte, type MeldungAktion } from './MeldungKarte'
+import { MeldungKarte, type MeldungAktion, type MeldungAktionKoerper } from './MeldungKarte'
 
 // The press review: what each municipality's weekly paper has exclusively.
 //
@@ -115,7 +115,7 @@ export interface PresseschauProps {
   onWeiterreichen: (kandidatId: string, begruendung: string) => Promise<void>
   onGemeinde?: (kandidatId: string, gemeindeId: string) => Promise<void>
   onChat: (id: string, anweisung: string) => Promise<void>
-  onAktion: (id: string, aktion: MeldungAktion) => Promise<void>
+  onAktion: (id: string, aktion: MeldungAktion, koerper?: MeldungAktionKoerper) => Promise<void>
 }
 
 export function Presseschau({

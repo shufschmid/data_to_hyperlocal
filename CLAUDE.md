@@ -219,8 +219,19 @@ them is wrong even if it works.
    WITH A REASON — nicht relevant, Doublette, veraltet, falsche Gemeinde,
    andere + Kommentar — or HANDS IT UP (`weitergereicht`): a good piece she
    cannot verify today becomes a Recherche-Hinweis on the Chefredaktion desk
-   instead of a Meldung. All three decisions are the learning signal: the
-   last ~20 ride into the next inventory's user turn as examples, per paper.
+   instead of a Meldung. All three decisions are the learning signal, three
+   times over: as EXAMPLES (the decided rows of the paper's last three
+   issues ride into the next inventory's user turn, with reasons and
+   comments, plus a Bilanz that counts what was left lying — undecided
+   candidates are marked `verfallen`, never deleted, because "not worth a
+   click" is the loudest form of "too many proposals"), as RULES (words —
+   a reject comment, a hand-up Begründung, a chat instruction — are
+   classified into `redaktionswissen` at once; a bare click only once it
+   repeats twice and a model can name the class; see "Where the memory
+   lives"), and as ACTION (a rule the editor armed with `wirkung:
+   weiterreichen` lets the inventory hand a matching candidate to the
+   Chefredaktion by itself — as a lead, marked `automatisch`, reversible with
+   „Zurück auf den Tisch", and paused after two rejections in a row).
    Some pieces are PERLEN — curious AND of supra-local interest (the story
    the city of Basel wants too); the model proposes, the chief editor decides
    — ON THE CANDIDATE (`wochenblattkandidaten.perle`, null = pending on her
@@ -533,37 +544,38 @@ them is wrong even if it works.
 
 ## Where does this feature go?
 
-| The change is…                                    | Goes to                                                                                                                                                                                                                                  |
-| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| a new collection, field, relation or role         | Directus admin UI, then `npm run schema:dump` — [apps/directus](apps/directus/)                                                                                                                                                          |
-| a calculation, validation or business rule        | extension bundle (endpoint or hook)                                                                                                                                                                                                      |
-| anything that calls Claude                        | extension bundle, via `shared/claude.ts`                                                                                                                                                                                                 |
-| something that must run nightly/hourly            | Flow with a Schedule trigger + a custom operation in the bundle                                                                                                                                                                          |
-| a screen, a form, a list, a chart                 | [apps/front](apps/front/) — MUI components, Apollo for data                                                                                                                                                                              |
-| a new query the UI needs                          | `apps/front/src/graphql/*.ts`                                                                                                                                                                                                            |
-| a new rule about what an article may say          | the prompt in `redaktion/prompt.ts` **and** a check next to it — a prompt is a request, a check is a rule (`zeitbezug.ts`, `zahlen.ts`, `attribution.ts`, `quelle.ts`)                                                                   |
-| a table on statistik.bl.ch the newsroom wants     | paste its URL in the workspace — „statistik.bl" → „Auftrag …" — it becomes an ordinary dataset                                                                                                                                           |
-| a club whose results the newsroom wants           | „Gemeinden" → die Karte der Gemeinde → „Verein erfassen"; ohne Konnektor für die `quelle` bleibt er still erfasst                                                                                                                        |
-| a new rule about what a match report may say      | `redaktion/spielbericht.ts` — the prompt **and** the check next to it                                                                                                                                                                    |
-| which of a club's teams is followed at all        | `redaktion/mannschaft.ts` — the first team only, applied at the door by `sportresultate-holen`; mirrored in the workspace (`berichtenswerteSpiele`)                                                                                      |
-| where a match report's source link comes from     | `redaktion/spielbericht.ts` — `verbandsQuelle`/`mitQuelle`, appended by code; the publish gate is `hatQuellenlink` in `redaktion/status.ts`                                                                                              |
-| an Abfuhrkalender the newsroom wants              | paste the PDF's address in the workspace — „Entsorgung" → „Abfuhrkalender erfassen"; one PDF per zone (Riehen) registers zone by zone into the same calendar                                                                             |
-| a weekly paper the newsroom wants read            | „Presseschau" → „Wochenblatt erfassen" with its archive URL; the platform decides the parser (`konnektor`: WordPress-Archivliste, lokalzeitungen.ch, issuu or Localpoint) — a fifth platform gets its own value in `shared/wochenblatt/` |
-| a new rule about what a press review may say      | `redaktion/presseschau.ts` — the prompt **and** the checks next to it (attribution, digits, verbatim overlap)                                                                                                                            |
-| a new rule about what a gazette article may say   | `redaktion/amtsblatt.ts` — the prompt **and** the checks (attribution, digits, absolute dates, no private names)                                                                                                                         |
-| a new rule about what a broadcast Meldung may say | `redaktion/sendung.ts` — the prompt **and** the checks (attribution per show, digits, verbatim overlap against the transcript)                                                                                                           |
-| which names a broadcast is scanned for            | nothing — `gemeindeTreffer` uses the active `gemeinden` rows, so adding a municipality adds it to the scan                                                                                                                               |
-| which gazette rubrics reach the desk              | `GRUPPE_JE_UNTERRUBRIK`/`GRUPPE_JE_RUBRIK` in `shared/amtsblatt/parse.ts` — sub-rubric first, rubric second; an unmapped rubric is dropped, never guessed                                                                                |
-| a municipality's postcodes                        | „Gemeinden" → die Karte → Abschnitt „Amtsblatt"; ohne sie bleiben Handelsregister, Konkurse und Betreibungen dieser Gemeinde unsichtbar — und die Beschaffungen, die andere in ihr ausschreiben                                          |
-| a municipality's procurement offices on simap.ch  | `gemeinden.simap_vergabestellen` (JSON, Admin-UI) — die uuid aus `/procoffices/v1/po/public`, aber ERST gegen die PLZ ihrer Publikationen prüfen: das Verzeichnis nennt keinen Kanton. Leer heisst nicht blind, nur „keine eigenen"      |
-| a new rule about what a procurement article says  | `redaktion/amtsblatt.ts` — derselbe Prompt und dieselben Checks, mit `quelleTyp: 'simap'` als Verzweigung für Attribution und Quellenzeile                                                                                               |
-| a new rule about what a reminder may say          | `redaktion/erinnerung.ts` — the prompt **and** the check next to it                                                                                                                                                                      |
-| a one-off data repair or backfill                 | rows only: a one-shot Flow, else `apps/directus/migrations/*.mts` as a last resort                                                                                                                                                       |
-| an agenda entry the crawler could not fetch       | the banner in the workspace → „Eintrag von Hand erfassen"                                                                                                                                                                                |
-| a municipality the newsroom covers                | „Gemeinden" → „Gemeinde hinzufügen" — aus dem Verzeichnis, oder ausserkantonal neu erfasst (Name, BFS-Nummer, Bezirk)                                                                                                                    |
-| which municipalities a weekly paper covers        | „Gemeinden" → die Karte → „Zuordnung ändern"; ein NEUES Blatt weiterhin im Reiter „Wochenblätter"                                                                                                                                        |
-| a change to what the Dorfkönig reads              | `endpoints/api/` in the bundle — the register drives the routes AND the docs; contract in [apps/directus/SCHNITTSTELLE.md](apps/directus/SCHNITTSTELLE.md)                                                                               |
-| a new environment variable                        | `apps/directus/.env.example` **and** root `.env.example` **and** docker-compose.yml                                                                                                                                                      |
+| The change is…                                     | Goes to                                                                                                                                                                                                                                  |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| a new collection, field, relation or role          | Directus admin UI, then `npm run schema:dump` — [apps/directus](apps/directus/)                                                                                                                                                          |
+| a calculation, validation or business rule         | extension bundle (endpoint or hook)                                                                                                                                                                                                      |
+| anything that calls Claude                         | extension bundle, via `shared/claude.ts`                                                                                                                                                                                                 |
+| something that must run nightly/hourly             | Flow with a Schedule trigger + a custom operation in the bundle                                                                                                                                                                          |
+| a screen, a form, a list, a chart                  | [apps/front](apps/front/) — MUI components, Apollo for data                                                                                                                                                                              |
+| a new query the UI needs                           | `apps/front/src/graphql/*.ts`                                                                                                                                                                                                            |
+| a new rule about what an article may say           | the prompt in `redaktion/prompt.ts` **and** a check next to it — a prompt is a request, a check is a rule (`zeitbezug.ts`, `zahlen.ts`, `attribution.ts`, `quelle.ts`)                                                                   |
+| a table on statistik.bl.ch the newsroom wants      | paste its URL in the workspace — „statistik.bl" → „Auftrag …" — it becomes an ordinary dataset                                                                                                                                           |
+| a club whose results the newsroom wants            | „Gemeinden" → die Karte der Gemeinde → „Verein erfassen"; ohne Konnektor für die `quelle` bleibt er still erfasst                                                                                                                        |
+| a new rule about what a match report may say       | `redaktion/spielbericht.ts` — the prompt **and** the check next to it                                                                                                                                                                    |
+| which of a club's teams is followed at all         | `redaktion/mannschaft.ts` — the first team only, applied at the door by `sportresultate-holen`; mirrored in the workspace (`berichtenswerteSpiele`)                                                                                      |
+| where a match report's source link comes from      | `redaktion/spielbericht.ts` — `verbandsQuelle`/`mitQuelle`, appended by code; the publish gate is `hatQuellenlink` in `redaktion/status.ts`                                                                                              |
+| an Abfuhrkalender the newsroom wants               | paste the PDF's address in the workspace — „Entsorgung" → „Abfuhrkalender erfassen"; one PDF per zone (Riehen) registers zone by zone into the same calendar                                                                             |
+| a weekly paper the newsroom wants read             | „Presseschau" → „Wochenblatt erfassen" with its archive URL; the platform decides the parser (`konnektor`: WordPress-Archivliste, lokalzeitungen.ch, issuu or Localpoint) — a fifth platform gets its own value in `shared/wochenblatt/` |
+| a new rule about what a press review may say       | `redaktion/presseschau.ts` — the prompt **and** the checks next to it (attribution, digits, verbatim overlap)                                                                                                                            |
+| a new rule about what a gazette article may say    | `redaktion/amtsblatt.ts` — the prompt **and** the checks (attribution, digits, absolute dates, no private names)                                                                                                                         |
+| a new rule about what a broadcast Meldung may say  | `redaktion/sendung.ts` — the prompt **and** the checks (attribution per show, digits, verbatim overlap against the transcript)                                                                                                           |
+| which names a broadcast is scanned for             | nothing — `gemeindeTreffer` uses the active `gemeinden` rows, so adding a municipality adds it to the scan                                                                                                                               |
+| which gazette rubrics reach the desk               | `GRUPPE_JE_UNTERRUBRIK`/`GRUPPE_JE_RUBRIK` in `shared/amtsblatt/parse.ts` — sub-rubric first, rubric second; an unmapped rubric is dropped, never guessed                                                                                |
+| a municipality's postcodes                         | „Gemeinden" → die Karte → Abschnitt „Amtsblatt"; ohne sie bleiben Handelsregister, Konkurse und Betreibungen dieser Gemeinde unsichtbar — und die Beschaffungen, die andere in ihr ausschreiben                                          |
+| a municipality's procurement offices on simap.ch   | `gemeinden.simap_vergabestellen` (JSON, Admin-UI) — die uuid aus `/procoffices/v1/po/public`, aber ERST gegen die PLZ ihrer Publikationen prüfen: das Verzeichnis nennt keinen Kanton. Leer heisst nicht blind, nur „keine eigenen"      |
+| a new rule about what a procurement article says   | `redaktion/amtsblatt.ts` — derselbe Prompt und dieselben Checks, mit `quelleTyp: 'simap'` als Verzweigung für Attribution und Quellenzeile                                                                                               |
+| a new rule about what a reminder may say           | `redaktion/erinnerung.ts` — the prompt **and** the check next to it                                                                                                                                                                      |
+| a one-off data repair or backfill                  | rows only: a one-shot Flow, else `apps/directus/migrations/*.mts` as a last resort                                                                                                                                                       |
+| a rule about what a desk proposes or how it writes | say it — in the reject comment, the hand-up Begründung, the chat, or „Gelerntes" → „Regel erfassen"; it lands in `redaktionswissen` with `bereich` + `stufe`. Code: `redaktion/gedaechtnis.ts` (store), `redaktion/lernen.ts` (rules)    |
+| an agenda entry the crawler could not fetch        | the banner in the workspace → „Eintrag von Hand erfassen"                                                                                                                                                                                |
+| a municipality the newsroom covers                 | „Gemeinden" → „Gemeinde hinzufügen" — aus dem Verzeichnis, oder ausserkantonal neu erfasst (Name, BFS-Nummer, Bezirk)                                                                                                                    |
+| which municipalities a weekly paper covers         | „Gemeinden" → die Karte → „Zuordnung ändern"; ein NEUES Blatt weiterhin im Reiter „Wochenblätter"                                                                                                                                        |
+| a change to what the Dorfkönig reads               | `endpoints/api/` in the bundle — the register drives the routes AND the docs; contract in [apps/directus/SCHNITTSTELLE.md](apps/directus/SCHNITTSTELLE.md)                                                                               |
+| a new environment variable                         | `apps/directus/.env.example` **and** root `.env.example` **and** docker-compose.yml                                                                                                                                                      |
 
 A change that spans both apps starts in `apps/directus` — data model first, then the
 GraphQL documents in the frontend.
@@ -705,8 +717,11 @@ Flow "Wochenblaetter pruefen"  (0 9 * * *)
        │                       (backlog ignored forever, that was the deal)
        ├─ PDF → Directus Files, text layer via unpdf → volltext + seiten
        └─ 1× Opus per issue → CANDIDATES (exclusive journalism only), steered
-          by lernDigest: the newsroom's last ~20 take/reject decisions of
-          THIS paper, as few-shot examples in the user turn
+          in the user turn by the desk's RULES (redaktionswissen, numbered
+          R1…Rn so an answer can cite one), the Bilanz of the last three
+          issues (taken / handed up / rejected / left lying) and the decided
+          rows as few-shot examples (lernsignale.ts loads all of it, the
+          re-inventory button shares the loader)
 
 editor takes a candidate over ── POST /redaktion/kandidaten/:id/meldung
   └─ 1× Sonnet over the handed fact summary → short Meldung in own words,
@@ -836,7 +851,16 @@ it. Two more things the code decides rather than the model: the reminder is time
 to the **registration deadline** where there is one (a Häckseldienst tour booked
 by Monday 11.30 is useless as a Tuesday reminder, so it appears the Friday
 before), and the other zone's next date is looked up and handed over, never
-inferred.
+inferred. **Three rules hold for every calendar, whatever its layout:** at most
+one reminder per newsletter day; all collections of one collection DAY are ONE
+Termin — in the list and in the facts — whether in the same zone (Altmetall and
+Sonderabfall on one Wednesday) or in different ones (Reinach: Kreis West Papier,
+Kreis Ost Karton), and the other-zone outlook stays away as soon as that zone
+has its own date that day (`andereZoneFuer`, `abfuhrtage`, mirrored by
+`termineNachTag` in the frontend); and a zone label covering every zone the
+calendar declares is the whole municipality (`entfalteZone` — Allschwil's
+"Sektor 1-4" was a fifth zone until it wasn't), while a label for some zones
+unfolds into one row per zone and a single real zone stays a zone.
 
 The prompt is handed the outcome, not just the two numbers: working out who won
 means knowing which side the club played on, and that is arithmetic the model
@@ -1012,9 +1036,29 @@ joining the two on `Spielnummer`. Read results from there, or not at all.
   again on its own, and the entry's date rises to its newest dataset's
   `daten_stand`, so the topic sits where its numbers are rather than at the
   announcement's date weeks earlier.
-- `redaktionswissen` — durable rules distilled from the editor's chat by a small
-  classification call. Scoped to a dataset, a source or globally, and visible in
-  the workspace so a wrong one can be switched off.
+- `redaktionswissen` — the one rule store, for EVERY desk since September
+  2026 (it was the statistics feed's alone before). Each rule carries its
+  `bereich` (statistik · sport · entsorgung · presseschau · amtsblatt ·
+  sendung), its `stufe` (`sichtung`: what gets proposed; `text`: how a
+  Meldung is written), its `wirkung` (`hinweis`, or `weiterreichen` for a
+  Sichtung rule that may hand matching proposals to the Chefredaktion by
+  itself), its `herkunft` (chat · kommentar · entscheid · manuell) and a
+  `beleg` — the editor's words, or the decisions it was distilled from.
+  Written by `redaktion/gedaechtnis.ts`: `merkeWissenAus` for words (every
+  chat branch, every reject comment, a hand-up Begründung, a Verwerfen
+  reason), `lerneAusEntscheid` for decisions (`lernen.ts` holds the rules of
+  that: doublette/veraltet/falsche Gemeinde never teach; a comment always
+  asks; a bare click only after two earlier decisions of the same kind; a
+  "neu" without either is downgraded to einmalig in code; `weiterreichen`
+  survives only on a hand-up). Read by `ladeRegeln` per bereich/stufe,
+  capped at 30 with an audible warning. Only `bereich: statistik` rules are
+  scoped (dataset/portal) and only they reach the cached article prefix —
+  desk rules are global within their desk and travel in the user turn, as
+  numbered R1…Rn in a Sichtung, as „Redaktionelle Vorgaben" in an article
+  prompt. „Gelerntes" (behind the gear) shows them all, grouped by desk, with
+  beleg, a switch, the automation's switch and its track record, and a
+  „Regel erfassen" dialog (`POST /redaktion/wissen`) — the cheapest learning
+  of all.
 - `vereine` — which clubs speak for a municipality, and why. Recorded from the
   Gemeinden tab through `POST /redaktion/vereine`, whose one rule with teeth is
   that `swissvolley` and `handball` need an `ergebnis_url`: those two are read
@@ -1037,24 +1081,34 @@ joining the two on `Spielnummer`. Read results from there, or not at all.
 - `wochenblattkandidaten.entscheid` (uebernommen/abgelehnt/weitergereicht) +
   `ablehnungsgrund`/`ablehnungskommentar` +
   `wochenblattkandidaten.perle` + `wochenblattkandidaten.gemeinde_korrigiert` +
-  `recherchehinweise.status`/`kommentar` — the press review's memory IS its
-  decision rows: no distillation call, no second store. `lernDigest` renders
-  the last ~20 of each signal per paper into the next inventory's user turn —
-  take/reject with reasons, handovers to the Chefredaktion (a positive
-  signal: good, but verify first), Perle verdicts (on the candidate, null =
-  still on her desk, not "no" — counted even when the candidate itself was
-  never decided; `meldungen.perle` is only the published mirror), municipality
-  corrections, lead verdicts — never into the cached system prefix, and
-  deliberately scoped per Blatt: what is a Doublette in Binningen says nothing
-  about Muttenz.
+  `recherchehinweise.status`/`kommentar` — the press review's LOCAL memory
+  is its decision rows (the rule store above is the general one).
+  `redaktion/lernsignale.ts` loads them for the 09:00 run and the
+  re-inventory button alike, windowed by the paper's last three issues, and
+  `lernDigest` renders them into the next inventory's user turn — take (with
+  „Meldung danach verworfen" where that happened), reject with reason AND
+  comment, hand-ups read by the Chefredaktion's verdict (still on her desk /
+  bestätigt / abgelegt — a hand-up she binned is a wrong proposal too, and a
+  hand-up a RULE made is no example until she judged it, or the automation
+  would feed itself), Perle verdicts across ALL papers (taste is the
+  newsroom's; each paper alone holds two or three), municipality corrections,
+  the inventory's own lead verdicts, and a Bilanz line plus the last ten
+  `verfallen` titles. Every cap is declared („N weitere Entscheide nicht
+  aufgeführt"). Never into the cached system prefix, and the examples stay
+  per Blatt: what is a Doublette in Binningen says nothing about Muttenz.
 
 - `amtsblattmeldungen.entscheid` + `ablehnungsgrund`/`ablehnungskommentar` —
   the gazette feed's memory is its decision rows too, and scoped PER
   MUNICIPALITY rather than per source: what counts as local news in Riehen says
   little about Dornach. `lernDigest` renders the last ~20 into the next
-  triage's user turn, never into the cached prefix. `vorschlag` +
-  `vorschlag_begruendung` are the triage's own verdict, and null means "not
-  judged" — the row still shows, it simply carries no recommendation.
+  triage's user turn — reasons in words, the comment (stored since day one,
+  read since September 2026), hand-ups by the Chefredaktion's verdict, a
+  30-day Bilanz and the `verfallen` titles — never into the cached prefix.
+  A proposal whose deadline passed undecided is marked `verfallen`
+  (`aufraeumAktion`), not deleted; an unproposed stale row still goes.
+  `vorschlag` + `vorschlag_begruendung` are the triage's own verdict, and
+  null means "not judged" — the row still shows, it simply carries no
+  recommendation.
 - `amtsblattmeldungen.planbefunde` + `plan_fazit` — what the building plans
   actually said, each finding with the sheet it was read from. Kept because the
   plans come down when the objection period ends: the link dies, the reading
@@ -1074,12 +1128,26 @@ joining the two on `Spielnummer`. Read results from there, or not at all.
   memory, scoped PER SHOW rather than per municipality: what counts as "only
   mentioned" is a property of how a programme talks, and the two talk very
   differently. `ablehnungsgrund: 'nur_erwaehnt'` is the one that teaches the
-  next inventory exactly the distinction its prompt asks it to make. Undecided
-  candidates are deleted after seven days (`darfWeg`) — a broadcast is
-  perishable — decided ones never.
+  next inventory exactly the distinction its prompt asks it to make (rendered
+  in words: „nur am Rand erwähnt"). Undecided candidates are marked
+  `verfallen` after seven days (`darfWeg`) — a broadcast is perishable, but
+  the ignored ones count in the Bilanz — decided ones are never touched.
+- `recherchehinweise.kandidat` / `.amtsblattmeldung` / `.sendungskandidat` +
+  `automatisch` + `regel` — where a lead came from, and whether a person or a
+  rule handed it up. The origin link is what lets each desk's digest read the
+  Chefredaktion's verdict back onto its own row (`weiterreichen.ts` builds the
+  lead for all three desks), what „Zurück auf den Tisch"
+  (`POST /redaktion/hinweise/:id/zurueck`, status `zurueckgegeben`) needs to
+  reopen the row, and — via `regel` — what the automation's trip-wire counts:
+  two rejections in a row (`kein_hinweis` or `zurueckgegeben`) drop the rule's
+  `wirkung` back to `hinweis` and say so in its beleg
+  (`pausiereAutomatikWennNoetig`). The rule stays; re-arming it is the
+  editor's switch. Automation creates a lead, never a Meldung.
 
-Both are bounded on purpose: the rules feed the cached prompt prefix, and an
-unbounded memory would grow it without limit.
+All of it is bounded on purpose: the rules feed prompts (the statistics ones
+the cached prefix), and an unbounded memory would grow them without limit —
+30 rules per desk and stufe, 20 examples, ten ignored titles, and every cap
+that bites says so.
 
 ## Deployment
 

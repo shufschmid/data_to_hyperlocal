@@ -27,6 +27,7 @@ import {
 } from './zeitbezug'
 import { erscheinungstag, wochentag } from './feiertage'
 import { wochentagName } from './entsorgung'
+import { vorgabenZeilen } from './lernen'
 
 /** A confirmed Termin, as the planner needs it. */
 export interface PlanTermin {
@@ -171,6 +172,35 @@ export function naechsterZonentermin(
   return kandidaten[0] ?? null
 }
 
+/**
+ * The same collection's next date in the other zone — unless that zone is
+ * itself collected on this day.
+ *
+ * The outlook exists for Binningen, where the plateaus take Papier on
+ * different days and the other plateau has nothing that day. Reinach swaps:
+ * Kreis West takes Papier and Kreis Ost Karton on the SAME Wednesday. There
+ * the reminder already names both circles, and "the next Papier in Kreis Ost
+ * is 4 February" turns one service line into two reminders. So the lookup
+ * stays away whenever the other zone has its own date in this very edition.
+ */
+export function andereZoneFuer(
+  termin: PlanTermin,
+  gruppe: readonly PlanTermin[],
+  alle: readonly PlanTermin[]
+): PlanTermin | null {
+  if (termin.zone === null) return null
+
+  const andereZoneDran = gruppe.some(
+    (kandidat) =>
+      kandidat.datum === termin.datum &&
+      kandidat.zone !== null &&
+      kandidat.zone !== termin.zone
+  )
+  if (andereZoneDran) return null
+
+  return naechsterZonentermin(alle, termin)
+}
+
 export interface Erinnerungsplan {
   gruppen: Erinnerungsgruppe[]
   /** Termine whose newsletter day has already passed — reported, never dropped silently. */
@@ -263,7 +293,7 @@ export function baueFakten(
     quellen,
     erscheintAm: gruppe.erscheintAm,
     termine: gruppe.termine.map((termin) => {
-      const andere = naechsterZonentermin(alleTermine, termin)
+      const andere = andereZoneFuer(termin, gruppe.termine, alleTermine)
       return {
         kategorie: termin.kategorie,
         zone: termin.zone,
@@ -304,6 +334,10 @@ Regeln, ohne Ausnahme:
   Newsletter setzt das selbst ein; dein Text muss auch im Archiv stimmen.
 - Wenn mehrere Termine aufgefuehrt sind, gehoeren alle in EINEN Text, geordnet
   nach Datum.
+- Mehrere Abfuhren am selben Tag — in derselben oder in verschiedenen Zonen —
+  sind EIN Termin: nenne sie in einem Satz mit dem Datum genau einmal ("wird
+  im Kreis West Papier und im Kreis Ost Karton abgeholt"), nie als zwei
+  Erinnerungen.
 - Gibt es eine Anmeldefrist, ist sie die wichtigste Angabe. Sie gehoert in den
   Lead, mit Datum UND Uhrzeit. Die Frist kann auf den Erscheinungstag selbst
   fallen — das ist Absicht, damit die Leserin am Morgen noch anmelden kann.
@@ -321,32 +355,117 @@ Absaetze, durch Leerzeilen getrennt).
 Antworte ausschliesslich mit JSON:
 {"titel": "...", "lead": "...", "text": "..."}`
 
+/** One collection day inside a reminder, with everything collected on it. */
+export interface Abfuhrtag {
+  datumIso: string
+  datumText: string
+  termine: ErinnerungsTermin[]
+}
+
+/**
+ * The reminder's Termine by collection day.
+ *
+ * A newsletter edition can announce several days (a Häckseldienst deadline
+ * and a Papier collection), and one day can carry several collections —
+ * Altmetall and Sonderabfall in the same municipality, or Papier in Kreis West
+ * and Karton in Kreis Ost. The newsroom's rule is that the DAY is the unit
+ * the reader acts on: one date, one sentence, everything that goes out.
+ */
+export function abfuhrtage(termine: readonly ErinnerungsTermin[]): Abfuhrtag[] {
+  const nachDatum = new Map<string, ErinnerungsTermin[]>()
+  for (const termin of termine) {
+    const bisher = nachDatum.get(termin.datumIso)
+    if (bisher === undefined) nachDatum.set(termin.datumIso, [termin])
+    else bisher.push(termin)
+  }
+
+  return [...nachDatum.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([datumIso, liste]) => ({
+      datumIso,
+      datumText: liste[0]?.datumText ?? datumMitWochentag(datumIso),
+      termine: [...liste].sort(
+        (a, b) =>
+          (a.zone ?? '').localeCompare(b.zone ?? '') ||
+          a.kategorie.localeCompare(b.kategorie)
+      )
+    }))
+}
+
+/** The details of one collection, indented under its line where asked. */
+function terminDetails(termin: ErinnerungsTermin, einzug: string): string[] {
+  const zeilen: string[] = []
+  if (termin.anmeldeschlussText !== null) {
+    zeilen.push(`${einzug}Anmeldeschluss: ${termin.anmeldeschlussText}`)
+  }
+  if (termin.anmeldung !== null) {
+    zeilen.push(`${einzug}Anmeldung: ${termin.anmeldung}`)
+  }
+  if (termin.zusatz !== null) {
+    zeilen.push(`${einzug}Hinweis zur Zone: ${termin.zusatz}`)
+  }
+  if (termin.andereZone !== null) {
+    zeilen.push(
+      `${einzug}Naechster Termin derselben Abfuhr in ${termin.andereZone.zone}: ${termin.andereZone.datumText}`
+    )
+  }
+  return zeilen
+}
+
 /**
  * The facts as plain lines — shared by the first write and every revision, so
  * the two cannot drift apart.
+ *
+ * Rendered per collection DAY, not per collection: a day with one collection
+ * keeps the familiar block, a day with several becomes one block that lists
+ * them — the shape the text is asked to take.
  */
 function faktenZeilen(fakten: ErinnerungsFakten): string[] {
   const zeilen: string[] = [`Gemeinde: ${fakten.gemeinde}`]
 
-  for (const termin of fakten.termine) {
-    zeilen.push('', `Termin: ${termin.kategorie}`)
-    if (termin.zone !== null) zeilen.push(`Zone: ${termin.zone}`)
-    zeilen.push(`Datum: ${termin.datumText}`)
-    if (termin.anmeldeschlussText !== null) {
-      zeilen.push(`Anmeldeschluss: ${termin.anmeldeschlussText}`)
+  for (const tag of abfuhrtage(fakten.termine)) {
+    const [einziger] = tag.termine
+    if (tag.termine.length === 1 && einziger !== undefined) {
+      zeilen.push('', `Termin: ${einziger.kategorie}`)
+      if (einziger.zone !== null) zeilen.push(`Zone: ${einziger.zone}`)
+      zeilen.push(`Datum: ${einziger.datumText}`)
+      if (einziger.anmeldeschlussText !== null) {
+        zeilen.push(`Anmeldeschluss: ${einziger.anmeldeschlussText}`)
+      }
+      if (einziger.anmeldung !== null) {
+        zeilen.push(`Anmeldung: ${einziger.anmeldung}`)
+      }
+      if (einziger.bereitstellung !== null) {
+        zeilen.push(`Bereitstellung: ${einziger.bereitstellung}`)
+      }
+      if (einziger.zusatz !== null) {
+        zeilen.push(`Hinweis zur Zone: ${einziger.zusatz}`)
+      }
+      if (einziger.andereZone !== null) {
+        zeilen.push(
+          `Naechster Termin derselben Abfuhr in ${einziger.andereZone.zone}: ${einziger.andereZone.datumText}`
+        )
+      }
+      continue
     }
-    if (termin.anmeldung !== null) zeilen.push(`Anmeldung: ${termin.anmeldung}`)
-    if (termin.bereitstellung !== null) {
-      zeilen.push(`Bereitstellung: ${termin.bereitstellung}`)
-    }
-    if (termin.zusatz !== null) {
-      zeilen.push(`Hinweis zur Zone: ${termin.zusatz}`)
-    }
-    if (termin.andereZone !== null) {
+
+    zeilen.push(
+      '',
+      `Abfuhrtag: ${tag.datumText} — ${tag.termine.length} Abfuhren an EINEM Tag, eine Erinnerung`
+    )
+    const bereitstellungen = new Set(tag.termine.map((t) => t.bereitstellung))
+    const gemeinsam =
+      bereitstellungen.size === 1 ? (einziger?.bereitstellung ?? null) : null
+    for (const termin of tag.termine) {
       zeilen.push(
-        `Naechster Termin derselben Abfuhr in ${termin.andereZone.zone}: ${termin.andereZone.datumText}`
+        `- ${termin.kategorie}${termin.zone === null ? '' : ` (${termin.zone})`}`
       )
+      zeilen.push(...terminDetails(termin, '  '))
+      if (gemeinsam === null && termin.bereitstellung !== null) {
+        zeilen.push(`  Bereitstellung: ${termin.bereitstellung}`)
+      }
     }
+    if (gemeinsam !== null) zeilen.push(`Bereitstellung: ${gemeinsam}`)
   }
 
   if (fakten.quellen.length > 0) {
@@ -359,9 +478,13 @@ function faktenZeilen(fakten: ErinnerungsFakten): string[] {
   return zeilen
 }
 
-export function buildErinnerungPrompt(fakten: ErinnerungsFakten): string {
+export function buildErinnerungPrompt(
+  fakten: ErinnerungsFakten,
+  regeln: readonly string[] = []
+): string {
   return [
     ...faktenZeilen(fakten),
+    ...vorgabenZeilen(regeln),
     '',
     'Schreibe die Erinnerung. Verwende ausschliesslich diese Angaben.'
   ].join('\n')
@@ -378,10 +501,12 @@ export function buildErinnerungPrompt(fakten: ErinnerungsFakten): string {
 export function buildErinnerungRevision(
   fakten: ErinnerungsFakten,
   bisher: { titel: string | null; lead: string | null; text: string | null },
-  anweisung: string
+  anweisung: string,
+  regeln: readonly string[] = []
 ): string {
   return [
     ...faktenZeilen(fakten),
+    ...vorgabenZeilen(regeln),
     '',
     'Bisherige Erinnerung:',
     `Titel: ${bisher.titel ?? ''}`,

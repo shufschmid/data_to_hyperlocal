@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { AmtsblattFakten } from './amtsblatt'
 import {
   artikelUnterlage,
+  aufraeumAktion,
   darfWeg,
   attributionsWarnung,
   buildAmtsblattPrompt,
@@ -125,11 +126,19 @@ describe('Triage', () => {
     )
 
     expect(urteile).toEqual([
-      { id: 'b', vorschlag: false, begruendung: 'Routinemutation.' },
+      {
+        id: 'b',
+        vorschlag: false,
+        begruendung: 'Routinemutation.',
+        empfehlung: null,
+        empfehlung_regel: null
+      },
       {
         id: 'a',
         vorschlag: true,
-        begruendung: 'Solaranlage mit Aussenwirkung.'
+        begruendung: 'Solaranlage mit Aussenwirkung.',
+        empfehlung: null,
+        empfehlung_regel: null
       }
     ])
   })
@@ -150,7 +159,13 @@ describe('Triage', () => {
     )
 
     expect(urteile).toEqual([
-      { id: 'a', vorschlag: true, begruendung: 'erste' }
+      {
+        id: 'a',
+        vorschlag: true,
+        begruendung: 'erste',
+        empfehlung: null,
+        empfehlung_regel: null
+      }
     ])
   })
 
@@ -603,5 +618,213 @@ describe('Pruefungen', () => {
         fakten({ planbefunde: ['Vier Wohnungen: 4 Stueck.'] })
       )
     ).toEqual([])
+  })
+})
+
+describe('lernDigest mit Kommentar, verworfener Meldung und Urteil der Chefredaktion', () => {
+  it('uebersetzt den Grund und liest den Kommentar zurueck', () => {
+    const digest = lernDigest([
+      {
+        titel: 'Whirlpool',
+        rubrikName: 'Baugesuch',
+        entscheid: 'abgelehnt',
+        grund: 'zu_privat',
+        kommentar: 'Privatgarten, kein Thema'
+      }
+    ])
+    expect(digest).toContain('→ nein (zu privat: Privatgarten, kein Thema)')
+  })
+
+  it('liest Weitergereichtes nach dem Urteil der Chefredaktion, nicht pauschal als gut', () => {
+    const digest = lernDigest([
+      {
+        titel: 'Deponie',
+        rubrikName: 'Planauflage',
+        entscheid: 'weitergereicht',
+        grund: null,
+        faehrte: {
+          status: 'brauchbar',
+          kommentar: 'dranbleiben',
+          automatisch: false
+        }
+      },
+      {
+        titel: 'Zaun',
+        rubrikName: 'Baugesuch',
+        entscheid: 'weitergereicht',
+        grund: null,
+        faehrte: {
+          status: 'zurueckgegeben',
+          kommentar: null,
+          automatisch: true
+        }
+      },
+      {
+        titel: 'Kran',
+        rubrikName: 'Baugesuch',
+        entscheid: 'weitergereicht',
+        grund: null,
+        faehrte: { status: 'offen', kommentar: null, automatisch: true }
+      }
+    ])
+    expect(digest).toContain(
+      '"Deponie" → ja — die Chefredaktion bestaetigte die Faehrte — dranbleiben'
+    )
+    expect(digest).toContain(
+      '"Zaun" → nein — die Chefredaktion legte die Faehrte ab (kein Hinweis)'
+    )
+    expect(digest).not.toContain('"Kran"')
+  })
+
+  it('nennt eine danach verworfene Meldung beim uebernommenen Beispiel', () => {
+    const digest = lernDigest([
+      {
+        titel: 'Schulhaus',
+        rubrikName: 'Beschluss',
+        entscheid: 'uebernommen',
+        grund: null,
+        meldungVerworfen: { grund: null }
+      }
+    ])
+    expect(digest).toContain(
+      '"Schulhaus" → ja, daraus wurde eine Meldung — die Meldung dazu wurde danach verworfen'
+    )
+  })
+
+  it('stellt Bilanz und liegen Gelassenes voran und deklariert die Kappung', () => {
+    const digest = lernDigest(
+      [
+        {
+          titel: 'X',
+          rubrikName: 'Baugesuch',
+          entscheid: 'uebernommen',
+          grund: null
+        }
+      ],
+      20,
+      {
+        bilanz:
+          'Bilanz der letzten 30 Tage in dieser Gemeinde: 40 Vorschlaege — 3 uebernommen, 1 weitergereicht, 6 abgelehnt, 30 liegen gelassen.',
+        verfallene: ['Dachfenster', 'Gartenhaus'],
+        kappung: '(12 weitere Entscheide nicht aufgefuehrt)'
+      }
+    )
+    const zeilen = digest.split('\n')
+    expect(zeilen[1]).toContain('Bilanz der letzten 30 Tage')
+    expect(zeilen[2]).toContain('Liegen gelassen')
+    expect(zeilen[zeilen.length - 1]).toBe(
+      '(12 weitere Entscheide nicht aufgefuehrt)'
+    )
+  })
+
+  it('bleibt ohne Beispiele nicht leer, wenn es eine Bilanz gibt', () => {
+    expect(lernDigest([], 20, { bilanz: 'Bilanz: …' })).toContain('Bilanz: …')
+  })
+})
+
+describe('aufraeumAktion', () => {
+  const zeile = (ueber = {}) => ({
+    id: 'a',
+    entscheid: 'offen',
+    vorschlag: false,
+    frist: null as string | null,
+    publiziert_am: '2026-08-01',
+    ...ueber
+  })
+
+  // Ein liegen gelassener Vorschlag ist das lauteste Signal fuer "zu viele
+  // Vorschlaege" — er bleibt als verfallen stehen und zaehlt in der Bilanz.
+  it('laesst einen Vorschlag mit abgelaufener Frist verfallen statt ihn zu loeschen', () => {
+    expect(
+      aufraeumAktion(
+        zeile({ frist: '2026-08-30', vorschlag: true }),
+        '2026-08-31'
+      )
+    ).toBe('verfallen')
+  })
+
+  it('loescht, was die Sichtung nie vorschlug', () => {
+    expect(aufraeumAktion(zeile({ frist: '2026-08-30' }), '2026-08-31')).toBe(
+      'loeschen'
+    )
+    expect(
+      aufraeumAktion(zeile({ publiziert_am: '2026-08-24' }), '2026-08-31')
+    ).toBe('loeschen')
+  })
+
+  it('fasst nichts an, was darfWeg stehen laesst', () => {
+    expect(aufraeumAktion(zeile({ vorschlag: true }), '2026-08-31')).toBeNull()
+    expect(
+      aufraeumAktion(
+        zeile({ entscheid: 'abgelehnt', frist: '2020-01-01' }),
+        '2026-08-31'
+      )
+    ).toBeNull()
+  })
+})
+
+describe('Regeln der Redaktion im Prompt', () => {
+  it('stellt die Sichtungsregeln zwischen die Publikationen und die Beispiele', () => {
+    const prompt = buildTriagePrompt(
+      'Binningen',
+      [
+        {
+          id: 'a',
+          titel: 'Whirlpool',
+          rubrikName: 'Baugesuch',
+          gruppe: 'bauen',
+          amt: ''
+        }
+      ],
+      'So hat die Redaktion entschieden: …',
+      'Regeln der Redaktion:\nR1: Private Kleinbauten nie vorschlagen.'
+    )
+    expect(prompt.indexOf('"Whirlpool"')).toBeLessThan(
+      prompt.indexOf('R1: Private')
+    )
+    expect(prompt.indexOf('R1: Private')).toBeLessThan(
+      prompt.indexOf('So hat die Redaktion')
+    )
+    expect(TRIAGE_SYSTEM_PROMPT).not.toContain('Kleinbauten nie')
+  })
+})
+
+describe('parseTriage — Empfehlung zum Weiterreichen', () => {
+  const zeilen = [
+    {
+      id: 'a',
+      titel: 'Deponie',
+      rubrikName: 'Planauflage',
+      gruppe: 'bauen' as const,
+      amt: ''
+    }
+  ]
+
+  it('traegt Empfehlung und Regelnummer durch', () => {
+    const [urteil] = parseTriage(
+      {
+        urteile: [
+          {
+            nummer: 1,
+            vorschlag: true,
+            begruendung: 'x',
+            empfehlung: 'weiterreichen',
+            empfehlung_regel: 'R2'
+          }
+        ]
+      },
+      zeilen
+    )
+    expect(urteil?.empfehlung).toBe('weiterreichen')
+    expect(urteil?.empfehlung_regel).toBe('R2')
+  })
+
+  it('liest eine Antwort ohne die Felder wie bisher', () => {
+    const [urteil] = parseTriage(
+      { urteile: [{ nummer: 1, vorschlag: false, begruendung: 'x' }] },
+      zeilen
+    )
+    expect(urteil?.empfehlung).toBeNull()
+    expect(urteil?.empfehlung_regel).toBeNull()
   })
 })

@@ -8,15 +8,25 @@ import {
 import {
   AUFRAEUM_TAGE,
   buildTriagePrompt,
-  darfWeg,
+  aufraeumAktion,
   lernDigest,
   parseTriage,
   TRIAGE_SCHEMA,
   TRIAGE_SYSTEM_PROMPT,
   type AufraeumZeile,
-  type LernEintrag,
   type TriageZeile
 } from '../../redaktion/amtsblatt'
+import { ladeAmtsblattSignale, LERN_FENSTER } from '../../redaktion/lernsignale'
+import { ladeRegeln } from '../../redaktion/gedaechtnis'
+import {
+  automatischeWeitergabe,
+  regelnBlock,
+  SICHTUNGSREGELN_UEBERSCHRIFT
+} from '../../redaktion/lernen'
+import {
+  publikationAlsHinweis,
+  reicheWeiter
+} from '../../redaktion/weiterreichen'
 import {
   ergaenzeZeile,
   type AmtsblattZeile
@@ -87,9 +97,6 @@ interface Ergebnis {
   fehler: string[]
 }
 
-/** How many past decisions ride into the triage as examples. */
-const LERN_FENSTER = 20
-
 /** The portal answers a date, never a time — a day of overlap costs nothing. */
 const NACHLAUF_TAGE = 2
 
@@ -112,6 +119,21 @@ export default defineOperationApi<Optionen>({
     const gemeindenService = new ItemsService('gemeinden', { schema })
     const meldungen = new ItemsService('amtsblattmeldungen', { schema })
     const quellen = new ItemsService('quellen', { schema })
+    // For the learning signals: the leads hand-ups became, and the articles
+    // taken-over rows produced (a discarded one is a lesson too).
+    const faehrten = new ItemsService('recherchehinweise', { schema })
+    const artikel = new ItemsService('meldungen', { schema })
+    // The desk's Sichtung rules — what the newsroom taught in words. Loaded
+    // once per run; they are the same for every municipality.
+    const regelzeilen = await ladeRegeln(
+      new ItemsService('redaktionswissen', { schema }),
+      { bereich: 'amtsblatt', stufe: 'sichtung' },
+      { warn: (m: string) => logger.warn(m) }
+    )
+    const sichtungsregeln = regelnBlock(
+      regelzeilen,
+      SICHTUNGSREGELN_UEBERSCHRIFT
+    )
 
     const ergebnis: Ergebnis = {
       gemeinden: 0,
@@ -138,14 +160,21 @@ export default defineOperationApi<Optionen>({
 
       // Das Rueckschau-Fenster wird durchgereicht, damit Aufraeumen und Holen
       // nicht gegeneinander arbeiten koennen — auch wenn jemand die Optionen
-      // spaeter verstellt.
-      const weg = offene
-        .filter((z) => darfWeg(z, heute, AUFRAEUM_TAGE, nachlauf + 1))
-        .map((z) => z.id)
-      if (weg.length > 0) {
-        await meldungen.deleteMany(weg)
-        ergebnis.aufgeraeumt = weg.length
+      // spaeter verstellt. Ein liegen gelassener VORSCHLAG wird markiert, nicht
+      // geloescht: er ist das lauteste Signal fuer „zu viele Vorschlaege" und
+      // zaehlt in der Bilanz der naechsten Sichtung.
+      const verfallen: string[] = []
+      const loeschen: string[] = []
+      for (const z of offene) {
+        const aktion = aufraeumAktion(z, heute, AUFRAEUM_TAGE, nachlauf + 1)
+        if (aktion === 'verfallen') verfallen.push(z.id)
+        else if (aktion === 'loeschen') loeschen.push(z.id)
       }
+      if (loeschen.length > 0) await meldungen.deleteMany(loeschen)
+      if (verfallen.length > 0) {
+        await meldungen.updateMany(verfallen, { entscheid: 'verfallen' })
+      }
+      ergebnis.aufgeraeumt = loeschen.length + verfallen.length
     } catch (fehler) {
       // Housekeeping must never cost the run its actual work.
       logger.warn(fehler, 'Amtsblatt: Aufraeumen fehlgeschlagen.')
@@ -414,22 +443,17 @@ export default defineOperationApi<Optionen>({
         if (angelegt.length === 0) continue
 
         // --- Triage: one call for this municipality's new publications
-        const gelernt = (await meldungen.readByQuery({
-          filter: {
-            gemeinde: { _eq: gemeinde.id },
-            entscheid: { _neq: 'offen' }
-          },
-          fields: ['titel', 'rubrik_name', 'entscheid', 'ablehnungsgrund'],
-          sort: ['-date_updated'],
-          limit: LERN_FENSTER
-        })) as {
-          titel: string
-          rubrik_name: string | null
-          entscheid: LernEintrag['entscheid']
-          ablehnungsgrund: string | null
-        }[]
+        // Steered by what THIS municipality's desk decided before — reasons
+        // and comments, the Chefredaktion's verdicts on hand-ups, and the
+        // tally of what was left lying.
+        const signale = await ladeAmtsblattSignale(
+          { zeilen: meldungen, hinweise: faehrten, meldungen: artikel },
+          gemeinde.id,
+          heute
+        )
 
         const zeilen: TriageZeile[] = angelegt.map(({ zeile }) => zeile)
+        const weiterzureichen = new Map<string, { id: string; regel: string }>()
 
         try {
           const antwort = await completeJson<unknown>({
@@ -437,15 +461,8 @@ export default defineOperationApi<Optionen>({
             prompt: buildTriagePrompt(
               gemeinde.name,
               zeilen,
-              lernDigest(
-                gelernt.map((g) => ({
-                  titel: g.titel,
-                  rubrikName: g.rubrik_name ?? '',
-                  entscheid: g.entscheid,
-                  grund: g.ablehnungsgrund
-                })),
-                LERN_FENSTER
-              )
+              lernDigest(signale.entscheide, LERN_FENSTER, signale.rahmen),
+              sichtungsregeln.text
             ),
             maxTokens: 4096,
             model: optionen.model ?? undefined,
@@ -458,6 +475,16 @@ export default defineOperationApi<Optionen>({
               vorschlag_begruendung: urteil.begruendung
             })
             if (urteil.vorschlag) ergebnis.vorschlaege += 1
+            // Remembered, acted on AFTER the plans were read below — the lead
+            // should carry the facts, not just the title.
+            const regel = urteil.vorschlag
+              ? automatischeWeitergabe(
+                  urteil,
+                  sichtungsregeln.nummern,
+                  regelzeilen
+                )
+              : null
+            if (regel !== null) weiterzureichen.set(urteil.id, regel)
           }
         } catch (fehler) {
           // The rows are already on the desk; only the recommendation is
@@ -497,6 +524,48 @@ export default defineOperationApi<Optionen>({
             model: optionen.model ?? null
           })
           if (lesung.status === 'gelesen') ergebnis.plaeneGelesen += 1
+        }
+
+        // What a rule the editor armed asked to hand up — as a lead, marked,
+        // reversible, with whatever facts the reading above produced.
+        for (const [zeileId, regel] of weiterzureichen) {
+          try {
+            const [voll] = (await meldungen.readByQuery({
+              filter: { id: { _eq: zeileId }, entscheid: { _eq: 'offen' } },
+              fields: [
+                'id',
+                'titel',
+                'publikations_id',
+                'rubrik_name',
+                'amt',
+                'frist',
+                'angaben',
+                'planbefunde',
+                'pdf_url',
+                'vorschlag_begruendung',
+                'gemeinde.id'
+              ],
+              limit: 1
+            })) as Array<Parameters<typeof publikationAlsHinweis>[0]>
+            if (voll === undefined) continue
+            await reicheWeiter(
+              { hinweise: faehrten, ursprung: meldungen },
+              {
+                ursprungId: zeileId,
+                felder: publikationAlsHinweis(
+                  voll,
+                  `Automatisch weitergereicht nach Regel: ${regel.regel}`
+                ),
+                automatisch: true,
+                regel: regel.id
+              }
+            )
+          } catch (fehler) {
+            logger.warn(
+              fehler,
+              `Automatisches Weiterreichen von ${zeileId} fehlgeschlagen.`
+            )
+          }
         }
       } catch (fehler) {
         const grund =

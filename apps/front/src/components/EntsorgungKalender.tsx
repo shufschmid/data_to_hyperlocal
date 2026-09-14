@@ -16,15 +16,20 @@ import {
   kalenderStatusText,
   kurzesDatum,
   langesDatum,
-  termineNachMonat
+  termineNachMonat,
+  termineNachTag
 } from '@/lib/entsorgung'
 
 // One municipality's year, as it stands in the printed calendar.
 //
 // Laid out by month rather than as one long list, because that is the unit an
-// editor checks against the paper in front of them. The grid is the same
-// construction as the timeline — no calendar library, and no <Collapse> inside
-// a grid row, which measures its height wrongly there and clips the content.
+// editor checks against the paper in front of them. Inside a month, one row
+// per collection DAY: several collections on one day — Altmetall and
+// Sonderabfall, or Papier in one Kreis and Karton in the other — become one
+// reminder, and two rows here read as two reminders that never come. The grid
+// is the same construction as the timeline — no calendar library, and no
+// <Collapse> inside a grid row, which measures its height wrongly there and
+// clips the content.
 
 export interface EntsorgungKalenderProps {
   kalender: EntsorgungskalenderFelder
@@ -46,6 +51,7 @@ export function EntsorgungKalender({
   laeuft = false
 }: EntsorgungKalenderProps) {
   const gruppen = termineNachMonat(termine)
+  const anzahlTage = termineNachTag(termine).length
   // The extraction runs detached on the server and takes minutes; while it
   // does, every write to this calendar would race the diff it is computing.
   const liest =
@@ -77,7 +83,15 @@ export function EntsorgungKalender({
                 color={kalenderStatusFarbe(kalender.status)}
               />
               {termine.length > 0 && (
-                <Chip size="small" variant="outlined" label={`${termine.length} Termine`} />
+                <Chip
+                  size="small"
+                  variant="outlined"
+                  label={
+                    anzahlTage === termine.length
+                      ? `${termine.length} Termine`
+                      : `${termine.length} Abfuhren an ${anzahlTage} Tagen`
+                  }
+                />
               )}
             </Stack>
           </Stack>
@@ -191,84 +205,98 @@ export function EntsorgungKalender({
           die woechentliche Kehrichtabfuhr bleibt bewusst aussen vor.
         </Alert>
       ) : (
-        gruppen.map((gruppe) => (
-          <Paper key={gruppe.monat} sx={{ p: 2 }}>
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>
-              {gruppe.monat}{' '}
-              <Typography component="span" variant="caption" color="text.secondary">
-                — {gruppe.eintraege.length}
+        gruppen.map((gruppe) => {
+          const tage = termineNachTag(gruppe.eintraege)
+          return (
+            <Paper key={gruppe.monat} sx={{ p: 2 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                {gruppe.monat}{' '}
+                <Typography component="span" variant="caption" color="text.secondary">
+                  —{' '}
+                  {tage.length === gruppe.eintraege.length
+                    ? gruppe.eintraege.length
+                    : `${tage.length} Tage · ${gruppe.eintraege.length} Abfuhren`}
+                </Typography>
               </Typography>
-            </Typography>
-            <Box component="ul" sx={{ listStyle: 'none', m: 0, p: 0 }}>
-              {gruppe.eintraege.map((termin) => (
-                <Box
-                  key={termin.id}
-                  component="li"
-                  sx={{
-                    display: 'grid',
-                    gridTemplateColumns: { xs: '5.5rem 1fr', sm: '6rem 1fr auto' },
-                    gap: 1,
-                    py: 1,
-                    borderTop: 1,
-                    borderColor: 'divider',
-                    '&:first-of-type': { borderTop: 0 }
-                  }}
-                >
-                  <Typography variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
-                    {kurzesDatum(termin.datum)}
-                  </Typography>
+              <Box component="ul" sx={{ listStyle: 'none', m: 0, p: 0 }}>
+                {tage.map((tag) => {
+                  // One confirmation per day: the reminder is one, so is the click.
+                  const offene = tag.termine.filter((termin) => !termin.geprueft)
+                  return (
+                    <Box
+                      key={tag.datum}
+                      component="li"
+                      sx={{
+                        display: 'grid',
+                        gridTemplateColumns: { xs: '5.5rem 1fr', sm: '6rem 1fr auto' },
+                        gap: 1,
+                        py: 1,
+                        borderTop: 1,
+                        borderColor: 'divider',
+                        '&:first-of-type': { borderTop: 0 }
+                      }}
+                    >
+                      <Typography variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                        {kurzesDatum(tag.datum)}
+                      </Typography>
 
-                  <Box>
-                    <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {termin.kategorie}
-                      </Typography>
-                      {termin.zone !== null ? (
-                        <Chip size="small" variant="outlined" label={termin.zone} />
-                      ) : (
-                        hatZonen && <Chip size="small" variant="outlined" label="ganze Gemeinde" />
-                      )}
-                      {termin.warnung !== null && (
-                        <Chip size="small" color="warning" label="Wochentag pruefen" />
-                      )}
-                      {termin.meldung !== null && (
-                        <Chip size="small" color="success" variant="outlined" label="Meldung" />
-                      )}
-                    </Stack>
-                    {termin.anmeldeschluss !== null && (
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                        Anmeldung bis {langesDatum(termin.anmeldeschluss)}
-                        {termin.anmeldeschluss_zeit !== null &&
-                          `, ${fristZeitText(termin.anmeldeschluss_zeit)}`}
-                      </Typography>
-                    )}
-                    {termin.warnung !== null && (
-                      <Typography variant="caption" color="warning.main" sx={{ display: 'block' }}>
-                        {termin.warnung}
-                      </Typography>
-                    )}
-                  </Box>
+                      <Stack spacing={0.5}>
+                        {tag.termine.map((termin) => (
+                          <Box key={termin.id}>
+                            <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                {termin.kategorie}
+                              </Typography>
+                              {termin.zone !== null ? (
+                                <Chip size="small" variant="outlined" label={termin.zone} />
+                              ) : (
+                                hatZonen && <Chip size="small" variant="outlined" label="ganze Gemeinde" />
+                              )}
+                              {termin.warnung !== null && (
+                                <Chip size="small" color="warning" label="Wochentag pruefen" />
+                              )}
+                              {termin.meldung !== null && (
+                                <Chip size="small" color="success" variant="outlined" label="Meldung" />
+                              )}
+                            </Stack>
+                            {termin.anmeldeschluss !== null && (
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                Anmeldung bis {langesDatum(termin.anmeldeschluss)}
+                                {termin.anmeldeschluss_zeit !== null &&
+                                  `, ${fristZeitText(termin.anmeldeschluss_zeit)}`}
+                              </Typography>
+                            )}
+                            {termin.warnung !== null && (
+                              <Typography variant="caption" color="warning.main" sx={{ display: 'block' }}>
+                                {termin.warnung}
+                              </Typography>
+                            )}
+                          </Box>
+                        ))}
+                      </Stack>
 
-                  <Box sx={{ gridColumn: { xs: '1 / -1', sm: 'auto' } }}>
-                    {termin.geprueft ? (
-                      <Typography variant="caption" color="text.secondary">
-                        bestaetigt
-                      </Typography>
-                    ) : (
-                      <Button
-                        size="small"
-                        onClick={() => void onBestaetigen([termin.id])}
-                        disabled={gesperrt}
-                      >
-                        Bestaetigen
-                      </Button>
-                    )}
-                  </Box>
-                </Box>
-              ))}
-            </Box>
-          </Paper>
-        ))
+                      <Box sx={{ gridColumn: { xs: '1 / -1', sm: 'auto' } }}>
+                        {offene.length === 0 ? (
+                          <Typography variant="caption" color="text.secondary">
+                            bestaetigt
+                          </Typography>
+                        ) : (
+                          <Button
+                            size="small"
+                            onClick={() => void onBestaetigen(offene.map((termin) => termin.id))}
+                            disabled={gesperrt}
+                          >
+                            Bestaetigen
+                          </Button>
+                        )}
+                      </Box>
+                    </Box>
+                  )
+                })}
+              </Box>
+            </Paper>
+          )
+        })
       )}
     </Stack>
   )

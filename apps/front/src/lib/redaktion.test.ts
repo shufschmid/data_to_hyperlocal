@@ -738,6 +738,10 @@ describe('seitenLink', () => {
 })
 
 describe('bleibtAufDemTisch', () => {
+  it('blendet Verfallenes aus — liegen gelassen ist kein offener Vorschlag mehr', () => {
+    expect(bleibtAufDemTisch('verfallen', null)).toBe(false)
+  })
+
   it('laesst Offenes und laufendes Redigat liegen', () => {
     expect(bleibtAufDemTisch('offen', null)).toBe(true)
     expect(bleibtAufDemTisch('uebernommen', 'entwurf')).toBe(true)

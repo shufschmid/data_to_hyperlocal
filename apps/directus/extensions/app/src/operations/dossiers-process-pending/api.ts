@@ -99,6 +99,11 @@ export default defineOperationApi<Options>({
           {
             editions: editions as never,
             kandidaten: kandidaten as never,
+            hinweise: new ItemsService('recherchehinweise', {
+              schema
+            }) as never,
+            meldungen: new ItemsService('meldungen', { schema }) as never,
+            wissen: new ItemsService('redaktionswissen', { schema }) as never,
             gemeinden: new ItemsService('gemeinden', { schema }) as never,
             logger
           }

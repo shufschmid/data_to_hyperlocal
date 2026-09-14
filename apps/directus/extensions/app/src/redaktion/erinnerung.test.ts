@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  abfuhrtage,
+  andereZoneFuer,
   baueFakten,
   buildErinnerungPrompt,
   buildErinnerungRevision,
@@ -11,7 +13,9 @@ import {
   planeErinnerungen,
   zahlWarnungenErinnerung,
   zeitPruefungErinnerung,
+  ERINNERUNG_SYSTEM_PROMPT,
   type ErinnerungsFakten,
+  type ErinnerungsTermin,
   type PlanTermin
 } from './erinnerung'
 
@@ -458,5 +462,209 @@ describe('datengrundlageErinnerung', () => {
 
     expect(grundlage.quelle).toBe('abfuhrkalender')
     expect(grundlage.erscheint_am).toBe('2026-06-09')
+  })
+})
+
+// Ein Abfuhrtag ist die Einheit, auf die eine Leserin reagiert: ein Datum, ein
+// Satz, alles, was rausgeht — in derselben Zone (Altmetall und Sonderabfall am
+// gleichen Mittwoch) wie in verschiedenen (Kreis West Papier, Kreis Ost Karton).
+describe('andereZoneFuer', () => {
+  const westPapier = termin({
+    id: 'wp',
+    kategorie: 'Papier',
+    zone: 'Kreis West',
+    datum: '2026-01-14'
+  })
+  const ostKarton = termin({
+    id: 'ok',
+    kategorie: 'Karton',
+    zone: 'Kreis Ost',
+    datum: '2026-01-14'
+  })
+  const ostPapier = termin({
+    id: 'op',
+    kategorie: 'Papier',
+    zone: 'Kreis Ost',
+    datum: '2026-02-04'
+  })
+
+  it('schweigt, wenn die andere Zone am selben Tag selbst dran ist (Reinach)', () => {
+    // Beide Kreise stehen schon in derselben Erinnerung; "naechstes Papier im
+    // Kreis Ost am 4. Februar" machte daraus zwei Erinnerungen.
+    expect(
+      andereZoneFuer(
+        westPapier,
+        [westPapier, ostKarton],
+        [westPapier, ostKarton, ostPapier]
+      )
+    ).toBeNull()
+  })
+
+  it('nennt den naechsten Termin der anderen Zone, wenn sie an dem Tag nichts hat (Binningen)', () => {
+    expect(
+      andereZoneFuer(westPapier, [westPapier], [westPapier, ostPapier])?.id
+    ).toBe('op')
+  })
+
+  it('schweigt ohne Zonen', () => {
+    expect(andereZoneFuer(termin({}), [termin({})], [termin({})])).toBeNull()
+  })
+})
+
+describe('abfuhrtage', () => {
+  const eintrag = (ueber: Partial<ErinnerungsTermin>): ErinnerungsTermin => ({
+    kategorie: 'Altmetall',
+    zone: null,
+    datumText: 'Mittwoch, 10. Juni 2026',
+    datumIso: '2026-06-10',
+    bereitstellung: null,
+    anmeldung: null,
+    anmeldeschlussText: null,
+    anmeldeschlussIso: null,
+    zusatz: null,
+    andereZone: null,
+    ...ueber
+  })
+
+  it('fasst zwei Abfuhren desselben Tags zusammen, mit und ohne Zone', () => {
+    const tage = abfuhrtage([
+      eintrag({ kategorie: 'Sonderabfaelle' }),
+      eintrag({ kategorie: 'Altmetall' })
+    ])
+    expect(tage).toHaveLength(1)
+    expect(tage[0]?.termine.map((t) => t.kategorie)).toEqual([
+      'Altmetall',
+      'Sonderabfaelle'
+    ])
+
+    const zonen = abfuhrtage([
+      eintrag({ kategorie: 'Papier', zone: 'Kreis West' }),
+      eintrag({ kategorie: 'Karton', zone: 'Kreis Ost' })
+    ])
+    expect(zonen).toHaveLength(1)
+    expect(zonen[0]?.termine.map((t) => `${t.zone}: ${t.kategorie}`)).toEqual([
+      'Kreis Ost: Karton',
+      'Kreis West: Papier'
+    ])
+  })
+
+  it('haelt verschiedene Tage auseinander, chronologisch', () => {
+    const tage = abfuhrtage([
+      eintrag({
+        datumIso: '2026-06-11',
+        datumText: 'Donnerstag, 11. Juni 2026'
+      }),
+      eintrag({ datumIso: '2026-06-10' })
+    ])
+    expect(tage.map((t) => t.datumIso)).toEqual(['2026-06-10', '2026-06-11'])
+  })
+})
+
+describe('buildErinnerungPrompt mit mehreren Abfuhren an einem Tag', () => {
+  const eintrag = (ueber: Partial<ErinnerungsTermin>): ErinnerungsTermin => ({
+    kategorie: 'Altmetall',
+    zone: null,
+    datumText: 'Mittwoch, 10. Juni 2026',
+    datumIso: '2026-06-10',
+    bereitstellung: 'Ab 18 Uhr am Vorabend.',
+    anmeldung: null,
+    anmeldeschlussText: null,
+    anmeldeschlussIso: null,
+    zusatz: null,
+    andereZone: null,
+    ...ueber
+  })
+  const fakten = (termine: ErinnerungsTermin[]): ErinnerungsFakten => ({
+    gemeinde: 'Reinach',
+    jahr: 2026,
+    quellen: [],
+    erscheintAm: '2026-06-09',
+    termine
+  })
+
+  it('nennt einen Abfuhrtag mit zwei Abfuhren als einen Termin', () => {
+    const prompt = buildErinnerungPrompt(
+      fakten([eintrag({}), eintrag({ kategorie: 'Sonderabfaelle' })])
+    )
+
+    expect(prompt.match(/Mittwoch, 10\. Juni 2026/g)).toHaveLength(1)
+    expect(prompt).toContain(
+      'Abfuhrtag: Mittwoch, 10. Juni 2026 — 2 Abfuhren an EINEM Tag'
+    )
+    expect(prompt).toContain('- Altmetall')
+    expect(prompt).toContain('- Sonderabfaelle')
+    // Gleiche Bereitstellung steht einmal, nicht je Abfuhr.
+    expect(prompt.match(/Bereitstellung:/g)).toHaveLength(1)
+    expect(prompt).not.toContain('Termin: Altmetall')
+  })
+
+  it('nennt zwei Kreise desselben Tags in einem Block', () => {
+    const prompt = buildErinnerungPrompt(
+      fakten([
+        eintrag({ kategorie: 'Papier', zone: 'Kreis West' }),
+        eintrag({
+          kategorie: 'Karton',
+          zone: 'Kreis Ost',
+          bereitstellung: 'Bis 7 Uhr.'
+        })
+      ])
+    )
+
+    expect(prompt).toContain('- Papier (Kreis West)')
+    expect(prompt).toContain('- Karton (Kreis Ost)')
+    // Verschiedene Regeln bleiben bei ihrer Abfuhr.
+    expect(prompt).toContain('  Bereitstellung: Ab 18 Uhr am Vorabend.')
+    expect(prompt).toContain('  Bereitstellung: Bis 7 Uhr.')
+  })
+
+  it('laesst einen Tag mit einer Abfuhr in der gewohnten Form', () => {
+    const prompt = buildErinnerungPrompt(
+      fakten([eintrag({ zone: 'Kreis West' })])
+    )
+
+    expect(prompt).toContain('Termin: Altmetall')
+    expect(prompt).toContain('Zone: Kreis West')
+    expect(prompt).toContain('Datum: Mittwoch, 10. Juni 2026')
+    expect(prompt).not.toContain('Abfuhrtag:')
+  })
+
+  it('haelt den Ausblick heraus, wenn beide Kreise dran sind', () => {
+    const westPapier = termin({
+      id: 'wp',
+      kategorie: 'Papier',
+      zone: 'Kreis West',
+      datum: '2026-01-14'
+    })
+    const ostKarton = termin({
+      id: 'ok',
+      kategorie: 'Karton',
+      zone: 'Kreis Ost',
+      datum: '2026-01-14'
+    })
+    const ostPapier = termin({
+      id: 'op',
+      kategorie: 'Papier',
+      zone: 'Kreis Ost',
+      datum: '2026-02-04'
+    })
+    const plan = planeErinnerungen([westPapier, ostKarton, ostPapier], HEUTE)
+    const gruppe = plan.gruppen[0]
+    if (gruppe === undefined) throw new Error('keine Gruppe')
+
+    const gebaut = baueFakten(
+      gruppe,
+      [westPapier, ostKarton, ostPapier],
+      'Reinach',
+      2026
+    )
+
+    expect(gebaut.termine.every((t) => t.andereZone === null)).toBe(true)
+    expect(buildErinnerungPrompt(gebaut)).not.toContain(
+      'Naechster Termin derselben Abfuhr'
+    )
+  })
+
+  it('verlangt im System-Prompt einen Satz je Abfuhrtag', () => {
+    expect(ERINNERUNG_SYSTEM_PROMPT).toContain('sind EIN Termin')
   })
 })

@@ -1,0 +1,71 @@
+{
+  "collection": "redaktionswissen",
+  "field": "bereich",
+  "type": "string",
+  "meta": {
+    "collection": "redaktionswissen",
+    "conditions": null,
+    "display": "labels",
+    "display_options": null,
+    "field": "bereich",
+    "group": null,
+    "hidden": false,
+    "interface": "select-dropdown",
+    "note": "Welcher Tisch die Regel liest. Statistik-Regeln erreichen den gecachten Artikel-Praefix, alle anderen nur den User-Turn ihres Tischs.",
+    "options": {
+      "choices": [
+        {
+          "text": "Statistik",
+          "value": "statistik"
+        },
+        {
+          "text": "Sportresultate",
+          "value": "sport"
+        },
+        {
+          "text": "Entsorgung",
+          "value": "entsorgung"
+        },
+        {
+          "text": "Wochenblaetter",
+          "value": "presseschau"
+        },
+        {
+          "text": "Amtsblatt",
+          "value": "amtsblatt"
+        },
+        {
+          "text": "Sendungen",
+          "value": "sendung"
+        }
+      ]
+    },
+    "readonly": false,
+    "required": true,
+    "searchable": true,
+    "sort": 8,
+    "special": null,
+    "translations": null,
+    "validation": null,
+    "validation_message": null,
+    "width": "half"
+  },
+  "schema": {
+    "name": "bereich",
+    "table": "redaktionswissen",
+    "data_type": "character varying",
+    "default_value": "statistik",
+    "max_length": 16,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "is_nullable": false,
+    "is_unique": false,
+    "is_indexed": false,
+    "is_primary_key": false,
+    "is_generated": false,
+    "generation_expression": null,
+    "has_auto_increment": false,
+    "foreign_key_table": null,
+    "foreign_key_column": null
+  }
+}

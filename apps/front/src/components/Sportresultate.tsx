@@ -19,7 +19,7 @@ import {
   statusFarbe,
   statusText
 } from '@/lib/redaktion'
-import { MeldungKarte, type MeldungAktion } from './MeldungKarte'
+import { MeldungKarte, type MeldungAktion, type MeldungAktionKoerper } from './MeldungKarte'
 
 // Results and fixtures of the clubs the newsroom follows.
 //
@@ -50,7 +50,7 @@ export interface SportresultateProps {
   /** Stellt alle fertigen Spielberichte auf einmal scharf. */
   onAllePublizieren?: () => Promise<void>
   onChat?: (id: string, anweisung: string) => Promise<void>
-  onAktion?: (id: string, aktion: MeldungAktion) => Promise<void>
+  onAktion?: (id: string, aktion: MeldungAktion, koerper?: MeldungAktionKoerper) => Promise<void>
   laeuft?: boolean
 }
 
@@ -256,7 +256,7 @@ function SpielListe({
   berichtAnzeige: 'offen' | 'klappbar'
   laeuft: boolean
   onChat?: (id: string, anweisung: string) => Promise<void>
-  onAktion?: (id: string, aktion: MeldungAktion) => Promise<void>
+  onAktion?: (id: string, aktion: MeldungAktion, koerper?: MeldungAktionKoerper) => Promise<void>
 }) {
   return (
     <Stack spacing={1}>
@@ -310,7 +310,7 @@ function SpielZeile({
   berichtAnzeige: 'offen' | 'klappbar'
   laeuft: boolean
   onChat?: (id: string, anweisung: string) => Promise<void>
-  onAktion?: (id: string, aktion: MeldungAktion) => Promise<void>
+  onAktion?: (id: string, aktion: MeldungAktion, koerper?: MeldungAktionKoerper) => Promise<void>
 }) {
   const [aufgeklappt, setAufgeklappt] = useState(false)
   const offen = spiel.tore_heim === null || spiel.tore_gast === null
@@ -369,8 +369,8 @@ function SpielZeile({
             onChat={async (id, anweisung) => {
               await onChat?.(id, anweisung)
             }}
-            onAktion={async (id, was) => {
-              await onAktion?.(id, was)
+            onAktion={async (id, was, koerper) => {
+              await onAktion?.(id, was, koerper)
             }}
           />
         </Box>

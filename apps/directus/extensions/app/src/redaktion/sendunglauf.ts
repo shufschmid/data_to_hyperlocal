@@ -8,9 +8,17 @@ import {
   parseInventar,
   darfWeg,
   type AufraeumZeile,
-  type LernEintrag,
   type SendungsQuelle
 } from './sendung'
+import { ladeSendungSignale, LERN_FENSTER } from './lernsignale'
+import { ladeRegeln, type WissenDienst } from './gedaechtnis'
+import {
+  automatischeWeitergabe,
+  regelnBlock,
+  SICHTUNGSREGELN_UEBERSCHRIFT
+} from './lernen'
+import { reicheWeiter, sendungAlsHinweis } from './weiterreichen'
+import { datumDeutsch } from './amtsblatt'
 import type {
   ExtraTopic,
   Punkt6ExtraTopic,
@@ -32,10 +40,32 @@ interface ItemsServiceLike {
   readByQuery(query: Record<string, unknown>): Promise<unknown[]>
   createOne(payload: Record<string, unknown>): Promise<string | number>
   deleteMany?(keys: string[]): Promise<unknown>
+  updateMany?(
+    keys: string[],
+    payload: Record<string, unknown>
+  ): Promise<unknown>
+  updateOne?(key: string, payload: Record<string, unknown>): Promise<unknown>
+}
+
+/** A read-only stand-in where a caller has no service to offer. */
+const NICHTS: { readByQuery(): Promise<unknown[]> } = {
+  readByQuery: async () => []
 }
 
 export interface SichtungKontext {
   kandidaten: ItemsServiceLike
+  /**
+   * The leads hand-ups became — for the Chefredaktion's verdicts, and for the
+   * hand-ups a rule makes (which need `createOne`). Optional: tests.
+   */
+  hinweise?: {
+    readByQuery(query: Record<string, unknown>): Promise<unknown>
+    createOne?(payload: Record<string, unknown>): Promise<unknown>
+  }
+  /** The Meldungen taken-over rows produced — a discarded one is a lesson. */
+  meldungen?: { readByQuery(query: Record<string, unknown>): Promise<unknown> }
+  /** The rule store — the desk's Sichtung rules ride into every inventory call. */
+  wissen?: WissenDienst
   logger: { warn: (e: unknown, m?: string) => void }
   /** Test seam, exactly as in shared/claude.ts. */
   send?: MessageSender
@@ -257,9 +287,6 @@ export interface SichtungErgebnis {
   kandidaten: number
 }
 
-/** How many past decisions ride into the inventory as examples. */
-const LERN_FENSTER = 20
-
 /**
  * One inventory call per contribution that names a covered municipality.
  *
@@ -289,26 +316,30 @@ export async function sichteBeitraege(
   const namen = gemeinden.map((g) => g.name)
   const jeName = new Map(gemeinden.map((g) => [g.name, g.id]))
 
-  const gelernt = (await kontext.kandidaten.readByQuery({
-    filter: { quelle: { _eq: bezug.quelle }, entscheid: { _neq: 'offen' } },
-    fields: ['titel', 'gemeinde.name', 'entscheid', 'ablehnungsgrund'],
-    sort: ['-date_updated'],
-    limit: LERN_FENSTER
-  })) as {
-    titel: string
-    gemeinde: { name: string } | null
-    entscheid: LernEintrag['entscheid']
-    ablehnungsgrund: string | null
-  }[]
-  const digest = lernDigest(
-    gelernt.map((g) => ({
-      titel: g.titel,
-      gemeinde: g.gemeinde?.name ?? '',
-      entscheid: g.entscheid,
-      grund: g.ablehnungsgrund
-    })),
-    LERN_FENSTER
+  // What this show's desk taught us — reasons and comments, the
+  // Chefredaktion's verdicts on hand-ups, the tally of what was left lying.
+  const signale = await ladeSendungSignale(
+    {
+      zeilen: kontext.kandidaten,
+      hinweise: kontext.hinweise ?? NICHTS,
+      meldungen: kontext.meldungen ?? NICHTS
+    },
+    bezug.quelle,
+    new Date().toISOString().slice(0, 10)
   )
+  const digest = lernDigest(signale.entscheide, LERN_FENSTER, signale.rahmen)
+  // What the newsroom taught in words — rules, numbered so an answer can
+  // cite one. Loaded once per show, not per contribution.
+  const regelzeilen =
+    kontext.wissen === undefined
+      ? []
+      : await ladeRegeln(
+          kontext.wissen,
+          { bereich: 'sendung', stufe: 'sichtung' },
+          { warn: (m: string) => kontext.logger.warn(m) }
+        )
+  const sichtungsregeln = regelnBlock(regelzeilen, SICHTUNGSREGELN_UEBERSCHRIFT)
+  const regeln = sichtungsregeln.text
 
   for (const beitrag of beitraege) {
     ergebnis.geprueft += 1
@@ -329,7 +360,8 @@ export async function sichteBeitraege(
               nurZusammenfassung: beitrag.nurZusammenfassung
             },
             treffer,
-            digest
+            digest,
+            regeln
           ),
           maxTokens: 2048,
           model: kontext.model ?? undefined,
@@ -343,19 +375,64 @@ export async function sichteBeitraege(
         if (gemeindeId === undefined) continue
         if (kontext.bereitsEntschieden?.has(`${gemeindeId}|${kandidat.titel}`))
           continue
-        await kontext.kandidaten.createOne({
-          quelle: bezug.quelle,
-          gemeinde: gemeindeId,
-          titel: kandidat.titel,
-          zusammenfassung: kandidat.zusammenfassung,
-          begruendung: kandidat.begruendung,
-          zeitmarke_sekunden: beitrag.zeitmarkeSekunden,
-          ...(bezug.edition === undefined ? {} : { edition: bezug.edition }),
-          ...(bezug.punkt6Edition === undefined
-            ? {}
-            : { punkt6_edition: bezug.punkt6Edition })
-        })
+        const neuId = String(
+          await kontext.kandidaten.createOne({
+            quelle: bezug.quelle,
+            gemeinde: gemeindeId,
+            titel: kandidat.titel,
+            zusammenfassung: kandidat.zusammenfassung,
+            begruendung: kandidat.begruendung,
+            zeitmarke_sekunden: beitrag.zeitmarkeSekunden,
+            ...(bezug.edition === undefined ? {} : { edition: bezug.edition }),
+            ...(bezug.punkt6Edition === undefined
+              ? {}
+              : { punkt6_edition: bezug.punkt6Edition })
+          })
+        )
         ergebnis.kandidaten += 1
+
+        // A rule the editor armed may hand the candidate straight to the
+        // Chefredaktion — as a lead, marked, reversible. Never a Meldung:
+        // that still takes a person. Needs the writers a run has and a test
+        // may not, so it stays quiet without them.
+        const regel = automatischeWeitergabe(
+          kandidat,
+          sichtungsregeln.nummern,
+          regelzeilen
+        )
+        const legeAn = kontext.hinweise?.createOne
+        const aktualisiere = kontext.kandidaten.updateOne
+        if (
+          regel !== null &&
+          legeAn !== undefined &&
+          aktualisiere !== undefined
+        ) {
+          await reicheWeiter(
+            {
+              hinweise: { createOne: (p) => legeAn.call(kontext.hinweise, p) },
+              ursprung: {
+                updateOne: (k, p) => aktualisiere.call(kontext.kandidaten, k, p)
+              }
+            },
+            {
+              ursprungId: neuId,
+              felder: sendungAlsHinweis(
+                {
+                  id: neuId,
+                  titel: kandidat.titel,
+                  quelle: bezug.quelle,
+                  begruendung: kandidat.begruendung,
+                  zusammenfassung: kandidat.zusammenfassung,
+                  gemeinde: { id: gemeindeId },
+                  datum: datumDeutsch(bezug.datum)
+                },
+                `Automatisch weitergereicht nach Regel: ${regel.regel}`
+              ),
+              automatisch: true,
+              regel: regel.id
+            }
+          )
+        }
       }
     } catch (fehler) {
       // One unreadable contribution never costs the rest of the show its
@@ -386,6 +463,11 @@ export async function sichteSendung(
     }
     kandidaten: ItemsServiceLike
     gemeinden: ItemsServiceLike
+    hinweise?: { readByQuery(query: Record<string, unknown>): Promise<unknown> }
+    meldungen?: {
+      readByQuery(query: Record<string, unknown>): Promise<unknown>
+    }
+    wissen?: WissenDienst
     logger: { warn: (e: unknown, m?: string) => void }
     model?: string | null
     send?: MessageSender
@@ -464,6 +546,13 @@ export async function sichteSendung(
         gemeinden,
         {
           kandidaten: dienste.kandidaten,
+          ...(dienste.hinweise === undefined
+            ? {}
+            : { hinweise: dienste.hinweise }),
+          ...(dienste.meldungen === undefined
+            ? {}
+            : { meldungen: dienste.meldungen }),
+          ...(dienste.wissen === undefined ? {} : { wissen: dienste.wissen }),
           logger: dienste.logger,
           bereitsEntschieden,
           ...(dienste.model === undefined ? {} : { model: dienste.model }),
@@ -515,10 +604,13 @@ async function ersetzeOffeneKandidaten(
 }
 
 /**
- * Undecided candidates the desk has stopped caring about.
+ * Undecided candidates the desk has stopped caring about, marked `verfallen`.
  *
  * Run at the top of the daily processing, before anything new arrives — a
  * broadcast candidate is perishable, and decided rows are never touched.
+ * Marked rather than deleted: a candidate the editor never touched is the
+ * loudest form of "too many proposals", and it counts in the next
+ * inventory's tally. The desk hides everything that is not open.
  */
 export async function raeumeKandidatenAuf(
   kandidaten: ItemsServiceLike,
@@ -533,8 +625,8 @@ export async function raeumeKandidatenAuf(
     })) as AufraeumZeile[]
 
     const weg = offene.filter((z) => darfWeg(z, heute)).map((z) => z.id)
-    if (weg.length > 0 && kandidaten.deleteMany !== undefined) {
-      await kandidaten.deleteMany(weg)
+    if (weg.length > 0 && kandidaten.updateMany !== undefined) {
+      await kandidaten.updateMany(weg, { entscheid: 'verfallen' })
       return weg.length
     }
     return 0

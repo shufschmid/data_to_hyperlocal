@@ -47,6 +47,10 @@ function eintrag(ueber: Partial<AmtsblattFelder> = {}): AmtsblattFelder {
 const OHNE_FILTER = { gemeinde: null, gruppe: null, suche: '' }
 
 describe('bleibtAufDemTisch', () => {
+  it('blendet Verfallenes aus — ein liegen gelassener Vorschlag ist kein offener mehr', () => {
+    expect(bleibtAufDemTisch(eintrag({ entscheid: 'verfallen' }))).toBe(false)
+  })
+
   it('laesst Unentschiedenes liegen und Abgelehntes gehen', () => {
     expect(bleibtAufDemTisch(eintrag({ entscheid: 'offen' }))).toBe(true)
     expect(bleibtAufDemTisch(eintrag({ entscheid: 'abgelehnt' }))).toBe(false)

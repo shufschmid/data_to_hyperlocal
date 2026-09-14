@@ -735,20 +735,63 @@ export interface WissenFelder {
   geltungsbereich: string
   herkunft: string
   aktiv: boolean
+  /** Welcher Tisch die Regel liest. */
+  bereich: string
+  /** Sichtung (was vorgeschlagen wird) oder Text (wie geschrieben wird). */
+  stufe: string
+  /** Nur bei Sichtungsregeln: „weiterreichen" reicht Passendes selbst an die Chefredaktion. */
+  wirkung: string
+  /** Woraus die Regel entstand — die Worte des Editors oder die Entscheide dahinter. */
+  beleg: string | null
+  date_created: string | null
+  datensatz: { id: string; titel: string } | null
 }
+
+export interface WissenSchalterErgebnis {
+  update_redaktionswissen_item: { id: string }
+}
+
+export const WISSEN_AKTIV_MUTATION = gql`
+  mutation WissenAktiv($id: ID!, $aktiv: Boolean!) {
+    update_redaktionswissen_item(id: $id, data: { aktiv: $aktiv }) {
+      id
+      aktiv
+    }
+  }
+`
+
+export const WISSEN_WIRKUNG_MUTATION = gql`
+  mutation WissenWirkung($id: ID!, $wirkung: String!) {
+    update_redaktionswissen_item(id: $id, data: { wirkung: $wirkung }) {
+      id
+      wirkung
+    }
+  }
+`
 
 export interface WissenErgebnis {
   redaktionswissen: WissenFelder[]
 }
 
+// Alle Regeln, auch die ausgeschalteten: „Gelerntes" zeigt sie eingeklappt,
+// damit eine falsch ausgeschaltete wieder eingeschaltet werden kann.
 export const WISSEN_QUERY = gql`
   query Redaktionswissen {
-    redaktionswissen(filter: { aktiv: { _eq: true } }, sort: ["-date_created"], limit: -1) {
+    redaktionswissen(sort: ["bereich", "-date_created"], limit: -1) {
       id
       regel
       geltungsbereich
       herkunft
       aktiv
+      bereich
+      stufe
+      wirkung
+      beleg
+      date_created
+      datensatz {
+        id
+        titel
+      }
     }
   }
 `
@@ -976,6 +1019,14 @@ export interface RecherchehinweisFelder {
   status: string
   kommentar: string | null
   date_created: string | null
+  /** Von einer gelernten Regel weitergereicht, nicht von einer Person. */
+  automatisch: boolean
+  /** Die Regel, die es tat — für die Bilanz in „Gelerntes" und die Pause nach zwei Rückweisungen. */
+  regel: { id: string; regel: string } | null
+  /** Herkunft eines Weiterreichens — höchstens eines gesetzt; alle null heisst: Fährte des Inventars. */
+  kandidat: { id: string } | null
+  amtsblattmeldung: { id: string } | null
+  sendungskandidat: { id: string; quelle: string } | null
   gemeinde: { id: string; name: string } | null
   ausgabe: {
     id: string
@@ -1001,6 +1052,21 @@ export const RECHERCHEHINWEISE_QUERY = gql`
       status
       kommentar
       date_created
+      automatisch
+      regel {
+        id
+        regel
+      }
+      kandidat {
+        id
+      }
+      amtsblattmeldung {
+        id
+      }
+      sendungskandidat {
+        id
+        quelle
+      }
       gemeinde {
         id
         name

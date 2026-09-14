@@ -6,6 +6,10 @@ import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
 import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
@@ -20,10 +24,15 @@ import { Artikeltext } from './Artikeltext'
 
 export type MeldungAktion = 'publizieren' | 'pruefung' | 'verwerfen' | 'freigeben'
 
+/** What a status action may carry — today only the optional reason for discarding. */
+export interface MeldungAktionKoerper {
+  kommentar?: string
+}
+
 export interface MeldungKarteProps {
   meldung: MeldungFelder
   onChat: (id: string, anweisung: string) => Promise<void>
-  onAktion: (id: string, aktion: MeldungAktion) => Promise<void>
+  onAktion: (id: string, aktion: MeldungAktion, koerper?: MeldungAktionKoerper) => Promise<void>
   laeuft?: boolean
   /**
    * The newsletter day of a waste-collection reminder.
@@ -58,6 +67,15 @@ export function MeldungKarte({
   kompakt = false
 }: MeldungKarteProps) {
   const [anweisung, setAnweisung] = useState('')
+  const [verwerfen, setVerwerfen] = useState(false)
+  const [verwerfungsgrund, setVerwerfungsgrund] = useState('')
+
+  async function verwerfenBestaetigen() {
+    const grund = verwerfungsgrund.trim()
+    setVerwerfen(false)
+    setVerwerfungsgrund('')
+    await onAktion(meldung.id, 'verwerfen', grund === '' ? undefined : { kommentar: grund })
+  }
   const [offen, setOffen] = useState(false)
   const [sendet, setSendet] = useState(false)
 
@@ -175,15 +193,42 @@ export function MeldungKarte({
               )}
             </>
           )}
-          <Button
-            size="small"
-            color="inherit"
-            onClick={() => void onAktion(meldung.id, 'verwerfen')}
-            disabled={beschaeftigt}
-          >
+          <Button size="small" color="inherit" onClick={() => setVerwerfen(true)} disabled={beschaeftigt}>
             Verwerfen
           </Button>
         </Stack>
+
+        {/* Discarding stays one decision, but it may carry a reason: an article
+            rejected as prose is a lesson for the desk it came from, and this was
+            the one decision with no channel for it. Optional — Enter discards. */}
+        <Dialog open={verwerfen} onClose={() => setVerwerfen(false)} fullWidth maxWidth="xs">
+          <DialogTitle>Meldung verwerfen</DialogTitle>
+          <DialogContent>
+            <Stack spacing={1} sx={{ mt: 1 }}>
+              <TextField
+                label="Warum? (optional, hilft dem Lernen)"
+                size="small"
+                multiline
+                minRows={2}
+                autoFocus
+                value={verwerfungsgrund}
+                onChange={(e) => setVerwerfungsgrund(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    void verwerfenBestaetigen()
+                  }
+                }}
+              />
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setVerwerfen(false)}>Abbrechen</Button>
+            <Button variant="contained" color="inherit" onClick={() => void verwerfenBestaetigen()}>
+              Verwerfen
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         {erscheintAm !== null && (
           <Typography variant="caption" color="text.secondary">

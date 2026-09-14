@@ -74,6 +74,8 @@ export interface SpielberichtKontext {
   holeTelegramm?: (url: string) => Promise<string | null>
   /** Test seam, exactly as in shared/claude.ts. */
   send?: MessageSender
+  /** The sport desk's text rules ("Gelerntes"), loaded once per pass by the caller. */
+  regeln?: readonly string[]
 }
 
 export interface SpielberichtErgebnis {
@@ -244,7 +246,7 @@ export async function schreibeSpielberichte(
       const antwort = await completeJson<unknown>(
         {
           system: SPIELBERICHT_SYSTEM_PROMPT,
-          prompt: buildSpielberichtPrompt(fakten),
+          prompt: buildSpielberichtPrompt(fakten, kontext.regeln ?? []),
           maxTokens: 1200
         },
         ...(kontext.send === undefined ? [] : ([kontext.send] as const))
