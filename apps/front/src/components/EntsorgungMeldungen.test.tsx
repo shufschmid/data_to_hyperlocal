@@ -104,7 +104,7 @@ describe('EntsorgungMeldungen', () => {
     )
 
     expect(screen.getByText(/Erscheint am Donnerstag, 11. Juni 2026/)).toBeInTheDocument()
-    expect(screen.getByText(/publiziert sie am Vorabend/)).toBeInTheDocument()
+    expect(screen.getByText(/publiziert sie am Vortag um 12 Uhr/)).toBeInTheDocument()
   })
 
   it('warnt vor Entwuerfen, deren Tag naht', () => {

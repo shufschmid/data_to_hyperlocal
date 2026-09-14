@@ -822,10 +822,12 @@ editor registers an Abfuhrkalender (PDF address or file)  ── endpoints/redak
               holiday); dates sharing a day become ONE Meldung
             → N× Sonnet, one per newsletter day, over handed facts
 
-Flow "Entsorgung publizieren"  (0 5 * * *)
+Flow "Entsorgung publizieren"  (0 12 * * *)
   └─ operations/entsorgung-publizieren   no model call, no outbound request
        ├─ freigegeben ∧ erscheint_am = TOMORROW → publiziert
-       │    (the Dorfkönig builds the newsletter the evening before)
+       │    (noon on the day before is the newsroom's fixed time; the
+       │     Dorfkönig turns the date into "morgen" when it composes the
+       │     edition. Approved after noon → the „Jetzt publizieren" button)
        └─ freigegeben ∧ erscheint_am < today → noted as verpasst, NOT published
 ```
 

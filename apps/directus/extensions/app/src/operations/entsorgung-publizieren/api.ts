@@ -5,17 +5,19 @@ import { heuteIso, morgenIso } from '../../redaktion/feiertage'
 //
 // The whole year of reminders is written and approved weeks in advance — that
 // is the point of the feature — so something has to decide when each of them
-// becomes public. That is this, and the rule is one day: a reminder for Friday
-// is published on Thursday, because the Dorfkönig assembles Friday's newsletter
-// on Thursday evening. Publishing on the day itself would miss the edition it
-// was written for.
+// becomes public. That is this, and the rule is one day, at noon: a reminder
+// for Friday is published on Thursday at 12:00 — the newsroom's fixed time, so
+// the Dorfkönig finds it when it assembles Friday's edition. Publishing on the
+// day itself would miss the edition it was written for; a reminder approved
+// after noon on Thursday is not caught by the Friday run (which looks at
+// Saturday) and waits for the „Jetzt publizieren" button.
 //
 // The only scheduled piece of the feature, and it costs nothing: no model call,
 // no outbound request, just a status change on rows a human already approved.
 // Reading a calendar and writing the year stay in the endpoint, where an editor
 // asks for them.
 //
-// Attach to a Flow with a Schedule trigger at 05:00 (`0 5 * * *`). Crons fire
+// Attach to a Flow with a Schedule trigger at 12:00 (`0 12 * * *`). Crons fire
 // in the process timezone, which the Dockerfile pins to Europe/Zurich.
 
 export interface Options {

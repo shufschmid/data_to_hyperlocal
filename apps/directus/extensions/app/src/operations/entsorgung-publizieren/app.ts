@@ -5,7 +5,7 @@ export default defineOperationApp({
   name: 'Entsorgungserinnerungen publizieren',
   icon: 'schedule_send',
   description:
-    'Publiziert freigegebene Entsorgungserinnerungen am Vortag ihres Erscheinungstags — der Newsletter wird am Abend davor gebaut. An einen Flow mit Schedule-Trigger um 05:00 haengen (0 5 * * *). Kein Modellaufruf, keine Kosten.',
+    'Publiziert freigegebene Entsorgungserinnerungen am Vortag ihres Erscheinungstags um 12 Uhr — die feste Zeit der Redaktion. An einen Flow mit Schedule-Trigger um 12:00 haengen (0 12 * * *). Kein Modellaufruf, keine Kosten.',
   overview: ({ hoechstens }) => [
     { label: 'Hoechstens pro Lauf', text: String(hoechstens ?? 50) }
   ],

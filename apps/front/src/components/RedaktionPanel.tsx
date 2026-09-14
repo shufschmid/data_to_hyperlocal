@@ -937,8 +937,8 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             Der gedruckte Abfuhrkalender einer Gemeinde, einmal im Jahr erfasst. Daraus entstehen Erinnerungen
             an die aussergewöhnlichen Termine — Papier, Häckseldienst, Altmetall, Sonderabfälle. Die
             wöchentliche Kehrichtabfuhr bleibt bewusst aussen vor. Jede Erinnerung wird für ihren
-            Newsletter-Tag geschrieben; freigegebene publiziert der Tageslauf am Vorabend. Angezeigt werden
-            die beiden nächsten — der Rest des Jahres liegt eine Klick weit darunter.
+            Newsletter-Tag geschrieben; freigegebene publiziert der Tageslauf am Vortag um 12 Uhr. Angezeigt
+            werden die beiden nächsten — der Rest des Jahres liegt eine Klick weit darunter.
           </Typography>
           <Entsorgung
             gemeinden={gemeinden.data?.gemeinden ?? []}

@@ -232,8 +232,8 @@ export function MeldungKarte({
 
         {erscheintAm !== null && (
           <Typography variant="caption" color="text.secondary">
-            Erscheint am {langesDatum(erscheintAm)} · der Tageslauf publiziert sie am Vorabend, sobald sie
-            freigegeben ist
+            Erscheint am {langesDatum(erscheintAm)} · der Tageslauf publiziert sie am Vortag um 12 Uhr, wenn
+            sie bis dann freigegeben ist
           </Typography>
         )}
 
