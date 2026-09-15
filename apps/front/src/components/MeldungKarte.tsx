@@ -115,7 +115,7 @@ export function MeldungKarte({
                   </Typography>
                 </>
               )}
-              {revidiert && <Chip size="small" color="error" label="Revision" />}
+              {revidiert && <Chip size="small" color="error" label="Zahlen revidiert" />}
               {siegel !== null && (
                 <Chip
                   size="small"
@@ -133,7 +133,7 @@ export function MeldungKarte({
             </Typography>
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
               {beschaeftigt && <CircularProgress size={16} />}
-              {revidiert && <Chip size="small" color="error" label="Revision" />}
+              {revidiert && <Chip size="small" color="error" label="Zahlen revidiert" />}
               {siegel !== null && (
                 <Chip
                   size="small"

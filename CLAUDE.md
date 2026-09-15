@@ -1141,7 +1141,7 @@ source is not a wrong article), a source that cannot be re-read today writes
 nothing at all — neither a finding nor the clearing of one — and a finding
 that no longer holds IS cleared, so a later correction takes the flag away
 again. Bounded at 50 articles per run, newest first; no model is called, only
-the source is re-read. The desk shows it as a red «Revision» chip on the card
+the source is re-read. The desk shows it as a red «Zahlen revidiert» chip on the card
 above every other warning and as the red counter on the statistik.bl tab
 (`lib/revision.ts`).
 

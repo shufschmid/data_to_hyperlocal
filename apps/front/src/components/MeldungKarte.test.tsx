@@ -96,7 +96,7 @@ describe('der Revisionsbefund auf der Karte', () => {
         onAktion={jest.fn()}
       />
     )
-    expect(screen.getByText('Revision')).toBeInTheDocument()
+    expect(screen.getByText('Zahlen revidiert')).toBeInTheDocument()
     expect(screen.getByText(/31 Prozent/)).toBeInTheDocument()
   })
 
@@ -108,6 +108,6 @@ describe('der Revisionsbefund auf der Karte', () => {
         onAktion={jest.fn()}
       />
     )
-    expect(screen.queryByText('Revision')).not.toBeInTheDocument()
+    expect(screen.queryByText('Zahlen revidiert')).not.toBeInTheDocument()
   })
 })
