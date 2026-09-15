@@ -47,11 +47,18 @@ import {
 } from '../../shared/statbl'
 import { tabellenBesitzer, tabellenFelder } from '../../shared/statbl/parse'
 import { ordneSeiteEin } from '../../shared/statbl/inventur'
+import { ladeFrischeZeilen, type ZeilenKontext } from '../../redaktion/drain'
+import {
+  revisionsSchreibungen,
+  type RevisionsMeldung
+} from '../../redaktion/revision'
 import { optionalEnv } from '../../shared/env'
 import type {
   Ankuendigung,
   Datensatz,
   Gemeinde,
+  Lauf,
+  Meldung,
   PortalBereich,
   PortalSeite,
   Quelle
@@ -94,6 +101,16 @@ export interface Options {
   model?: string | null
 }
 
+/**
+ * How many published articles one run measures against a revised dataset.
+ *
+ * A bound rather than a budget: without it, a dataset with years of history
+ * would make the daily source check walk its whole archive every time a figure
+ * moves. Newest first, so what the newsroom still has on screen is checked
+ * first; the rest is reached by the next revision.
+ */
+const MAX_REVISIONEN = 50
+
 interface Ergebnis {
   quellen: number
   gesehen: number
@@ -107,6 +124,8 @@ interface Ergebnis {
   angekuendigt: number
   /** Agenda entries that moved from announced to published. */
   neuPubliziert: number
+  /** Published articles the revision watchdog put a finding on, or cleared. */
+  revidiert: number
   fehler: string[]
   hinweise: string[]
 }
@@ -138,9 +157,16 @@ export default defineOperationApi<Options>({
       zugeordnet: 0,
       angekuendigt: 0,
       neuPubliziert: 0,
+      revidiert: 0,
       fehler: [],
       hinweise: []
     }
+
+    // Datasets whose NUMBERS moved in this run. The watchdog measures the
+    // already published articles of exactly these against the new state; a
+    // corrected description does not land here, because it does not reopen a
+    // dataset either.
+    const revidierte = new Set<string>()
 
     const quellen = (await quellenService.readByQuery({
       filter: { aktiv: { _eq: true } },
@@ -216,6 +242,7 @@ export default defineOperationApi<Options>({
     await bewerteOffene()
     await ordneAnkuendigungenZu()
     await pruefeBereiche()
+    await pruefeRevisionen()
 
     return ergebnis
 
@@ -323,6 +350,7 @@ export default defineOperationApi<Options>({
           })
 
           ergebnis.geaendert += 1
+          revidierte.add(tabelle.id)
           ergebnis.hinweise.push(
             `${gelesen.titel}: neuer Jahrgang ${gelesen.jahr} (vorher ${tabelle.letzter_stand ?? 'keiner'})`
           )
@@ -470,6 +498,141 @@ export default defineOperationApi<Options>({
         ...registerFelder
       })
       ergebnis.geaendert += 1
+      revidierte.add(vorhanden.id)
+    }
+
+    /**
+     * The revision watchdog.
+     *
+     * Everything else in this run looks forward: what is new, what should be
+     * written. This looks BACK, at articles that are already out. A statistics
+     * office revises — a provisional figure becomes final, a municipality
+     * reports late — and an article that was correct on the day it went out
+     * quietly stops being correct, with nothing in the pipeline ever looking at
+     * it again.
+     *
+     * It states and never acts. No article is republished, rewritten or pulled
+     * back here; the finding lands on the row and a person decides. A machine
+     * that silently retracts yesterday's journalism is worse than one that says
+     * nothing.
+     *
+     * Bounded like every other pass, and fail-open per dataset: a source that
+     * cannot be re-read today is not a reason to lose the rest of the run.
+     */
+    async function pruefeRevisionen(): Promise<void> {
+      if (revidierte.size === 0) return
+
+      const meldungenService = new ItemsService('meldungen', { schema })
+      // Same narrowing the drain operation does: Directus' own service type is
+      // wider than what the module needs.
+      const zeilenKontext: ZeilenKontext = {
+        services: services as ZeilenKontext['services'],
+        schema,
+        logger
+      }
+      let geprueft = 0
+
+      for (const datensatzId of revidierte) {
+        if (geprueft >= MAX_REVISIONEN) break
+
+        try {
+          // Only published articles: a draft is still being worked on, and its
+          // numbers are checked on the way out anyway.
+          const meldungen = (await meldungenService.readByQuery({
+            filter: {
+              status: { _eq: 'publiziert' },
+              lauf: { datensatz: { _eq: datensatzId } }
+            },
+            fields: [
+              'id',
+              'gemeinde',
+              'titel',
+              'lead',
+              'text',
+              'revision_hinweis',
+              'lauf.periode'
+            ],
+            sort: ['-publiziert_am'],
+            limit: MAX_REVISIONEN - geprueft
+          })) as Array<
+            Pick<
+              Meldung,
+              'id' | 'gemeinde' | 'titel' | 'lead' | 'text' | 'revision_hinweis'
+            > & { lauf: Pick<Lauf, 'periode'> | null }
+          >
+
+          if (meldungen.length === 0) continue
+
+          // One fetch per PERIOD, not per article: a dataset routinely carries
+          // a dozen municipalities' articles for the same year.
+          const jePeriode = new Map<string, typeof meldungen>()
+          for (const meldung of meldungen) {
+            const periode = meldung.lauf?.periode
+            if (periode === undefined || periode === null) continue
+            const bisher = jePeriode.get(periode)
+            if (bisher === undefined) jePeriode.set(periode, [meldung])
+            else bisher.push(meldung)
+          }
+
+          for (const [periode, gruppe] of jePeriode) {
+            const frisch = await ladeFrischeZeilen(
+              zeilenKontext,
+              datensatzId,
+              periode
+            )
+            // Null means the source could not be re-read. Nothing is written
+            // then — neither a finding nor the clearing of one: we learned
+            // nothing today.
+            if (frisch === null) continue
+
+            const zuPruefen: RevisionsMeldung[] = gruppe.map((m) => ({
+              id: m.id,
+              gemeinde: m.gemeinde,
+              titel: m.titel,
+              lead: m.lead,
+              text: m.text,
+              revision_hinweis: m.revision_hinweis
+            }))
+
+            const schreibungen = revisionsSchreibungen(
+              zuPruefen,
+              frisch.jeGemeinde,
+              new Date().toISOString()
+            )
+
+            for (const schreibung of schreibungen) {
+              try {
+                await meldungenService.updateOne(schreibung.id, {
+                  revision_hinweis: schreibung.revision_hinweis,
+                  revision_geprueft_am: schreibung.revision_geprueft_am
+                })
+                ergebnis.revidiert += 1
+              } catch (error) {
+                // One article that will not take the finding must not cost the
+                // others theirs.
+                logger.warn(
+                  error,
+                  `quellen-pruefen: Revisionsbefund fuer Meldung ${schreibung.id} nicht schreibbar`
+                )
+              }
+            }
+
+            geprueft += gruppe.length
+          }
+
+          const offen = meldungen.length
+          if (offen > 0) {
+            logger.info(
+              `quellen-pruefen: Revision geprueft, Datensatz ${datensatzId}, ${offen} publizierte Beitraege`
+            )
+          }
+        } catch (error) {
+          logger.warn(
+            error,
+            `quellen-pruefen: Revisionspruefung fuer Datensatz ${datensatzId} uebersprungen`
+          )
+        }
+      }
     }
 
     async function bewerteOffene(): Promise<void> {
@@ -672,6 +835,7 @@ export default defineOperationApi<Options>({
               bewertung: null
             })
             ergebnis.geaendert += 1
+            revidierte.add(tabelle.datensatz)
           }
         } catch (error) {
           const beschreibung =

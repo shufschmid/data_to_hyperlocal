@@ -695,7 +695,7 @@ interface LaufMaterial {
 }
 
 /** What one deep fetch brings back for a run. */
-interface FrischesMaterial {
+export interface FrischesMaterial {
   jeGemeinde: Map<string, FrischeZeilen>
   /** The full current-period slice, all municipalities. */
   alle: OdsRecord[]
@@ -778,8 +778,10 @@ async function ladeLaufMaterial(
  * failure returns null and the stored rows stand in: worse material beats no
  * rewrite, and the log says which one it was.
  */
-async function ladeFrischeZeilen(
-  kontext: DrainKontext,
+export type ZeilenKontext = Pick<DrainKontext, 'services' | 'schema' | 'logger'>
+
+export async function ladeFrischeZeilen(
+  kontext: ZeilenKontext,
   datensatzId: string,
   periode: string
 ): Promise<FrischesMaterial | null> {

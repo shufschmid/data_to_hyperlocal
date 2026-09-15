@@ -288,6 +288,16 @@ export interface Meldung {
    */
   zurueckgezogen_am: string | null
 
+  /**
+   * What the revision watchdog found: the percentages in this published article
+   * that the source's NEW figures no longer support. Null means nothing to
+   * report. The watchdog states and never acts — publishing or retracting is a
+   * person's decision.
+   */
+  revision_hinweis: string | null
+  /** When the watchdog last measured this article against the new state. */
+  revision_geprueft_am: string | null
+
   date_created: string | null
   date_updated: string | null
 }

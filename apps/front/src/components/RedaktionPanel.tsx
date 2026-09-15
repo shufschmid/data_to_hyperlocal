@@ -73,6 +73,7 @@ import {
   zeitleiste,
   type QuellenLaufStatus
 } from '@/lib/redaktion'
+import { revisionZaehler } from '@/lib/revision'
 import { QuellenLauf } from './QuellenLauf'
 import { Presseschau } from './Presseschau'
 import { Amtsblatt } from './Amtsblatt'
@@ -691,7 +692,21 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             '& .MuiTab-root': { minWidth: 0, px: 1.25 }
           }}
         >
-          <Tab value="statistik" label="statistik.bl" />
+          <Tab
+            value="statistik"
+            label={
+              <Badge
+                badgeContent={revisionZaehler(meldungenAlle)}
+                // Rot statt der ueblichen Farbe: dieser Zaehler meint nicht
+                // „hier liegt Arbeit", sondern „hier steht etwas Falsches
+                // draussen".
+                color="error"
+                sx={ZAEHLER_IM_REITER}
+              >
+                statistik.bl
+              </Badge>
+            }
+          />
           <Tab value="sport" label="Sportresultate" />
           <Tab value="entsorgung" label="Entsorgung" />
           <Tab

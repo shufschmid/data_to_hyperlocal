@@ -1121,6 +1121,30 @@ joining the two on `Spielnummer`. Read results from there, or not at all.
    The frontend renders that one anchor through `textStuecke`/`Artikeltext` —
    parsed, never `dangerouslySetInnerHTML`, so nothing else can become markup.
 
+**The revision watchdog looks BACK, and it is the only thing here that does.**
+Every other pass asks what is new. A statistics office revises — a provisional
+figure becomes final, a municipality reports late, a category is
+reclassified — and an article that was correct on the day it went out quietly
+stops being correct, with nothing in the pipeline ever looking at it again.
+So when `quellen-pruefen` finds a dataset whose NUMBERS moved (the same
+`letzter_stand` fingerprint that reopens it, never a corrected description),
+it re-reads the source and measures that dataset's already PUBLISHED articles
+against the new rows — with the very function that cleared them,
+`unbelegteProzentangaben` from `zahlen.ts`. No threshold of its own: a second
+tolerance would drift from the first and the two would disagree about the same
+article. The finding lands in `meldungen.revision_hinweis` and nowhere else.
+**It states and never acts** — nothing is republished, rewritten or retracted
+here, because a machine that silently pulls yesterday's journalism is worse
+than one that says nothing. Three quiet rules make it safe: a municipality
+missing from the fresh rows is skipped rather than flagged (a gap in the
+source is not a wrong article), a source that cannot be re-read today writes
+nothing at all — neither a finding nor the clearing of one — and a finding
+that no longer holds IS cleared, so a later correction takes the flag away
+again. Bounded at 50 articles per run, newest first; no model is called, only
+the source is re-read. The desk shows it as a red «Zahlen revidiert» chip on the card
+above every other warning and as the red counter on the statistik.bl tab
+(`lib/revision.ts`).
+
 ## Where the memory lives
 
 - `laeufe` + `meldungen` of earlier periods — what was published about this

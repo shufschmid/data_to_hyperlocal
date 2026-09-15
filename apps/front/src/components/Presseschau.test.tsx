@@ -69,6 +69,7 @@ function meldung(ueber: Partial<AlleMeldungFelder>): AlleMeldungFelder {
     fehler: null,
     publiziert_am: null,
     publiziert_durch: null,
+    revision_hinweis: null,
     erscheint_am: null,
     date_created: null,
     gemeinde: { id: 'g-1', name: 'Binningen', bezirk: 'Arlesheim' },
