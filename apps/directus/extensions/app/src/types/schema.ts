@@ -196,6 +196,13 @@ export type MeldungVerarbeitung = 'idle' | 'geplant' | 'laeuft' | 'fehler'
 export type Entscheidung = 'ja' | 'nein' | 'unklar'
 
 /**
+ * Who set off a publication. Two signatures, both of them real: `redaktion` is
+ * a person clicking at the desk, `zeitlauf` the scheduled run putting out an
+ * article somebody approved earlier.
+ */
+export type Publikationsakteur = 'redaktion' | 'zeitlauf'
+
+/**
  * An article, whatever it was written from.
  *
  * Six kinds share this collection, and exactly one of the parent markers is
@@ -268,6 +275,18 @@ export interface Meldung {
   entscheidung_klartext: string | null
   freigegeben_am: string | null
   publiziert_am: string | null
+  /**
+   * Who set off the move to `publiziert`: a person at the desk (`redaktion`) or
+   * the scheduled run publishing an earlier approval (`zeitlauf`). Stamped by
+   * the meldung-status hook, read by the Pruefsiegel in `/api/v1/artikel`.
+   */
+  publiziert_durch: Publikationsakteur | null
+  /**
+   * When a published article was taken back. `publiziert_am` stays put, so the
+   * history reads straight; `/api/v1/korrekturen` is what carries the retraction
+   * outside.
+   */
+  zurueckgezogen_am: string | null
 
   date_created: string | null
   date_updated: string | null

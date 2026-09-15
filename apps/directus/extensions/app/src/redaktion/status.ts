@@ -1,4 +1,9 @@
-import type { Entscheidung, Meldung, MeldungStatus } from '../types/schema'
+import type {
+  Entscheidung,
+  Meldung,
+  MeldungStatus,
+  Publikationsakteur
+} from '../types/schema'
 
 // The editorial state machine, as a table rather than a pile of conditionals.
 //
@@ -206,4 +211,54 @@ export function ruecksetzungNachAenderung(
     freigabe_token_hash: null,
     freigabe_token_ablauf: null
   }
+}
+
+export interface Stempelnder {
+  /** The Directus user behind the write, or null when nobody signed it. */
+  user: string | null
+  jetzt: string
+}
+
+/**
+ * The two marks a status change leaves behind, beyond the timestamps the hook
+ * already sets.
+ *
+ * `publiziert_durch` doubles what `directus_revisions` knows, on purpose: the
+ * public API has to name the signature without reaching into Directus' own
+ * bookkeeping. A person at the desk writes with an accountability; the Flow
+ * „Entsorgung publizieren" writes without one — and a reminder the scheduled
+ * run put out was still approved by hand, weeks earlier. Two steps, one
+ * signature each.
+ *
+ * `zurueckgezogen_am` is what makes a retraction visible from outside
+ * (`/api/v1/korrekturen`). `publiziert_am` deliberately stays where it is: the
+ * history of an article is worth more than a tidy column.
+ *
+ * Anything the caller already brought is left alone — an explicit value always
+ * wins over the stamp.
+ */
+export function stempel(
+  ergebnis: Record<string, unknown>,
+  aktuell: Pick<Meldung, 'status'>,
+  akteur: Stempelnder
+): Record<string, unknown> {
+  const stempelung: Record<string, unknown> = {}
+  const nach = ergebnis['status']
+  if (typeof nach !== 'string') return stempelung
+
+  if (nach === 'publiziert' && ergebnis['publiziert_durch'] === undefined) {
+    const durch: Publikationsakteur =
+      akteur.user === null ? 'zeitlauf' : 'redaktion'
+    stempelung['publiziert_durch'] = durch
+  }
+
+  if (
+    aktuell.status === 'publiziert' &&
+    (nach === 'entwurf' || nach === 'verworfen') &&
+    ergebnis['zurueckgezogen_am'] === undefined
+  ) {
+    stempelung['zurueckgezogen_am'] = akteur.jetzt
+  }
+
+  return stempelung
 }

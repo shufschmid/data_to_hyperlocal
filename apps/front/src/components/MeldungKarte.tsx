@@ -15,7 +15,7 @@ import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import type { MeldungFelder } from '@/graphql/redaktion'
-import { statusFarbe, statusText, warnungen } from '@/lib/redaktion'
+import { pruefsiegelText, statusFarbe, statusText, warnungen } from '@/lib/redaktion'
 import { langesDatum } from '@/lib/entsorgung'
 import { Artikeltext } from './Artikeltext'
 
@@ -81,6 +81,9 @@ export function MeldungKarte({
 
   const beschaeftigt = laeuft || meldung.verarbeitung === 'geplant' || meldung.verarbeitung === 'laeuft'
   const hinweise = warnungen(meldung)
+  // Nur auf publizierten Karten, und auch dort klein: die Warnungen selbst
+  // stehen schon oben im Kasten, hier steht, wer unterschrieben hat.
+  const siegel = pruefsiegelText(meldung)
 
   async function schicken() {
     if (anweisung.trim() === '') return
@@ -98,12 +101,24 @@ export function MeldungKarte({
     <Paper sx={{ p: kompakt ? 2 : 3 }} variant={kompakt ? 'outlined' : 'elevation'}>
       <Stack spacing={kompakt ? 1.5 : 2}>
         {kompakt ? (
-          beschaeftigt && (
+          (beschaeftigt || siegel !== null) && (
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-              <CircularProgress size={14} />
-              <Typography variant="caption" color="text.secondary">
-                Wird überarbeitet …
-              </Typography>
+              {beschaeftigt && (
+                <>
+                  <CircularProgress size={14} />
+                  <Typography variant="caption" color="text.secondary">
+                    Wird überarbeitet …
+                  </Typography>
+                </>
+              )}
+              {siegel !== null && (
+                <Chip
+                  size="small"
+                  variant="outlined"
+                  color={hinweise.length === 0 ? 'success' : 'warning'}
+                  label={siegel}
+                />
+              )}
             </Stack>
           )
         ) : (
@@ -113,6 +128,14 @@ export function MeldungKarte({
             </Typography>
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
               {beschaeftigt && <CircularProgress size={16} />}
+              {siegel !== null && (
+                <Chip
+                  size="small"
+                  variant="outlined"
+                  color={hinweise.length === 0 ? 'success' : 'warning'}
+                  label={siegel}
+                />
+              )}
               <Chip size="small" label={statusText(meldung.status)} color={statusFarbe(meldung.status)} />
             </Stack>
           </Stack>

@@ -186,6 +186,24 @@ them is wrong even if it works.
    in their text at all, so the address is derived from the dataset behind the
    run with the same `quellenlink()` the newsroom's own check uses — fishing it
    out of the prose returned null for every real article.
+   Since 15 September 2026 every article also carries its **Prüfsiegel** and
+   the **`medium`** the instance speaks for, and a RETRACTION is a message of
+   its own (`/api/v1/korrekturen`). Three things about that are worth keeping.
+   The seal is COMPUTED, never stored: the warnings, the counter-check, the
+   signature and the provenance all lie in the row already, and a stored copy
+   would go stale the moment a revision rewrote the text. `sortiereWarnungen`
+   splits the one warning column by the check that wrote it, matching the
+   exact wordings the writers build from (`redaktion/warnungen.ts`, the one
+   place those faces live now) — an unknown warning lands under `weitere`,
+   visible and uncategorised, never dropped. And the warnings themselves are
+   German prose for the editor: they leave unchanged, a consumer SHOWS them
+   and never reads a number back out of one. `medium` is added in `routen.ts`
+   rather than in the pure projection, because it belongs to the instance and
+   not to the row; unset means `unbenannt` and the door stays open
+   (`CRAWLER_KEY`'s pattern). `/korrekturen` carries no `text` — what was
+   pulled back does not leave the house a second time — and it reports only
+   what `zurueckgezogen_am` actually stamps, so retractions from before that
+   field existed are absent rather than dated by guess.
    The tab values are NAMES, not indices (`reiter === 'amtsblatt'`): the order
    was renumbered twice, and each time every `reiter === N` had to move with it. „Sportresultate" is the second feed and works
    the same way as the first: a source that publishes on its own schedule, watched

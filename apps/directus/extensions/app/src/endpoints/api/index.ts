@@ -1,9 +1,9 @@
 import { defineEndpoint } from '@directus/extensions-sdk'
 import type { Filter } from '@directus/types'
-import { envFlag } from '../../shared/env'
+import { envFlag, optionalEnv } from '../../shared/env'
 import { verdrahte, type Deps, type RouterLike } from './routen'
 import type { Abfrage } from './routen'
-import type { GemeindeZeile, Rohzeile } from './projektion'
+import type { GemeindeZeile, Korrekturzeile, Rohzeile } from './projektion'
 
 // The public read-only API for the published articles, mounted at `/api/v1/…`.
 //
@@ -51,6 +51,12 @@ const FELDER = [
   'gemeinde.id',
   'gemeinde.name',
   'gemeinde.bfs_nummer',
+  // The Pruefsiegel's own parts: what the checks said, whether a counter-check
+  // answered, and whose signature stands under the publication.
+  'zeit_warnungen',
+  'entscheidung',
+  'freigegeben_am',
+  'publiziert_durch',
   // Read for the source computation, never delivered.
   'datengrundlage'
 ] as const
@@ -73,6 +79,28 @@ export default defineEndpoint(
         filter['gemeinde'] = { _eq: abfrage.gemeinde.id }
       if (abfrage.seit !== undefined)
         filter['publiziert_am'] = { _gte: abfrage.seit }
+      return filter
+    }
+
+    /**
+     * The conditions of a retraction query. Deliberately its own function: the
+     * two share a shape but not a meaning — `seit` means `publiziert_am` for an
+     * article and `zurueckgezogen_am` for a retraction, and folding them into
+     * one filter would make that difference an argument nobody reads.
+     *
+     * `publiziert_am` must be set: an article that never went out cannot be
+     * taken back. `zurueckgezogen_am` must be too, which is what keeps the
+     * retractions from before this field existed out of the list — reporting
+     * them without a date would be a guess.
+     */
+    function korrekturFilterVon(abfrage: Abfrage): Filter {
+      const filter: Filter = {
+        status: { _in: ['entwurf', 'verworfen'] },
+        publiziert_am: { _nnull: true },
+        zurueckgezogen_am: { _nnull: true }
+      }
+      if (abfrage.seit !== undefined)
+        filter['zurueckgezogen_am'] = { _gte: abfrage.seit }
       return filter
     }
 
@@ -105,6 +133,37 @@ export default defineEndpoint(
         return Number.isFinite(zahl) ? zahl : 0
       },
 
+      async ladeKorrekturen(abfrage) {
+        const dienst = await meldungen()
+        return (await dienst.readByQuery({
+          filter: korrekturFilterVon(abfrage),
+          fields: [
+            'id',
+            'titel',
+            'status',
+            'publiziert_am',
+            'zurueckgezogen_am',
+            'gemeinde.id',
+            'gemeinde.name',
+            'gemeinde.bfs_nummer'
+          ],
+          sort: ['-zurueckgezogen_am'],
+          limit: abfrage.grenze,
+          offset: abfrage.versatz
+        })) as unknown as Korrekturzeile[]
+      },
+
+      async zaehleKorrekturen(abfrage) {
+        const dienst = await meldungen()
+        const zaehlung = (await dienst.readByQuery({
+          filter: korrekturFilterVon(abfrage),
+          aggregate: { count: ['id'] }
+        })) as unknown as { count?: { id?: unknown } }[]
+        const roh = zaehlung[0]?.count?.id
+        const zahl = Number(roh)
+        return Number.isFinite(zahl) ? zahl : 0
+      },
+
       async ladeGemeinden() {
         const dienst = new ItemsService('gemeinden', {
           schema: await getSchema()
@@ -130,6 +189,9 @@ export default defineEndpoint(
       // Read per request: switching the API on or off is an environment change
       // and a restart, never a code change.
       istOffen: () => envFlag('BLOG_API_OFFEN'),
+      // Unset is not a failure, it is an unnamed house: the API keeps serving
+      // and says so, exactly as `CRAWLER_KEY` does for the sport feeds.
+      medium: () => optionalEnv('REDAKTION_MEDIUM', 'unbenannt'),
       jetzt: () => new Date().toISOString(),
       logger
     }

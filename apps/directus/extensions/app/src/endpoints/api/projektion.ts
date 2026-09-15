@@ -17,7 +17,9 @@
 // material of the newsroom, not part of a published article.
 
 import { AMT, quellenlink } from '../../redaktion/quelle'
+import { istZahlwarnung, istZeitwarnung } from '../../redaktion/warnungen'
 import { seitenLink } from '../../shared/wochenblatt/parse'
+import type { Entscheidung, Publikationsakteur } from '../../types/schema'
 
 export type Rubrik =
   | 'statistik'
@@ -71,6 +73,12 @@ export interface Rohzeile {
   } | null
   gemeinde: { id: string; name: string; bfs_nummer: number } | null
   datengrundlage: unknown
+  /** Every complaint a check raised, in the editor's own German. */
+  zeit_warnungen: string[] | null
+  /** The counter-check's answer, or null when none was asked for. */
+  entscheidung: Entscheidung | null
+  freigegeben_am: string | null
+  publiziert_durch: Publikationsakteur | null
 }
 
 export interface ApiSport {
@@ -98,6 +106,47 @@ export interface ApiArtikel {
   quelle_name: string | null
   quelle_url: string | null
   sport: ApiSport | null
+  pruefsiegel: Pruefsiegel
+}
+
+/** The checks, split by which one spoke — see `redaktion/warnungen.ts`. */
+export interface Pruefungen {
+  zeitbezug: string[]
+  zahlen: string[]
+  weitere: string[]
+}
+
+export type Gegenpruefung = Entscheidung | 'keine'
+
+/**
+ * Whose signature stands under the publication.
+ *
+ * Two of them are real (R1 of the Richtungswechsel): `redaktion` is a person
+ * clicking publish, `freigegeben_dann_zeitlauf` an approval given by hand and
+ * carried out by the scheduled run days later — a waste-collection reminder is
+ * always the second kind. `unbekannt` is the honest answer for the articles
+ * that were published before the mark existed, and for the case the state
+ * machine does not allow but a future one might: the run publishing something
+ * nobody ever approved.
+ */
+export type Freigabestufe =
+  | 'redaktion'
+  | 'freigegeben_dann_zeitlauf'
+  | 'unbekannt'
+
+export interface Pruefsiegel {
+  pruefungen: Pruefungen
+  /** True when no check has anything open. */
+  bestanden: boolean
+  gegenpruefung: Gegenpruefung
+  freigabe: Freigabestufe
+  freigegeben_am: string | null
+  publiziert_am: string | null
+  herkunft: {
+    rubrik: Rubrik | null
+    quelle_name: string | null
+    quelle_url: string | null
+  }
 }
 
 /**
@@ -304,6 +353,70 @@ export function quelleVon(zeile: Rohzeile, rubrik: Rubrik | null): Quelle {
   }
 }
 
+/**
+ * The one warning column, split by the check that wrote it.
+ *
+ * Sorted rather than parsed: every entry leaves unchanged, in the German the
+ * editor reads. A consumer shows them; it never reads a number back out of
+ * one. The classification is an exact match against the wordings the writers
+ * build from (`redaktion/warnungen.ts`), so a desk that invents a new warning
+ * lands under `weitere` — visible and uncategorised, never silently dropped.
+ */
+export function sortiereWarnungen(
+  warnungen: readonly string[] | null
+): Pruefungen {
+  const sortiert: Pruefungen = { zeitbezug: [], zahlen: [], weitere: [] }
+  for (const warnung of warnungen ?? []) {
+    if (istZeitwarnung(warnung)) sortiert.zeitbezug.push(warnung)
+    else if (istZahlwarnung(warnung)) sortiert.zahlen.push(warnung)
+    else sortiert.weitere.push(warnung)
+  }
+  return sortiert
+}
+
+/**
+ * What was checked, who signed, and where the facts came from — computed, never
+ * stored.
+ *
+ * Every part of it already lies in the row: the warnings in `zeit_warnungen`,
+ * the counter-check in `entscheidung`, the signature in `publiziert_durch` and
+ * `freigegeben_am`, the provenance in the same computation the article itself
+ * uses. A stored seal would be a second copy that can go stale the moment a
+ * revision rewrites the text; a computed one cannot.
+ *
+ * It carries no prose of its own and no working material — only the warnings
+ * as they stand, three moments and the source the article already names.
+ */
+export function pruefsiegel(zeile: Rohzeile): Pruefsiegel {
+  const pruefungen = sortiereWarnungen(zeile.zeit_warnungen)
+  const rubrik = rubrikVon(zeile)
+  const quelle = quelleVon(zeile, rubrik)
+
+  const freigabe: Freigabestufe =
+    zeile.publiziert_durch === 'redaktion'
+      ? 'redaktion'
+      : zeile.publiziert_durch === 'zeitlauf' && zeile.freigegeben_am !== null
+        ? 'freigegeben_dann_zeitlauf'
+        : 'unbekannt'
+
+  return {
+    pruefungen,
+    bestanden:
+      pruefungen.zeitbezug.length === 0 &&
+      pruefungen.zahlen.length === 0 &&
+      pruefungen.weitere.length === 0,
+    gegenpruefung: zeile.entscheidung ?? 'keine',
+    freigabe,
+    freigegeben_am: alsUtc(zeile.freigegeben_am),
+    publiziert_am: alsUtc(zeile.publiziert_am),
+    herkunft: {
+      rubrik,
+      quelle_name: quelle.name,
+      quelle_url: quelle.url
+    }
+  }
+}
+
 /** Timestamps leave in UTC, whatever the database handed over (R12). */
 function alsUtc(wert: string | null): string | null {
   if (wert === null) return null
@@ -343,7 +456,52 @@ export function projektion(zeile: Rohzeile): ApiArtikel {
             tore_gast: zeile.spiel.tore_gast,
             datum: alsUtc(zeile.spiel.datum)
           }
-        : null
+        : null,
+    pruefsiegel: pruefsiegel(zeile)
+  }
+}
+
+/**
+ * A retraction, as the row carries it — deliberately narrower than `Rohzeile`.
+ *
+ * No `text`, no `lead`, and the query does not read them: what was pulled back
+ * does not leave the house a second time, not even as evidence of itself.
+ */
+export interface Korrekturzeile {
+  id: string
+  titel: string | null
+  status: 'entwurf' | 'verworfen'
+  publiziert_am: string | null
+  zurueckgezogen_am: string | null
+  gemeinde: { id: string; name: string; bfs_nummer: number } | null
+}
+
+export interface ApiKorrektur {
+  id: string
+  gemeinde: string | null
+  titel: string | null
+  publiziert_am: string | null
+  zurueckgezogen_am: string | null
+  status: 'entwurf' | 'verworfen'
+}
+
+/**
+ * What a consumer needs to retract what it already carried: the same id it
+ * fetched the article under, and when the newsroom took it back.
+ *
+ * `status` says which of the two ways it went — back to the desk (`entwurf`,
+ * a revision is likely) or dropped (`verworfen`) — because they mean different
+ * things to somebody who published it: one may come back, the other will not.
+ */
+export function korrektur(zeile: Korrekturzeile): ApiKorrektur {
+  return {
+    id: zeile.id,
+    gemeinde:
+      zeile.gemeinde === null ? null : gemeindeSlug(zeile.gemeinde.name),
+    titel: zeile.titel,
+    publiziert_am: alsUtc(zeile.publiziert_am),
+    zurueckgezogen_am: alsUtc(zeile.zurueckgezogen_am),
+    status: zeile.status
   }
 }
 

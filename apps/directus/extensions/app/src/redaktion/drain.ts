@@ -57,6 +57,7 @@ import {
   LEASE_MS
 } from './queue'
 import { korrekturHinweis, pruefeZeitbezug } from './zeitbezug'
+import { ungenaueProzentWarnung, unbelegteProzentWarnung } from './warnungen'
 import {
   quellenlink,
   quellenlinkWarnung,
@@ -1074,10 +1075,8 @@ async function schreibeMeldung(
     ...(pruefung.zeit.bestanden
       ? pruefung.zeit.weich
       : [...pruefung.zeit.hart, ...pruefung.zeit.weich]),
-    ...pruefung.unbelegt.map((z) => `ungepruefte Prozentangabe: ${z}%`),
-    ...pruefung.ungenau.map(
-      (u) => `ungenaue Prozentangabe: ${u.zahl}% (berechnet: ${u.naechster}%)`
-    ),
+    ...pruefung.unbelegt.map(unbelegteProzentWarnung),
+    ...pruefung.ungenau.map((u) => ungenaueProzentWarnung(u.zahl, u.naechster)),
     ...(pruefung.ohneQuelle ? ['Quelle nicht im Text genannt'] : []),
     ...(pruefung.linkFehler === null ? [] : [pruefung.linkFehler])
   ]

@@ -11,6 +11,7 @@
 // days. The prompt demands absolute dates and the check below catches the rest.
 
 import { vorgabenZeilen } from './lernen'
+import { zahlWarnung, ZAHL_WARNUNG, zeitWarnung } from './warnungen'
 
 /** The association page a report points at, and how the source line names it. */
 export interface SpielQuelle {
@@ -419,7 +420,7 @@ export function zeitWarnungen(text: string): string[] {
   const klein = text.toLowerCase()
   return RELATIV.filter((wort) =>
     new RegExp(`(?<!\\p{L})${wort}(?!\\p{L})`, 'u').test(klein)
-  ).map((wort) => `Relativer Zeitbezug: "${wort}"`)
+  ).map(zeitWarnung)
 }
 
 /**
@@ -473,13 +474,8 @@ export function zahlWarnungen(
   for (const zahl of akzeptiert) erlaubt.add(zahl)
 
   const gefunden = [...text.matchAll(/\d+/g)].map((t) => t[0])
-  return [...new Set(gefunden.filter((z) => !erlaubt.has(z)))].map(
-    (z) => `Zahl "${z}" steht nicht in den Angaben.`
-  )
+  return [...new Set(gefunden.filter((z) => !erlaubt.has(z)))].map(zahlWarnung)
 }
-
-/** The exact face of a number warning — the learning below matches on it. */
-const ZAHL_WARNUNG = /^Zahl "(\d+)" steht nicht in den Angaben\.$/
 
 /**
  * The numbers an editor accepted, read back out of a published report's

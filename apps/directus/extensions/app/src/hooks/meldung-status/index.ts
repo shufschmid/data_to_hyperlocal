@@ -5,6 +5,7 @@ import {
   inhaltGeaendert,
   pruefeUebergang,
   ruecksetzungNachAenderung,
+  stempel,
   type MeldungZustand
 } from '../../redaktion/status'
 import type { MeldungStatus } from '../../types/schema'
@@ -141,11 +142,21 @@ export default defineHook(({ filter, action }, { services, logger }) => {
 
     // Stamp the moments the state machine relies on, so they can never be
     // missing when a later transition checks for them.
+    const jetzt = new Date().toISOString()
     if (
       ergebnis['status'] === 'publiziert' &&
       ergebnis['publiziert_am'] === undefined
     ) {
-      ergebnis = { ...ergebnis, publiziert_am: new Date().toISOString() }
+      ergebnis = { ...ergebnis, publiziert_am: jetzt }
+    }
+    // Who signed, and when a publication was taken back. The signature is a
+    // property of the write itself; the retraction mark depends on where a row
+    // is coming FROM, so a batch update stamps it as soon as one of its rows
+    // was published — which is what a retraction is, whatever else the batch
+    // touched. An explicit value in the payload always wins over both.
+    const akteur = { user: context.accountability?.user ?? null, jetzt }
+    for (const aktuell of aktuelle) {
+      ergebnis = { ...stempel(ergebnis, aktuell, akteur), ...ergebnis }
     }
     // Approving directly is a real path since the waste-collection reminders:
     // they are approved weeks ahead and published by the scheduled run, which

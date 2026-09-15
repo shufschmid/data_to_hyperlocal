@@ -23,11 +23,31 @@ import {
 import {
   buildSlugMap,
   gemeindeSlug,
+  korrektur,
   liste,
   projektion,
+  type ApiArtikel,
+  type ApiKorrektur,
   type GemeindeZeile,
+  type Korrekturzeile,
   type Rohzeile
 } from './projektion'
+
+/**
+ * An article with the name of the house it came from.
+ *
+ * Added here rather than inside `projektion`, because the medium is a property
+ * of this INSTANCE and not of the row: a pure function over a row has no
+ * business knowing which newsroom is running it.
+ */
+function mitMedium(
+  zeile: Rohzeile,
+  medium: string
+): ApiArtikel & {
+  medium: string
+} {
+  return { ...projektion(zeile), medium }
+}
 
 /** The narrow slice of Express this module uses — fakeable in a test. */
 export interface AntwortLike {
@@ -66,10 +86,15 @@ export interface Deps {
   ladeArtikel(abfrage: Abfrage): Promise<Rohzeile[]>
   /** How many exist under the same conditions — the `gesamt` of R8. */
   zaehleArtikel(abfrage: Abfrage): Promise<number>
+  /** The retractions, newest first. `seit` applies to `zurueckgezogen_am`. */
+  ladeKorrekturen(abfrage: Abfrage): Promise<Korrekturzeile[]>
+  zaehleKorrekturen(abfrage: Abfrage): Promise<number>
   ladeGemeinden(): Promise<GemeindeZeile[]>
   datenbankBereit(): Promise<boolean>
   /** Read per request, so flipping the switch needs no code change. */
   istOffen(): boolean
+  /** The medium this instance speaks for — an instance property, not a row's. */
+  medium(): string
   jetzt(): string
   logger: { error: (obj: unknown, msg?: string) => void }
 }
@@ -94,7 +119,8 @@ function gesundheit(deps: Deps): Handler {
     const koerper = buildGesundheit({
       datenbank: await deps.datenbankBereit(),
       offen: deps.istOffen(),
-      zeit: deps.jetzt()
+      zeit: deps.jetzt(),
+      medium: deps.medium()
     })
     // Same body either way, as R3 demands — the one place in this API where a
     // non-2xx is not the `fehler` envelope, because a monitor needs the detail.
@@ -119,11 +145,7 @@ function openapi(): Handler {
  * `?gemeinde=muttenz` when Muttenz is not covered should say so, not look like
  * a quiet week.
  */
-async function leseAbfrage(
-  req: AnfrageLike,
-  res: AntwortLike,
-  deps: Deps
-): Promise<Abfrage | null> {
+function leseBlaettern(req: AnfrageLike, res: AntwortLike): Abfrage | null {
   const grenze = leseGrenze(req.query['grenze'])
   if (!grenze.ok) {
     sendeFehler(res, 400, 'ungueltige_eingabe', grenze.meldung)
@@ -142,6 +164,16 @@ async function leseAbfrage(
 
   const abfrage: Abfrage = { grenze: grenze.wert, versatz: versatz.wert }
   if (seit.wert !== null) abfrage.seit = seit.wert
+  return abfrage
+}
+
+async function leseAbfrage(
+  req: AnfrageLike,
+  res: AntwortLike,
+  deps: Deps
+): Promise<Abfrage | null> {
+  const abfrage = leseBlaettern(req, res)
+  if (abfrage === null) return null
 
   const rohGemeinde = req.query['gemeinde']
   if (typeof rohGemeinde === 'string' && rohGemeinde.trim() !== '') {
@@ -173,11 +205,15 @@ function artikelListe(deps: Deps): Handler {
     sende(
       res,
       200,
-      liste('artikel', zeilen.map(projektion), {
-        gesamt,
-        versatz: abfrage.versatz,
-        grenze: abfrage.grenze
-      })
+      liste(
+        'artikel',
+        zeilen.map((z) => mitMedium(z, deps.medium())),
+        {
+          gesamt,
+          versatz: abfrage.versatz,
+          grenze: abfrage.grenze
+        }
+      )
     )
   }
 }
@@ -211,7 +247,42 @@ function artikelEinzeln(deps: Deps): Handler {
     })
     const zeile = zeilen[0]
     if (zeile === undefined) return nichts()
-    sende(res, 200, projektion(zeile))
+    sende(res, 200, mitMedium(zeile, deps.medium()))
+  }
+}
+
+/**
+ * The retractions.
+ *
+ * Only what this run of the newsroom actually marked: an article pulled back
+ * before `zurueckgezogen_am` existed carries no timestamp and is not reported
+ * here rather than being reported with a made-up date. The contract says so.
+ *
+ * No municipality filter, on purpose — a consumer that carried an article has
+ * to hear about it whatever it was about, and a filter would invite it to ask
+ * only about the ones it remembers asking for.
+ */
+function korrekturenListe(deps: Deps): Handler {
+  return async (req, res) => {
+    const abfrage = leseBlaettern(req, res)
+    if (abfrage === null) return
+    const [zeilen, gesamt] = await Promise.all([
+      deps.ladeKorrekturen(abfrage),
+      deps.zaehleKorrekturen(abfrage)
+    ])
+    const medium = deps.medium()
+    const eintraege: (ApiKorrektur & { medium: string })[] = zeilen.map(
+      (zeile) => ({ ...korrektur(zeile), medium })
+    )
+    sende(
+      res,
+      200,
+      liste('korrekturen', eintraege, {
+        gesamt,
+        versatz: abfrage.versatz,
+        grenze: abfrage.grenze
+      })
+    )
   }
 }
 
@@ -244,6 +315,7 @@ const HANDLER: Record<string, (deps: Deps) => Handler> = {
   '/v1/openapi.json': () => openapi(),
   '/v1/artikel': artikelListe,
   '/v1/artikel/:id': artikelEinzeln,
+  '/v1/korrekturen': korrekturenListe,
   '/v1/gemeinden': gemeindenListe
 }
 

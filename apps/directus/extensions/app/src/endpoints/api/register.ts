@@ -17,7 +17,7 @@ export const KONVENTION = 'wepublish-rest/1'
  * crosses the TypeScript `rootDir` and depends on how the extension bundler
  * inlines JSON. One string is not worth that risk.
  */
-export const VERSION = '1.0.0'
+export const VERSION = '1.1.0'
 
 /** Everything this API serves is public — see R4a and `BLOG_API_OFFEN`. */
 export const MERKMAL = 'keines'
@@ -136,6 +136,25 @@ export const REGISTER: readonly RouteEintrag[] = [
     ]
   },
   {
+    pfad: '/v1/korrekturen',
+    methoden: ['GET'],
+    zweck:
+      'Beitraege, die publiziert waren und zurueckgezogen wurden, neueste zuerst. Ein Abnehmer, der einen Beitrag ausgespielt hat, erfaehrt hier, dass er nicht mehr gilt.',
+    merkmal_noetig: 'keines',
+    inhalt: true,
+    parameter: [
+      {
+        name: 'seit',
+        ort: 'query',
+        typ: 'string (JJJJ-MM-TT)',
+        beschreibung:
+          'Nur Rueckzuege von diesem Tag an. Einschliesslich, ab 00:00 UTC, gemessen am Zeitpunkt des Rueckzugs.',
+        obligatorisch: false
+      },
+      ...BLAETTERN
+    ]
+  },
+  {
     pfad: '/v1/gemeinden',
     methoden: ['GET'],
     zweck:
@@ -158,6 +177,15 @@ export function dokuPfad(pfad: string): string {
 
 export interface Gesundheit {
   dienst: string
+  /**
+   * The medium this instance speaks for (`REDAKTION_MEDIUM`).
+   *
+   * The Dorfkönig reads several newsrooms through the same convention, and an
+   * article is only half an answer without the name of the house it came from.
+   * The instance is the only place that knows it, so it says so here and on
+   * every article.
+   */
+  medium: string
   version: string
   api: string
   konvention: string
@@ -178,9 +206,11 @@ export function buildGesundheit(zustand: {
   datenbank: boolean
   offen: boolean
   zeit: string
+  medium: string
 }): Gesundheit {
   return {
     dienst: DIENST,
+    medium: zustand.medium,
     version: VERSION,
     api: API,
     konvention: KONVENTION,

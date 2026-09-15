@@ -82,7 +82,12 @@ describe('buildGesundheit', () => {
   const zeit = '2026-09-03T10:00:00.000Z'
 
   it('ist bereit, wenn Datenbank und Schalter stimmen', () => {
-    const g = buildGesundheit({ datenbank: true, offen: true, zeit })
+    const g = buildGesundheit({
+      datenbank: true,
+      offen: true,
+      zeit,
+      medium: 'bajour'
+    })
     expect(g.bereit).toBe(true)
     expect(g.konvention).toBe(KONVENTION)
     expect(g.merkmal).toBe('keines')
@@ -92,13 +97,38 @@ describe('buildGesundheit', () => {
   // R5 woertlich: ein Dienst, der nichts ausliefert, sagt das — und die zwei
   // Einzelbools sagen, welcher der beiden Gruende es ist.
   it('ist nicht bereit, wenn der Schalter aus ist, und sagt warum', () => {
-    const aus = buildGesundheit({ datenbank: true, offen: false, zeit })
+    const aus = buildGesundheit({
+      datenbank: true,
+      offen: false,
+      zeit,
+      medium: 'bajour'
+    })
     expect(aus.bereit).toBe(false)
     expect(aus.datenbank).toBe(true)
     expect(aus.offen).toBe(false)
 
-    const kaputt = buildGesundheit({ datenbank: false, offen: true, zeit })
+    const kaputt = buildGesundheit({
+      datenbank: false,
+      offen: true,
+      zeit,
+      medium: 'bajour'
+    })
     expect(kaputt.bereit).toBe(false)
     expect(kaputt.datenbank).toBe(false)
+  })
+})
+
+describe('buildGesundheit nennt das Medium', () => {
+  // Der Dorfkoenig liest mehrere Redaktionen. Ohne Kennung weiss er nicht, wer
+  // gerade spricht — und die Instanz selbst ist die einzige, die es weiss.
+  it('traegt die Kennung der Instanz', () => {
+    expect(
+      buildGesundheit({
+        datenbank: true,
+        offen: true,
+        zeit: '2026-09-15T12:00:00.000Z',
+        medium: 'bajour'
+      }).medium
+    ).toBe('bajour')
   })
 })

@@ -7,7 +7,7 @@ import {
   type Deps,
   type RouterLike
 } from './routen'
-import type { Rohzeile } from './projektion'
+import type { Korrekturzeile, Rohzeile } from './projektion'
 
 // Die fuenf Pruefungen aus Regel R16 der Konvention, sinngemaess fuer den
 // offenen Modus — alle ueber einen Fake-Router und Stub-Deps, also ohne Netz,
@@ -79,13 +79,28 @@ const ZEILE: Rohzeile = {
   gemeindemitteilung: null,
   spiel: null,
   gemeinde: { id: 'g-1', name: 'Münchenstein', bfs_nummer: 2769 },
-  datengrundlage: { quelle: 'punkt6', sendung: 'punkt6' }
+  datengrundlage: { quelle: 'punkt6', sendung: 'punkt6' },
+  zeit_warnungen: null,
+  entscheidung: null,
+  freigegeben_am: null,
+  publiziert_durch: 'redaktion'
+}
+
+const RUECKZUG: Korrekturzeile = {
+  id: 'a1b2c3d4-0000-4000-8000-000000000009',
+  titel: 'Tempo 30 im Dorfkern',
+  status: 'entwurf',
+  publiziert_am: '2026-09-02T06:00:00.000Z',
+  zurueckgezogen_am: '2026-09-04T08:15:00.000Z',
+  gemeinde: { id: 'g-1', name: 'Münchenstein', bfs_nummer: 2769 }
 }
 
 function stubDeps(ueber: Partial<Deps> = {}): Deps {
   return {
     ladeArtikel: vi.fn().mockResolvedValue([ZEILE]),
     zaehleArtikel: vi.fn().mockResolvedValue(1),
+    ladeKorrekturen: vi.fn().mockResolvedValue([RUECKZUG]),
+    zaehleKorrekturen: vi.fn().mockResolvedValue(1),
     ladeGemeinden: vi.fn().mockResolvedValue([
       {
         id: 'g-1',
@@ -96,6 +111,7 @@ function stubDeps(ueber: Partial<Deps> = {}): Deps {
     ]),
     datenbankBereit: vi.fn().mockResolvedValue(true),
     istOffen: () => true,
+    medium: () => 'bajour',
     jetzt: () => '2026-09-03T12:00:00.000Z',
     logger: { error: vi.fn() },
     ...ueber
@@ -497,5 +513,84 @@ describe('/v1/artikel/:id', () => {
     expect(Object.keys(einzeln).sort()).toEqual(Object.keys(ausListe).sort())
     expect(einzeln['id']).toBe(ZEILE.id)
     expect(einzeln['rubrik']).toBe('sendung')
+  })
+})
+
+describe('das Medium', () => {
+  // Eine Eigenschaft der Instanz, nicht der Zeile: darum in `routen.ts`
+  // angehaengt und nicht in der reinen Projektion.
+  it('steht auf jedem Beitrag der Liste', async () => {
+    const koerper = (await rufe('/v1/artikel', stubDeps())).koerper as {
+      artikel: { medium: string }[]
+    }
+    expect(koerper.artikel[0]?.medium).toBe('bajour')
+  })
+
+  it('steht auch auf dem einzelnen Beitrag', async () => {
+    const koerper = (
+      await rufe(
+        '/v1/artikel/:id',
+        stubDeps(),
+        anfrage({}, { id: 'a1b2c3d4-0000-4000-8000-000000000001' })
+      )
+    ).koerper as { medium: string }
+    expect(koerper.medium).toBe('bajour')
+  })
+
+  it('steht in der Gesundheit', async () => {
+    const koerper = (await rufe('/v1/gesundheit', stubDeps())).koerper as {
+      medium: string
+    }
+    expect(koerper.medium).toBe('bajour')
+  })
+})
+
+// Ein Rueckzug ist eine Nachricht. Wer den Beitrag am Morgen geholt hat, kann
+// sonst nicht erfahren, dass er nicht mehr gilt: aus /v1/artikel verschwindet
+// er, und die Einzelabfrage antwortet 404 wie bei einer Kennung, die es nie gab.
+describe('/v1/korrekturen', () => {
+  it('nennt die zurueckgezogenen Beitraege im Umschlag von R8', async () => {
+    const koerper = (await rufe('/v1/korrekturen', stubDeps()))
+      .koerper as Record<string, unknown>
+    expect(koerper['anzahl']).toBe(1)
+    expect(koerper['gesamt']).toBe(1)
+    expect(koerper['weitere']).toBe(false)
+    expect(koerper['korrekturen']).toEqual([
+      {
+        id: RUECKZUG.id,
+        gemeinde: 'muenchenstein',
+        titel: 'Tempo 30 im Dorfkern',
+        publiziert_am: '2026-09-02T06:00:00.000Z',
+        zurueckgezogen_am: '2026-09-04T08:15:00.000Z',
+        status: 'entwurf',
+        medium: 'bajour'
+      }
+    ])
+  })
+
+  // Der Text verlaesst das Haus kein zweites Mal: was zurueckgezogen ist, wird
+  // nicht noch einmal ausgeliefert, auch nicht als Beleg.
+  it('gibt den Text nicht noch einmal heraus', async () => {
+    const koerper = (await rufe('/v1/korrekturen', stubDeps())).koerper as {
+      korrekturen: Record<string, unknown>[]
+    }
+    expect(Object.keys(koerper.korrekturen[0]!)).not.toContain('text')
+    expect(Object.keys(koerper.korrekturen[0]!)).not.toContain('lead')
+  })
+
+  it('filtert seit auf den Zeitpunkt des Rueckzugs', async () => {
+    const deps = stubDeps()
+    await rufe('/v1/korrekturen', deps, anfrage({ seit: '2026-09-03' }))
+    expect(deps.ladeKorrekturen).toHaveBeenCalledWith(
+      expect.objectContaining({ seit: '2026-09-03T00:00:00.000Z' })
+    )
+  })
+
+  it('haengt hinter dem Schalter wie jede andere Inhaltsroute', async () => {
+    const antwort = await rufe(
+      '/v1/korrekturen',
+      stubDeps({ istOffen: () => false })
+    )
+    expect(antwort.status).toBe(503)
   })
 })
