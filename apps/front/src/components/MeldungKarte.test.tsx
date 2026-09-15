@@ -14,6 +14,7 @@ function meldung(ueber: Partial<MeldungFelder> = {}): MeldungFelder {
     zeit_warnungen: null,
     fehler: null,
     publiziert_am: null,
+    publiziert_durch: null,
     gemeinde: { id: 'g-1', name: 'Binningen', bezirk: 'Arlesheim' },
     ...ueber
   }
@@ -54,5 +55,27 @@ describe('MeldungKarte', () => {
     await userEvent.type(screen.getByLabelText('Warum? (optional, hilft dem Lernen)'), 'doppelt{enter}')
 
     expect(onAktion).toHaveBeenCalledWith('m-1', 'verwerfen', { kommentar: 'doppelt' })
+  })
+})
+
+describe('das Pruefsiegel auf der Karte', () => {
+  it('steht auf der publizierten Karte und nennt die Unterschrift', () => {
+    render(
+      <MeldungKarte
+        meldung={meldung({
+          status: 'publiziert',
+          publiziert_am: '2026-09-15T10:00:00.000Z',
+          publiziert_durch: 'redaktion'
+        })}
+        onChat={jest.fn()}
+        onAktion={jest.fn()}
+      />
+    )
+    expect(screen.getByText('publiziert von der Redaktion, keine Warnung')).toBeInTheDocument()
+  })
+
+  it('bleibt weg, solange nichts publiziert ist', () => {
+    render(<MeldungKarte meldung={meldung()} onChat={jest.fn()} onAktion={jest.fn()} />)
+    expect(screen.queryByText(/publiziert von/)).not.toBeInTheDocument()
   })
 })

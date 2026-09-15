@@ -77,6 +77,7 @@ describe('anzahlOffen', () => {
       zeit_warnungen: null,
       fehler: null,
       publiziert_am: null,
+      publiziert_durch: null,
       erscheint_am: null,
       date_created: null,
       gemeinde: null,

@@ -16,6 +16,7 @@ import {
   filterGemeinden,
   gemeindeSlug,
   meldungenNachLauf,
+  pruefsiegelText,
   quellenLaufText,
   resultat,
   seitenLink,
@@ -43,6 +44,7 @@ function meldung(ueber: Partial<MeldungFelder> = {}): MeldungFelder {
     zeit_warnungen: null,
     fehler: null,
     publiziert_am: null,
+    publiziert_durch: null,
     gemeinde: { id: 'g1', name: 'Aesch', bezirk: 'Arlesheim' },
     ...ueber
   }
@@ -879,5 +881,49 @@ describe('istBaselbiet / blattJeGemeinde / kalenderJeGemeinde', () => {
     const neu = { jahr: 2026, gemeinde: { id: 'g1' } }
     expect(kalenderJeGemeinde([alt, neu], 2026).get('g1')).toBe(neu)
     expect(kalenderJeGemeinde([alt], 2026).has('g1')).toBe(false)
+  })
+})
+
+// Das Siegel steht nur auf publizierten Karten: vorher ist nichts
+// unterschrieben, und ein Chip auf jedem Entwurf waere Raumverbrauch ohne
+// Aussage.
+describe('pruefsiegelText', () => {
+  it('schweigt, solange nichts publiziert ist', () => {
+    expect(pruefsiegelText(meldung({ status: 'entwurf' }))).toBeNull()
+    expect(pruefsiegelText(meldung({ status: 'freigegeben' }))).toBeNull()
+  })
+
+  it('nennt die Redaktorin und die saubere Pruefung', () => {
+    expect(pruefsiegelText(meldung({ status: 'publiziert', publiziert_durch: 'redaktion' }))).toBe(
+      'publiziert von der Redaktion, keine Warnung'
+    )
+  })
+
+  it('nennt den Zeitlauf und zaehlt die Warnungen', () => {
+    expect(
+      pruefsiegelText(
+        meldung({
+          status: 'publiziert',
+          publiziert_durch: 'zeitlauf',
+          zeit_warnungen: ['Vorjahr']
+        })
+      )
+    ).toBe('publiziert vom Zeitlauf, 1 Warnung')
+    expect(
+      pruefsiegelText(
+        meldung({
+          status: 'publiziert',
+          publiziert_durch: 'zeitlauf',
+          zeit_warnungen: ['Vorjahr', 'ungepruefte Prozentangabe: 12%']
+        })
+      )
+    ).toBe('publiziert vom Zeitlauf, 2 Warnungen')
+  })
+
+  // Altbestand: publiziert, bevor es die Markierung gab.
+  it('sagt unbekannt, statt eine Unterschrift zu erfinden', () => {
+    expect(pruefsiegelText(meldung({ status: 'publiziert', publiziert_durch: null }))).toBe(
+      'publiziert, Unterschrift unbekannt, keine Warnung'
+    )
   })
 })

@@ -111,6 +111,12 @@ export interface MeldungFelder {
   zeit_warnungen: string[] | null
   fehler: string | null
   publiziert_am: string | null
+  /**
+   * Who set off the publication — `redaktion` or `zeitlauf`, stamped by the
+   * backend's meldung-status hook. Null on everything that is not published
+   * yet, and on what was published before the mark existed.
+   */
+  publiziert_durch: string | null
   gemeinde: { id: string; name: string; bezirk: string } | null
 }
 
@@ -178,6 +184,7 @@ export const MELDUNGEN_QUERY = gql`
       zeit_warnungen
       fehler
       publiziert_am
+      publiziert_durch
       gemeinde {
         id
         name
@@ -207,6 +214,8 @@ export interface AlleMeldungFelder {
   zeit_warnungen: string[] | null
   fehler: string | null
   publiziert_am: string | null
+  /** See `MeldungFelder.publiziert_durch`. */
+  publiziert_durch: string | null
   /** Only set on waste-collection reminders: the newsletter day they belong to. */
   erscheint_am: string | null
   date_created: string | null
@@ -248,6 +257,7 @@ export const ALLE_MELDUNGEN_QUERY = gql`
       zeit_warnungen
       fehler
       publiziert_am
+      publiziert_durch
       erscheint_am
       date_created
       gemeinde {

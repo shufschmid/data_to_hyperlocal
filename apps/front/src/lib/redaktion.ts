@@ -85,6 +85,36 @@ export function warnungen(meldung: MeldungFelder): string[] {
   return gesammelt
 }
 
+/**
+ * The seal on a published card: who signed, and how much is still open.
+ *
+ * Only on published articles. Before that nothing is signed, and a chip on
+ * every draft would cost room without saying anything.
+ *
+ * `null` for `publiziert_durch` is not an error but an honest gap: the articles
+ * that went out before the backend started stamping it carry no signature, and
+ * naming one would be a guess. The full seal — every warning sorted by the
+ * check that raised it — travels through the API (`/api/v1/artikel`); the desk
+ * shows the short form and the warnings themselves in their own box above.
+ */
+export function pruefsiegelText(
+  meldung: Pick<MeldungFelder, 'status' | 'publiziert_durch' | 'zeit_warnungen'>
+): string | null {
+  if (meldung.status !== 'publiziert') return null
+
+  const unterschrift =
+    meldung.publiziert_durch === 'redaktion'
+      ? 'publiziert von der Redaktion'
+      : meldung.publiziert_durch === 'zeitlauf'
+        ? 'publiziert vom Zeitlauf'
+        : 'publiziert, Unterschrift unbekannt'
+
+  const offen = meldung.zeit_warnungen?.length ?? 0
+  const warnung = offen === 0 ? 'keine Warnung' : offen === 1 ? '1 Warnung' : `${offen} Warnungen`
+
+  return `${unterschrift}, ${warnung}`
+}
+
 export function formatiereDatum(wert: string | null): string {
   if (wert === null) return '—'
   const datum = new Date(wert)
