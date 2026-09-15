@@ -440,3 +440,86 @@ describe('Telegramm im Bericht', () => {
     expect(quelle?.url).toContain('tg=4403552')
   })
 })
+
+// Gemessen am 15. September 2026 an den 170 publizierten Beitraegen: 23 der 32
+// Zahlen-Warnungen betrafen den TAG in einem ausgeschriebenen Datum. Der
+// Bericht nennt ein frueheres Spiel mit «am 6. September 2026», und die
+// Pruefung meldete die 6. Damit traf sie genau die Form, auf der die Redaktion
+// besteht — absolute Daten statt «am Samstag».
+describe('zahlWarnungen und die Daten frueherer Spiele', () => {
+  const mitFrueher: SpielFakten = {
+    ...FAKTEN,
+    frueher: [
+      {
+        datum: '2026-09-06T16:00:00.000Z',
+        heim: 'SC Dornach',
+        gast: 'FC Amicitia Riehen',
+        toreHeim: 1,
+        toreGast: 0
+      }
+    ]
+  }
+
+  it('erlaubt Tag, Monat und Jahr eines frueheren Spiels', () => {
+    expect(
+      zahlWarnungen(
+        'Bereits am 6. September 2026 verlor der FC Amicitia Riehen 0:1.',
+        mitFrueher
+      )
+    ).toEqual([])
+  })
+
+  it('meldet weiterhin eine Zahl, die nirgends steht', () => {
+    expect(
+      zahlWarnungen('Der Verein liegt auf Rang 7 der Tabelle.', mitFrueher)
+    ).toEqual(['Zahl "7" steht nicht in den Angaben.'])
+  })
+
+  // Eine ISO-Angabe schreibt den fuehrenden Nullwert mit, die Prosa nicht.
+  it('liest die fuehrende Null weg, wie es der Amtsblatt-Tisch laengst tut', () => {
+    expect(
+      zahlWarnungen('Am 6. September 2026 war Anpfiff um 16 Uhr.', {
+        ...mitFrueher,
+        telegramm: 'Anpfiff 16:00'
+      })
+    ).toEqual([])
+  })
+})
+
+// Die Entsorgungserinnerung aus Muenchenstein wurde wegen «morgen» gemeldet.
+// Im Text stand «am Morgen des Abfuhrtages»: das Substantiv, nicht das Adverb.
+// Die Grossschreibung unterscheidet beides, und der Check warf sie weg.
+describe('zeitWarnungen und das Substantiv Morgen', () => {
+  it('laesst den Morgen als Tageszeit stehen', () => {
+    expect(
+      zeitWarnungen(
+        'Das Papier ist am Morgen des Abfuhrtages bis 7 Uhr bereitzustellen.'
+      )
+    ).toEqual([])
+  })
+
+  it('meldet das Adverb weiterhin, klein geschrieben', () => {
+    expect(zeitWarnungen('Die Abfuhr findet morgen statt.')).toEqual([
+      'Relativer Zeitbezug: "morgen"'
+    ])
+  })
+
+  // Am Satzanfang ist die Grossschreibung kein Hinweis, also wird gemeldet.
+  it('meldet das Adverb auch am Satzanfang', () => {
+    expect(zeitWarnungen('Morgen ist Papierabfuhr.')).toEqual([
+      'Relativer Zeitbezug: "morgen"'
+    ])
+  })
+
+  it('unterscheidet beide im selben Text', () => {
+    expect(
+      zeitWarnungen('Am Morgen wird geleert. Morgen ist wieder Ruhe.')
+    ).toEqual(['Relativer Zeitbezug: "morgen"'])
+  })
+
+  it('laesst die anderen Woerter unberuehrt', () => {
+    expect(zeitWarnungen('Das Spiel war am Samstag.')).toEqual([
+      'Relativer Zeitbezug: "am samstag"'
+    ])
+  })
+})
