@@ -1271,6 +1271,21 @@ filters. [verify.yml](.github/workflows/verify.yml) typechecks, tests and builds
 apps on every push and PR. GitHub only reads workflows at the repo root, so both
 apps' pipelines live in `.github/workflows/`.
 
+[code-review.yml](.github/workflows/code-review.yml) is the second gate and
+checks a different thing: not that the code works, but that it is built the way
+this repo is meant to be built, against the rules in
+`.github/code-review-rules.yml`. Three things about it are deliberate. It runs
+on **Claude** — the official `anthropics/claude-code-action`, since September
+2026; the action it used before could only speak to Gemini, which sat badly with
+hard constraint 2. That constraint still means what it says for the
+APPLICATION — `shared/claude.ts` is the only module that calls a model at
+runtime — and CI tooling is simply not the application. It reads the **diff**,
+not the whole tree: reviewing everything cost roughly 700'000 input tokens on
+every push to `main`, and a push to `main` is a deploy here. And a missing
+`ANTHROPIC_API_KEY` leaves it **quiet, not red** (the `CRAWLER_KEY` bargain) —
+the old one failed on the missing secret and had been red on `main` for weeks
+without once saying anything about the code.
+
 On a server, deploy the same `docker-compose.yml` with real values in `.env`
 (`KEY`, `SECRET`, `DB_PASSWORD`, `ADMIN_PASSWORD`, the public URLs) and a reverse
 proxy in front for TLS.

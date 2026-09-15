@@ -1,17 +1,34 @@
 name: Code review
 
-# Reviews the codebase against the architectural rules in
+# Reviews the CHANGED code against the architectural rules in
 # .github/code-review-rules.yml — the rules the CLAUDE.md files state in prose.
-# Findings appear as inline annotations, as a comment on the pull request, and
-# in the job summary. This complements verify.yml: that one checks that the code
-# works, this one checks that it is built the way this repo is meant to be built.
+# Findings appear as a comment on the pull request, as an artifact, and in the
+# job summary. This complements verify.yml: that one checks that the code works,
+# this one checks that it is built the way this repo is meant to be built.
 #
-# Needs a GEMINI_API_KEY secret on the repository or the organisation
-# (https://aistudio.google.com/apikey).
+# Two things changed on 15 September 2026, and both were measured:
 #
-# The whole tree is reviewed on every run, not just the diff, so this runs on
-# pull requests and on every push to main. While you tune the rules, set
-# `fail-on: never` below to get the report without blocking merges.
+#   1. CLAUDE, NOT GEMINI. Hard constraint 2 of the root CLAUDE.md says the
+#      Claude API is the only inference provider this project uses. The review
+#      was the one place that did not hold to it, because the action it called
+#      (wepublish/gha-review@v1) can only speak to Gemini: `gemini-api-key` is
+#      declared `required` and the model is hardwired. It now runs the official
+#      anthropics/claude-code-action, so there is one provider again and one
+#      key to keep alive.
+#
+#   2. THE DIFF, NOT THE WHOLE TREE. The old run read every reviewed file on
+#      every push — measured 2.78 MB of TypeScript and YAML, roughly 700'000
+#      input tokens per run, on every pull request AND every push to main (and
+#      a push to main is a deploy here, so that is several times a day). A
+#      review of the change costs a fraction of that and answers the question
+#      anyone actually asks of a pull request. Claude Haiku 4.5 does the
+#      reading; the rules file is a checklist, not a puzzle.
+#
+# WITHOUT `ANTHROPIC_API_KEY` THIS JOB STAYS QUIET AND SAYS SO — it does not
+# fail. That is the same bargain as CRAWLER_KEY in the application: a missing
+# key switches a feature off, it does not break the build. The old workflow
+# failed on a missing secret instead, and had been red on main since at least
+# 11 September without once saying anything about the code.
 
 on:
   pull_request:
@@ -26,62 +43,190 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The review needs the base commit to diff against, so the default
+          # single-commit checkout is not enough.
+          fetch-depth: 0
 
-      - uses: wepublish/gha-review@v1
+      - name: Say why nothing happens
+        if: env.ANTHROPIC_API_KEY == ''
+        run: |
+          echo "### Architekturregeln nicht geprueft" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Das Geheimnis \`ANTHROPIC_API_KEY\` ist auf diesem Repository nicht gesetzt." >> "$GITHUB_STEP_SUMMARY"
+          echo "Die Pruefung bleibt still, bis es da ist — sie faellt nicht." >> "$GITHUB_STEP_SUMMARY"
+
+      # The change under review, as two plain files Claude reads. Computed here
+      # rather than left to the model: what counts as "the change" is a fact of
+      # the event, not a judgement call.
+      - name: Collect the change
+        if: env.ANTHROPIC_API_KEY != ''
+        id: aenderung
+        env:
+          BASIS: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          KOPF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          # A first push to a branch and the very first commit of a repository
+          # report an all-zero base; fall back to the parent commit.
+          if [ -z "$BASIS" ] || [ "$BASIS" = "0000000000000000000000000000000000000000" ]; then
+            BASIS="$(git rev-parse "${KOPF}^" 2>/dev/null || echo '')"
+          fi
+          if [ -z "$BASIS" ]; then
+            echo "leer=ja" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # The same exclusions the rules file assumes: generated, dumped and
+          # vendored trees are nobody's architecture.
+          git diff --name-only "$BASIS" "$KOPF" -- \
+            ':(exclude)apps/directus/schema/**' \
+            ':(exclude)apps/directus/extensions/.registry/**' \
+            ':(exclude)apps/directus/migrations/*.mjs' \
+            ':(exclude)apps/front/src/graphql/generated/**' \
+            ':(exclude)**/*.dump' \
+            ':(exclude)**/*.liquid' \
+            ':(exclude)**/package-lock.json' \
+            > geaenderte-dateien.txt
+
+          git diff "$BASIS" "$KOPF" -- \
+            ':(exclude)apps/directus/schema/**' \
+            ':(exclude)apps/directus/extensions/.registry/**' \
+            ':(exclude)apps/directus/migrations/*.mjs' \
+            ':(exclude)apps/front/src/graphql/generated/**' \
+            ':(exclude)**/*.dump' \
+            ':(exclude)**/*.liquid' \
+            ':(exclude)**/package-lock.json' \
+            > aenderung.diff
+
+          if [ ! -s geaenderte-dateien.txt ]; then
+            echo "leer=ja" >> "$GITHUB_OUTPUT"
+          else
+            echo "leer=nein" >> "$GITHUB_OUTPUT"
+            echo "Geprueft werden $(wc -l < geaenderte-dateien.txt) Dateien, $(wc -c < aenderung.diff) Bytes Diff."
+          fi
+
+      - uses: anthropics/claude-code-action@v1
+        if: env.ANTHROPIC_API_KEY != '' && steps.aenderung.outputs.leer == 'nein'
         id: review
-        # Keep going so the report is uploaded and posted even when a rule is
+        # Keep going so the report is posted and uploaded even when a rule is
         # violated; the last step turns the outcome back into a failure.
         continue-on-error: true
         with:
-          gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
-          fail-on: error
-          exclude: |
-            apps/directus/schema/**
-            apps/directus/extensions/.registry/**
-            apps/directus/migrations/*.mjs
-            apps/front/src/graphql/generated/**
-            **/*.dump
-            **/*.liquid
-          project-context: |
-            A monorepo of two independently installed and deployed apps — not an
-            npm workspace, so each app has its own package.json and lockfile.
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Haiku 4.5 reads a checklist against a diff — that is what this is.
+          # The schema is what makes the gate deterministic: the job fails on a
+          # parsed field, never on the model's prose.
+          claude_args: >-
+            --model claude-haiku-4-5
+            --json-schema '{"type":"object","additionalProperties":false,
+            "required":["bestanden","befunde"],
+            "properties":{
+            "bestanden":{"type":"boolean"},
+            "befunde":{"type":"array","items":{"type":"object",
+            "additionalProperties":false,
+            "required":["regel","datei","schwere","befund"],
+            "properties":{
+            "regel":{"type":"string"},
+            "datei":{"type":"string"},
+            "zeile":{"type":"integer"},
+            "schwere":{"type":"string","enum":["error","warning","info"]},
+            "befund":{"type":"string"}}}}}}'
+          prompt: |
+            Du pruefst eine Aenderung an diesem Repository gegen seine
+            Architekturregeln. Antworte am Ende im vorgegebenen JSON-Schema.
 
-            apps/directus is a Directus 11 backend on Postgres 16. It owns the
-            data model and ALL server-side logic; there is no separate API
-            service. Logic ships as one extension bundle at
-            apps/directus/extensions/app, with endpoints/, hooks/, operations/
-            and shared/ (claude.ts, env.ts, http.ts). Scheduled work is a
-            Directus Flow with a cron trigger calling an operation. The data
-            model is version-controlled in apps/directus/schema (directus-sync):
-            it is always built in the admin UI and committed with
-            `npm run schema:dump`. apps/directus/migrations/*.mts is a last-resort
-            escape hatch for row data and never changes structure.
+            SO GEHST DU VOR:
 
-            apps/front is Next 16 (App Router), React 19, MUI 9, Apollo Client 4,
-            and is UI only. The browser holds no token: it gets two httpOnly
-            session cookies, and every request to Directus goes through a route
-            handler under src/app/api that proxies with the signed-in user's
-            access token.
+            1. Lies `.github/code-review-rules.yml`. Das sind die Regeln, und
+               nur sie. Jede hat eine `id`, einen `title`, eine `description`
+               und oft `include`/`exclude`-Globs und eine `severity`.
+            2. Lies `geaenderte-dateien.txt` und `aenderung.diff`. Das ist die
+               Aenderung.
+            3. Pruefe NUR die geaenderten Zeilen. Wenn du fuer ein Urteil mehr
+               Zusammenhang brauchst, lies die betroffene Datei ganz — aber
+               melde nichts, was die Aenderung nicht angefasst hat. Bestehende
+               Verstoesse sind nicht Sache dieses Pull Requests.
+            4. Achte auf die Globs: eine Regel mit `include` gilt nur fuer
+               Dateien, auf die ihr Muster passt.
 
-            Every LLM call goes to the Claude API through
-            apps/directus/extensions/app/src/shared/claude.ts. The
-            ANTHROPIC_API_KEY lives in the backend only.
+            WAS EIN BEFUND IST:
 
-            UI labels are German — including error messages that reach the
-            browser. Code, comments and logs are English. TypeScript everywhere,
-            strict mode with noUncheckedIndexedAccess. Prettier and tsc are the
-            style and type gate; there is no ESLint.
+            - Ein Befund nennt IMMER die `id` der verletzten Regel, die Datei
+              und die Zeile, und sagt in einem Satz, was konkret dagegen
+              verstoesst. Kein Befund ohne Regel.
+            - `schwere` uebernimmst du aus der `severity` der Regel (fehlt
+              sie, ist es `error`).
+            - `bestanden` ist genau dann false, wenn mindestens ein Befund die
+              Schwere `error` hat. Warnungen und Hinweise allein bestehen.
+            - Im Zweifel meldest du nichts. Ein falscher Befund kostet die
+              Redaktion mehr Zeit als ein uebersehener: nach drei unnoetigen
+              Warnungen liest niemand mehr hin. Melde nur, was du an einer
+              konkreten Zeile zeigen kannst.
+            - Das hier ist ARCHITEKTUR, nicht Stil. Prettier und
+              `tsc --noEmit` pruefen Formatierung und Typen schon; was die
+              beiden koennen, gehoert nicht hierher.
 
-            The application is «Die Redaktion»: it watches public data sources
-            (data.bl.ch, the statistics office's agenda, statistik.bl.ch,
-            sports result pages) and drafts one article per municipality when a
-            dataset with per-municipality figures arrives. Reference features:
-            endpoints/redaktion, operations/quellen-pruefen, hooks/meldung-status.
-            Every figure in a draft is checked against the data it came from;
-            prompts live next to their checks (redaktion/prompt.ts,
-            redaktion/spielbericht.ts).
+            DER BERICHT:
+
+            Schreibe ausserdem `code-review-report.md` — deutsche Prosa, je
+            Befund ein Abschnitt mit Regel, Ort und Begruendung. Steht nichts
+            an, schreib einen Satz, dass die Aenderung die Regeln einhaelt.
+
+            ZUM PROJEKT (Stand halten mit dem Kopf von
+            `.github/code-review-rules.yml`):
+
+            Ein Monorepo aus zwei unabhaengig installierten und deployten
+            Apps — KEIN npm-Workspace, jede App hat ihre eigene package.json
+            und ihre eigene Sperrdatei.
+
+            `apps/directus` ist ein Directus-11-Backend auf Postgres 16. Es
+            besitzt das Datenmodell UND die gesamte serverseitige Logik; es
+            gibt keinen separaten API-Dienst. Die Logik liegt in einem
+            Erweiterungsbuendel unter `apps/directus/extensions/app` mit
+            `endpoints/`, `hooks/`, `operations/` und `shared/` (claude.ts,
+            env.ts, http.ts). Geplante Arbeit ist ein Directus-Flow mit
+            Cron-Ausloeser, der eine Operation aufruft. Das Datenmodell liegt
+            versioniert in `apps/directus/schema` (directus-sync): es wird in
+            der Admin-UI gebaut und mit `npm run schema:dump` committet.
+            `apps/directus/migrations/*.mts` ist der Notausgang fuer
+            Zeilendaten und aendert nie Struktur.
+
+            `apps/front` ist Next 16 (App Router), React 19, MUI 9, Apollo
+            Client 4 — und nur Oberflaeche. Der Browser haelt kein Token: er
+            bekommt zwei httpOnly-Sitzungscookies, und jede Anfrage an
+            Directus laeuft ueber einen Route-Handler unter `src/app/api`,
+            der mit dem Zugriffstoken der angemeldeten Person weiterleitet.
+
+            Jeder Modellaufruf geht an die Claude-API, ueber
+            `apps/directus/extensions/app/src/shared/claude.ts`. Der
+            `ANTHROPIC_API_KEY` lebt nur im Backend.
+
+            Oberflaechentexte sind Deutsch — auch Fehlermeldungen, die den
+            Browser erreichen. Code, Kommentare und Logs sind Englisch.
+            Ueberall TypeScript, strict mit `noUncheckedIndexedAccess`.
+            Prettier und tsc sind das Stil- und Typentor; ESLint gibt es
+            nicht.
+
+            Die Anwendung ist «Die Redaktion»: sie beobachtet oeffentliche
+            Quellen (data.bl.ch, die Agenda des Statistischen Amts,
+            statistik.bl.ch, Amtsblatt, Wochenblaetter, Gemeindeseiten,
+            Sportresultate, zwei Sendungen) und schreibt je Gemeinde einen
+            Beitrag, den eine Redaktorin freigibt. Jede Zahl in einem Entwurf
+            wird gegen die Daten geprueft, aus denen sie stammt; Prompts
+            stehen neben ihren Pruefungen (`redaktion/prompt.ts`,
+            `redaktion/spielbericht.ts`, `redaktion/warnungen.ts`).
+
+      - name: Say that nothing changed
+        if: env.ANTHROPIC_API_KEY != '' && steps.aenderung.outputs.leer == 'ja'
+        run: |
+          echo "### Architekturregeln: nichts zu pruefen" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Die Aenderung beruehrt keine Datei, fuer die diese Regeln gelten." >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -91,16 +236,20 @@ jobs:
           if-no-files-found: ignore
 
       - name: Comment on the pull request
-        if: always() && github.event_name == 'pull_request'
+        if: always() && github.event_name == 'pull_request' && steps.review.outcome != 'skipped'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ github.event.pull_request.number }}
-          REPORT: ${{ steps.review.outputs.report-markdown }}
         run: |
-          if [ -n "$REPORT" ]; then
-            gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body "$REPORT"
+          if [ -s code-review-report.md ]; then
+            gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body-file code-review-report.md
           fi
 
+      # The gate, and it reads a parsed field rather than prose: `bestanden`
+      # comes back through the schema above. A run that never happened (no key,
+      # nothing changed) leaves it empty and passes — silence is not a verdict.
       - name: Fail on violations
-        if: steps.review.outputs.passed != 'true'
-        run: exit 1
+        if: steps.review.outcome != 'skipped' && fromJSON(steps.review.outputs.structured_output || '{"bestanden":true}').bestanden != true
+        run: |
+          echo "Die Aenderung verletzt mindestens eine Architekturregel. Der Bericht steht im Artefakt und im Kommentar."
+          exit 1
