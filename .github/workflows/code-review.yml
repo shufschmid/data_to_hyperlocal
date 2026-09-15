@@ -43,6 +43,11 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+      # Required by the action itself, not just by the federation path it
+      # documents: without it the run logs `Unable to get
+      # ACTIONS_ID_TOKEN_REQUEST_URL` and finishes green having produced no
+      # verdict at all. Measured on pull requests #5 and #7.
+      id-token: write
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
     steps:
@@ -286,10 +291,24 @@ jobs:
             --body-file code-review-report.md --edit-last --create-if-none
 
       # The gate, and it reads a parsed field rather than prose: `bestanden`
-      # comes back through the schema above. A run that never happened (no key,
-      # nothing changed) leaves it empty and passes — silence is not a verdict.
+      # comes back through the schema above.
+      #
+      # A review that RAN and produced no verdict fails too, and that is the
+      # lesson of the first two runs: the gate used to fall back to
+      # `{"bestanden":true}` whenever `structured_output` was empty, so a
+      # broken review was indistinguishable from a clean one — twice it
+      # reported green while judging nothing. A missing key or an untouched
+      # tree still pass quietly (the step is skipped); a review that spoke and
+      # said nothing is a defect and says so.
       - name: Fail on violations
-        if: steps.review.outcome != 'skipped' && fromJSON(steps.review.outputs.structured_output || '{"bestanden":true}').bestanden != true
+        if: steps.review.outcome != 'skipped' && fromJSON(steps.review.outputs.structured_output || '{"bestanden":false}').bestanden != true
+        env:
+          ERGEBNIS: ${{ steps.review.outputs.structured_output }}
         run: |
-          echo "Die Aenderung verletzt mindestens eine Architekturregel. Die Befunde stehen in der Zusammenfassung, im Artefakt und im Kommentar."
+          if [ -z "${ERGEBNIS:-}" ]; then
+            echo "Die Pruefung lief, lieferte aber kein Urteil — kein strukturiertes Ergebnis."
+            echo "Das ist ein Defekt der Pruefung, kein Befund am Code. Siehe das Protokoll des Schritts oben."
+          else
+            echo "Die Aenderung verletzt mindestens eine Architekturregel. Die Befunde stehen in der Zusammenfassung, im Artefakt und im Kommentar."
+          fi
           exit 1
