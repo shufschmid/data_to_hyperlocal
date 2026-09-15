@@ -416,11 +416,40 @@ const RELATIV = [
  * "morgen" and is a perfectly durable word — the press-review walkthrough
  * flagged exactly that.
  */
+/**
+ * Words whose capitalisation decides whether they are a time reference at all.
+ *
+ * German writes the adverb «morgen» (tomorrow) small and the noun «Morgen»
+ * (morning) capital, and «am Morgen des Abfuhrtages» is a time of day, not a
+ * date that rots. A waste-collection reminder was reported for exactly that on
+ * 15 September 2026, and the reminder's own text was correct.
+ *
+ * At the start of a sentence the capital says nothing, so there the word is
+ * reported as before: better one warning too many than a text that dates
+ * itself.
+ */
+const GROSS_IST_SUBSTANTIV = new Set(['morgen'])
+
+/** Whether this hit is the capitalised noun rather than the adverb. */
+function istSubstantiv(text: string, wort: string, stelle: number): boolean {
+  if (!GROSS_IST_SUBSTANTIV.has(wort)) return false
+  const original = text.slice(stelle, stelle + wort.length)
+  if (original[0] !== original[0]?.toUpperCase()) return false
+  const davor = text.slice(0, stelle).trimEnd()
+  // Nothing before it, or a closed sentence: the capital is the sentence's,
+  // not the word's.
+  return davor !== '' && !/[.!?:»"„]$/.test(davor)
+}
+
 export function zeitWarnungen(text: string): string[] {
   const klein = text.toLowerCase()
-  return RELATIV.filter((wort) =>
-    new RegExp(`(?<!\\p{L})${wort}(?!\\p{L})`, 'u').test(klein)
-  ).map(zeitWarnung)
+  return RELATIV.filter((wort) => {
+    const regex = new RegExp(`(?<!\\p{L})${wort}(?!\\p{L})`, 'gu')
+    for (const treffer of klein.matchAll(regex)) {
+      if (!istSubstantiv(text, wort, treffer.index)) return true
+    }
+    return false
+  }).map(zeitWarnung)
 }
 
 /**
@@ -447,6 +476,18 @@ export function zahlWarnungen(
   for (const f of fakten.frueher) {
     erlaubt.add(String(f.toreHeim))
     erlaubt.add(String(f.toreGast))
+    // And its DATE. The report is required to write dates out in full, so a
+    // sentence about an earlier match says "am 6. September 2026" — and the
+    // day was the one part of that date nobody had allowed. Measured on the
+    // 170 published articles of 15 September 2026: 23 of the 32 number
+    // warnings were exactly this, the check quarrelling with the rule it
+    // serves.
+    const frueherDatum = new Date(f.datum)
+    if (!Number.isNaN(frueherDatum.getTime())) {
+      erlaubt.add(String(frueherDatum.getDate()))
+      erlaubt.add(String(frueherDatum.getMonth() + 1))
+      erlaubt.add(String(frueherDatum.getFullYear()))
+    }
   }
   // Digits that arrive inside the facts themselves are "in den Angaben" by
   // definition: the league ("2. Liga interregional"), a year in a club's name
@@ -467,7 +508,12 @@ export function zahlWarnungen(
     fakten.telegramm ?? ''
   ]
   for (const angabe of angaben) {
-    for (const treffer of angabe.matchAll(/\d+/g)) erlaubt.add(treffer[0])
+    for (const treffer of angabe.matchAll(/\d+/g)) {
+      erlaubt.add(treffer[0])
+      // "06" in an ISO date or a kick-off time is spoken as "6" in prose. The
+      // gazette desk has read it that way from the start; this one had not.
+      erlaubt.add(String(Number(treffer[0])))
+    }
   }
   // What the editor has already waved through for this club — see
   // `gelernteZahlen` below.

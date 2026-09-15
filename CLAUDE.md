@@ -965,6 +965,15 @@ lead requirement for `spiel`-Meldungen and for them alone (the three-part
 titel/lead/text parser the other feeds re-export lives on as
 `parseMeldungstext`).
 
+**A date written out in full is handed material, not arithmetic.** Measured on
+the 170 published articles of 15 September 2026, the day after the Prüfsiegel
+first made the warnings countable: 23 of the 32 number warnings were the DAY in
+an absolute date. A report writes "am 6. September 2026" about an earlier match,
+and `frueher` handed over that match's date but only its goals were ever
+allowed. So the check quarrelled with the rule it serves, on the one form the
+newsroom insists on. The earlier matches' dates now count, and the leading zero
+of an ISO date is read away as the gazette desk has always done it.
+
 **The number check learns from the editor.** Digits that arrive inside the
 handed facts — the year in a club's name, the pitch number in the venue — are
 allowed outright: flagging them taught the editor to ignore the warning. And
@@ -974,7 +983,12 @@ after the write — a lost lesson must never block a publish) stores those numbe
 in `vereine.akzeptierte_zahlen`, and the check never flags them again for that
 club. Per club on purpose, so a wrong acceptance stays on its own desk; deleting
 a number from the field turns the warning back on. Relative time references
-deliberately do NOT learn — "am Samstag" is wrong afresh every time.
+deliberately do NOT learn — "am Samstag" is wrong afresh every time. But one of
+them is not a time reference at all: German writes the adverb "morgen" small and
+the noun "Morgen" capital, and a waste reminder saying "am Morgen des
+Abfuhrtages" was reported for a rule it kept. `GROSS_IST_SUBSTANTIV` holds the
+words whose capitalisation decides that, and at the start of a sentence, where
+the capital says nothing, the word is still reported.
 
 **Telegramme: the association's own match report, where it exists.** The Match
 Center hangs a small icon next to some results (`…&tg=<id>`); the page behind it
