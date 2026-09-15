@@ -22,8 +22,13 @@
 # a violation, and say what does not. Rules phrased as vague aspirations
 # ("code should be clean") produce noisy, low-confidence findings.
 #
-# The stack description the model reviews against lives in the workflow, as the
-# `project-context` input — keep the two in sync.
+# The stack description the model reviews against lives in the workflow, in the
+# `prompt` of the review step — keep the two in sync.
+#
+# Since 15 September 2026 the review reads the DIFF, not the whole tree: a rule
+# is checked against the lines a pull request changed. Pre-existing violations
+# are nobody's pull request, and a review that reports them on every run stops
+# being read.
 
 rules:
   # ── Platform constraints ────────────────────────────────────────────────
