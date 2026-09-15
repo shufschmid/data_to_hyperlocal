@@ -30,10 +30,17 @@ name: Code review
 # failed on a missing secret instead, and had been red on main since at least
 # 11 September without once saying anything about the code.
 
+# ONLY on pull requests, and that is a correction from the same day.
+#
+# The old Gemini workflow also ran on every push to `main`, which made sense
+# while it reviewed the whole tree: there was always something to look at. This
+# one reviews a CHANGE, and a change reaches `main` only through a pull request
+# that was already reviewed. Worse, measured: on a `push` event the action finds
+# no task and exits after three seconds without judging anything (on a pull
+# request the same step runs about forty). Paired with the new rule that a run
+# without a verdict fails, that turned every merge into a red `main`.
 on:
   pull_request:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
