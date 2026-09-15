@@ -4,8 +4,10 @@ import {
   gemeindeSlug,
   liste,
   projektion,
+  pruefsiegel,
   quelleVon,
   rubrikVon,
+  sortiereWarnungen,
   statistikUrl,
   type Rohzeile
 } from './projektion'
@@ -32,6 +34,10 @@ function zeile(ueber: Partial<Rohzeile> = {}): Rohzeile {
     spiel: null,
     gemeinde: { id: 'g-1', name: 'Münchenstein', bfs_nummer: 2769 },
     datengrundlage: null,
+    zeit_warnungen: null,
+    entscheidung: null,
+    freigegeben_am: null,
+    publiziert_durch: null,
     ...ueber
   }
 }
@@ -553,5 +559,150 @@ describe('Rubrik gemeinde', () => {
       name: 'Gemeinde Münchenstein',
       url: null
     })
+  })
+})
+
+// Das Pruefsiegel wird GERECHNET, nicht gesetzt: jeder Bestandteil liegt schon
+// in der Zeile. Die Warnungsformen unten sind aus den Schreibstellen kopiert
+// (redaktion/drain.ts, spielbericht.ts und die Tische, die dessen
+// `zeitWarnungen` mitbenutzen) — aendert eine davon ihren Wortlaut, soll hier
+// etwas rot werden.
+describe('sortiereWarnungen', () => {
+  it('legt die Zahlenbefunde beider Formen zu den Zahlen', () => {
+    expect(
+      sortiereWarnungen([
+        'Zahl "7" steht nicht in den Angaben.',
+        'ungepruefte Prozentangabe: 12%'
+      ])
+    ).toEqual({
+      zeitbezug: [],
+      zahlen: [
+        'Zahl "7" steht nicht in den Angaben.',
+        'ungepruefte Prozentangabe: 12%'
+      ],
+      weitere: []
+    })
+  })
+
+  it('erkennt die zwei Formen des Zeitbezugs, das blosse Wort und den Satz', () => {
+    expect(
+      sortiereWarnungen([
+        'vergangenes Jahr',
+        'Relativer Zeitbezug: "am samstag"'
+      ])
+    ).toEqual({
+      zeitbezug: ['vergangenes Jahr', 'Relativer Zeitbezug: "am samstag"'],
+      zahlen: [],
+      weitere: []
+    })
+  })
+
+  // Alles andere bleibt stehen, unveraendert: die Redaktorin liest deutsche
+  // Prosa, der Dorfkoenig zeigt sie und parst sie nicht.
+  it('laesst jeden anderen Hinweis unter "weitere" stehen', () => {
+    expect(
+      sortiereWarnungen([
+        'Quelle nicht im Text genannt',
+        'Name einer Privatperson im Text: "Beispiel AG".'
+      ]).weitere
+    ).toEqual([
+      'Quelle nicht im Text genannt',
+      'Name einer Privatperson im Text: "Beispiel AG".'
+    ])
+  })
+
+  it('kommt mit einer leeren Spalte zurecht', () => {
+    expect(sortiereWarnungen(null)).toEqual({
+      zeitbezug: [],
+      zahlen: [],
+      weitere: []
+    })
+  })
+})
+
+describe('pruefsiegel', () => {
+  it('sagt bestanden, wenn keine Warnung offen steht', () => {
+    const siegel = pruefsiegel(zeile({ lauf: 'l-1' }))
+    expect(siegel.pruefungen).toEqual({
+      zeitbezug: [],
+      zahlen: [],
+      weitere: []
+    })
+    expect(siegel.bestanden).toBe(true)
+  })
+
+  it('sortiert die Warnungen und faellt damit durch', () => {
+    const siegel = pruefsiegel(
+      zeile({
+        lauf: 'l-1',
+        zeit_warnungen: ['vergangenes Jahr', 'ungepruefte Prozentangabe: 12%']
+      })
+    )
+    expect(siegel.pruefungen.zeitbezug).toEqual(['vergangenes Jahr'])
+    expect(siegel.pruefungen.zahlen).toEqual(['ungepruefte Prozentangabe: 12%'])
+    expect(siegel.bestanden).toBe(false)
+  })
+
+  it('nennt die Gegenpruefung beim Namen, auch wenn keine stattfand', () => {
+    expect(pruefsiegel(zeile({ entscheidung: 'ja' })).gegenpruefung).toBe('ja')
+    expect(pruefsiegel(zeile({ entscheidung: 'nein' })).gegenpruefung).toBe(
+      'nein'
+    )
+    expect(pruefsiegel(zeile({ entscheidung: null })).gegenpruefung).toBe(
+      'keine'
+    )
+  })
+
+  // R1: zwei Stufen, und beide sind eine Unterschrift. Die zweite ist eine im
+  // Voraus — die Redaktorin gab frei, der Zeitlauf spielte aus.
+  it('unterscheidet die Unterschrift am Tisch von der im Voraus', () => {
+    expect(
+      pruefsiegel(
+        zeile({
+          publiziert_durch: 'zeitlauf',
+          freigegeben_am: '2026-06-10T09:00:00.000Z'
+        })
+      ).freigabe
+    ).toBe('freigegeben_dann_zeitlauf')
+    expect(pruefsiegel(zeile({ publiziert_durch: 'redaktion' })).freigabe).toBe(
+      'redaktion'
+    )
+  })
+
+  // Altbestand: 167 Beitraege standen publiziert, bevor es das Feld gab.
+  it('sagt bei Altbestand unbekannt statt etwas zu erfinden', () => {
+    expect(
+      pruefsiegel(zeile({ publiziert_durch: null, freigegeben_am: null }))
+        .freigabe
+    ).toBe('unbekannt')
+  })
+
+  it('traegt dieselbe Herkunft wie der Artikel', () => {
+    const roh = zeile({
+      amtsblattmeldung: { quelle_typ: 'amtsblatt' },
+      datengrundlage: {
+        amt: 'Amtsblatt BL',
+        pdf_url: 'https://example.ch/a.pdf'
+      }
+    })
+    const siegel = pruefsiegel(roh)
+    const artikel = projektion(roh)
+    expect(siegel.herkunft).toEqual({
+      rubrik: 'amtsblatt',
+      quelle_name: 'Amtsblatt BL',
+      quelle_url: 'https://example.ch/a.pdf'
+    })
+    expect(siegel.herkunft.quelle_url).toBe(artikel.quelle_url)
+  })
+
+  it('haengt am Artikel und traegt weiter kein Arbeitsmaterial', () => {
+    const artikel = projektion(
+      zeile({
+        lauf: 'l-1',
+        datengrundlage: { periode: '2025', zeilen: [{ geheim: 'wert' }] }
+      })
+    )
+    expect(artikel.pruefsiegel.bestanden).toBe(true)
+    expect(JSON.stringify(artikel)).not.toContain('geheim')
   })
 })

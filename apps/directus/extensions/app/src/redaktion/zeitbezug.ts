@@ -96,6 +96,21 @@ const WEICHE_MIT_KONTEXT: readonly { wort: string; nichtVor: RegExp }[] = [
   { wort: 'neu', nichtVor: /^\s+\p{Ll}+(?:e|en|er|es|em)\s+\p{Lu}/u }
 ]
 
+/**
+ * Every word this module can report, as one set.
+ *
+ * The statistics run stores these hits verbatim in `meldungen.zeit_warnungen`,
+ * so a reader of that column can only tell a time warning from the rest by
+ * looking them up here. Exported for exactly that (`warnungen.ts` →
+ * `istZeitwarnung`), never for matching text — that is what the functions
+ * below are for, and they carry the boundary rules.
+ */
+export const ZEITMUSTER: ReadonlySet<string> = new Set([
+  ...HARTE_MUSTER,
+  ...WEICHE_MUSTER,
+  ...WEICHE_MIT_KONTEXT.map(({ wort }) => wort)
+])
+
 // \b does not understand umlauts in JavaScript, so a German-aware boundary is
 // spelled out instead.
 const VOR = '(?<![\\wäöüßÄÖÜ])'

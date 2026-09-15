@@ -79,7 +79,11 @@ const ZEILE: Rohzeile = {
   gemeindemitteilung: null,
   spiel: null,
   gemeinde: { id: 'g-1', name: 'Münchenstein', bfs_nummer: 2769 },
-  datengrundlage: { quelle: 'punkt6', sendung: 'punkt6' }
+  datengrundlage: { quelle: 'punkt6', sendung: 'punkt6' },
+  zeit_warnungen: null,
+  entscheidung: null,
+  freigegeben_am: null,
+  publiziert_durch: 'redaktion'
 }
 
 function stubDeps(ueber: Partial<Deps> = {}): Deps {

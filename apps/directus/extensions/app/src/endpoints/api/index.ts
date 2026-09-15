@@ -51,6 +51,12 @@ const FELDER = [
   'gemeinde.id',
   'gemeinde.name',
   'gemeinde.bfs_nummer',
+  // The Pruefsiegel's own parts: what the checks said, whether a counter-check
+  // answered, and whose signature stands under the publication.
+  'zeit_warnungen',
+  'entscheidung',
+  'freigegeben_am',
+  'publiziert_durch',
   // Read for the source computation, never delivered.
   'datengrundlage'
 ] as const
