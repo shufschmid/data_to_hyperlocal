@@ -104,6 +104,12 @@ services:
       # Absicht offen ist, ist es zu unrecht. "ja" schaltet sie ein.
       BLOG_API_OFFEN: ${BLOG_API_OFFEN:-}
 
+      # Die Kennung des Mediums, das diese Instanz traegt. Der Dorfkoenig liest
+      # mehrere Redaktionen und muss wissen, wer spricht; sie steht in
+      # /api/v1/gesundheit und auf jedem Beitrag. Ohne Wert bleibt das Haus
+      # unbenannt, die Tuer aber offen.
+      REDAKTION_MEDIUM: ${REDAKTION_MEDIUM:-unbenannt}
+
       # Die geschuetzte Sokrates-Schnittstelle (/sokrates/sendungen): die KI
       # hinter der "Frage des Tages" liest die neuen Regionaljournal-Sendungen
       # ungeprueft (Abschnitte + ganzes Transkript). Schluessel in der

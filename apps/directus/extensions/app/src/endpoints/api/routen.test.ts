@@ -100,6 +100,7 @@ function stubDeps(ueber: Partial<Deps> = {}): Deps {
     ]),
     datenbankBereit: vi.fn().mockResolvedValue(true),
     istOffen: () => true,
+    medium: () => 'bajour',
     jetzt: () => '2026-09-03T12:00:00.000Z',
     logger: { error: vi.fn() },
     ...ueber
@@ -501,5 +502,34 @@ describe('/v1/artikel/:id', () => {
     expect(Object.keys(einzeln).sort()).toEqual(Object.keys(ausListe).sort())
     expect(einzeln['id']).toBe(ZEILE.id)
     expect(einzeln['rubrik']).toBe('sendung')
+  })
+})
+
+describe('das Medium', () => {
+  // Eine Eigenschaft der Instanz, nicht der Zeile: darum in `routen.ts`
+  // angehaengt und nicht in der reinen Projektion.
+  it('steht auf jedem Beitrag der Liste', async () => {
+    const koerper = (await rufe('/v1/artikel', stubDeps())).koerper as {
+      artikel: { medium: string }[]
+    }
+    expect(koerper.artikel[0]?.medium).toBe('bajour')
+  })
+
+  it('steht auch auf dem einzelnen Beitrag', async () => {
+    const koerper = (
+      await rufe(
+        '/v1/artikel/:id',
+        stubDeps(),
+        anfrage({}, { id: 'a1b2c3d4-0000-4000-8000-000000000001' })
+      )
+    ).koerper as { medium: string }
+    expect(koerper.medium).toBe('bajour')
+  })
+
+  it('steht in der Gesundheit', async () => {
+    const koerper = (await rufe('/v1/gesundheit', stubDeps())).koerper as {
+      medium: string
+    }
+    expect(koerper.medium).toBe('bajour')
   })
 })

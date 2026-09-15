@@ -1,6 +1,6 @@
 import { defineEndpoint } from '@directus/extensions-sdk'
 import type { Filter } from '@directus/types'
-import { envFlag } from '../../shared/env'
+import { envFlag, optionalEnv } from '../../shared/env'
 import { verdrahte, type Deps, type RouterLike } from './routen'
 import type { Abfrage } from './routen'
 import type { GemeindeZeile, Rohzeile } from './projektion'
@@ -136,6 +136,9 @@ export default defineEndpoint(
       // Read per request: switching the API on or off is an environment change
       // and a restart, never a code change.
       istOffen: () => envFlag('BLOG_API_OFFEN'),
+      // Unset is not a failure, it is an unnamed house: the API keeps serving
+      // and says so, exactly as `CRAWLER_KEY` does for the sport feeds.
+      medium: () => optionalEnv('REDAKTION_MEDIUM', 'unbenannt'),
       jetzt: () => new Date().toISOString(),
       logger
     }

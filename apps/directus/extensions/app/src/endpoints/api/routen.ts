@@ -25,9 +25,26 @@ import {
   gemeindeSlug,
   liste,
   projektion,
+  type ApiArtikel,
   type GemeindeZeile,
   type Rohzeile
 } from './projektion'
+
+/**
+ * An article with the name of the house it came from.
+ *
+ * Added here rather than inside `projektion`, because the medium is a property
+ * of this INSTANCE and not of the row: a pure function over a row has no
+ * business knowing which newsroom is running it.
+ */
+function mitMedium(
+  zeile: Rohzeile,
+  medium: string
+): ApiArtikel & {
+  medium: string
+} {
+  return { ...projektion(zeile), medium }
+}
 
 /** The narrow slice of Express this module uses — fakeable in a test. */
 export interface AntwortLike {
@@ -70,6 +87,8 @@ export interface Deps {
   datenbankBereit(): Promise<boolean>
   /** Read per request, so flipping the switch needs no code change. */
   istOffen(): boolean
+  /** The medium this instance speaks for — an instance property, not a row's. */
+  medium(): string
   jetzt(): string
   logger: { error: (obj: unknown, msg?: string) => void }
 }
@@ -94,7 +113,8 @@ function gesundheit(deps: Deps): Handler {
     const koerper = buildGesundheit({
       datenbank: await deps.datenbankBereit(),
       offen: deps.istOffen(),
-      zeit: deps.jetzt()
+      zeit: deps.jetzt(),
+      medium: deps.medium()
     })
     // Same body either way, as R3 demands — the one place in this API where a
     // non-2xx is not the `fehler` envelope, because a monitor needs the detail.
@@ -173,11 +193,15 @@ function artikelListe(deps: Deps): Handler {
     sende(
       res,
       200,
-      liste('artikel', zeilen.map(projektion), {
-        gesamt,
-        versatz: abfrage.versatz,
-        grenze: abfrage.grenze
-      })
+      liste(
+        'artikel',
+        zeilen.map((z) => mitMedium(z, deps.medium())),
+        {
+          gesamt,
+          versatz: abfrage.versatz,
+          grenze: abfrage.grenze
+        }
+      )
     )
   }
 }
@@ -211,7 +235,7 @@ function artikelEinzeln(deps: Deps): Handler {
     })
     const zeile = zeilen[0]
     if (zeile === undefined) return nichts()
-    sende(res, 200, projektion(zeile))
+    sende(res, 200, mitMedium(zeile, deps.medium()))
   }
 }
 

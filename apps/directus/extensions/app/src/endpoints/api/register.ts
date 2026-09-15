@@ -158,6 +158,15 @@ export function dokuPfad(pfad: string): string {
 
 export interface Gesundheit {
   dienst: string
+  /**
+   * The medium this instance speaks for (`REDAKTION_MEDIUM`).
+   *
+   * The Dorfkönig reads several newsrooms through the same convention, and an
+   * article is only half an answer without the name of the house it came from.
+   * The instance is the only place that knows it, so it says so here and on
+   * every article.
+   */
+  medium: string
   version: string
   api: string
   konvention: string
@@ -178,9 +187,11 @@ export function buildGesundheit(zustand: {
   datenbank: boolean
   offen: boolean
   zeit: string
+  medium: string
 }): Gesundheit {
   return {
     dienst: DIENST,
+    medium: zustand.medium,
     version: VERSION,
     api: API,
     konvention: KONVENTION,
