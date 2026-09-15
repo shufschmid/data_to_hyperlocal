@@ -3,7 +3,7 @@ import type { Filter } from '@directus/types'
 import { envFlag, optionalEnv } from '../../shared/env'
 import { verdrahte, type Deps, type RouterLike } from './routen'
 import type { Abfrage } from './routen'
-import type { GemeindeZeile, Rohzeile } from './projektion'
+import type { GemeindeZeile, Korrekturzeile, Rohzeile } from './projektion'
 
 // The public read-only API for the published articles, mounted at `/api/v1/…`.
 //
@@ -82,6 +82,28 @@ export default defineEndpoint(
       return filter
     }
 
+    /**
+     * The conditions of a retraction query. Deliberately its own function: the
+     * two share a shape but not a meaning — `seit` means `publiziert_am` for an
+     * article and `zurueckgezogen_am` for a retraction, and folding them into
+     * one filter would make that difference an argument nobody reads.
+     *
+     * `publiziert_am` must be set: an article that never went out cannot be
+     * taken back. `zurueckgezogen_am` must be too, which is what keeps the
+     * retractions from before this field existed out of the list — reporting
+     * them without a date would be a guess.
+     */
+    function korrekturFilterVon(abfrage: Abfrage): Filter {
+      const filter: Filter = {
+        status: { _in: ['entwurf', 'verworfen'] },
+        publiziert_am: { _nnull: true },
+        zurueckgezogen_am: { _nnull: true }
+      }
+      if (abfrage.seit !== undefined)
+        filter['zurueckgezogen_am'] = { _gte: abfrage.seit }
+      return filter
+    }
+
     async function meldungen(): Promise<InstanceType<typeof ItemsService>> {
       return new ItemsService('meldungen', { schema: await getSchema() })
     }
@@ -106,6 +128,37 @@ export default defineEndpoint(
         })) as unknown as { count?: { id?: unknown } }[]
         // Postgres answers a count as a string through this path — parsed
         // defensively so a shape change becomes 0 rather than NaN in the body.
+        const roh = zaehlung[0]?.count?.id
+        const zahl = Number(roh)
+        return Number.isFinite(zahl) ? zahl : 0
+      },
+
+      async ladeKorrekturen(abfrage) {
+        const dienst = await meldungen()
+        return (await dienst.readByQuery({
+          filter: korrekturFilterVon(abfrage),
+          fields: [
+            'id',
+            'titel',
+            'status',
+            'publiziert_am',
+            'zurueckgezogen_am',
+            'gemeinde.id',
+            'gemeinde.name',
+            'gemeinde.bfs_nummer'
+          ],
+          sort: ['-zurueckgezogen_am'],
+          limit: abfrage.grenze,
+          offset: abfrage.versatz
+        })) as unknown as Korrekturzeile[]
+      },
+
+      async zaehleKorrekturen(abfrage) {
+        const dienst = await meldungen()
+        const zaehlung = (await dienst.readByQuery({
+          filter: korrekturFilterVon(abfrage),
+          aggregate: { count: ['id'] }
+        })) as unknown as { count?: { id?: unknown } }[]
         const roh = zaehlung[0]?.count?.id
         const zahl = Number(roh)
         return Number.isFinite(zahl) ? zahl : 0

@@ -461,6 +461,50 @@ export function projektion(zeile: Rohzeile): ApiArtikel {
   }
 }
 
+/**
+ * A retraction, as the row carries it — deliberately narrower than `Rohzeile`.
+ *
+ * No `text`, no `lead`, and the query does not read them: what was pulled back
+ * does not leave the house a second time, not even as evidence of itself.
+ */
+export interface Korrekturzeile {
+  id: string
+  titel: string | null
+  status: 'entwurf' | 'verworfen'
+  publiziert_am: string | null
+  zurueckgezogen_am: string | null
+  gemeinde: { id: string; name: string; bfs_nummer: number } | null
+}
+
+export interface ApiKorrektur {
+  id: string
+  gemeinde: string | null
+  titel: string | null
+  publiziert_am: string | null
+  zurueckgezogen_am: string | null
+  status: 'entwurf' | 'verworfen'
+}
+
+/**
+ * What a consumer needs to retract what it already carried: the same id it
+ * fetched the article under, and when the newsroom took it back.
+ *
+ * `status` says which of the two ways it went — back to the desk (`entwurf`,
+ * a revision is likely) or dropped (`verworfen`) — because they mean different
+ * things to somebody who published it: one may come back, the other will not.
+ */
+export function korrektur(zeile: Korrekturzeile): ApiKorrektur {
+  return {
+    id: zeile.id,
+    gemeinde:
+      zeile.gemeinde === null ? null : gemeindeSlug(zeile.gemeinde.name),
+    titel: zeile.titel,
+    publiziert_am: alsUtc(zeile.publiziert_am),
+    zurueckgezogen_am: alsUtc(zeile.zurueckgezogen_am),
+    status: zeile.status
+  }
+}
+
 /** The list envelope of R8 — same five counters for every collection. */
 export function liste<T>(
   sachname: string,

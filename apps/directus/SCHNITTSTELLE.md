@@ -45,6 +45,7 @@ Byte für Byte dieselbe Antwort wie ohne. **Empfehlung für Abnehmer: keinen
 | `GET /api/v1/openapi.json` | Das maschinenlesbare Schema                   | nein    |
 | `GET /api/v1/artikel`      | Die publizierten Beiträge, neueste zuerst     | ja      |
 | `GET /api/v1/artikel/{id}` | Ein Beitrag, gleiche Form wie in der Liste    | ja      |
+| `GET /api/v1/korrekturen`  | Beiträge, die zurückgezogen wurden            | ja      |
 | `GET /api/v1/gemeinden`    | Die bespielten Gemeinden mit ihren Kennungen  | ja      |
 
 Die drei ersten antworten auch bei abgeschalteter Schnittstelle — ein Wächter
@@ -91,6 +92,8 @@ Abnehmer, dass er zu weit ist.
 | `quelle_name`   | string \| null | Name der Direktquelle                                                                      |
 | `quelle_url`    | string \| null | Adresse der Direktquelle, oder `null`                                                      |
 | `sport`         | object \| null | nur bei `rubrik: "sport"`: `sportart, wettbewerb, heim, gast, tore_heim, tore_gast, datum` |
+| `medium`        | string         | die Kennung des Hauses, das spricht (`bajour`); ohne Konfiguration `unbenannt`             |
+| `pruefsiegel`   | object         | was geprüft wurde, wer unterschrieb, woher die Fakten kommen — siehe unten                 |
 
 **Zum `text`:** Klartext mit einer Ausnahme — er kann **höchstens einen**
 HTML-Anker der Form `<a href="https://…">…</a>` enthalten (nur bei
@@ -102,6 +105,75 @@ diesen einen Tag; die Adresse steht ohnehin in `quelle_url`.
 **Nicht geliefert** wird `datengrundlage` — das Arbeitsmaterial der Redaktion
 (bei einem Statistik-Beitrag bis zu sechzig Rohzeilen des Datensatzes). Ebenso
 nichts Unfertiges: der Filter ist fest auf `status = publiziert` verdrahtet.
+
+### Das Prüfsiegel
+
+Jeder Beitrag trägt es. Es wird **gerechnet**, nicht gesetzt: jeder Bestandteil
+liegt ohnehin in der Zeile, und ein gespeichertes Siegel wäre eine zweite Kopie,
+die in dem Moment veraltet, in dem eine Überarbeitung den Text neu schreibt.
+
+| Feld                   | Typ            | Bedeutung                                                                         |
+| ---------------------- | -------------- | --------------------------------------------------------------------------------- |
+| `pruefungen.zeitbezug` | string[]       | relative Zeitangaben, die im Text stehen geblieben sind                           |
+| `pruefungen.zahlen`    | string[]       | Zahlen und Prozentangaben, die in den übergebenen Fakten nicht stehen             |
+| `pruefungen.weitere`   | string[]       | alles andere: fehlende Quellenzeile, wörtliche Übernahme, Name einer Privatperson |
+| `bestanden`            | boolean        | true, wenn keine der drei Listen etwas enthält                                    |
+| `gegenpruefung`        | enum           | `ja`, `nein`, `unklar` — oder `keine`, wenn keine angefordert wurde               |
+| `freigabe`             | enum           | `redaktion`, `freigegeben_dann_zeitlauf` oder `unbekannt`                         |
+| `freigegeben_am`       | string \| null | ISO 8601 in UTC                                                                   |
+| `publiziert_am`        | string \| null | ISO 8601 in UTC, dasselbe wie oben                                                |
+| `herkunft`             | object         | `rubrik`, `quelle_name`, `quelle_url` — dieselbe Rechnung wie beim Beitrag        |
+
+**Die Warnungen sind deutsche Prosa für die Redaktorin.** Sie gehen unverändert
+hinaus. Ein Abnehmer **zeigt** sie; er parst sie nicht und liest keine Zahl aus
+ihnen heraus. Ein Tisch, der eine neue Warnung erfindet, landet unter `weitere` —
+sichtbar und unsortiert, nie stillschweigend verschwunden.
+
+**Zu `freigabe`:** Beide Stufen sind eine Unterschrift. `redaktion` heisst, eine
+Person am Tisch hat publiziert; `freigegeben_dann_zeitlauf` heisst, eine Person
+hat freigegeben und der Zeitlauf hat später ausgespielt — so entsteht jede
+Entsorgungserinnerung, die Wochen im Voraus freigegeben und am Vortag um zwölf
+publiziert wird. `unbekannt` gilt für die Beiträge, die publiziert wurden, bevor
+es diese Markierung gab (bis zum 15. September 2026), und ist ehrlicher als eine
+erfundene Stufe.
+
+Das Siegel trägt **keinen Text** des Beitrags und kein Arbeitsmaterial — nur
+Warnungslisten, drei Zeitpunkte und die Herkunft, die der Beitrag ohnehin nennt.
+
+## Korrekturen
+
+`GET /api/v1/korrekturen` nennt die Beiträge, die publiziert **waren** und es
+nicht mehr sind, neueste zuerst. Ohne diesen Weg erfährt ein Abnehmer, der einen
+Beitrag am Morgen geholt und ausgespielt hat, nichts: der Beitrag verschwindet
+aus `/artikel`, und `/artikel/{id}` antwortet `404` wie bei einer Kennung, die es
+nie gab.
+
+| Feld                | Typ            | Bedeutung                                                     |
+| ------------------- | -------------- | ------------------------------------------------------------- |
+| `id`                | uuid           | dieselbe Kennung, unter der der Beitrag geholt wurde          |
+| `gemeinde`          | string \| null | Slug                                                          |
+| `titel`             | string \| null | damit ein Mensch die Meldung wiedererkennt                    |
+| `publiziert_am`     | string \| null | ISO 8601 in UTC                                               |
+| `zurueckgezogen_am` | string         | ISO 8601 in UTC, Sortierschlüssel                             |
+| `status`            | enum           | `entwurf` (zurück auf den Tisch) oder `verworfen` (verworfen) |
+| `medium`            | string         | wie beim Beitrag                                              |
+
+**Kein `text` und kein `lead`:** Was zurückgezogen ist, verlässt das Haus kein
+zweites Mal, auch nicht als Beleg seiner selbst. Die Abfrage liest die Felder
+gar nicht erst.
+
+**`status` ist keine Nebensache.** `entwurf` heisst, der Beitrag liegt wieder
+auf dem Tisch und kann überarbeitet zurückkommen — dann trägt er dieselbe `id`;
+`verworfen` heisst, er kommt nicht wieder.
+
+Parameter: `seit` (`JJJJ-MM-TT`, einschliesslich, ab 00:00 UTC, gemessen am
+**Zeitpunkt des Rückzugs**), `grenze`, `versatz`. Listenform wie überall (R8),
+der Sachname ist `korrekturen`. **Keinen Gemeindefilter** — wer einen Beitrag
+ausgespielt hat, muss davon erfahren, worum auch immer es ging.
+
+**Altbestand:** Rückzüge, die vor dem 15. September 2026 geschahen, tragen kein
+`zurueckgezogen_am` und erscheinen hier nicht. Ein Datum dafür zu erfinden wäre
+schlimmer als die Lücke.
 
 ### Rubrik und Quelle je Art
 
@@ -196,4 +268,8 @@ Dorfkönig sind `gemeinde`, `titel` und `text`.
 | `kanonische_url` | — gibt es nicht: der Blog hat keine Einzelseiten je Beitrag  |
 | `status`         | — nicht nötig: es kommt ausschliesslich Publiziertes         |
 
-_Angelegt am 3. September 2026. Rubrik `gemeinde` ergänzt am 14. September 2026._
+Ein Rückzug ist kein Feld, sondern ein eigener Weg: `/api/v1/korrekturen`.
+
+_Angelegt am 3. September 2026. Rubrik `gemeinde` ergänzt am 14. September 2026.
+Version 1.1.0 am 15. September 2026: `medium` und `pruefsiegel` je Beitrag, der
+Weg `/korrekturen`. Neue Felder, kein Bruch — wer sie nicht liest, merkt nichts._

@@ -23,10 +23,13 @@ import {
 import {
   buildSlugMap,
   gemeindeSlug,
+  korrektur,
   liste,
   projektion,
   type ApiArtikel,
+  type ApiKorrektur,
   type GemeindeZeile,
+  type Korrekturzeile,
   type Rohzeile
 } from './projektion'
 
@@ -83,6 +86,9 @@ export interface Deps {
   ladeArtikel(abfrage: Abfrage): Promise<Rohzeile[]>
   /** How many exist under the same conditions — the `gesamt` of R8. */
   zaehleArtikel(abfrage: Abfrage): Promise<number>
+  /** The retractions, newest first. `seit` applies to `zurueckgezogen_am`. */
+  ladeKorrekturen(abfrage: Abfrage): Promise<Korrekturzeile[]>
+  zaehleKorrekturen(abfrage: Abfrage): Promise<number>
   ladeGemeinden(): Promise<GemeindeZeile[]>
   datenbankBereit(): Promise<boolean>
   /** Read per request, so flipping the switch needs no code change. */
@@ -139,11 +145,7 @@ function openapi(): Handler {
  * `?gemeinde=muttenz` when Muttenz is not covered should say so, not look like
  * a quiet week.
  */
-async function leseAbfrage(
-  req: AnfrageLike,
-  res: AntwortLike,
-  deps: Deps
-): Promise<Abfrage | null> {
+function leseBlaettern(req: AnfrageLike, res: AntwortLike): Abfrage | null {
   const grenze = leseGrenze(req.query['grenze'])
   if (!grenze.ok) {
     sendeFehler(res, 400, 'ungueltige_eingabe', grenze.meldung)
@@ -162,6 +164,16 @@ async function leseAbfrage(
 
   const abfrage: Abfrage = { grenze: grenze.wert, versatz: versatz.wert }
   if (seit.wert !== null) abfrage.seit = seit.wert
+  return abfrage
+}
+
+async function leseAbfrage(
+  req: AnfrageLike,
+  res: AntwortLike,
+  deps: Deps
+): Promise<Abfrage | null> {
+  const abfrage = leseBlaettern(req, res)
+  if (abfrage === null) return null
 
   const rohGemeinde = req.query['gemeinde']
   if (typeof rohGemeinde === 'string' && rohGemeinde.trim() !== '') {
@@ -239,6 +251,41 @@ function artikelEinzeln(deps: Deps): Handler {
   }
 }
 
+/**
+ * The retractions.
+ *
+ * Only what this run of the newsroom actually marked: an article pulled back
+ * before `zurueckgezogen_am` existed carries no timestamp and is not reported
+ * here rather than being reported with a made-up date. The contract says so.
+ *
+ * No municipality filter, on purpose — a consumer that carried an article has
+ * to hear about it whatever it was about, and a filter would invite it to ask
+ * only about the ones it remembers asking for.
+ */
+function korrekturenListe(deps: Deps): Handler {
+  return async (req, res) => {
+    const abfrage = leseBlaettern(req, res)
+    if (abfrage === null) return
+    const [zeilen, gesamt] = await Promise.all([
+      deps.ladeKorrekturen(abfrage),
+      deps.zaehleKorrekturen(abfrage)
+    ])
+    const medium = deps.medium()
+    const eintraege: (ApiKorrektur & { medium: string })[] = zeilen.map(
+      (zeile) => ({ ...korrektur(zeile), medium })
+    )
+    sende(
+      res,
+      200,
+      liste('korrekturen', eintraege, {
+        gesamt,
+        versatz: abfrage.versatz,
+        grenze: abfrage.grenze
+      })
+    )
+  }
+}
+
 function gemeindenListe(deps: Deps): Handler {
   return async (_req, res) => {
     const gemeinden = await deps.ladeGemeinden()
@@ -268,6 +315,7 @@ const HANDLER: Record<string, (deps: Deps) => Handler> = {
   '/v1/openapi.json': () => openapi(),
   '/v1/artikel': artikelListe,
   '/v1/artikel/:id': artikelEinzeln,
+  '/v1/korrekturen': korrekturenListe,
   '/v1/gemeinden': gemeindenListe
 }
 

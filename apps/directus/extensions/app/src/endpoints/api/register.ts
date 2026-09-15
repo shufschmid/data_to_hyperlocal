@@ -17,7 +17,7 @@ export const KONVENTION = 'wepublish-rest/1'
  * crosses the TypeScript `rootDir` and depends on how the extension bundler
  * inlines JSON. One string is not worth that risk.
  */
-export const VERSION = '1.0.0'
+export const VERSION = '1.1.0'
 
 /** Everything this API serves is public — see R4a and `BLOG_API_OFFEN`. */
 export const MERKMAL = 'keines'
@@ -133,6 +133,25 @@ export const REGISTER: readonly RouteEintrag[] = [
         beschreibung: 'Die Kennung des Beitrags.',
         obligatorisch: true
       }
+    ]
+  },
+  {
+    pfad: '/v1/korrekturen',
+    methoden: ['GET'],
+    zweck:
+      'Beitraege, die publiziert waren und zurueckgezogen wurden, neueste zuerst. Ein Abnehmer, der einen Beitrag ausgespielt hat, erfaehrt hier, dass er nicht mehr gilt.',
+    merkmal_noetig: 'keines',
+    inhalt: true,
+    parameter: [
+      {
+        name: 'seit',
+        ort: 'query',
+        typ: 'string (JJJJ-MM-TT)',
+        beschreibung:
+          'Nur Rueckzuege von diesem Tag an. Einschliesslich, ab 00:00 UTC, gemessen am Zeitpunkt des Rueckzugs.',
+        obligatorisch: false
+      },
+      ...BLAETTERN
     ]
   },
   {
