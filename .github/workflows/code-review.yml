@@ -171,11 +171,10 @@ jobs:
               `tsc --noEmit` pruefen Formatierung und Typen schon; was die
               beiden koennen, gehoert nicht hierher.
 
-            DER BERICHT:
-
-            Schreibe ausserdem `code-review-report.md` — deutsche Prosa, je
-            Befund ein Abschnitt mit Regel, Ort und Begruendung. Steht nichts
-            an, schreib einen Satz, dass die Aenderung die Regeln einhaelt.
+            Schreibe KEINE Datei und keinen Bericht. Deine Antwort ist das
+            JSON. Was die Redaktorin am Pull Request liest, baut der Workflow
+            daraus — gebaut, nicht geschrieben, wie die Quellenzeile im
+            Projekt selbst.
 
             ZUM PROJEKT (Stand halten mit dem Kopf von
             `.github/code-review-rules.yml`):
@@ -228,6 +227,45 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "Die Aenderung beruehrt keine Datei, fuer die diese Regeln gelten." >> "$GITHUB_STEP_SUMMARY"
 
+      # The report is BUILT from the parsed answer, not written by the model.
+      #
+      # It used to ask for a `code-review-report.md`, and the first real run
+      # (pull request #5, 15 September 2026) showed what that is worth: the
+      # review judged correctly — `bestanden: true`, the gate stayed shut — and
+      # produced no file at all, so there was no artifact and no comment. With
+      # `--json-schema` the structured answer IS the answer; a file alongside it
+      # is a second deliverable nobody guaranteed.
+      #
+      # So the same rule applies here as to an article's source line: what a
+      # reader sees is derived from the data, by code. The model fills in
+      # `regel`, `datei`, `zeile` and `befund`; the shape around them is ours,
+      # identical on every run, and it cannot go missing.
+      - name: Build the report
+        if: steps.review.outcome != 'skipped'
+        id: bericht
+        env:
+          ERGEBNIS: ${{ steps.review.outputs.structured_output }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ERGEBNIS:-}" ]; then
+            echo "Der Lauf hat keine strukturierte Antwort geliefert." > code-review-report.md
+            echo "befunde=unbekannt" >> "$GITHUB_OUTPUT"
+          else
+            printf '%s' "$ERGEBNIS" | jq -r '
+              (.befunde // []) as $b
+              | "## Architekturregeln\n"
+              + (if (.bestanden != false) and ($b | length) == 0
+                   then "\nDie Aenderung haelt die Regeln ein.\n"
+                 elif (.bestanden != false)
+                   then "\n\($b | length) Hinweis(e), kein Verstoss.\n"
+                   else "\n**\($b | length) Befund(e).** Mindestens einer wiegt schwer genug, um den Lauf rot zu machen.\n"
+                 end)
+              + ([$b[] | "\n### `\(.regel)` — `\(.datei)`\(if .zeile then ":\(.zeile)" else "" end)\n\nSchwere: **\(.schwere)**\n\n\(.befund)\n"] | add // "")
+            ' > code-review-report.md
+            echo "befunde=$(printf '%s' "$ERGEBNIS" | jq -r '(.befunde // []) | length')" >> "$GITHUB_OUTPUT"
+          fi
+          cat code-review-report.md >> "$GITHUB_STEP_SUMMARY"
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -235,15 +273,17 @@ jobs:
           path: code-review-report.md
           if-no-files-found: ignore
 
+      # Only when there is something to say, and as ONE comment that gets
+      # rewritten: a fresh "keine Befunde" under every push is noise, and noise
+      # is how a review stops being read.
       - name: Comment on the pull request
-        if: always() && github.event_name == 'pull_request' && steps.review.outcome != 'skipped'
+        if: github.event_name == 'pull_request' && steps.bericht.outcome == 'success' && steps.bericht.outputs.befunde != '0'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ github.event.pull_request.number }}
         run: |
-          if [ -s code-review-report.md ]; then
-            gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body-file code-review-report.md
-          fi
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" \
+            --body-file code-review-report.md --edit-last --create-if-none
 
       # The gate, and it reads a parsed field rather than prose: `bestanden`
       # comes back through the schema above. A run that never happened (no key,
@@ -251,5 +291,5 @@ jobs:
       - name: Fail on violations
         if: steps.review.outcome != 'skipped' && fromJSON(steps.review.outputs.structured_output || '{"bestanden":true}').bestanden != true
         run: |
-          echo "Die Aenderung verletzt mindestens eine Architekturregel. Der Bericht steht im Artefakt und im Kommentar."
+          echo "Die Aenderung verletzt mindestens eine Architekturregel. Die Befunde stehen in der Zusammenfassung, im Artefakt und im Kommentar."
           exit 1
