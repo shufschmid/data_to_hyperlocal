@@ -123,6 +123,13 @@ jobs:
         continue-on-error: true
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Runs with the workflow's own token instead of the Claude GitHub
+          # App. The App would have to be installed on the repository by an
+          # administrator, and this review has no need of it: it reads the
+          # checkout and answers, and the comment is posted by our own step.
+          # Without this the run ends with "Claude Code is not installed on
+          # this repository" and produces no verdict.
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           # Haiku 4.5 reads a checklist against a diff — that is what this is.
           # The schema is what makes the gate deterministic: the job fails on a
           # parsed field, never on the model's prose.
