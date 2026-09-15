@@ -273,3 +273,20 @@ describe('wissenFelderManuell', () => {
     ).toThrow('Stufe')
   })
 })
+
+describe('wissenFelderManuell — Gemeindeseiten', () => {
+  it('kennt den Tisch der Gemeindeseiten', () => {
+    expect(
+      wissenFelderManuell({
+        bereich: 'gemeinde',
+        stufe: 'sichtung',
+        regel: 'Stellenausschreibungen der Gemeinde nie vorschlagen.',
+        wirkung: 'hinweis'
+      })
+    ).toMatchObject({
+      bereich: 'gemeinde',
+      stufe: 'sichtung',
+      geltungsbereich: 'global'
+    })
+  })
+})

@@ -279,6 +279,16 @@ async function ladeFall(
       'gemeinde.id',
       'gemeinde.name'
     ],
+    gemeinde: [
+      'id',
+      'titel',
+      'kategorie',
+      'teaser',
+      'text',
+      'vorschlag_begruendung',
+      'gemeinde.id',
+      'gemeinde.name'
+    ],
     sendung: [
       'id',
       'titel',
@@ -335,6 +345,24 @@ async function ladeFall(
       kommentar: signal.kommentar
     }
     scope = gemeinde === null ? {} : { gemeinde: { _eq: gemeinde.id } }
+  } else if (signal.tisch === 'gemeinde') {
+    const gemeinde = zeile['gemeinde'] as { id: string; name: string } | null
+    const teaser = text(zeile['teaser'])
+    const inhalt = text(zeile['text'])
+    fall = {
+      tisch: 'gemeinde',
+      quelleName: gemeinde?.name ?? 'Gemeinde',
+      titel: String(zeile['titel'] ?? ''),
+      merkmal: text(zeile['kategorie']),
+      // `buildLernPrompt` caps the summary; the teaser is the item's own.
+      zusammenfassung:
+        teaser ?? (inhalt === null ? null : inhalt.slice(0, 600)),
+      modellBegruendung: text(zeile['vorschlag_begruendung']),
+      entscheid: signal.entscheid,
+      grund: signal.grund,
+      kommentar: signal.kommentar
+    }
+    scope = gemeinde === null ? {} : { gemeinde: { _eq: gemeinde.id } }
   } else {
     const gemeinde = zeile['gemeinde'] as { name: string } | null
     fall = {
@@ -359,7 +387,9 @@ async function ladeFall(
         ? 'kandidat'
         : signal.tisch === 'amtsblatt'
           ? 'amtsblattmeldung'
-          : 'sendungskandidat'
+          : signal.tisch === 'gemeinde'
+            ? 'gemeindemitteilung'
+            : 'sendungskandidat'
     const andere = (await dienste.hinweise.readByQuery({
       filter: {
         [fk]: { _nnull: true, _neq: zeileId },

@@ -120,6 +120,7 @@ describe('Gelerntes', () => {
           automatisch: true,
           kandidat: null,
           amtsblattmeldung: null,
+          gemeindemitteilung: null,
           sendungskandidat: null,
           gemeinde: null,
           ausgabe: null,

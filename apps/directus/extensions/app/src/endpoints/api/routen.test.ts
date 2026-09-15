@@ -76,6 +76,7 @@ const ZEILE: Rohzeile = {
   kandidat: null,
   sendungskandidat: 's-1',
   amtsblattmeldung: null,
+  gemeindemitteilung: null,
   spiel: null,
   gemeinde: { id: 'g-1', name: 'Münchenstein', bfs_nummer: 2769 },
   datengrundlage: { quelle: 'punkt6', sendung: 'punkt6' }

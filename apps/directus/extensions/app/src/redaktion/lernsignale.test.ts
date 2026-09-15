@@ -4,6 +4,7 @@ import {
   bilanzZeile,
   deklariereKappung,
   ladeAmtsblattSignale,
+  ladeGemeindeSignale,
   ladeSendungSignale,
   ladeWochenblattSignale,
   type ItemsServiceLike
@@ -348,5 +349,77 @@ describe('ladeSendungSignale', () => {
         faehrte: null
       }
     ])
+  })
+})
+
+describe('ladeGemeindeSignale', () => {
+  it('liest je Gemeinde ueber die Kategorie und die Mitteilung als Herkunft, mit Ersatzwort ohne Kategorie', async () => {
+    const zeilen = dienst((q) => {
+      const felder = felderVon(q)
+      if (felder.includes('kategorie')) {
+        return [
+          {
+            id: 'm1',
+            titel: 'Papiersammlung',
+            kategorie: null,
+            entscheid: 'abgelehnt',
+            ablehnungsgrund: 'nicht_relevant',
+            ablehnungskommentar: 'Steht im Abfuhrkalender'
+          },
+          {
+            id: 'm2',
+            titel: 'Budget 2027',
+            kategorie: 'politik_info',
+            entscheid: 'weitergereicht',
+            ablehnungsgrund: null,
+            ablehnungskommentar: null
+          }
+        ]
+      }
+      if (felder.length === 1 && felder[0] === 'id')
+        return [{ id: 'm1' }, { id: 'm2' }]
+      if (felder[0] === 'entscheid') return []
+      return []
+    })
+    const hinweise = dienst((q) => {
+      expect(filterVon(q)).toEqual({ gemeindemitteilung: { _in: ['m2'] } })
+      return [
+        {
+          gemeindemitteilung: 'm2',
+          status: 'brauchbar',
+          kommentar: null,
+          automatisch: false
+        }
+      ]
+    })
+    const meldungen = dienst((q) => {
+      expect(Object.keys(filterVon(q))).toContain('gemeindemitteilung')
+      return []
+    })
+
+    const signale = await ladeGemeindeSignale(
+      { zeilen, hinweise, meldungen },
+      'gem-1',
+      '2026-09-14'
+    )
+
+    expect(filterVon(zeilen.aufrufe[0] ?? {})).toEqual({
+      gemeinde: { _eq: 'gem-1' },
+      entscheid: { _in: ['uebernommen', 'abgelehnt', 'weitergereicht'] }
+    })
+    expect(signale.entscheide).toEqual([
+      expect.objectContaining({
+        titel: 'Papiersammlung',
+        rubrikName: 'Mitteilung',
+        grund: 'nicht_relevant',
+        kommentar: 'Steht im Abfuhrkalender'
+      }),
+      expect.objectContaining({
+        titel: 'Budget 2027',
+        rubrikName: 'politik_info',
+        faehrte: expect.objectContaining({ status: 'brauchbar' })
+      })
+    ])
+    expect(signale.rahmen.kappung).toBe('')
   })
 })

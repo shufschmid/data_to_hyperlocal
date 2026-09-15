@@ -155,5 +155,19 @@
     },
     "operation": "54faa99b-58af-4c50-8645-951d334cf255",
     "_syncId": "da8f13bc-82db-471e-8dcf-08fe36562c43"
+  },
+  {
+    "name": "Gemeindeseiten pruefen",
+    "icon": "campaign",
+    "color": null,
+    "description": "Liest um 13 Uhr die Newsseiten der bespielten Gemeinden: jede neue Unterseite samt PDFs wird eingesammelt, eine Sichtung je Gemeinde sortiert, was einen Blick lohnt. Meldungen entstehen erst, wenn die Redaktion uebernimmt.",
+    "status": "active",
+    "trigger": "schedule",
+    "accountability": "all",
+    "options": {
+      "cron": "0 13 * * *"
+    },
+    "operation": "98cc0e60-d212-449d-b6b7-83dc5eba20e9",
+    "_syncId": "bf4a6544-b373-4a65-9bb3-d925b8b84462"
   }
 ]

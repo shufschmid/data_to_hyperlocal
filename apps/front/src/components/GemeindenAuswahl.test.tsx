@@ -9,7 +9,18 @@ import type {
 import { GemeindenAuswahl } from './GemeindenAuswahl'
 
 function gemeinde(ueber: Partial<GemeindeFelder>): GemeindeFelder {
-  return { id: 'g', name: 'Ort', bezirk: 'Liestal', bfs_nummer: 1, plz: null, aktiv: true, ...ueber }
+  return {
+    id: 'g',
+    name: 'Ort',
+    bezirk: 'Liestal',
+    bfs_nummer: 1,
+    plz: null,
+    news_url: null,
+    news_letzte_pruefung: null,
+    news_letzter_fehler: null,
+    aktiv: true,
+    ...ueber
+  }
 }
 
 function verein(ueber: Partial<VereinFelder>): VereinFelder {

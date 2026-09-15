@@ -86,25 +86,26 @@ them is wrong even if it works.
    Redis, no queue broker, no external cron host, no side-car. Outbound dependencies
    are enumerated below and adding one is a deliberate decision, not a commit.
 
-   | Host                           | Why                                                                                                                                                                                                                                                                                                                                                   | Adapter                      |
-   | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-   | `api.anthropic.com`            | every LLM call                                                                                                                                                                                                                                                                                                                                        | `shared/claude.ts`           |
-   | `data.bl.ch`                   | open-data catalogue and records (no auth, documented API)                                                                                                                                                                                                                                                                                             | `shared/ods/`                |
-   | `www.baselland.ch`             | the publication agenda — announcements the API cannot give — and the office's own web article behind an entry, read once per announcement for the mapping and the briefing                                                                                                                                                                            | `shared/agenda/`             |
-   | `statistik.bl.ch`              | tables the open-data portal does not carry                                                                                                                                                                                                                                                                                                            | `shared/statbl/`             |
-   | `crawler.wepublish.dev`        | renders sport pages that refuse a plain request                                                                                                                                                                                                                                                                                                       | `shared/crawler/`            |
-   | `www.binninger-wochenblatt.ch` | the first registered weekly-paper archive — one host per Blatt, only archives an editor registered, read once a day                                                                                                                                                                                                                                   | `shared/wochenblatt/`        |
-   | `www.lokalzeitungen.ch`        | the platform hosting the Riehener Zeitung (and others) — the paper page links the current issue, the issue page links a paywall-free PDF from its title; only that free door is used                                                                                                                                                                  | `shared/wochenblatt/`        |
-   | `www.wochenblatt.ch`           | the Wochenblatt für das Birseck's e-paper listing — plain links to issuu readers, newest first, the slug carries number and date                                                                                                                                                                                                                      | `shared/wochenblatt/`        |
-   | `issuu.com`                    | where that Wochenblatt's issues actually live — the reader page yields the `publicationId`, the anonymous `public.reader.download` API (the same call the reader's download button makes, answering only where the publisher enabled downloads) yields a signed S3 address for the original PDF; if the publisher turns it off, the run fails visibly | `shared/wochenblatt/`        |
-   | `bibo.ch`                      | the BiBo (Birsigtal-Bote), on Localpoint's CMS — the listing page embeds its issues as JSON, the reader page names the coordinates the PDF address is derived from                                                                                                                                                                                    | `shared/wochenblatt/`        |
-   | `files.localpoint.ch`          | the BiBo's original PDFs — the same public address the reader's download button opens, no login                                                                                                                                                                                                                                                       | `shared/wochenblatt/`        |
-   | `amtsblattportal.ch`           | every canton's official gazette plus the federal SHAB, in one documented API — published items need no credentials. The only source that covers the whole newsroom area, Riehen (BS) and Dornach (SO) included                                                                                                                                        | `shared/amtsblatt/`          |
-   | `bgauflage.bl.ch`              | the building plans behind a Baselland permit, as plain images — the same public door the objection period opens, read only for a publication the newsroom acted on                                                                                                                                                                                    | `shared/amtsblatt/`          |
-   | `www.simap.ch`                 | the joint public-procurement platform of the Confederation and the cantons — open search and detail endpoints, no key, a documented OpenAPI spec. Read once a day, anchored on registered procurement-office uuids and our own postcodes, never on municipality names (`simap.ch` without `www` answers 301)                                          | `shared/simap/`              |
-   | an IMAP mailbox                | where SMD delivers the two shows' transcript PDFs — one mailbox, two subject filters. Dedup runs against THIS database's own `source_subject`, never the mailbox's seen-flag, so a second deployment reading the same mailbox costs nothing                                                                                                           | `dossiers/mailbox.ts`        |
-   | `api.srgssr.ch`                | the SRGSSR Audio Metadata API (OAuth2) — resolves a Regionaljournal story to its public MP3. Read with `optionalEnv`: missing credentials fail PER STORY as `resolution_error`, never as a crashed dossier                                                                                                                                            | `dossiers/srgssr-client.ts`  |
-   | `telebasel.ch`                 | two plain GETs per punkt6 episode — `robots.txt` allows `/sendungen/`, and the episode page carries one schema.org `Clip` per Beitrag with exact start/end seconds, so no model is needed to find the boundaries                                                                                                                                      | `punkt6/telebasel-client.ts` |
+   | Host                             | Why                                                                                                                                                                                                                                                                                                                                                                                                                          | Adapter                      |
+   | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+   | `api.anthropic.com`              | every LLM call                                                                                                                                                                                                                                                                                                                                                                                                               | `shared/claude.ts`           |
+   | `data.bl.ch`                     | open-data catalogue and records (no auth, documented API)                                                                                                                                                                                                                                                                                                                                                                    | `shared/ods/`                |
+   | `www.baselland.ch`               | the publication agenda — announcements the API cannot give — and the office's own web article behind an entry, read once per announcement for the mapping and the briefing                                                                                                                                                                                                                                                   | `shared/agenda/`             |
+   | `statistik.bl.ch`                | tables the open-data portal does not carry                                                                                                                                                                                                                                                                                                                                                                                   | `shared/statbl/`             |
+   | `crawler.wepublish.dev`          | renders sport pages that refuse a plain request                                                                                                                                                                                                                                                                                                                                                                              | `shared/crawler/`            |
+   | `www.binninger-wochenblatt.ch`   | the first registered weekly-paper archive — one host per Blatt, only archives an editor registered, read once a day                                                                                                                                                                                                                                                                                                          | `shared/wochenblatt/`        |
+   | `www.lokalzeitungen.ch`          | the platform hosting the Riehener Zeitung (and others) — the paper page links the current issue, the issue page links a paywall-free PDF from its title; only that free door is used                                                                                                                                                                                                                                         | `shared/wochenblatt/`        |
+   | `www.wochenblatt.ch`             | the Wochenblatt für das Birseck's e-paper listing — plain links to issuu readers, newest first, the slug carries number and date                                                                                                                                                                                                                                                                                             | `shared/wochenblatt/`        |
+   | `issuu.com`                      | where that Wochenblatt's issues actually live — the reader page yields the `publicationId`, the anonymous `public.reader.download` API (the same call the reader's download button makes, answering only where the publisher enabled downloads) yields a signed S3 address for the original PDF; if the publisher turns it off, the run fails visibly                                                                        | `shared/wochenblatt/`        |
+   | `bibo.ch`                        | the BiBo (Birsigtal-Bote), on Localpoint's CMS — the listing page embeds its issues as JSON, the reader page names the coordinates the PDF address is derived from                                                                                                                                                                                                                                                           | `shared/wochenblatt/`        |
+   | `files.localpoint.ch`            | the BiBo's original PDFs — the same public address the reader's download button opens, no login                                                                                                                                                                                                                                                                                                                              | `shared/wochenblatt/`        |
+   | `amtsblattportal.ch`             | every canton's official gazette plus the federal SHAB, in one documented API — published items need no credentials. The only source that covers the whole newsroom area, Riehen (BS) and Dornach (SO) included                                                                                                                                                                                                               | `shared/amtsblatt/`          |
+   | `bgauflage.bl.ch`                | the building plans behind a Baselland permit, as plain images — the same public door the objection period opens, read only for a publication the newsroom acted on                                                                                                                                                                                                                                                           | `shared/amtsblatt/`          |
+   | `www.simap.ch`                   | the joint public-procurement platform of the Confederation and the cantons — open search and detail endpoints, no key, a documented OpenAPI spec. Read once a day, anchored on registered procurement-office uuids and our own postcodes, never on municipality names (`simap.ch` without `www` answers 301)                                                                                                                 | `shared/simap/`              |
+   | an IMAP mailbox                  | where SMD delivers the two shows' transcript PDFs — one mailbox, two subject filters. Dedup runs against THIS database's own `source_subject`, never the mailbox's seen-flag, so a second deployment reading the same mailbox costs nothing                                                                                                                                                                                  | `dossiers/mailbox.ts`        |
+   | `api.srgssr.ch`                  | the SRGSSR Audio Metadata API (OAuth2) — resolves a Regionaljournal story to its public MP3. Read with `optionalEnv`: missing credentials fail PER STORY as `resolution_error`, never as a crashed dossier                                                                                                                                                                                                                   | `dossiers/srgssr-client.ts`  |
+   | `telebasel.ch`                   | two plain GETs per punkt6 episode — `robots.txt` allows `/sendungen/`, and the episode page carries one schema.org `Clip` per Beitrag with exact start/end seconds, so no model is needed to find the boundaries                                                                                                                                                                                                             | `punkt6/telebasel-client.ts` |
+   | the municipalities' own websites | one host per municipality, only the news page an editor registered (`gemeinden.news_url`), the detail pages it links and the same-site PDFs behind them — read once a day at 13:00, sequentially, the host's `robots.txt` honoured (crawl-delay, disallowed paths), a 429 raises that host's spacing for the rest of the run, never a redirect onto another site. Measured on the first nine: four CMS families, no bot wall | `shared/gemeindeseite/`      |
 
    The crawler is the one host we do not own the other end of, and it exists for
    a measured reason: the football association's Match Center answers `curl`
@@ -160,9 +161,9 @@ them is wrong even if it works.
    it, answers 200, and silently ignores it — asking for "Riehen" that way
    returned Zurich fire bans.
 
-   The workspace has eight WORKBENCHES and a gear: **statistik.bl ·
-   Sportresultate · Entsorgung · Wochenblätter · Amtsblatt · Regionaljournal ·
-   punkt6 · Chefredaktion**, with **Gemeinden** and **Gelerntes** behind the
+   The workspace has nine WORKBENCHES and a gear: **statistik.bl ·
+   Sportresultate · Entsorgung · Wochenblätter · Amtsblatt · Gemeindeseiten ·
+   Regionaljournal · punkt6 · Chefredaktion**, with **Gemeinden** and **Gelerntes** behind the
    settings gear at the end of the row. Every tab up there is a desk with a
    task; the two behind the gear are configuration. The **Blog** is neither —
    it is the result of all the others — so it hangs on two small links in the
@@ -379,6 +380,50 @@ them is wrong even if it works.
    name the winning company with its price — a firm is not a private person,
    and `personen` stays empty on those rows so the check cannot fire on it.
 
+   „Gemeindeseiten" is the ninth feed and the FOURTH desk: what a municipality
+   publishes on its own website. One address per municipality
+   (`gemeinden.news_url`, edited in the Gemeinden card, the first ten seeded by
+   `migrations/20260914A`), read daily at 13:00 — the newsroom's fixed time,
+   after noon and before two. The reader (`shared/gemeindeseite/`) recognises
+   the page's template FROM THE HTML, never from the host — four families cover
+   the nine sites (Weblication, i-web with a DataTables archive in one
+   attribute, i-web cards, Backslash), an unrecognised page is a loud error on
+   the municipality's own status line, and no municipality has code of its own.
+   The item's identity is its normalized list link; every new one is OPENED —
+   the detail page, plus up to three same-site PDFs it links, text layer via
+   unpdf — and stored whole, every cap declared on the row (`hinweise`,
+   `text_abgeschnitten`, `anhaenge[].gelesen`). A first read of a page imports
+   the last seven days, never the archive (three sites list their whole
+   history on one page); a daily read looks back three days; detail pages per
+   host are capped at fifteen and the rest is counted for tomorrow. Dates were
+   the measured trap: one list prints the visit date on every entry (the real
+   day sits in a month-and-day badge without a year), one `<time datetime>`
+   carries the year 2626 on every card, so a date has to be a real
+   calendar day no later than next year or it is null — but an OLD date is
+   old, not null: an i-web list carries its whole archive, and treating a
+   2022 row as undated put 2020 minutes on the desk as news. Undated entries
+   are never opened, only counted and named on the municipality's status
+   line — and the DETAIL page's full date beats a badge whose year was
+   inferred. One Sonnet Sichtung per municipality
+   and run sorts the new items (titles AND an excerpt — „Aus dem Gemeinderat"
+   says nothing), steered by the desk's rules, this municipality's decisions
+   and — where an item talks about collections — its Abfuhrkalender: a
+   Mitteilung that only repeats dates the calendar already has is no proposal
+   (the reminder is the Entsorgung desk's), a cancelled or moved collection is
+   one; the cross-check of named days against `entsorgungstermine` is code and
+   stands in the prompt as a fact. Three decisions, all learning, under
+   `bereich: gemeinde`; the Meldung is written in own words from the whole
+   text with mandatory attribution to the municipality, the source line built
+   by code names the item's own page (`url_kanonisch ?? url`) and the read
+   documents, and the verbatim-overlap check runs against the municipality's
+   text — its press release in its words is not our reporting. No
+   private-person check: a municipality names its office-holders by design.
+   The desk cleans itself (`aufraeumAktion`): unproposed rows go after seven
+   days, undecided proposals lapse to `verfallen` after fourteen — news is
+   perishable, unlike a permit with a deadline. The Dorfkönig sees these
+   articles as `rubrik: gemeinde` with `quelle_url` = the municipality's page
+   (SCHNITTSTELLE.md).
+
    „Regionaljournal" and „punkt6" are the sixth and seventh feeds, ported from
    the sister project shufschmid/regionaljournal (same template, same
    conventions). SMD mails a transcript PDF of each show into one mailbox; the
@@ -544,38 +589,41 @@ them is wrong even if it works.
 
 ## Where does this feature go?
 
-| The change is…                                     | Goes to                                                                                                                                                                                                                                  |
-| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| a new collection, field, relation or role          | Directus admin UI, then `npm run schema:dump` — [apps/directus](apps/directus/)                                                                                                                                                          |
-| a calculation, validation or business rule         | extension bundle (endpoint or hook)                                                                                                                                                                                                      |
-| anything that calls Claude                         | extension bundle, via `shared/claude.ts`                                                                                                                                                                                                 |
-| something that must run nightly/hourly             | Flow with a Schedule trigger + a custom operation in the bundle                                                                                                                                                                          |
-| a screen, a form, a list, a chart                  | [apps/front](apps/front/) — MUI components, Apollo for data                                                                                                                                                                              |
-| a new query the UI needs                           | `apps/front/src/graphql/*.ts`                                                                                                                                                                                                            |
-| a new rule about what an article may say           | the prompt in `redaktion/prompt.ts` **and** a check next to it — a prompt is a request, a check is a rule (`zeitbezug.ts`, `zahlen.ts`, `attribution.ts`, `quelle.ts`)                                                                   |
-| a table on statistik.bl.ch the newsroom wants      | paste its URL in the workspace — „statistik.bl" → „Auftrag …" — it becomes an ordinary dataset                                                                                                                                           |
-| a club whose results the newsroom wants            | „Gemeinden" → die Karte der Gemeinde → „Verein erfassen"; ohne Konnektor für die `quelle` bleibt er still erfasst                                                                                                                        |
-| a new rule about what a match report may say       | `redaktion/spielbericht.ts` — the prompt **and** the check next to it                                                                                                                                                                    |
-| which of a club's teams is followed at all         | `redaktion/mannschaft.ts` — the first team only, applied at the door by `sportresultate-holen`; mirrored in the workspace (`berichtenswerteSpiele`)                                                                                      |
-| where a match report's source link comes from      | `redaktion/spielbericht.ts` — `verbandsQuelle`/`mitQuelle`, appended by code; the publish gate is `hatQuellenlink` in `redaktion/status.ts`                                                                                              |
-| an Abfuhrkalender the newsroom wants               | paste the PDF's address in the workspace — „Entsorgung" → „Abfuhrkalender erfassen"; one PDF per zone (Riehen) registers zone by zone into the same calendar                                                                             |
-| a weekly paper the newsroom wants read             | „Presseschau" → „Wochenblatt erfassen" with its archive URL; the platform decides the parser (`konnektor`: WordPress-Archivliste, lokalzeitungen.ch, issuu or Localpoint) — a fifth platform gets its own value in `shared/wochenblatt/` |
-| a new rule about what a press review may say       | `redaktion/presseschau.ts` — the prompt **and** the checks next to it (attribution, digits, verbatim overlap)                                                                                                                            |
-| a new rule about what a gazette article may say    | `redaktion/amtsblatt.ts` — the prompt **and** the checks (attribution, digits, absolute dates, no private names)                                                                                                                         |
-| a new rule about what a broadcast Meldung may say  | `redaktion/sendung.ts` — the prompt **and** the checks (attribution per show, digits, verbatim overlap against the transcript)                                                                                                           |
-| which names a broadcast is scanned for             | nothing — `gemeindeTreffer` uses the active `gemeinden` rows, so adding a municipality adds it to the scan                                                                                                                               |
-| which gazette rubrics reach the desk               | `GRUPPE_JE_UNTERRUBRIK`/`GRUPPE_JE_RUBRIK` in `shared/amtsblatt/parse.ts` — sub-rubric first, rubric second; an unmapped rubric is dropped, never guessed                                                                                |
-| a municipality's postcodes                         | „Gemeinden" → die Karte → Abschnitt „Amtsblatt"; ohne sie bleiben Handelsregister, Konkurse und Betreibungen dieser Gemeinde unsichtbar — und die Beschaffungen, die andere in ihr ausschreiben                                          |
-| a municipality's procurement offices on simap.ch   | `gemeinden.simap_vergabestellen` (JSON, Admin-UI) — die uuid aus `/procoffices/v1/po/public`, aber ERST gegen die PLZ ihrer Publikationen prüfen: das Verzeichnis nennt keinen Kanton. Leer heisst nicht blind, nur „keine eigenen"      |
-| a new rule about what a procurement article says   | `redaktion/amtsblatt.ts` — derselbe Prompt und dieselben Checks, mit `quelleTyp: 'simap'` als Verzweigung für Attribution und Quellenzeile                                                                                               |
-| a new rule about what a reminder may say           | `redaktion/erinnerung.ts` — the prompt **and** the check next to it                                                                                                                                                                      |
-| a one-off data repair or backfill                  | rows only: a one-shot Flow, else `apps/directus/migrations/*.mts` as a last resort                                                                                                                                                       |
-| a rule about what a desk proposes or how it writes | say it — in the reject comment, the hand-up Begründung, the chat, or „Gelerntes" → „Regel erfassen"; it lands in `redaktionswissen` with `bereich` + `stufe`. Code: `redaktion/gedaechtnis.ts` (store), `redaktion/lernen.ts` (rules)    |
-| an agenda entry the crawler could not fetch        | the banner in the workspace → „Eintrag von Hand erfassen"                                                                                                                                                                                |
-| a municipality the newsroom covers                 | „Gemeinden" → „Gemeinde hinzufügen" — aus dem Verzeichnis, oder ausserkantonal neu erfasst (Name, BFS-Nummer, Bezirk)                                                                                                                    |
-| which municipalities a weekly paper covers         | „Gemeinden" → die Karte → „Zuordnung ändern"; ein NEUES Blatt weiterhin im Reiter „Wochenblätter"                                                                                                                                        |
-| a change to what the Dorfkönig reads               | `endpoints/api/` in the bundle — the register drives the routes AND the docs; contract in [apps/directus/SCHNITTSTELLE.md](apps/directus/SCHNITTSTELLE.md)                                                                               |
-| a new environment variable                         | `apps/directus/.env.example` **and** root `.env.example` **and** docker-compose.yml                                                                                                                                                      |
+| The change is…                                      | Goes to                                                                                                                                                                                                                                  |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| a new collection, field, relation or role           | Directus admin UI, then `npm run schema:dump` — [apps/directus](apps/directus/)                                                                                                                                                          |
+| a calculation, validation or business rule          | extension bundle (endpoint or hook)                                                                                                                                                                                                      |
+| anything that calls Claude                          | extension bundle, via `shared/claude.ts`                                                                                                                                                                                                 |
+| something that must run nightly/hourly              | Flow with a Schedule trigger + a custom operation in the bundle                                                                                                                                                                          |
+| a screen, a form, a list, a chart                   | [apps/front](apps/front/) — MUI components, Apollo for data                                                                                                                                                                              |
+| a new query the UI needs                            | `apps/front/src/graphql/*.ts`                                                                                                                                                                                                            |
+| a new rule about what an article may say            | the prompt in `redaktion/prompt.ts` **and** a check next to it — a prompt is a request, a check is a rule (`zeitbezug.ts`, `zahlen.ts`, `attribution.ts`, `quelle.ts`)                                                                   |
+| a table on statistik.bl.ch the newsroom wants       | paste its URL in the workspace — „statistik.bl" → „Auftrag …" — it becomes an ordinary dataset                                                                                                                                           |
+| a club whose results the newsroom wants             | „Gemeinden" → die Karte der Gemeinde → „Verein erfassen"; ohne Konnektor für die `quelle` bleibt er still erfasst                                                                                                                        |
+| a new rule about what a match report may say        | `redaktion/spielbericht.ts` — the prompt **and** the check next to it                                                                                                                                                                    |
+| which of a club's teams is followed at all          | `redaktion/mannschaft.ts` — the first team only, applied at the door by `sportresultate-holen`; mirrored in the workspace (`berichtenswerteSpiele`)                                                                                      |
+| where a match report's source link comes from       | `redaktion/spielbericht.ts` — `verbandsQuelle`/`mitQuelle`, appended by code; the publish gate is `hatQuellenlink` in `redaktion/status.ts`                                                                                              |
+| an Abfuhrkalender the newsroom wants                | paste the PDF's address in the workspace — „Entsorgung" → „Abfuhrkalender erfassen"; one PDF per zone (Riehen) registers zone by zone into the same calendar                                                                             |
+| a weekly paper the newsroom wants read              | „Presseschau" → „Wochenblatt erfassen" with its archive URL; the platform decides the parser (`konnektor`: WordPress-Archivliste, lokalzeitungen.ch, issuu or Localpoint) — a fifth platform gets its own value in `shared/wochenblatt/` |
+| a new rule about what a press review may say        | `redaktion/presseschau.ts` — the prompt **and** the checks next to it (attribution, digits, verbatim overlap)                                                                                                                            |
+| a new rule about what a gazette article may say     | `redaktion/amtsblatt.ts` — the prompt **and** the checks (attribution, digits, absolute dates, no private names)                                                                                                                         |
+| a new rule about what a broadcast Meldung may say   | `redaktion/sendung.ts` — the prompt **and** the checks (attribution per show, digits, verbatim overlap against the transcript)                                                                                                           |
+| which names a broadcast is scanned for              | nothing — `gemeindeTreffer` uses the active `gemeinden` rows, so adding a municipality adds it to the scan                                                                                                                               |
+| which gazette rubrics reach the desk                | `GRUPPE_JE_UNTERRUBRIK`/`GRUPPE_JE_RUBRIK` in `shared/amtsblatt/parse.ts` — sub-rubric first, rubric second; an unmapped rubric is dropped, never guessed                                                                                |
+| a municipality's postcodes                          | „Gemeinden" → die Karte → Abschnitt „Amtsblatt"; ohne sie bleiben Handelsregister, Konkurse und Betreibungen dieser Gemeinde unsichtbar — und die Beschaffungen, die andere in ihr ausschreiben                                          |
+| a municipality's procurement offices on simap.ch    | `gemeinden.simap_vergabestellen` (JSON, Admin-UI) — die uuid aus `/procoffices/v1/po/public`, aber ERST gegen die PLZ ihrer Publikationen prüfen: das Verzeichnis nennt keinen Kanton. Leer heisst nicht blind, nur „keine eigenen"      |
+| a new rule about what a procurement article says    | `redaktion/amtsblatt.ts` — derselbe Prompt und dieselben Checks, mit `quelleTyp: 'simap'` als Verzweigung für Attribution und Quellenzeile                                                                                               |
+| a new rule about what a reminder may say            | `redaktion/erinnerung.ts` — the prompt **and** the check next to it                                                                                                                                                                      |
+| a one-off data repair or backfill                   | rows only: a one-shot Flow, else `apps/directus/migrations/*.mts` as a last resort                                                                                                                                                       |
+| a rule about what a desk proposes or how it writes  | say it — in the reject comment, the hand-up Begründung, the chat, or „Gelerntes" → „Regel erfassen"; it lands in `redaktionswissen` with `bereich` + `stufe`. Code: `redaktion/gedaechtnis.ts` (store), `redaktion/lernen.ts` (rules)    |
+| the news page of a municipality's own website       | „Gemeinden" → die Karte → Abschnitt „Gemeindeseite" (the endpoint reads the page BEFORE it writes — a wrong address fails the form, not tomorrow's run); leer heisst: keine Mitteilungen von dieser Gemeinde                             |
+| a new rule about what a municipal-news Meldung says | `redaktion/gemeindeseite.ts` — the prompt **and** the checks (attribution to the Gemeinde, digits, absolute dates, no self-written links, verbatim overlap against the municipality's text)                                              |
+| a fifth CMS family among the municipal websites     | `shared/gemeindeseite/erkennung.ts` (fingerprint) + one list parser in `liste.ts` and one detail parser in `detail.ts`, each with a saved fixture — never a host name                                                                    |
+| an agenda entry the crawler could not fetch         | the banner in the workspace → „Eintrag von Hand erfassen"                                                                                                                                                                                |
+| a municipality the newsroom covers                  | „Gemeinden" → „Gemeinde hinzufügen" — aus dem Verzeichnis, oder ausserkantonal neu erfasst (Name, BFS-Nummer, Bezirk)                                                                                                                    |
+| which municipalities a weekly paper covers          | „Gemeinden" → die Karte → „Zuordnung ändern"; ein NEUES Blatt weiterhin im Reiter „Wochenblätter"                                                                                                                                        |
+| a change to what the Dorfkönig reads                | `endpoints/api/` in the bundle — the register drives the routes AND the docs; contract in [apps/directus/SCHNITTSTELLE.md](apps/directus/SCHNITTSTELLE.md)                                                                               |
+| a new environment variable                          | `apps/directus/.env.example` **and** root `.env.example` **and** docker-compose.yml                                                                                                                                                      |
 
 A change that spans both apps starts in `apps/directus` — data model first, then the
 GraphQL documents in the frontend.
@@ -763,6 +811,31 @@ editor takes a publication over ── POST /redaktion/amtsblatt/:id/meldung
      Ablehnen mit Grund und Weiterreichen an die Chefredaktion lehren die
      nächste Sichtung. „Unterlagen lesen" holt die Pläne für jede andere
      Zeile nach — 202 + detached, Fortschritt als plan_status.
+
+Flow "Gemeindeseiten pruefen"  (0 13 * * *)
+  └─ operations/gemeindeseiten-pruefen   je aktive Gemeinde mit news_url
+       ├─ robots.txt einmal je Host, Pause je Host (robots' Crawl-delay
+       │    verlaengert sie), Weiterleitungen nur auf dieselbe Site
+       ├─ Uebersicht lesen → Plattform aus dem HTML erkennen → Liste parsen
+       │    (unerkannt oder leer = lauter Fehler auf gemeinden.news_letzter_fehler)
+       ├─ Fenster: 7 Tage beim ersten Lesen, sonst 3; Identitaet = Listen-Link;
+       │    hoechstens 15 Detailseiten je Host, der Rest deklariert
+       ├─ je neuem Eintrag: Detailseite (oder das direkt verlinkte PDF) samt bis
+       │    zu drei eigenen PDFs (unpdf) → gemeindemitteilungen, Kappungen als
+       │    hinweise auf der Zeile
+       └─ 1× Sonnet je Gemeinde → Sichtung ueber die NEUEN Eintraege (Titel +
+          Auszug): Regeln R1…Rn, Bilanz und Beispiele dieser Gemeinde, und wo
+          eine Mitteilung von Abfuhren handelt, der Abfuhrkalender samt
+          Abgleich der genannten Tage; sortiert, filtert nie
+
+editor takes a Mitteilung over ── POST /redaktion/gemeindeseiten/:id/meldung
+  └─ 1× Sonnet ueber den ganzen Wortlaut + gelesene Anhaenge → kurze Meldung in
+     eigenen Worten; Attribution an die Gemeinde erzwungen (Pruefung + ein
+     Nachfassen), Ziffern gegen das Material, absolute Daten, keine selbst
+     geschriebenen Links, 8-Gramm-Ueberlappung gegen den Gemeindetext;
+     Quellenzeile vom Code: die Unterseite der Gemeinde + die gelesenen
+     Dokumente. Ablehnen mit Grund und Weiterreichen lehren die naechste
+     Sichtung (bereich gemeinde).
 
 Flow "Sportresultate holen"  (0 30 6 * * *)
   └─ operations/sportresultate-holen   dispatches on vereine.quelle
@@ -1041,7 +1114,7 @@ joining the two on `Spielnummer`. Read results from there, or not at all.
 - `redaktionswissen` — the one rule store, for EVERY desk since September
   2026 (it was the statistics feed's alone before). Each rule carries its
   `bereich` (statistik · sport · entsorgung · presseschau · amtsblatt ·
-  sendung), its `stufe` (`sichtung`: what gets proposed; `text`: how a
+  gemeinde · sendung), its `stufe` (`sichtung`: what gets proposed; `text`: how a
   Meldung is written), its `wirkung` (`hinweis`, or `weiterreichen` for a
   Sichtung rule that may hand matching proposals to the Chefredaktion by
   itself), its `herkunft` (chat · kommentar · entscheid · manuell) and a
@@ -1126,6 +1199,20 @@ joining the two on `Spielnummer`. Read results from there, or not at all.
   municipality without an entry still gets everything built IN it, only not
   what it tenders itself.
 
+- `gemeindemitteilungen.entscheid` + `ablehnungsgrund`/`ablehnungskommentar` —
+  the municipal-news desk's memory, scoped PER MUNICIPALITY like the gazette's
+  and loaded by the same code path (`ladeGemeindeSignale`, keyed on the item's
+  `kategorie` where the gazette has a rubric). `lernDigest` renders the last
+  ~20 into the next Sichtung's user turn with a 30-day Bilanz and the
+  `verfallen` titles; undecided proposals lapse to `verfallen` after fourteen
+  days, unproposed rows are deleted after seven (`aufraeumAktion` in
+  `redaktion/gemeindeseite.ts`, mirrored by `abgelaufen` in the frontend).
+  The rows also ARE the read: `text`, `anhaenge` and `hinweise` hold what the
+  reader collected and what it could not — a Meldung is only ever written from
+  them, never from a title. `gemeinden.news_url` belongs here too: the one
+  address per municipality the feed reads, plus `news_letzte_pruefung` and
+  `news_letzter_fehler`, so a page that stopped answering is a line on the
+  desk and in the card, not silence.
 - `sendungskandidaten.entscheid` + `ablehnungsgrund` — the broadcast feed's
   memory, scoped PER SHOW rather than per municipality: what counts as "only
   mentioned" is a property of how a programme talks, and the two talk very
@@ -1134,11 +1221,11 @@ joining the two on `Spielnummer`. Read results from there, or not at all.
   in words: „nur am Rand erwähnt"). Undecided candidates are marked
   `verfallen` after seven days (`darfWeg`) — a broadcast is perishable, but
   the ignored ones count in the Bilanz — decided ones are never touched.
-- `recherchehinweise.kandidat` / `.amtsblattmeldung` / `.sendungskandidat` +
-  `automatisch` + `regel` — where a lead came from, and whether a person or a
-  rule handed it up. The origin link is what lets each desk's digest read the
-  Chefredaktion's verdict back onto its own row (`weiterreichen.ts` builds the
-  lead for all three desks), what „Zurück auf den Tisch"
+- `recherchehinweise.kandidat` / `.amtsblattmeldung` / `.gemeindemitteilung` /
+  `.sendungskandidat` + `automatisch` + `regel` — where a lead came from, and
+  whether a person or a rule handed it up. The origin link is what lets each
+  desk's digest read the Chefredaktion's verdict back onto its own row
+  (`weiterreichen.ts` builds the lead for all four desks), what „Zurück auf den Tisch"
   (`POST /redaktion/hinweise/:id/zurueck`, status `zurueckgegeben`) needs to
   reopen the row, and — via `regel` — what the automation's trip-wire counts:
   two rejections in a row (`kein_hinweis` or `zurueckgegeben`) drop the rule's

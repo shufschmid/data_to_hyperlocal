@@ -69,14 +69,23 @@ const GRUENDE = [
  * is — a summary; verified is only ever the original. Shared with the
  * Chefredaktion desk, where a lead carries its page text itself.
  */
-export function Originaltext({ text, seite }: { text: string | null; seite: number | null }) {
+/**
+ * The source, one click away — the editor checks the original, never the
+ * summary. With a page number for a paper; without one for a lead or a
+ * municipal announcement, where the text itself is the whole source.
+ */
+export function Originaltext({ text, seite = null }: { text: string | null; seite?: number | null }) {
   const [offen, setOffen] = useState(false)
-  if (text === null || seite === null) return null
+  if (text === null || text.trim() === '') return null
 
   return (
     <Box>
       <Button size="small" variant="text" onClick={() => setOffen((o) => !o)} sx={{ px: 0 }}>
-        {offen ? 'Originaltext verbergen' : `Originaltext lesen (S. ${seite})`}
+        {offen
+          ? 'Originaltext verbergen'
+          : seite === null
+            ? 'Originaltext lesen'
+            : `Originaltext lesen (S. ${seite})`}
       </Button>
       {/* unmountOnExit: a 24-page text layer has no business in the DOM
           while the box is closed. */}

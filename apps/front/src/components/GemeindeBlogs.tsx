@@ -187,7 +187,17 @@ function Beitrag({
   const herkunft =
     beitrag.spiel !== null
       ? `${beitrag.spiel.sportart} · ${beitrag.spiel.heim} – ${beitrag.spiel.gast}`
-      : 'Statistik'
+      : beitrag.gemeindemitteilung !== null
+        ? 'Gemeindeseite'
+        : beitrag.amtsblattmeldung !== null
+          ? 'Amtsblatt'
+          : beitrag.kandidat !== null
+            ? 'Wochenblatt'
+            : beitrag.sendungskandidat !== null
+              ? 'Sendung'
+              : beitrag.erscheint_am !== null
+                ? 'Entsorgung'
+                : 'Statistik'
 
   // Nur was auch publiziert werden darf: „in_pruefung“ gehoert den
   // Gegenlesenden, „verworfen“ ist entschieden.

@@ -147,7 +147,11 @@ function neuesteZuerst(
   return (b.date_updated ?? '').localeCompare(a.date_updated ?? '')
 }
 
-type UrsprungsFeld = 'kandidat' | 'amtsblattmeldung' | 'sendungskandidat'
+type UrsprungsFeld =
+  | 'kandidat'
+  | 'amtsblattmeldung'
+  | 'gemeindemitteilung'
+  | 'sendungskandidat'
 
 /** Discarded Meldungen written from these rows, by row id. */
 async function ladeVerwuerfe(
@@ -400,27 +404,84 @@ interface AmtsblattZeile {
   ablehnungskommentar: string | null
 }
 
-export async function ladeAmtsblattSignale(
+export function ladeAmtsblattSignale(
   dienste: LernDienste,
   gemeindeId: string,
   heute: string
 ): Promise<AmtsblattSignale> {
-  const beispiele = (await dienste.zeilen.readByQuery({
-    filter: {
-      gemeinde: { _eq: gemeindeId },
-      entscheid: { _in: [...ENTSCHIEDEN] }
-    },
-    fields: [
-      'id',
-      'titel',
-      'rubrik_name',
-      'entscheid',
-      'ablehnungsgrund',
-      'ablehnungskommentar'
-    ],
-    sort: ['-date_updated'],
-    limit: LERN_FENSTER
-  })) as AmtsblattZeile[]
+  return ladeGemeindebezogeneSignale(
+    dienste,
+    gemeindeId,
+    heute,
+    'rubrik_name',
+    'amtsblattmeldung'
+  )
+}
+
+/**
+ * The municipal-news desk's memory: the same per-municipality shape as the
+ * gazette's, keyed on the item's category where the gazette has a rubric.
+ */
+export function ladeGemeindeSignale(
+  dienste: LernDienste,
+  gemeindeId: string,
+  heute: string
+): Promise<AmtsblattSignale> {
+  return ladeGemeindebezogeneSignale(
+    dienste,
+    gemeindeId,
+    heute,
+    'kategorie',
+    'gemeindemitteilung'
+  )
+}
+
+/**
+ * One loader for the two desks scoped by MUNICIPALITY. What differs is the
+ * column that carries the class hint (`rubrik_name` / `kategorie`) and the
+ * origin field a hand-up's lead points back through.
+ */
+async function ladeGemeindebezogeneSignale(
+  dienste: LernDienste,
+  gemeindeId: string,
+  heute: string,
+  merkmalFeld: 'rubrik_name' | 'kategorie',
+  ursprung: UrsprungsFeld
+): Promise<AmtsblattSignale> {
+  const beispiele = (
+    (await dienste.zeilen.readByQuery({
+      filter: {
+        gemeinde: { _eq: gemeindeId },
+        entscheid: { _in: [...ENTSCHIEDEN] }
+      },
+      fields: [
+        'id',
+        'titel',
+        merkmalFeld,
+        'entscheid',
+        'ablehnungsgrund',
+        'ablehnungskommentar'
+      ],
+      sort: ['-date_updated'],
+      limit: LERN_FENSTER
+    })) as Array<Record<string, unknown>>
+  ).map(
+    (z): AmtsblattZeile => ({
+      id: String(z['id']),
+      titel: String(z['titel'] ?? ''),
+      rubrik_name:
+        typeof z[merkmalFeld] === 'string' ? (z[merkmalFeld] as string) : null,
+      entscheid: String(z['entscheid']),
+      ablehnungsgrund:
+        typeof z['ablehnungsgrund'] === 'string'
+          ? (z['ablehnungsgrund'] as string)
+          : null,
+      ablehnungskommentar:
+        typeof z['ablehnungskommentar'] === 'string'
+          ? (z['ablehnungskommentar'] as string)
+          : null
+    })
+  )
 
   const alleEntschiedenen = (await dienste.zeilen.readByQuery({
     filter: {
@@ -449,19 +510,20 @@ export async function ladeAmtsblattSignale(
 
   const verwuerfe = await ladeVerwuerfe(
     dienste.meldungen,
-    'amtsblattmeldung',
+    ursprung,
     beispiele.filter((z) => z.entscheid === 'uebernommen').map((z) => z.id)
   )
   const urteile = await ladeUrteile(
     dienste.hinweise,
-    'amtsblattmeldung',
+    ursprung,
     beispiele.filter((z) => z.entscheid === 'weitergereicht').map((z) => z.id)
   )
 
   return {
     entscheide: beispiele.map((z) => ({
       titel: z.titel,
-      rubrikName: z.rubrik_name ?? '',
+      rubrikName:
+        z.rubrik_name ?? (merkmalFeld === 'kategorie' ? 'Mitteilung' : ''),
       entscheid: z.entscheid as AmtsblattEintrag['entscheid'],
       grund: z.ablehnungsgrund,
       kommentar: z.ablehnungskommentar,

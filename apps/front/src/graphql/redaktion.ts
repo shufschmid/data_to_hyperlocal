@@ -224,6 +224,8 @@ export interface AlleMeldungFelder {
   kandidat: { id: string } | null
   /** Set for articles written from an official gazette publication. */
   amtsblattmeldung: { id: string } | null
+  /** Set for articles written from a municipality's own news page. */
+  gemeindemitteilung: { id: string } | null
   /** Set for articles written from a broadcast contribution. */
   sendungskandidat: { id: string } | null
   /** Decided at publish time on press reviews: interesting for the city too. */
@@ -268,6 +270,9 @@ export const ALLE_MELDUNGEN_QUERY = gql`
         id
       }
       amtsblattmeldung {
+        id
+      }
+      gemeindemitteilung {
         id
       }
       sendungskandidat {
@@ -434,6 +439,15 @@ export interface GemeindeFelder {
    */
   plz: string[] | null
   aktiv: boolean
+  /**
+   * The news page of the municipality's own website — what the Gemeindeseiten
+   * feed reads once a day. Null means the municipality is absent from that
+   * feed; the card and the desk say so rather than showing nothing.
+   */
+  news_url: string | null
+  news_letzte_pruefung: string | null
+  /** Why the last read failed, in words — shown on the desk and the card. */
+  news_letzter_fehler: string | null
 }
 
 export interface GemeindenErgebnis {
@@ -449,6 +463,9 @@ export const GEMEINDEN_QUERY = gql`
       bfs_nummer
       plz
       aktiv
+      news_url
+      news_letzte_pruefung
+      news_letzter_fehler
     }
   }
 `
@@ -1026,6 +1043,7 @@ export interface RecherchehinweisFelder {
   /** Herkunft eines Weiterreichens — höchstens eines gesetzt; alle null heisst: Fährte des Inventars. */
   kandidat: { id: string } | null
   amtsblattmeldung: { id: string } | null
+  gemeindemitteilung: { id: string } | null
   sendungskandidat: { id: string; quelle: string } | null
   gemeinde: { id: string; name: string } | null
   ausgabe: {
@@ -1061,6 +1079,9 @@ export const RECHERCHEHINWEISE_QUERY = gql`
         id
       }
       amtsblattmeldung {
+        id
+      }
+      gemeindemitteilung {
         id
       }
       sendungskandidat {
@@ -1216,6 +1237,89 @@ export const AMTSBLATT_QUERY = gql`
       vorschlag_begruendung
       entscheid
       ablehnungsgrund
+      gemeinde {
+        id
+        name
+      }
+    }
+  }
+`
+
+// The municipal-news desk: one row per item from a municipality's own news
+// page, the detail page collected whole.
+//
+// Read with a FILTER, unlike the gazette's wholesale query: decided rows are
+// the run's memory, not the desk's, and here they accumulate at some two
+// thousand a year. What the desk needs is the open pile and the taken-over
+// rows still being edited.
+export interface MitteilungAnhangFelder {
+  bezeichnung: string
+  url: string
+  /** `pdf` was read (or tried), `link` is listed only. */
+  typ: string
+  gelesen: boolean
+  /** Why an attachment was not read: deckel, zu_gross, kein_pdf, nicht_erreichbar, robots, fremde_site, kein_text. */
+  grund?: string | null
+}
+
+export interface GemeindemitteilungFelder {
+  id: string
+  /** The normalized list link — the identity. */
+  url: string
+  /** The page the item is shown on, where the site names one; the desk links this first. */
+  url_kanonisch: string | null
+  quelle_seite: string | null
+  titel: string
+  teaser: string | null
+  publiziert_am: string | null
+  kategorie: string | null
+  /** `html`, or `pdf` when the list linked a document directly. */
+  inhalt_typ: string
+  text: string | null
+  text_abgeschnitten: boolean
+  anhaenge: MitteilungAnhangFelder[] | null
+  /** Every cap and inference the reader made, in words. */
+  hinweise: string[] | null
+  gelesen_am: string | null
+  /** Null means the Sichtung has not judged it — NOT that it said no. */
+  vorschlag: boolean | null
+  vorschlag_begruendung: string | null
+  entscheid: string
+  ablehnungsgrund: string | null
+  date_created: string | null
+  gemeinde: { id: string; name: string } | null
+}
+
+export interface GemeindemitteilungenErgebnis {
+  gemeindemitteilungen: GemeindemitteilungFelder[]
+}
+
+export const GEMEINDEMITTEILUNGEN_QUERY = gql`
+  query Gemeindemitteilungen {
+    gemeindemitteilungen(
+      filter: { entscheid: { _in: ["offen", "uebernommen"] } }
+      sort: ["-publiziert_am", "-date_created"]
+      limit: -1
+    ) {
+      id
+      url
+      url_kanonisch
+      quelle_seite
+      titel
+      teaser
+      publiziert_am
+      kategorie
+      inhalt_typ
+      text
+      text_abgeschnitten
+      anhaenge
+      hinweise
+      gelesen_am
+      vorschlag
+      vorschlag_begruendung
+      entscheid
+      ablehnungsgrund
+      date_created
       gemeinde {
         id
         name

@@ -33,6 +33,7 @@ import {
   vereineNachGemeinde
 } from '@/lib/redaktion'
 import { kalenderStatusText } from '@/lib/entsorgung'
+import { zeitpunktText } from '@/lib/gemeindeseiten'
 import { VereinDialog, type VereinFormular } from './VereinDialog'
 
 // Das Redaktionsgebiet — eine Karte je Gemeinde, mit allem, was an ihr haengt.
@@ -60,6 +61,8 @@ export interface GemeindenAuswahlProps {
   onBlattZuordnen?: (blattId: string, gemeindeId: string, entfernen: boolean) => Promise<void>
   onZumEntsorgungsTab?: () => void
   onPlz?: (gemeindeId: string, plz: string[]) => Promise<void>
+  /** The news page of the municipality's website; null clears it. */
+  onNewsUrl?: (gemeindeId: string, url: string | null) => Promise<void>
   laeuft?: boolean
   /** In Tests gesetzt. */
   jahr?: number
@@ -76,6 +79,7 @@ export function GemeindenAuswahl({
   onBlattZuordnen,
   onZumEntsorgungsTab,
   onPlz,
+  onNewsUrl,
   laeuft = false,
   jahr
 }: GemeindenAuswahlProps) {
@@ -149,6 +153,7 @@ export function GemeindenAuswahl({
           {...(onBlattZuordnen === undefined ? {} : { onBlattAendern: () => setBlattDialog(gemeinde) })}
           {...(onZumEntsorgungsTab === undefined ? {} : { onZumEntsorgungsTab })}
           {...(onPlz === undefined ? {} : { onPlz })}
+          {...(onNewsUrl === undefined ? {} : { onNewsUrl })}
         />
       ))}
 
@@ -216,6 +221,8 @@ interface KarteProps {
   onBlattAendern?: () => void
   onZumEntsorgungsTab?: () => void
   onPlz?: (gemeindeId: string, plz: string[]) => Promise<void>
+  /** The news page of the municipality's website; null clears it. */
+  onNewsUrl?: (gemeindeId: string, url: string | null) => Promise<void>
 }
 
 function GemeindeKarte({
@@ -229,10 +236,12 @@ function GemeindeKarte({
   onVereinBearbeiten,
   onBlattAendern,
   onZumEntsorgungsTab,
-  onPlz
+  onPlz,
+  onNewsUrl
 }: KarteProps) {
   const imKanton = istBaselbiet(gemeinde.bezirk)
   const [plzEingabe, setPlzEingabe] = useState((gemeinde.plz ?? []).join(', '))
+  const [urlEingabe, setUrlEingabe] = useState(gemeinde.news_url ?? '')
 
   return (
     <Paper sx={{ p: 2 }}>
@@ -386,6 +395,58 @@ function GemeindeKarte({
                       .map((t) => t.trim())
                       .filter((t) => t !== '')
                   )
+                }
+              >
+                Speichern
+              </Button>
+            </Stack>
+          )}
+        </Abschnitt>
+
+        <Abschnitt titel="Gemeindeseite">
+          {(gemeinde.news_url ?? '') !== '' ? (
+            <Stack spacing={0.5}>
+              <Typography variant="body2" color="text.secondary">
+                Liest{' '}
+                <Link href={gemeinde.news_url ?? ''} target="_blank" rel="noopener">
+                  {gemeinde.news_url}
+                </Link>{' '}
+                — täglich um 13 Uhr; neue Mitteilungen landen im Reiter „Gemeindeseiten“.
+              </Typography>
+              {(gemeinde.news_letzter_fehler ?? '') !== '' ? (
+                <Alert severity="warning" sx={{ py: 0 }}>
+                  Letzter Lauf gescheitert: {gemeinde.news_letzter_fehler}
+                </Alert>
+              ) : (
+                gemeinde.news_letzte_pruefung !== null && (
+                  <Typography variant="caption" color="text.secondary">
+                    Zuletzt gelesen: {zeitpunktText(gemeinde.news_letzte_pruefung)}
+                  </Typography>
+                )
+              )}
+            </Stack>
+          ) : (
+            // Ohne Adresse liest der Lauf nichts — und das sieht genauso aus
+            // wie „die Gemeinde hat nichts mitgeteilt". Darum benannt.
+            <Alert severity="info" sx={{ py: 0 }}>
+              Keine Newsseite erfasst — von dieser Gemeinde kommen keine Mitteilungen.
+            </Alert>
+          )}
+          {onNewsUrl !== undefined && (
+            <Stack direction="row" spacing={1} sx={{ mt: 1, alignItems: 'flex-start' }}>
+              <TextField
+                size="small"
+                label="Adresse der Newsübersicht"
+                placeholder="https://www.riehen.ch/aktuelles/"
+                value={urlEingabe}
+                onChange={(e) => setUrlEingabe(e.target.value)}
+                sx={{ flex: 1 }}
+              />
+              <Button
+                size="small"
+                disabled={laeuft}
+                onClick={() =>
+                  void onNewsUrl(gemeinde.id, urlEingabe.trim() === '' ? null : urlEingabe.trim())
                 }
               >
                 Speichern

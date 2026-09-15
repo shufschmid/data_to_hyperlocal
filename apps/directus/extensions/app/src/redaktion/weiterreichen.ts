@@ -14,6 +14,8 @@
 // too when a learned rule tells them to (automatic hand-ups); the mappers are
 // the same, only `automatisch` and `regel` differ.
 
+import { datumDeutsch } from './amtsblatt'
+import { gekuerzt } from './presseschau'
 import { SENDUNGEN, type SendungsQuelle } from './sendung'
 
 /** The fields a new lead is created with — the same shape from every desk. */
@@ -28,7 +30,52 @@ export interface HinweisFelder {
   status: 'offen'
   kandidat?: string
   amtsblattmeldung?: string
+  gemeindemitteilung?: string
   sendungskandidat?: string
+}
+
+/** A municipal-news item handed up: the whole text travels with the lead. */
+export function mitteilungAlsHinweis(
+  zeile: {
+    id: string
+    titel: string
+    url: string
+    url_kanonisch: string | null
+    publiziert_am: string | null
+    kategorie: string | null
+    teaser: string | null
+    text: string | null
+    anhaenge: Array<{ bezeichnung: string; gelesen: boolean }> | null
+    vorschlag_begruendung: string | null
+    gemeinde: { id: string }
+  },
+  begruendung: string | null
+): HinweisFelder {
+  const datum =
+    zeile.publiziert_am === null
+      ? ''
+      : ` vom ${datumDeutsch(zeile.publiziert_am)}`
+  return {
+    gemeinde: zeile.gemeinde.id,
+    titel: zeile.titel,
+    fundort: `Mitteilung auf der Gemeindewebsite${datum}${zeile.kategorie === null ? '' : ` (${zeile.kategorie})`}`,
+    begruendung: begruendung ?? zeile.vorschlag_begruendung ?? null,
+    // The item's own words travel with the lead, so it outlives the row the
+    // desk's cleanup will eventually retire.
+    quelltext: [
+      zeile.titel,
+      zeile.teaser ?? '',
+      gekuerzt(zeile.text ?? '', 12_000),
+      ...(zeile.anhaenge ?? [])
+        .filter((a) => a.gelesen)
+        .map((a) => `Anhang: ${a.bezeichnung}`),
+      zeile.url_kanonisch ?? zeile.url
+    ]
+      .filter((z) => z.trim() !== '')
+      .join('\n'),
+    status: 'offen',
+    gemeindemitteilung: zeile.id
+  }
 }
 
 export function kandidatAlsHinweis(

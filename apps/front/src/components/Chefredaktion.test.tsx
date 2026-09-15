@@ -18,6 +18,7 @@ function hinweis(ueber: Partial<RecherchehinweisFelder>): RecherchehinweisFelder
     regel: null,
     kandidat: null,
     amtsblattmeldung: null,
+    gemeindemitteilung: null,
     sendungskandidat: null,
     gemeinde: { id: 'g-1', name: 'Binningen' },
     ausgabe: {

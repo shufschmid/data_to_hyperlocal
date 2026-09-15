@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   kandidatAlsHinweis,
+  mitteilungAlsHinweis,
   publikationAlsHinweis,
   reicheWeiter,
   sendungAlsHinweis
@@ -175,5 +176,62 @@ describe('reicheWeiter', () => {
     )
 
     expect(gespeichert).toMatchObject({ automatisch: true, regel: 'r-1' })
+  })
+})
+
+describe('mitteilungAlsHinweis', () => {
+  it('nimmt Titel, Anriss, Wortlaut, gelesene Anhaenge und die Unterseite in den Quelltext und haengt die Mitteilung als Herkunft an', () => {
+    const felder = mitteilungAlsHinweis(
+      {
+        id: 'm-1',
+        titel: 'Aus dem Gemeinderat',
+        url: 'https://www.aesch.bl.ch/_rte/information/1',
+        url_kanonisch: 'https://www.aesch.bl.ch/aktuellesinformationen/1',
+        publiziert_am: '2026-09-11',
+        kategorie: 'politik_info',
+        teaser: 'Traktanden beschlossen.',
+        text: 'Der Gemeinderat hat …',
+        anhaenge: [
+          { bezeichnung: 'Protokoll', gelesen: true },
+          { bezeichnung: 'Bild', gelesen: false }
+        ],
+        vorschlag_begruendung: 'Beschluss mit Wirkung.',
+        gemeinde: { id: 'g-1' }
+      },
+      null
+    )
+    expect(felder).toEqual({
+      gemeinde: 'g-1',
+      titel: 'Aus dem Gemeinderat',
+      fundort:
+        'Mitteilung auf der Gemeindewebsite vom 11. September 2026 (politik_info)',
+      begruendung: 'Beschluss mit Wirkung.',
+      quelltext:
+        'Aus dem Gemeinderat\nTraktanden beschlossen.\nDer Gemeinderat hat …\nAnhang: Protokoll\nhttps://www.aesch.bl.ch/aktuellesinformationen/1',
+      status: 'offen',
+      gemeindemitteilung: 'm-1'
+    })
+  })
+
+  it('zieht die Begruendung des Editors vor und kommt ohne Datum, Kategorie und Kanonisches aus', () => {
+    const felder = mitteilungAlsHinweis(
+      {
+        id: 'm-2',
+        titel: 'T',
+        url: 'https://www.riehen.ch/x.php',
+        url_kanonisch: null,
+        publiziert_am: null,
+        kategorie: null,
+        teaser: null,
+        text: null,
+        anhaenge: null,
+        vorschlag_begruendung: null,
+        gemeinde: { id: 'g-1' }
+      },
+      'Erst nachfragen.'
+    )
+    expect(felder.fundort).toBe('Mitteilung auf der Gemeindewebsite')
+    expect(felder.begruendung).toBe('Erst nachfragen.')
+    expect(felder.quelltext).toBe('T\nhttps://www.riehen.ch/x.php')
   })
 })

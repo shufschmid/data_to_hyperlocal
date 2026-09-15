@@ -168,6 +168,7 @@ const WISSEN_BEREICHE: readonly WissenBereich[] = [
   'entsorgung',
   'presseschau',
   'amtsblatt',
+  'gemeinde',
   'sendung'
 ]
 const WISSEN_STUFEN: readonly WissenStufe[] = ['sichtung', 'text']

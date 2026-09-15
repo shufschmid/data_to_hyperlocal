@@ -70,6 +70,14 @@
       },
       {
         "type": "operation",
+        "name": "gemeindeseiten-pruefen",
+        "source": {
+          "app": "src/operations/gemeindeseiten-pruefen/app.ts",
+          "api": "src/operations/gemeindeseiten-pruefen/api.ts"
+        }
+      },
+      {
+        "type": "operation",
         "name": "redaktion-abarbeiten",
         "source": {
           "app": "src/operations/redaktion-abarbeiten/app.ts",

@@ -32,7 +32,17 @@ function eintrag(ueber: Partial<AmtsblattFelder> = {}): AmtsblattFelder {
 }
 
 const GEMEINDEN: GemeindeFelder[] = [
-  { id: 'g1', name: 'Aesch', bezirk: 'Arlesheim', bfs_nummer: 2761, plz: ['4147'], aktiv: true }
+  {
+    id: 'g1',
+    name: 'Aesch',
+    bezirk: 'Arlesheim',
+    bfs_nummer: 2761,
+    plz: ['4147'],
+    news_url: null,
+    news_letzte_pruefung: null,
+    news_letzter_fehler: null,
+    aktiv: true
+  }
 ]
 
 const HEUTE = '2026-08-31'
@@ -55,6 +65,7 @@ function meldung(ueber: Partial<AlleMeldungFelder> = {}): AlleMeldungFelder {
     spiel: null,
     kandidat: null,
     amtsblattmeldung: { id: 'a' },
+    gemeindemitteilung: null,
     sendungskandidat: null,
     perle: null,
     ...ueber

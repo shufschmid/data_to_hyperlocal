@@ -82,9 +82,14 @@ export const TRIAGE_SCHEMA = {
           nummer: { type: 'integer' },
           vorschlag: { type: 'boolean' },
           begruendung: { type: 'string' },
+          // A nullable enum as type + enum is rejected by the API (measured
+          // 15.09.2026: "Enum value 'weiterreichen' does not match declared
+          // type [string, null]"); the anyOf form is accepted.
           empfehlung: {
-            type: ['string', 'null'],
-            enum: ['weiterreichen', null]
+            anyOf: [
+              { type: 'string', enum: ['weiterreichen'] },
+              { type: 'null' }
+            ]
           },
           empfehlung_regel: { type: ['string', 'null'] }
         },
@@ -256,7 +261,8 @@ export interface TriageUrteil {
  */
 export function parseTriage(
   antwort: unknown,
-  zeilen: readonly TriageZeile[]
+  /** Only the ids are read — the municipal-news Sichtung shares this parser with its own row shape. */
+  zeilen: readonly { id: string }[]
 ): TriageUrteil[] {
   if (typeof antwort !== 'object' || antwort === null)
     throw new Error('Antwort ist kein Objekt.')

@@ -50,6 +50,7 @@ export interface ChefredaktionProps {
 export function herkunftVon(h: RecherchehinweisFelder): string {
   if (h.kandidat !== null) return 'Wochenblatt'
   if (h.amtsblattmeldung !== null) return 'Amtsblatt'
+  if (h.gemeindemitteilung !== null) return 'Gemeindeseite'
   if (h.sendungskandidat !== null) {
     return h.sendungskandidat.quelle === 'punkt6' ? 'punkt6' : 'Regionaljournal'
   }

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Sitemap: https://www.reinach-bl.ch/de/sitemap.php
+Disallow

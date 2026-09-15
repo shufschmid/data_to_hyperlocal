@@ -37,6 +37,10 @@
         {
           "text": "Sendungen",
           "value": "sendung"
+        },
+        {
+          "text": "Gemeindeseiten",
+          "value": "gemeinde"
         }
       ]
     },

@@ -44,6 +44,7 @@ function bericht(spielId: string) {
     lauf: null,
     kandidat: null,
     amtsblattmeldung: null,
+    gemeindemitteilung: null,
     sendungskandidat: null,
     perle: null,
     spiel: {

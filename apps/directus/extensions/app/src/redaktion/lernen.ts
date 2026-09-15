@@ -61,7 +61,7 @@ export function vorgabenZeilen(regeln: readonly string[]): string[] {
 // Learning from decisions
 // ---------------------------------------------------------------------------
 
-export type LernTisch = 'presseschau' | 'amtsblatt' | 'sendung'
+export type LernTisch = 'presseschau' | 'amtsblatt' | 'gemeinde' | 'sendung'
 
 export type LernEntscheid =
   | 'abgelehnt'
@@ -91,6 +91,7 @@ export interface LernFall {
 const TISCH_NAME: Record<LernTisch, string> = {
   presseschau: 'Wochenblaetter (Presseschau)',
   amtsblatt: 'Amtsblatt',
+  gemeinde: 'Gemeindeseiten (Mitteilungen der Gemeinden)',
   sendung: 'Sendungen (Regionaljournal, punkt6)'
 }
 

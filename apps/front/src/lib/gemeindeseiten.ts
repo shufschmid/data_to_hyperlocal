@@ -1,0 +1,178 @@
+import type { GemeindeFelder, GemeindemitteilungFelder } from '@/graphql/redaktion'
+
+// Presentation rules for the municipal-news desk. Pure, so they are tested
+// without a component. The same shape as `lib/amtsblatt.ts` on purpose — the
+// two desks work the same way, and an editor should not have to learn two.
+
+export { datumText } from './amtsblatt'
+
+/** Without „zu privat": a municipality names its office-holders by design. */
+export const ABLEHNUNGSGRUENDE: { wert: string; text: string }[] = [
+  { wert: 'nicht_relevant', text: 'Nicht relevant' },
+  { wert: 'doublette', text: 'Doublette' },
+  { wert: 'veraltet', text: 'Veraltet' },
+  { wert: 'falsche_gemeinde', text: 'Falsche Gemeinde' },
+  { wert: 'andere', text: 'Anderer Grund' }
+]
+
+/**
+ * What stays on the desk: the open rows, and a taken-over row while its
+ * Meldung is still being edited — the editing happens here. Rejected and
+ * handed-up rows leave at once; so does a Meldung that is published or
+ * discarded. The rows themselves stay in the database — this feed's memory.
+ */
+export function bleibtAufDemTisch(
+  eintrag: GemeindemitteilungFelder,
+  meldungStatus: string | null = null
+): boolean {
+  if (eintrag.entscheid === 'offen') return true
+  if (eintrag.entscheid !== 'uebernommen') return false
+  if (meldungStatus === null) return false
+  return meldungStatus !== 'publiziert' && meldungStatus !== 'verworfen'
+}
+
+/** Newest first — by the day the municipality published, then by when we read it. */
+export function sortiere(eintraege: readonly GemeindemitteilungFelder[]): GemeindemitteilungFelder[] {
+  return [...eintraege].sort((a, b) => {
+    const tag = (b.publiziert_am ?? '').localeCompare(a.publiziert_am ?? '')
+    if (tag !== 0) return tag
+    return (b.date_created ?? '').localeCompare(a.date_created ?? '')
+  })
+}
+
+export interface Filter {
+  gemeinde: string | null
+  suche: string
+}
+
+function normalisiere(text: string): string {
+  return text.toLocaleLowerCase('de-CH').normalize('NFD').replace(/\p{M}/gu, '')
+}
+
+export function passt(eintrag: GemeindemitteilungFelder, filter: Filter): boolean {
+  if (filter.gemeinde !== null && eintrag.gemeinde?.id !== filter.gemeinde) return false
+  if (filter.suche.trim() === '') return true
+  const suche = normalisiere(filter.suche.trim())
+  return [eintrag.titel, eintrag.teaser ?? '', eintrag.kategorie ?? '', eintrag.gemeinde?.name ?? '']
+    .map(normalisiere)
+    .some((feld) => feld.includes(suche))
+}
+
+/** How long an unproposed item waits before the run drops it. */
+export const AUFRAEUM_TAGE = 7
+/** How long an undecided proposal waits before the run lets it lapse. */
+export const VORSCHLAG_VERFALL_TAGE = 14
+
+function alterInTagen(datum: string | null, heute: string): number | null {
+  if (datum === null) return null
+  const ms = Date.parse(`${heute}T00:00:00Z`) - Date.parse(`${datum.slice(0, 10)}T00:00:00Z`)
+  return Number.isNaN(ms) ? null : Math.floor(ms / 86_400_000)
+}
+
+/**
+ * The view's half of the rule the 13:00 run enforces (`aufraeumAktion` in
+ * `redaktion/gemeindeseite.ts`, which owns it): without the mirror the desk
+ * would show for up to a day what the next run retires. Changes on one side
+ * belong on the other.
+ */
+export function abgelaufen(eintrag: GemeindemitteilungFelder, heute: string): boolean {
+  if (eintrag.entscheid !== 'offen') return false
+  const alter = alterInTagen(eintrag.publiziert_am ?? eintrag.date_created, heute)
+  if (alter === null) return false
+  return eintrag.vorschlag === true ? alter >= VORSCHLAG_VERFALL_TAGE : alter >= AUFRAEUM_TAGE
+}
+
+export interface Tisch {
+  /** What the Sichtung put forward — the top of the desk. */
+  vorschlaege: GemeindemitteilungFelder[]
+  /** Everything else, one click away. Never hidden, only folded. */
+  uebrige: GemeindemitteilungFelder[]
+}
+
+export function tisch(
+  eintraege: readonly GemeindemitteilungFelder[],
+  filter: Filter,
+  meldungStatus: ReadonlyMap<string, string> = new Map(),
+  heute: string | null = null
+): Tisch {
+  const offen = sortiere(
+    eintraege.filter(
+      (e) =>
+        bleibtAufDemTisch(e, meldungStatus.get(e.id) ?? null) &&
+        passt(e, filter) &&
+        (heute === null || !abgelaufen(e, heute))
+    )
+  )
+  return {
+    vorschlaege: offen.filter((e) => e.vorschlag === true),
+    uebrige: offen.filter((e) => e.vorschlag !== true)
+  }
+}
+
+/** The badge on the tab: the proposals, plus what is taken over and not finished. */
+export function anzahlOffen(
+  eintraege: readonly GemeindemitteilungFelder[],
+  meldungStatus: ReadonlyMap<string, string> = new Map()
+): number {
+  return eintraege.filter((e) => {
+    if (!bleibtAufDemTisch(e, meldungStatus.get(e.id) ?? null)) return false
+    return e.vorschlag === true || e.entscheid === 'uebernommen'
+  }).length
+}
+
+/** Which article belongs to which item — keyed by the item, so a discarded article cannot hide a later one. */
+export function meldungJeMitteilung<T extends { gemeindemitteilung: { id: string } | null }>(
+  meldungen: readonly T[]
+): Map<string, T> {
+  const karte = new Map<string, T>()
+  for (const meldung of meldungen) {
+    if (meldung.gemeindemitteilung !== null) karte.set(meldung.gemeindemitteilung.id, meldung)
+  }
+  return karte
+}
+
+/** The page a reader opens: the canonical address where the site names one, else the list link. */
+export function seitenLink(eintrag: Pick<GemeindemitteilungFelder, 'url' | 'url_kanonisch'>): string {
+  return eintrag.url_kanonisch ?? eintrag.url
+}
+
+/** Active municipalities without a registered news page — named, so an absence is never silence. */
+export function ohneNewsseite(gemeinden: readonly GemeindeFelder[]): GemeindeFelder[] {
+  return gemeinden.filter((g) => g.aktiv && (g.news_url ?? '').trim() === '')
+}
+
+/** Municipalities whose last read failed — each with its own line on the desk. */
+export function lesefehler(gemeinden: readonly GemeindeFelder[]): GemeindeFelder[] {
+  return gemeinden.filter((g) => g.aktiv && (g.news_letzter_fehler ?? '').trim() !== '')
+}
+
+const GRUND_TEXT: Record<string, string> = {
+  deckel: 'nicht gelesen — mehr Anhänge als der Lauf liest',
+  zu_gross: 'nicht gelesen — zu gross',
+  kein_pdf: 'kein PDF',
+  nicht_erreichbar: 'nicht erreichbar',
+  robots: 'nicht gelesen — robots.txt',
+  fremde_site: 'nicht gelesen — fremde Website',
+  kein_text: 'ohne Textebene'
+}
+
+/** What the desk says next to an unread attachment. */
+export function anhangHinweis(grund: string | null | undefined): string | null {
+  if (grund === null || grund === undefined) return null
+  return GRUND_TEXT[grund] ?? grund
+}
+
+/** `2026-09-14T13:02:00Z` → `14. September 2026, 13:02` in Swiss time. */
+export function zeitpunktText(iso: string | null): string {
+  if (iso === null) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return d.toLocaleString('de-CH', {
+    timeZone: 'Europe/Zurich',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}

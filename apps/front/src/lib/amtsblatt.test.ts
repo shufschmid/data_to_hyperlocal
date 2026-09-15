@@ -91,7 +91,7 @@ describe('meldungJePublikation', () => {
   it('ordnet die Meldungen ihren Publikationen zu', () => {
     const karte = meldungJePublikation([
       { id: 'm1', amtsblattmeldung: { id: 'a' } },
-      { id: 'm2', amtsblattmeldung: null, sendungskandidat: null }
+      { id: 'm2', amtsblattmeldung: null, gemeindemitteilung: null, sendungskandidat: null }
     ])
 
     expect(karte.get('a')?.id).toBe('m1')
@@ -219,7 +219,18 @@ describe('Unterlagen', () => {
 
 describe('ohnePlz', () => {
   function gemeinde(ueber: Partial<GemeindeFelder>): GemeindeFelder {
-    return { id: 'g', name: 'Ort', bezirk: 'Arlesheim', bfs_nummer: 1, plz: null, aktiv: true, ...ueber }
+    return {
+      id: 'g',
+      name: 'Ort',
+      bezirk: 'Arlesheim',
+      bfs_nummer: 1,
+      plz: null,
+      news_url: null,
+      news_letzte_pruefung: null,
+      news_letzter_fehler: null,
+      aktiv: true,
+      ...ueber
+    }
   }
 
   // Without a postcode the portal simply returns nothing for the SHAB half,
@@ -229,7 +240,15 @@ describe('ohnePlz', () => {
       gemeinde({ id: 'a', name: 'Aesch', plz: ['4147'] }),
       gemeinde({ id: 'b', name: 'Dornach', plz: [] }),
       gemeinde({ id: 'c', name: 'Riehen', plz: null }),
-      gemeinde({ id: 'd', name: 'Therwil', plz: null, aktiv: false })
+      gemeinde({
+        id: 'd',
+        name: 'Therwil',
+        plz: null,
+        news_url: null,
+        news_letzte_pruefung: null,
+        news_letzter_fehler: null,
+        aktiv: false
+      })
     ])
 
     expect(fehlend.map((g) => g.name)).toEqual(['Dornach', 'Riehen'])

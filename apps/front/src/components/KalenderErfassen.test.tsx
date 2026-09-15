@@ -4,8 +4,28 @@ import { KalenderErfassen } from './KalenderErfassen'
 import type { GemeindeFelder } from '@/graphql/redaktion'
 
 const GEMEINDEN: GemeindeFelder[] = [
-  { id: 'g-1', name: 'Binningen', bezirk: 'Arlesheim', bfs_nummer: 2765, plz: null, aktiv: true },
-  { id: 'g-2', name: 'Aesch', bezirk: 'Arlesheim', bfs_nummer: 2761, plz: null, aktiv: false }
+  {
+    id: 'g-1',
+    name: 'Binningen',
+    bezirk: 'Arlesheim',
+    bfs_nummer: 2765,
+    plz: null,
+    news_url: null,
+    news_letzte_pruefung: null,
+    news_letzter_fehler: null,
+    aktiv: true
+  },
+  {
+    id: 'g-2',
+    name: 'Aesch',
+    bezirk: 'Arlesheim',
+    bfs_nummer: 2761,
+    plz: null,
+    news_url: null,
+    news_letzte_pruefung: null,
+    news_letzter_fehler: null,
+    aktiv: false
+  }
 ]
 
 const IM_MAERZ = new Date('2026-03-15T12:00:00Z')

@@ -28,6 +28,7 @@ function zeile(ueber: Partial<Rohzeile> = {}): Rohzeile {
     kandidat: null,
     sendungskandidat: null,
     amtsblattmeldung: null,
+    gemeindemitteilung: null,
     spiel: null,
     gemeinde: { id: 'g-1', name: 'Münchenstein', bfs_nummer: 2769 },
     datengrundlage: null,
@@ -518,5 +519,39 @@ describe('liste', () => {
     expect(dahinter['anzahl']).toBe(0)
     expect(dahinter['gesamt']).toBe(5)
     expect(dahinter['weitere']).toBe(false)
+  })
+})
+
+describe('Rubrik gemeinde', () => {
+  it('erkennt eine Gemeindemitteilung an ihrer Relation', () => {
+    expect(rubrikVon(zeile({ gemeindemitteilung: 'm-1' }))).toBe('gemeinde')
+  })
+
+  it('nimmt Quellenname und Unterseite aus der datengrundlage, die Gemeinde nur als Rueckfall', () => {
+    expect(
+      quelleVon(
+        zeile({
+          gemeindemitteilung: 'm-1',
+          datengrundlage: {
+            quelle: 'gemeindeseite',
+            quelle_name: 'Gemeinde Riehen',
+            url: 'https://www.riehen.ch/aktuelles/meldungen/Nepal.php'
+          }
+        }),
+        'gemeinde'
+      )
+    ).toEqual({
+      name: 'Gemeinde Riehen',
+      url: 'https://www.riehen.ch/aktuelles/meldungen/Nepal.php'
+    })
+    expect(
+      quelleVon(
+        zeile({ gemeindemitteilung: 'm-1', datengrundlage: null }),
+        'gemeinde'
+      )
+    ).toEqual({
+      name: 'Gemeinde Münchenstein',
+      url: null
+    })
   })
 })

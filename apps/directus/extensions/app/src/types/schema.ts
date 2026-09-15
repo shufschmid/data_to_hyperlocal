@@ -38,6 +38,16 @@ export interface Gemeinde {
    * municipality by postcode.
    */
   simap_vergabestellen: SimapVergabestelle[] | null
+  /**
+   * The news page of the municipality's own website — the one address the
+   * Gemeindeseiten feed reads once a day. Null means the municipality is
+   * absent from that feed, and the workspace says so rather than showing an
+   * empty desk.
+   */
+  news_url: string | null
+  news_letzte_pruefung: string | null
+  /** Why the last read failed — shown on the desk and the Gemeinden card, so absence is never silence. */
+  news_letzter_fehler: string | null
   date_created: string | null
   date_updated: string | null
 }
@@ -188,12 +198,14 @@ export type Entscheidung = 'ja' | 'nein' | 'unklar'
 /**
  * An article, whatever it was written from.
  *
- * Three kinds share this collection, and exactly one of the three parent fields
- * is set on any row: `lauf` for a statistics article, `spiel` for a match
- * report, `erscheint_am` for a waste-collection reminder. Giving each its own
- * collection would have meant building the review, chat, counter-check and
- * publishing machinery three times, so they join the existing one — at the cost
- * of three partial unique indexes instead of one plain constraint.
+ * Six kinds share this collection, and exactly one of the parent markers is
+ * set on any row: `lauf` for a statistics article, `spiel` for a match report,
+ * `erscheint_am` for a waste-collection reminder, `kandidat` for a press
+ * review, `amtsblattmeldung` for a gazette article, `gemeindemitteilung` for a
+ * municipal-news article, `sendungskandidat` for a broadcast one. Giving each
+ * its own collection would have meant building the review, chat, counter-check
+ * and publishing machinery six times, so they join the existing one — at the
+ * cost of partial unique indexes instead of one plain constraint.
  */
 export interface Meldung {
   id: string
@@ -212,6 +224,8 @@ export interface Meldung {
   kandidat: string | null
   /** Set for articles written from an official gazette publication. Null otherwise. */
   amtsblattmeldung: string | null
+  /** Set for articles written from a municipality's own news page. Null otherwise. */
+  gemeindemitteilung: string | null
   /**
    * Set for articles written from a broadcast contribution. Null otherwise.
    *
@@ -365,6 +379,7 @@ export type WissenBereich =
   | 'entsorgung'
   | 'presseschau'
   | 'amtsblatt'
+  | 'gemeinde'
   | 'sendung'
 /** A Sichtung rule steers what is proposed; a text rule, how a Meldung is written. */
 export type WissenStufe = 'sichtung' | 'text'
@@ -661,6 +676,7 @@ export interface Recherchehinweis {
    */
   kandidat: string | null
   amtsblattmeldung: string | null
+  gemeindemitteilung: string | null
   sendungskandidat: string | null
   /** Handed up by a learned rule, not by a person. */
   automatisch: boolean
@@ -737,6 +753,83 @@ export interface Schema {
   wochenblattkandidaten: Wochenblattkandidat[]
   wochenblattgemeinden: Wochenblattgemeinde[]
   recherchehinweise: Recherchehinweis[]
+  gemeindemitteilungen: Gemeindemitteilung[]
+}
+
+export type MitteilungsPlattform =
+  | 'weblication'
+  | 'iweb_tabelle'
+  | 'iweb_karten'
+  | 'backslash'
+
+export type MitteilungsEntscheid =
+  | 'offen'
+  | 'uebernommen'
+  | 'abgelehnt'
+  | 'weitergereicht'
+  | 'verfallen'
+
+/** Without `zu_privat`: a municipality names its office-holders by design. */
+export type MitteilungsGrund =
+  | 'nicht_relevant'
+  | 'doublette'
+  | 'veraltet'
+  | 'falsche_gemeinde'
+  | 'andere'
+
+export type AnhangGrund =
+  | 'deckel'
+  | 'zu_gross'
+  | 'kein_pdf'
+  | 'nicht_erreichbar'
+  | 'robots'
+  | 'fremde_site'
+  | 'kein_text'
+
+/** A document the item's page links. Read ones carry their text; unread ones say why not. */
+export interface MitteilungAnhang {
+  bezeichnung: string
+  url: string
+  typ: 'pdf' | 'link'
+  gelesen: boolean
+  grund?: AnhangGrund
+  groesse?: number
+  seiten?: number
+  text?: string | null
+  abgeschnitten?: boolean
+}
+
+/**
+ * One item from a municipality's own news page — the overview entry plus its
+ * detail page, collected whole. The identity is the normalized list link; the
+ * canonical address is what the desk and the source line show.
+ */
+export interface Gemeindemitteilung {
+  id: string
+  gemeinde: string
+  url: string
+  url_kanonisch: string | null
+  quelle_seite: string | null
+  plattform: MitteilungsPlattform | null
+  titel: string
+  teaser: string | null
+  publiziert_am: string | null
+  kategorie: string | null
+  inhalt_typ: 'html' | 'pdf'
+  text: string | null
+  text_abgeschnitten: boolean
+  anhaenge: MitteilungAnhang[] | null
+  /** Every cap and inference the reader made, in words. */
+  hinweise: string[] | null
+  gelesen_am: string | null
+  /** Sichtung verdict; null = not judged, not "no". */
+  vorschlag: boolean | null
+  vorschlag_begruendung: string | null
+  entscheid: MitteilungsEntscheid
+  ablehnungsgrund: MitteilungsGrund | null
+  ablehnungskommentar: string | null
+  date_created: string | null
+  date_updated: string | null
 }
 
 /** Which of the six piles a publication belongs to — see `shared/amtsblatt`. */

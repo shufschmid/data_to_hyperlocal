@@ -95,8 +95,11 @@ and dump. (This repo carried its model in migrations until August 2026; they are
 deleted, their net state lives in `schema/`, and `directus_migrations` still lists
 them on old databases — that is harmless.)
 
-What a migration is still for — `20260824A-stammdaten.mts` (seeds and indexes)
-and `20260824B-entsorgung-indizes.mts` (indexes only):
+What a migration is still for — `20260824A-stammdaten.mts` (seeds and indexes),
+`20260824B-entsorgung-indizes.mts` (indexes only) and
+`20260914A-gemeindeseiten.mts` (one partial unique index whose predicate matches
+the endpoint's own guard, plus nine seeded addresses written only where the
+field is still empty):
 
 - **Row data a fresh install needs without a human clicking**: the 87 municipalities,
   the three watched sources, the newsroom's registered clubs. Insert-only and
@@ -131,6 +134,9 @@ the choice matters:
 
 `src/endpoints/<name>/index.ts`, registered under `directus:extension.entries` in
 `extensions/app/package.json`. Mounted at `/<name>`.
+`src/manifest.test.ts` compares that list with the source tree in both directions —
+an operation folder without an entry still builds (an endpoint may import its
+handler) and fails only when its Flow fires.
 
 ```ts
 export default defineEndpoint((router, { services, getSchema, logger }) => {
@@ -277,12 +283,12 @@ next Sichtung's user turn, as a candidate RULE in `redaktionswissen`, and, for o
 armed kind of rule, as an ACTION. Four modules in `src/redaktion/` carry it, and
 the split between them is the split between pure and Directus-bound code:
 
-| Module             | Pure? | What it does                                                                                                                                                                                                                                                                                                                                                                                             |
-| ------------------ | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `lernsignale.ts`   | no    | ONE loader per desk (`ladeWochenblattSignale`, `ladeAmtsblattSignale`, `ladeSendungSignale`) for the scheduled run and the re-inventory button alike: decided rows of the window (last three issues / 30 days), the Verwerfen join, the Chefredaktion's verdict via the lead's origin FK, the `verfallen` titles and a `Bilanz`. Pure helpers `bilanzZeile`, `deklariereKappung`.                        |
-| `lernen.ts`        | yes   | The rules of learning: `lohntLernen` (a comment always, a bare click only after two same-direction decisions, doublette/veraltet/falsche Gemeinde never), the Lern prompt and schema, `parseLernUrteil` with its code guards, `regelnBlock` (R1…Rn for a Sichtung), `vorgabenZeilen` (for an article prompt), `automatischeWeitergabe` (fail-closed) and `automatikPausieren` (two rejections in a row). |
-| `gedaechtnis.ts`   | no    | The store: `ladeRegeln(bereich, stufe)` capped at 30 with a warning, `merkeWissenAus` for words (chat, comments, Begründungen), `lerneAusEntscheid` for decisions (fire-and-forget, `logger.warn` on failure, one promise chain per desk so two quick decisions cannot create twin rules) and `pausiereAutomatikWennNoetig`.                                                                             |
-| `weiterreichen.ts` | mixed | Three pure mappers build a lead from a candidate / publication / broadcast candidate with its origin FK; `reicheWeiter` creates the lead FIRST and marks the origin `weitergereicht` second. The endpoints and the three Sichtungen share it — an automatic hand-up is `automatisch: true` plus the `regel` that asked for it.                                                                           |
+| Module             | Pure? | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ------------------ | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lernsignale.ts`   | no    | ONE loader per desk (`ladeWochenblattSignale`, `ladeAmtsblattSignale`, `ladeGemeindeSignale`, `ladeSendungSignale`) for the scheduled run and the re-inventory button alike: decided rows of the window (last three issues / 30 days), the Verwerfen join, the Chefredaktion's verdict via the lead's origin FK, the `verfallen` titles and a `Bilanz`. The two municipality-scoped desks share one private loader. Pure helpers `bilanzZeile`, `deklariereKappung`. |
+| `lernen.ts`        | yes   | The rules of learning: `lohntLernen` (a comment always, a bare click only after two same-direction decisions, doublette/veraltet/falsche Gemeinde never), the Lern prompt and schema, `parseLernUrteil` with its code guards, `regelnBlock` (R1…Rn for a Sichtung), `vorgabenZeilen` (for an article prompt), `automatischeWeitergabe` (fail-closed) and `automatikPausieren` (two rejections in a row).                                                             |
+| `gedaechtnis.ts`   | no    | The store: `ladeRegeln(bereich, stufe)` capped at 30 with a warning, `merkeWissenAus` for words (chat, comments, Begründungen), `lerneAusEntscheid` for decisions (fire-and-forget, `logger.warn` on failure, one promise chain per desk so two quick decisions cannot create twin rules) and `pausiereAutomatikWennNoetig`.                                                                                                                                         |
+| `weiterreichen.ts` | mixed | Four pure mappers build a lead from a candidate / publication / municipal item / broadcast candidate with its origin FK; `reicheWeiter` creates the lead FIRST and marks the origin `weitergereicht` second. The endpoints and the four Sichtungen share it — an automatic hand-up is `automatisch: true` plus the `regel` that asked for it.                                                                                                                        |
 
 Four things a change here must keep:
 
@@ -306,10 +312,31 @@ Endpoints of the learning layer, all in `src/endpoints/redaktion/`:
 - `POST /redaktion/hinweise/:id/zurueck` — „Zurück auf den Tisch": the lead must be
   `offen` and carry an origin FK; the origin goes back to `offen`, the lead becomes
   `zurueckgegeben`, and a `regel` on it counts toward the pause.
-- `POST /redaktion/hinweise/:id/bewerten`, the three `…/ablehnen`, the three
+- `POST /redaktion/hinweise/:id/bewerten`, the four `…/ablehnen`, the four
   `…/weiterreichen`, `…/kandidaten/:id/perle` and `…/meldungen/:id/verwerfen` all
   store first and then call `lerne(signal)`; the optional `kommentar` in their
   bodies is what makes the lesson immediate.
+- `POST /redaktion/gemeindeseiten/pruefen` (202, single-flight) and
+  `POST /redaktion/gemeindeseiten/:id/{meldung,ablehnen,weiterreichen}` — the
+  municipal-news desk, same shape as the gazette's; `/meldung` refuses (422) a
+  row whose reader stored no text, because a Meldung from a title alone reads
+  complete and is not.
+- `POST /redaktion/gemeinden/:id/news-url` — the one address the feed reads
+  per municipality. Validated by READING the page first (`leseUebersicht`:
+  template recognised, list non-empty), so a mistyped address fails the form
+  with a German reason instead of becoming a row that errors every day at one;
+  a successful save starts a run so the editor sees the page's items within a
+  minute. Empty clears the field.
+
+The reader behind that feed, `src/shared/gemeindeseite/`, is the pattern for
+any further HTML source: pure parsers per template family (`erkennung`,
+`liste`, `detail`, `datum`, `url`, `text`, `robots`), tested against saved
+fixtures, and one impure `erstelleLeser` that owns politeness — identified UA,
+sequential requests, a per-host pause `robots.txt` may lengthen, disallowed
+paths never fetched, redirects only within the site, charset-aware decoding,
+size caps. Platform detection is by fingerprint in the HTML, never by host: the
+newsroom's rule is that a rule holds for a kind of page, not for one
+municipality.
 
 ## Environment variables
 

@@ -40,6 +40,7 @@ const FELDER = [
   'kandidat',
   'sendungskandidat',
   'amtsblattmeldung.quelle_typ',
+  'gemeindemitteilung',
   'spiel.sportart',
   'spiel.wettbewerb',
   'spiel.heim',

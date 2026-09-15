@@ -94,8 +94,9 @@ Abnehmer, dass er zu weit ist.
 
 **Zum `text`:** Klartext mit einer Ausnahme — er kann **höchstens einen**
 HTML-Anker der Form `<a href="https://…">…</a>` enthalten (nur bei
-Statistik-Beiträgen, und die Adresse ist geprüft). Ausserdem kann am Ende eine
-Zeile `Quelle: …` mit einer nackten URL stehen. Wer HTML nicht will, entfernt
+Statistik-Beiträgen, und die Adresse ist geprüft). Ausserdem können am Ende eine
+Zeile `Quelle: …` und — bei Gemeindemitteilungen — Zeilen `Dokument: …` mit einer
+nackten URL stehen. Wer HTML nicht will, entfernt
 diesen einen Tag; die Adresse steht ohnehin in `quelle_url`.
 
 **Nicht geliefert** wird `datengrundlage` — das Arbeitsmaterial der Redaktion
@@ -111,6 +112,7 @@ nichts Unfertiges: der Filter ist fest auf `status = publiziert` verdrahtet.
 | `entsorgung`  | Abfuhrkalender der Gemeinde                                | „Abfuhrkalender ‹Gemeinde› ‹Jahr›"   | die PDF-Adresse der Registrierung, sonst null                                                          |
 | `amtsblatt`   | Amtsblattportal (kantonal / SHAB)                          | das publizierende Amt                | das amtliche PDF                                                                                       |
 | `beschaffung` | öffentliche Beschaffung auf simap.ch                       | „simap.ch"                           | die Projektseite                                                                                       |
+| `gemeinde`    | Mitteilung auf der offiziellen Website der Gemeinde        | „Gemeinde ‹Name›"                    | die Unterseite, auf der die Mitteilung steht                                                           |
 | `presseschau` | Wochenblatt-Beitrag                                        | der Name des Blattes                 | die Seite im PDF bzw. im issuu-Reader                                                                  |
 | `sendung`     | Regionaljournal / punkt6                                   | der Sendungsname                     | Deeplink mit Zeitmarke (`#t=` bzw. `?t=`)                                                              |
 | `null`        | kommt heute nicht vor — ehrlicher als eine geratene Rubrik | null                                 | null                                                                                                   |
@@ -194,4 +196,4 @@ Dorfkönig sind `gemeinde`, `titel` und `text`.
 | `kanonische_url` | — gibt es nicht: der Blog hat keine Einzelseiten je Beitrag  |
 | `status`         | — nicht nötig: es kommt ausschliesslich Publiziertes         |
 
-_Angelegt am 3. September 2026._
+_Angelegt am 3. September 2026. Rubrik `gemeinde` ergänzt am 14. September 2026._

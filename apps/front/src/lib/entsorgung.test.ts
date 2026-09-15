@@ -54,6 +54,7 @@ function meldung(ueber: Partial<AlleMeldungFelder>): AlleMeldungFelder {
     spiel: null,
     kandidat: null,
     amtsblattmeldung: null,
+    gemeindemitteilung: null,
     sendungskandidat: null,
     perle: null,
     ...ueber
@@ -67,6 +68,9 @@ function gemeinde(ueber: Partial<GemeindeFelder>): GemeindeFelder {
     bezirk: 'Arlesheim',
     bfs_nummer: 2765,
     plz: null,
+    news_url: null,
+    news_letzte_pruefung: null,
+    news_letzter_fehler: null,
     aktiv: true,
     ...ueber
   }

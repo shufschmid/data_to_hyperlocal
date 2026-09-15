@@ -6,7 +6,7 @@
 //   - the municipality's KEY. `gemeinden` has a name and a BFS number, no slug;
 //     the public blog slugifies in the frontend. An outside reader cannot be
 //     asked to guess that «Münchenstein» is `muenchenstein`.
-//   - the RUBRIK. Which of six kinds an article is shows only in which of five
+//   - the RUBRIK. Which of seven kinds an article is shows only in which of six
 //     foreign keys (or `erscheint_am`) is set.
 //   - the SOURCE. Every kind stores it differently: the desks put it into
 //     `datengrundlage` under different keys, statistics keep it in the dataset
@@ -25,6 +25,7 @@ export type Rubrik =
   | 'entsorgung'
   | 'amtsblatt'
   | 'beschaffung'
+  | 'gemeinde'
   | 'presseschau'
   | 'sendung'
 
@@ -57,6 +58,8 @@ export interface Rohzeile {
   kandidat: string | null
   sendungskandidat: string | null
   amtsblattmeldung: { quelle_typ: string | null } | string | null
+  /** Set for articles written from a municipality's own news page. */
+  gemeindemitteilung: string | null
   spiel: {
     sportart: string | null
     wettbewerb: string | null
@@ -170,6 +173,7 @@ export function rubrikVon(zeile: Rohzeile): Rubrik | null {
   if (zeile.kandidat !== null) return 'presseschau'
   if (zeile.amtsblattmeldung !== null)
     return quelleTypVon(zeile) === 'simap' ? 'beschaffung' : 'amtsblatt'
+  if (zeile.gemeindemitteilung !== null) return 'gemeinde'
   if (zeile.sendungskandidat !== null) return 'sendung'
   return null
 }
@@ -253,6 +257,17 @@ export function quelleVon(zeile: Rohzeile, rubrik: Rubrik | null): Quelle {
 
     case 'beschaffung':
       return { name: 'simap.ch', url: text(daten['pdf_url']) }
+
+    // The desk writes `quelle_name` and `url` into `datengrundlage` for exactly
+    // this reader; the joined municipality is only the fallback for a row
+    // written before that contract.
+    case 'gemeinde':
+      return {
+        name:
+          text(daten['quelle_name']) ??
+          (zeile.gemeinde === null ? null : `Gemeinde ${zeile.gemeinde.name}`),
+        url: text(daten['url'])
+      }
 
     case 'presseschau': {
       const pdf = text(daten['pdf_url'])

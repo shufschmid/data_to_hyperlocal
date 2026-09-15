@@ -20,6 +20,9 @@ function gemeinde(bfs: number, name: string): Gemeinde {
     aktiv: true,
     plz: null,
     simap_vergabestellen: null,
+    news_url: null,
+    news_letzte_pruefung: null,
+    news_letzter_fehler: null,
     date_created: null,
     date_updated: null
   }

@@ -59,6 +59,8 @@ import {
   type WissenErgebnis,
   AMTSBLATT_QUERY,
   type AmtsblattErgebnis,
+  GEMEINDEMITTEILUNGEN_QUERY,
+  type GemeindemitteilungenErgebnis,
   SENDUNGSKANDIDATEN_QUERY,
   type SendungskandidatenErgebnis
 } from '@/graphql/redaktion'
@@ -74,6 +76,7 @@ import {
 import { QuellenLauf } from './QuellenLauf'
 import { Presseschau } from './Presseschau'
 import { Amtsblatt } from './Amtsblatt'
+import { Gemeindeseiten } from './Gemeindeseiten'
 import { SendungsDurchsicht } from './SendungsDurchsicht'
 import IconButton from '@mui/material/IconButton'
 import Menu from '@mui/material/Menu'
@@ -81,6 +84,7 @@ import SettingsOutlined from '@mui/icons-material/SettingsOutlined'
 import MenuItem from '@mui/material/MenuItem'
 import { anzahlOffen as anzahlSendungskandidaten } from '@/lib/sendungen'
 import { anzahlOffen, liestUnterlagen } from '@/lib/amtsblatt'
+import { anzahlOffen as anzahlMitteilungen } from '@/lib/gemeindeseiten'
 import { Chefredaktion } from './Chefredaktion'
 import { Gelerntes } from './Gelerntes'
 import { Zeitleiste } from './Zeitleiste'
@@ -125,6 +129,7 @@ type Reiter =
   | 'entsorgung'
   | 'wochenblaetter'
   | 'amtsblatt'
+  | 'gemeindeseiten'
   | 'regionaljournal'
   | 'punkt6'
   | 'chefredaktion'
@@ -268,6 +273,9 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
   const amtsblatt = useQuery<AmtsblattErgebnis>(AMTSBLATT_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY
   })
+  const gemeindeseiten = useQuery<GemeindemitteilungenErgebnis>(GEMEINDEMITTEILUNGEN_QUERY, {
+    fetchPolicy: LIVE_FETCH_POLICY
+  })
   const sendungskandidaten = useQuery<SendungskandidatenErgebnis>(SENDUNGSKANDIDATEN_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY
   })
@@ -391,6 +399,11 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
       m.amtsblattmeldung === null ? [] : [[m.amtsblattmeldung.id, m.status] as const]
     )
   )
+  const meldungStatusJeMitteilung = new Map(
+    meldungenAlle.flatMap((m) =>
+      m.gemeindemitteilung === null ? [] : [[m.gemeindemitteilung.id, m.status] as const]
+    )
+  )
   const meldungStatusJeKandidat = new Map(
     meldungenAlle.flatMap((m) => (m.kandidat === null ? [] : [[m.kandidat.id, m.status] as const]))
   )
@@ -401,13 +414,18 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
   // naechsten Laden der Seite auftauchte. Dasselbe galt fuer jeden Entscheid:
   // ein abgelehnter Kandidat verschwand erst nach einem Reload.
   const allesNeuLaden = useCallback(async () => {
+    // The two municipal desks are in the list because a decision there changes
+    // the row itself (entscheid), not only the Meldung — without the refetch a
+    // rejected row stayed on screen until the next load.
     await Promise.all([
       laeufe.refetch(),
       alleMeldungen.refetch(),
       datensaetze.refetch(),
-      sendungskandidaten.refetch()
+      sendungskandidaten.refetch(),
+      amtsblatt.refetch(),
+      gemeindeseiten.refetch()
     ])
-  }, [laeufe, alleMeldungen, datensaetze, sendungskandidaten])
+  }, [laeufe, alleMeldungen, datensaetze, sendungskandidaten, amtsblatt, gemeindeseiten])
 
   // The hand-started scrape run: state lives in the extension's process, this
   // only mirrors it. Polled while a run is under way; when it finishes, the
@@ -705,6 +723,21 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
                 sx={ZAEHLER_IM_REITER}
               >
                 Amtsblatt
+              </Badge>
+            }
+          />
+          <Tab
+            value="gemeindeseiten"
+            label={
+              <Badge
+                color="info"
+                badgeContent={anzahlMitteilungen(
+                  gemeindeseiten.data?.gemeindemitteilungen ?? [],
+                  meldungStatusJeMitteilung
+                )}
+                sx={ZAEHLER_IM_REITER}
+              >
+                Gemeindeseiten
               </Badge>
             }
           />
@@ -1079,6 +1112,43 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
         </Stack>
       )}
 
+      {reiter === 'gemeindeseiten' && (
+        <Stack spacing={2}>
+          <Typography variant="body2" color="text.secondary">
+            Was die Gemeinden auf ihren eigenen Websites mitteilen — täglich um 13 Uhr gelesen, jede neue
+            Unterseite samt verlinkten PDFs eingesammelt. Eine Sichtung sortiert, was einen Blick lohnt;
+            weggeworfen wird nichts. Abfuhrtermine, die im Abfuhrkalender schon stehen, schlägt sie nicht vor
+            — ein Ausfall oder eine Verschiebung schon.
+          </Typography>
+          <Gemeindeseiten
+            eintraege={gemeindeseiten.data?.gemeindemitteilungen ?? []}
+            gemeinden={gemeinden.data?.gemeinden ?? []}
+            meldungen={meldungenAlle}
+            onChat={async (id, anweisung) => {
+              await fuehreAus(`meldungen/${id}/chat`, { anweisung })
+            }}
+            onAktion={async (id, was, koerper) => {
+              await fuehreAus(`meldungen/${id}/${was}`, koerper)
+            }}
+            heute={new Date().toISOString().slice(0, 10)}
+            laeuft={sendet}
+            onLauf={async () => {
+              await fuehreAus('gemeindeseiten/pruefen')
+            }}
+            onUebernehmen={async (id) => {
+              await fuehreAus(`gemeindeseiten/${id}/meldung`)
+            }}
+            onAblehnen={async (id, grund, kommentar) => {
+              await fuehreAus(`gemeindeseiten/${id}/ablehnen`, { grund, kommentar })
+            }}
+            onWeiterreichen={async (id, begruendung) => {
+              await fuehreAus(`gemeindeseiten/${id}/weiterreichen`, { begruendung })
+            }}
+            onZuGemeinden={() => setReiter('gemeinden')}
+          />
+        </Stack>
+      )}
+
       {(reiter === 'regionaljournal' || reiter === 'punkt6') && (
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
@@ -1174,6 +1244,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
                 recherchehinweise.refetch(),
                 wochenblaetter.refetch(),
                 amtsblatt.refetch(),
+                gemeindeseiten.refetch(),
                 sendungskandidaten.refetch()
               ])
             }}
@@ -1271,6 +1342,12 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             onZumEntsorgungsTab={() => setReiter('entsorgung')}
             onPlz={async (id, plz) => {
               await fuehreAus(`gemeinden/${id}/plz`, { plz })
+            }}
+            onNewsUrl={async (id, url) => {
+              // Der Endpoint liest die Seite, BEVOR er schreibt — eine falsche
+              // Adresse scheitert hier am Formular, nicht morgen um eins.
+              await fuehreAus(`gemeinden/${id}/news-url`, { news_url: url })
+              await gemeinden.refetch()
             }}
           />
         </Stack>
