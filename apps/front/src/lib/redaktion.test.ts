@@ -45,6 +45,7 @@ function meldung(ueber: Partial<MeldungFelder> = {}): MeldungFelder {
     fehler: null,
     publiziert_am: null,
     publiziert_durch: null,
+    revision_hinweis: null,
     gemeinde: { id: 'g1', name: 'Aesch', bezirk: 'Arlesheim' },
     ...ueber
   }
@@ -905,6 +906,7 @@ describe('pruefsiegelText', () => {
         meldung({
           status: 'publiziert',
           publiziert_durch: 'zeitlauf',
+          revision_hinweis: null,
           zeit_warnungen: ['Vorjahr']
         })
       )
@@ -914,6 +916,7 @@ describe('pruefsiegelText', () => {
         meldung({
           status: 'publiziert',
           publiziert_durch: 'zeitlauf',
+          revision_hinweis: null,
           zeit_warnungen: ['Vorjahr', 'ungepruefte Prozentangabe: 12%']
         })
       )

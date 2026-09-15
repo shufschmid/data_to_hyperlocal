@@ -16,6 +16,7 @@ function beitrag(ueber: Partial<AlleMeldungFelder>): AlleMeldungFelder {
     fehler: null,
     publiziert_am: null,
     publiziert_durch: null,
+    revision_hinweis: null,
     erscheint_am: null,
     date_created: '2026-08-30T08:00:00Z',
     gemeinde: { id: 'g-1', name: 'Aesch', bezirk: 'Arlesheim' },

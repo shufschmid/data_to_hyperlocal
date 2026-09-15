@@ -15,6 +15,7 @@ function meldung(ueber: Partial<MeldungFelder> = {}): MeldungFelder {
     fehler: null,
     publiziert_am: null,
     publiziert_durch: null,
+    revision_hinweis: null,
     gemeinde: { id: 'g-1', name: 'Binningen', bezirk: 'Arlesheim' },
     ...ueber
   }
@@ -77,5 +78,36 @@ describe('das Pruefsiegel auf der Karte', () => {
   it('bleibt weg, solange nichts publiziert ist', () => {
     render(<MeldungKarte meldung={meldung()} onChat={jest.fn()} onAktion={jest.fn()} />)
     expect(screen.queryByText(/publiziert von/)).not.toBeInTheDocument()
+  })
+})
+
+describe('der Revisionsbefund auf der Karte', () => {
+  it('zeigt Fahne und Wortlaut, wenn die Quelle revidiert hat', () => {
+    render(
+      <MeldungKarte
+        meldung={meldung({
+          status: 'publiziert',
+          publiziert_am: '2026-09-15T10:00:00.000Z',
+          publiziert_durch: 'redaktion',
+          revision_hinweis:
+            'Die Quelle hat ihre Zahlen revidiert. Diese Angaben im Text sind im neuen Stand nicht mehr belegt: 31 Prozent.'
+        })}
+        onChat={jest.fn()}
+        onAktion={jest.fn()}
+      />
+    )
+    expect(screen.getByText('Revision')).toBeInTheDocument()
+    expect(screen.getByText(/31 Prozent/)).toBeInTheDocument()
+  })
+
+  it('bleibt weg, wo kein Befund steht', () => {
+    render(
+      <MeldungKarte
+        meldung={meldung({ status: 'publiziert', publiziert_am: '2026-09-15T10:00:00.000Z' })}
+        onChat={jest.fn()}
+        onAktion={jest.fn()}
+      />
+    )
+    expect(screen.queryByText('Revision')).not.toBeInTheDocument()
   })
 })

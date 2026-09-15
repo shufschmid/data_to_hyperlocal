@@ -117,6 +117,12 @@ export interface MeldungFelder {
    * yet, and on what was published before the mark existed.
    */
   publiziert_durch: string | null
+  /**
+   * Set by the revision watchdog on a PUBLISHED article whose source has since
+   * revised its figures: the percentages that no longer stand. Null means
+   * nothing to report.
+   */
+  revision_hinweis: string | null
   gemeinde: { id: string; name: string; bezirk: string } | null
 }
 
@@ -185,6 +191,7 @@ export const MELDUNGEN_QUERY = gql`
       fehler
       publiziert_am
       publiziert_durch
+      revision_hinweis
       gemeinde {
         id
         name
@@ -216,6 +223,12 @@ export interface AlleMeldungFelder {
   publiziert_am: string | null
   /** See `MeldungFelder.publiziert_durch`. */
   publiziert_durch: string | null
+  /**
+   * Set by the revision watchdog on a PUBLISHED article whose source has since
+   * revised its figures: the percentages that no longer stand. Null means
+   * nothing to report.
+   */
+  revision_hinweis: string | null
   /** Only set on waste-collection reminders: the newsletter day they belong to. */
   erscheint_am: string | null
   date_created: string | null
@@ -258,6 +271,7 @@ export const ALLE_MELDUNGEN_QUERY = gql`
       fehler
       publiziert_am
       publiziert_durch
+      revision_hinweis
       erscheint_am
       date_created
       gemeinde {

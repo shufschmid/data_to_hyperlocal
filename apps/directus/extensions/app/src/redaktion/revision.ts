@@ -23,8 +23,16 @@
 // one that says nothing.
 
 import type { OdsRecord } from '../shared/ods'
-import type { Zeitreihe } from './kontext'
-import { ableitbareProzentangaben, unbelegteProzentangaben } from './zahlen'
+import {
+  beschreibeEinordnung,
+  type FrischeZeilen,
+  type Zeitreihe
+} from './kontext'
+import {
+  ableitbareProzentangaben,
+  erlaubteProzentangaben,
+  unbelegteProzentangaben
+} from './zahlen'
 
 /** The parts of a Meldung this check reads. Structural, so tests need no row. */
 export interface GepruefteMeldung {
@@ -74,4 +82,72 @@ export function revisionsHinweis(unbelegt: readonly number[]): string {
     `neuen Stand nicht mehr belegt: ${zahlen}. Bitte den Beitrag pruefen und ` +
     `entweder ueberarbeiten lassen oder zurueckziehen.`
   )
+}
+
+/** A published article as the watchdog reads it. */
+export interface RevisionsMeldung extends GepruefteMeldung {
+  id: string
+  /** The municipality's id — the key into the freshly fetched rows. */
+  gemeinde: string
+  /** What the watchdog wrote here last time, if anything. */
+  revision_hinweis?: string | null
+}
+
+export interface RevisionsSchreibung {
+  id: string
+  revision_hinweis: string | null
+  revision_geprueft_am: string
+}
+
+/**
+ * What the watchdog writes after one pass over a dataset's published articles.
+ *
+ * Only rows whose state actually CHANGES appear: a new finding, or the clearing
+ * of one that no longer holds. An article that was fine and stays fine is not
+ * touched — the run would otherwise rewrite every published article of the
+ * dataset on every revision, and `date_updated` would stop meaning anything.
+ *
+ * A municipality missing from the fresh rows is skipped entirely, not cleared:
+ * we learned nothing about it this time, and silently dropping a standing
+ * finding because an export came back short would be the worst of both.
+ *
+ * The allowance per municipality is built exactly as stage A builds it — its
+ * own rows plus the einordnung over the whole slice — so the watchdog and the
+ * publication gate answer the same question the same way.
+ */
+export function revisionsSchreibungen(
+  meldungen: readonly RevisionsMeldung[],
+  frischJeGemeinde: ReadonlyMap<string, FrischeZeilen>,
+  jetzt: string
+): RevisionsSchreibung[] {
+  const schreibungen: RevisionsSchreibung[] = []
+  // One einordnung per municipality, not per article: a dataset routinely
+  // carries several periods' articles for the same place.
+  const einordnungen = new Map<string, number[]>()
+
+  for (const meldung of meldungen) {
+    const frisch = frischJeGemeinde.get(meldung.gemeinde)
+    if (frisch === undefined || frisch.eigene.length === 0) continue
+
+    let erlaubt = einordnungen.get(meldung.gemeinde)
+    if (erlaubt === undefined) {
+      erlaubt = erlaubteProzentangaben(
+        beschreibeEinordnung(frisch.eigene, frisch.alle)
+      )
+      einordnungen.set(meldung.gemeinde, erlaubt)
+    }
+
+    const unbelegt = revisionsBefund(meldung, frisch.eigene, erlaubt)
+    const hinweis = unbelegt === null ? null : revisionsHinweis(unbelegt)
+    const stand = meldung.revision_hinweis ?? null
+
+    if (hinweis === stand) continue
+    schreibungen.push({
+      id: meldung.id,
+      revision_hinweis: hinweis,
+      revision_geprueft_am: jetzt
+    })
+  }
+
+  return schreibungen
 }

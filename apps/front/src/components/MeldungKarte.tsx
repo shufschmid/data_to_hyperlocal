@@ -16,6 +16,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import type { MeldungFelder } from '@/graphql/redaktion'
 import { pruefsiegelText, statusFarbe, statusText, warnungen } from '@/lib/redaktion'
+import { hatRevision } from '@/lib/revision'
 import { langesDatum } from '@/lib/entsorgung'
 import { Artikeltext } from './Artikeltext'
 
@@ -84,6 +85,9 @@ export function MeldungKarte({
   // Nur auf publizierten Karten, und auch dort klein: die Warnungen selbst
   // stehen schon oben im Kasten, hier steht, wer unterschrieben hat.
   const siegel = pruefsiegelText(meldung)
+  // Der lauteste Hinweis auf dieser Karte: der Beitrag ist publiziert, und die
+  // Quelle hat seine Zahlen seither korrigiert.
+  const revidiert = hatRevision(meldung)
 
   async function schicken() {
     if (anweisung.trim() === '') return
@@ -111,6 +115,7 @@ export function MeldungKarte({
                   </Typography>
                 </>
               )}
+              {revidiert && <Chip size="small" color="error" label="Revision" />}
               {siegel !== null && (
                 <Chip
                   size="small"
@@ -128,6 +133,7 @@ export function MeldungKarte({
             </Typography>
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
               {beschaeftigt && <CircularProgress size={16} />}
+              {revidiert && <Chip size="small" color="error" label="Revision" />}
               {siegel !== null && (
                 <Chip
                   size="small"
@@ -139,6 +145,18 @@ export function MeldungKarte({
               <Chip size="small" label={statusText(meldung.status)} color={statusFarbe(meldung.status)} />
             </Stack>
           </Stack>
+        )}
+
+        {/* Ueber allen Warnungen, weil er als einziger einen Beitrag betrifft,
+            der schon draussen ist. Einklappbar, weil er lang ist und die Karte
+            sonst nichts anderes mehr zeigt. */}
+        {revidiert && (
+          <Alert severity="error">
+            <details>
+              <summary style={{ cursor: 'pointer' }}>Die Quelle hat ihre Zahlen revidiert</summary>
+              <Box sx={{ mt: 1 }}>{meldung.revision_hinweis}</Box>
+            </details>
+          </Alert>
         )}
 
         {/* Warnings sit above the text, because the point of them is to be seen

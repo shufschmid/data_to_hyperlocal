@@ -32,6 +32,7 @@ function meldung(ueber: Partial<AlleMeldungFelder> = {}): AlleMeldungFelder {
     fehler: null,
     publiziert_am: null,
     publiziert_durch: null,
+    revision_hinweis: null,
     erscheint_am: null,
     date_created: '2026-08-31',
     gemeinde: { id: 'g1', name: 'Aesch', bezirk: 'Arlesheim' },
