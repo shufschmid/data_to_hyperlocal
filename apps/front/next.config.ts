@@ -27,7 +27,10 @@ const nextConfig: NextConfig = {
         source: '/:path*',
         headers: [
           { key: 'X-Content-Type-Options', value: 'nosniff' },
-          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          // The frame header is NOT here. It depends on EDITOR_EINBETTUNG, and
+          // this function runs at BUILD time — its result is frozen into the
+          // routes manifest, so a variable set at deploy time would be silently
+          // ignored. It lives in src/middleware.ts instead.
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           // Nothing here belongs in a search index. The workspace needs a login
           // anyway, and the blog is deliberately unlisted: reachable for anyone
