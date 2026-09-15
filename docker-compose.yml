@@ -165,6 +165,8 @@ services:
       # `directus`: on a shared deploy host that alias can belong to someone else.
       DIRECTUS_URL: http://redaktion-directus:8055
       NODE_ENV: production
+      # Leer heisst: keine Einbettung, genau wie bisher. Siehe .env.example.
+      EDITOR_EINBETTUNG: ${EDITOR_EINBETTUNG:-}
     healthcheck:
       test:
         [

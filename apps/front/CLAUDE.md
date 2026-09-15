@@ -72,6 +72,22 @@ component is a build error, which is what keeps tokens off the browser.
   the losers used to clear the session the winner had just renewed. One in-flight
   promise per token plus a 60-second memory of the result fixes it; requests that
   were already in flight with the old cookie get the same new pair.
+- **Embedding in the We.Publish editor costs the cookie's own CSRF protection,
+  and only when it is switched on.** `EDITOR_EINBETTUNG` (server-side, never
+  `NEXT_PUBLIC_`) is a list of https origins allowed to frame this workspace.
+  Empty — the default — means exactly what stood here before: `X-Frame-Options:
+SAMEORIGIN`, no frame, cookies `SameSite=Lax`. Set, two things change together
+  and they have to: a `frame-ancestors` CSP replaces the old header (never both —
+  they contradict each other, modern browsers follow the CSP), and the session
+  cookies become `SameSite=None; Secure`, because in a foreign frame the browser
+  does not send a lax cookie at all and the workspace simply looks logged out.
+  What is given up is the cookie's own rule against cross-site requests. What
+  stays: the tokens remain **httpOnly**, so no script reads them, and every call
+  to Directus still goes through this app's same-origin `/api/*` routes with the
+  signed-in user's token. The rules are pure and tested in `lib/einbettung.ts`;
+  the allow-list drops anything that is not a bare `https://` origin rather than
+  writing it into a CSP, and `None` forces `Secure` even in development, since a
+  browser silently discards a `SameSite=None` cookie that is not secure.
 - There is deliberately **no service/admin token in this app**. If a feature seems to
   need one, it needs a Directus extension endpoint instead — that is the whole point
   of constraint 7 in the root CLAUDE.md.
@@ -178,6 +194,11 @@ replayed after a token refresh.
 `.env.local` from `.env.local.example` for local development; in Docker the values
 come from the root `.env` via `docker-compose.yml`.
 
+- `EDITOR_EINBETTUNG` — allowed iframe origins, space-separated, empty by
+  default (see the security model above for what setting it costs). It is not in
+  a committed example file: `.gitignore` excludes `.env.*`, so the front app has
+  no checked-in example; the root `.env.example` and `docker-compose.yml` carry
+  it.
 - `DIRECTUS_URL` — where Directus is reachable **from this server process**
   (`http://redaktion-directus:8055` in Docker — the service name; on a shared
   deploy host a bare `directus` alias can belong to another stack). The browser
