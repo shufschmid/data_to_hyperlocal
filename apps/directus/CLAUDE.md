@@ -211,6 +211,13 @@ GraphQL, other extensions), which makes it the right place for invariants.
   article: correcting a collection date — including in the admin UI, which no
   endpoint sees — un-confirms the date and discards the reminder written from
   it, because an article is a cache of the facts it was written from.
+- The same hook carries the two marks the public API needs and the timestamps
+  alone could not give it (`stempel` in `redaktion/status.ts`, pure and tested):
+  `publiziert_durch` says whether a person at the desk or the scheduled run set
+  off the publication — `context.accountability.user` is what tells them apart,
+  and the Flow „Entsorgung publizieren" writes without one — and
+  `zurueckgezogen_am` records a retraction while `publiziert_am` stays put, so
+  `/api/v1/korrekturen` can report it without the history losing its shape.
 
 ### Operation — a step a Flow can call. **This is how scheduled work is done.**
 

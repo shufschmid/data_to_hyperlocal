@@ -8,6 +8,7 @@ import {
   istUebergangErlaubt,
   pruefeUebergang,
   ruecksetzungNachAenderung,
+  stempel,
   type MeldungZustand
 } from './status'
 
@@ -254,5 +255,60 @@ describe('hatQuellenlink', () => {
   // anderer Fall und hat mit `quelle.ts` ihre eigene Pruefung.
   it('geht andere Meldungen nichts an', () => {
     expect(hatQuellenlink({ spiel: null, text: 'Ohne Adresse.' })).toBe(true)
+  })
+})
+
+describe('stempel', () => {
+  const jetzt = '2026-09-15T09:00:00.000Z'
+
+  it('haelt fest, dass ein Mensch am Tisch publiziert hat', () => {
+    expect(
+      stempel({ status: 'publiziert' }, zustand({ status: 'freigegeben' }), {
+        user: 'b7f1a6d2-0000-4000-8000-000000000001',
+        jetzt
+      })
+    ).toEqual({ publiziert_durch: 'redaktion' })
+  })
+
+  // Der Flow «Entsorgung publizieren» schreibt ohne accountability. Ohne
+  // dieses Feld sah eine Erinnerung, die der Zeitlauf ausspielte, genauso aus
+  // wie ein Klick der Redaktorin.
+  it('haelt fest, wenn der Zeitlauf publiziert hat', () => {
+    expect(
+      stempel({ status: 'publiziert' }, zustand({ status: 'freigegeben' }), {
+        user: null,
+        jetzt
+      })
+    ).toEqual({ publiziert_durch: 'zeitlauf' })
+  })
+
+  it('stempelt den Rueckzug und laesst die Historie stehen', () => {
+    for (const nach of ['entwurf', 'verworfen'] as const) {
+      expect(
+        stempel({ status: nach }, zustand({ status: 'publiziert' }), {
+          user: null,
+          jetzt
+        })
+      ).toEqual({ zurueckgezogen_am: jetzt })
+    }
+  })
+
+  it('ueberschreibt nichts, was der Aufrufer schon mitbringt', () => {
+    expect(
+      stempel(
+        { status: 'publiziert', publiziert_durch: 'zeitlauf' },
+        zustand({ status: 'freigegeben' }),
+        { user: 'b7f1a6d2-0000-4000-8000-000000000001', jetzt }
+      )
+    ).toEqual({})
+  })
+
+  it('haelt sich aus jedem anderen Wechsel heraus', () => {
+    expect(
+      stempel({ status: 'freigegeben' }, zustand({ status: 'entwurf' }), {
+        user: null,
+        jetzt
+      })
+    ).toEqual({})
   })
 })
