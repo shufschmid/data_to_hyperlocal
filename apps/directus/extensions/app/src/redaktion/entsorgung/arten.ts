@@ -90,6 +90,29 @@ const STUMME_ARTEN: ReadonlySet<Abfuhrart> = new Set<Abfuhrart>([
 const FLOSKEL = /\s*bis\s+\d{1,2}([.:]\d{2})?\s*Uhr.*$/i
 
 /**
+ * The name without the instruction the calendar prints after it, and that
+ * instruction on its own.
+ *
+ * Riehen writes both "Altpapier" and "Altpapier bis 6 Uhr bereit stellen" in
+ * the same calendar, for the same collection. Kept together they are two
+ * categories at the desk and two rows in the diff; split, the name is the name
+ * and the instruction is what it is — a Bereitstellung, which the model path
+ * already has a field for.
+ */
+export function trenneHinweis(roh: string): {
+  name: string
+  hinweis: string | null
+} {
+  const treffer = FLOSKEL.exec(roh)
+  return treffer === null
+    ? { name: roh.trim(), hinweis: null }
+    : {
+        name: roh.slice(0, treffer.index).trim(),
+        hinweis: treffer[0].trim()
+      }
+}
+
+/**
  * What this newsroom files a collection under. Unknown becomes `sonstige`,
  * never nothing.
  *

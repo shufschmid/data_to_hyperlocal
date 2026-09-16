@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { istStumm, normalisiereArt } from './arten'
+import { istStumm, normalisiereArt, trenneHinweis } from './arten'
 
 describe('normalisiereArt', () => {
   it('reads the municipalities into one vocabulary', () => {
@@ -70,5 +70,27 @@ describe('istStumm', () => {
     ] as const) {
       expect(istStumm(laut)).toBe(false)
     }
+  })
+})
+
+describe('trenneHinweis', () => {
+  it('splits the name from the instruction the calendar prints after it', () => {
+    // Riehen writes both forms for the same collection. Kept together they are
+    // two categories at the desk; split, the instruction is a Bereitstellung.
+    expect(trenneHinweis('Altpapier bis 6 Uhr bereit stellen')).toEqual({
+      name: 'Altpapier',
+      hinweis: 'bis 6 Uhr bereit stellen'
+    })
+    expect(trenneHinweis('Grüngut bis 6.30 Uhr bereitstellen')).toEqual({
+      name: 'Grüngut',
+      hinweis: 'bis 6.30 Uhr bereitstellen'
+    })
+  })
+
+  it('leaves a name without an instruction alone', () => {
+    expect(trenneHinweis('Schwarzkehricht')).toEqual({
+      name: 'Schwarzkehricht',
+      hinweis: null
+    })
   })
 })
