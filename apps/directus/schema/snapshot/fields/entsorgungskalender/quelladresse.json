@@ -1,0 +1,46 @@
+{
+  "collection": "entsorgungskalender",
+  "field": "quelladresse",
+  "type": "string",
+  "meta": {
+    "collection": "entsorgungskalender",
+    "conditions": null,
+    "display": null,
+    "display_options": null,
+    "field": "quelladresse",
+    "group": null,
+    "hidden": false,
+    "interface": "input",
+    "note": "Die Adresse der maschinenlesbaren Quelle (iCal oder Termintabelle), von Hand eingetragen. Nur bei Lesart «iCal» oder «Termintabelle»; es wird genau diese Adresse gelesen und keine andere, nichts wird gesucht oder verfolgt.",
+    "options": {
+      "placeholder": "https://www.gemeinde.ch/abfallkalender.ics"
+    },
+    "readonly": false,
+    "required": false,
+    "searchable": false,
+    "sort": 9,
+    "special": null,
+    "translations": null,
+    "validation": null,
+    "validation_message": null,
+    "width": "full"
+  },
+  "schema": {
+    "name": "quelladresse",
+    "table": "entsorgungskalender",
+    "data_type": "character varying",
+    "default_value": null,
+    "max_length": 500,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "is_nullable": true,
+    "is_unique": false,
+    "is_indexed": false,
+    "is_primary_key": false,
+    "is_generated": false,
+    "generation_expression": null,
+    "has_auto_increment": false,
+    "foreign_key_table": null,
+    "foreign_key_column": null
+  }
+}
