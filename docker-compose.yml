@@ -116,6 +116,16 @@ services:
       # Kopfzeile "X-Sokrates-Key"; leer heisst abgeschaltet (503).
       SOKRATES_API_KEY: ${SOKRATES_API_KEY:-}
 
+      # Die REST-Tuer des Zettelkastens, der belegpflichtigen Wissensschicht
+      # von We.Publish: die amtlichen Publikationen beider Basel seit 2018, je
+      # mit Rohablage und Pruefsumme. Gelesen wird sie nur fuer die
+      # Vorgeschichte einer Zeile, die eine Redaktorin ansieht, und nur fuer
+      # Organisationen. Ohne Token bleibt sie abgeschaltet, und der Abschnitt
+      # am Tisch sagt es.
+      ZETTELKASTEN_URL: ${ZETTELKASTEN_URL:-https://zettelkasten-tuer.raumschiffenterprise.ch}
+      ZETTELKASTEN_TOKEN: ${ZETTELKASTEN_TOKEN:-}
+      ZETTELKASTEN_MANDANT: ${ZETTELKASTEN_MANDANT:-bajour}
+
       EXTENSIONS_PATH: ./extensions
       # Auto-reload watches the filesystem; pointless in an immutable image.
       EXTENSIONS_AUTO_RELOAD: 'false'

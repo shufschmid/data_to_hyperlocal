@@ -1,0 +1,45 @@
+{
+  "mandant": "bajour",
+  "suche": "ARA OR Mobilfunkantenne",
+  "gemeinde_bfs": null,
+  "rubrik": "BP-BL05",
+  "zeitraum": {
+    "von": "2026-08-01",
+    "bis": null
+  },
+  "kanarie": {
+    "unwort": "xqzvwhkjrtplmn",
+    "treffer": 0,
+    "traegt": true
+  },
+  "gesamt": 2,
+  "treffer_je_rubrik": {
+    "BP-BL05": 2
+  },
+  "versatz": 0,
+  "weitere": false,
+  "naechster_versatz": null,
+  "vorbehalt": "Belegt ist: diese Publikation ist unter dieser Nummer zu diesem Datum amtlich erschienen und enthaelt diesen Wortlaut. Nicht belegt ist, dass der Sachverhalt zutrifft, und nicht, dass eine gleichnamige Person oder Firma dieselbe ist wie die im Dossier. Wer daraus schreibt, verlinkt die Originaldarstellung; das Amtsblattportal haelt fest, dass eine Publikation ihre Rechtsverbindlichkeit verliert, wenn sie aus den XML-Daten neu dargestellt wird. Fehlt das Feld 'adresse', hat der Abruf keine Originaladresse mitgebracht; dann ist der Beleg in der Rohablage die Fundstelle.",
+  "treffer": [
+    {
+      "titel": "Entscheid zu Einsprache/Einwendung – Neubau einer Mobilfunkantenne auf bestehenden Hochspannungsmast / BL086-1, Pratteln",
+      "publikationsnummer": "BP-BL05-0000006900",
+      "rubrik": "BP-BL05",
+      "datum": "2026-09-03",
+      "beleg": "rohablage/amtsblatt_bl/2026-09-04T0522/publikationen_2026-09-03_bis_2026-09-04.json :: BP-BL05-0000006900",
+      "stelle": "Entscheid zu Einsprache/Einwendung – Neubau einer Mobilfunkantenne auf bestehenden Hochspannungsmast / BL086-1, Pratteln\n– Neubau einer Mobilfunkantenne auf bestehenden ... ",
+      "gemeinde_bfs": 2831,
+      "adresse": "https://amtsblattportal.ch/api/v1/publications/1e8da6be-b9fa-4a53-ab7c-60f6ef45133c/pdf"
+    },
+    {
+      "titel": "Entscheid in Bausachen mit Umweltverträglichkeitsprüfung – ARA Rhein - Ausbau vierte Reinigungsstufe, Pratteln",
+      "publikationsnummer": "BP-BL05-0000006774",
+      "rubrik": "BP-BL05",
+      "datum": "2026-08-06",
+      "beleg": "rohablage/amtsblatt_bl/2026-08-31T1926/publikationen_2026-08-06_bis_2026-08-06.json :: BP-BL05-0000006774",
+      "stelle": "Entscheid in Bausachen mit Umweltverträglichkeitsprüfung – ARA Rhein - Ausbau vierte Reinigungsstufe, Pratteln\n– ARA Rhein - Ausbau vierte Reinigungsstufe\nBP-BL05 ... ",
+      "gemeinde_bfs": 2831,
+      "adresse": "https://amtsblattportal.ch/api/v1/publications/fa8fde4c-1262-4b53-9c37-7689bbabe76a/pdf"
+    }
+  ]
+}
