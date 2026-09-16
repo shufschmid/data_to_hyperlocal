@@ -32,6 +32,11 @@ import {
   type AmtsblattZeile
 } from '../../redaktion/amtsblattlauf'
 import {
+  ergaenzeVorgeschichte,
+  type VorgeschichteRohzeile
+} from '../../redaktion/vorgeschichte'
+import { konfiguration as zettelkastenKonfiguration } from '../../shared/zettelkasten'
+import {
   baueSimapZeile,
   ordneProjektZu,
   type SimapZeilenwerte
@@ -90,6 +95,8 @@ interface Ergebnis {
   beschaffungen: number
   vorschlaege: number
   plaeneGelesen: number
+  /** Rows that got their Vorgeschichte from the Zettelkasten this run. */
+  vorgeschichten: number
   aufgeraeumt: number
   ohnePlz: string[]
   /** Named, not logged — see `ohnePlz`. Their own tenders stay invisible. */
@@ -99,6 +106,16 @@ interface Ergebnis {
 
 /** The portal answers a date, never a time — a day of overlap costs nothing. */
 const NACHLAUF_TAGE = 2
+
+/**
+ * How many rows per municipality get their Vorgeschichte in one run.
+ *
+ * A cap, not a target: the triage proposes a handful a day, and twenty is well
+ * above that. It exists so a backlog — the first run after the field was added,
+ * or a day the desk was not looked at — cannot turn into hundreds of requests
+ * at the neighbour's door.
+ */
+const VORGESCHICHTE_JE_GEMEINDE = 20
 
 function tageZurueck(tage: number): string {
   const d = new Date(Date.now() - tage * 24 * 60 * 60 * 1000)
@@ -115,6 +132,9 @@ export default defineOperationApi<Optionen>({
     const nachlauf = Math.max(1, optionen.nachlauf ?? NACHLAUF_TAGE)
     const kontakt = optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch')
     const abruf = { kontakt }
+    // Read once per run, not per row: without a token the Zettelkasten phase
+    // is skipped entirely rather than writing "not connected" twenty times.
+    const zettelkasten = zettelkastenKonfiguration()
 
     const gemeindenService = new ItemsService('gemeinden', { schema })
     const meldungen = new ItemsService('amtsblattmeldungen', { schema })
@@ -141,6 +161,7 @@ export default defineOperationApi<Optionen>({
       beschaffungen: 0,
       vorschlaege: 0,
       plaeneGelesen: 0,
+      vorgeschichten: 0,
       aufgeraeumt: 0,
       ohnePlz: [],
       ohneVergabestellen: [],
@@ -524,6 +545,39 @@ export default defineOperationApi<Optionen>({
             model: optionen.model ?? null
           })
           if (lesung.status === 'gelesen') ergebnis.plaeneGelesen += 1
+        }
+
+        // --- The Vorgeschichte, for what the triage proposed
+        //
+        // After the plan reading, because both work on the same rows and the
+        // plans are what an editor waits for. One request per row, capped, and
+        // only for rows that never had one: a Vorgeschichte does not go stale
+        // the way a deadline does, and re-asking daily would cost the door a
+        // request per row per day for nothing.
+        if (zettelkasten.token.trim() !== '') {
+          const ohneVorgeschichte = (await meldungen.readByQuery({
+            filter: {
+              gemeinde: { _eq: gemeinde.id },
+              vorschlag: { _eq: true },
+              vorgeschichte_stand: { _null: true }
+            },
+            fields: ['id', 'angaben', 'personen', 'gemeinde.bfs_nummer'],
+            sort: ['-publiziert_am'],
+            limit: VORGESCHICHTE_JE_GEMEINDE
+          })) as VorgeschichteRohzeile[]
+
+          for (const zeile of ohneVorgeschichte) {
+            // `ergaenzeVorgeschichte` never throws; the run does not depend on
+            // the door being up, and the row says which of the three states it
+            // ended in.
+            await ergaenzeVorgeschichte(zeile, {
+              meldungen,
+              logger,
+              kontakt,
+              konfiguration: zettelkasten
+            })
+            ergebnis.vorgeschichten += 1
+          }
         }
 
         // What a rule the editor armed asked to hand up — as a lead, marked,

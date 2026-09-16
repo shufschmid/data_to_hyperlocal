@@ -1230,6 +1230,29 @@ export interface AmtsblattFelder {
   vorschlag_begruendung: string | null
   entscheid: string
   ablehnungsgrund: string | null
+  /**
+   * What the Zettelkasten holds about this address or this company.
+   *
+   * Null means nobody asked yet. `status` distinguishes the three other
+   * states: `ok` with `suche: null` is "there was nothing to ask",
+   * `nicht_konfiguriert` is "the Zettelkasten is not connected here", and
+   * `fehler` is "we asked and it went wrong" — never shown as "nothing found".
+   */
+  vorgeschichte: {
+    status: string
+    suche: string | null
+    treffer: {
+      publikationsnummer: string
+      datum: string
+      rubrik: string
+      titel: string
+      adresse: string | null
+    }[]
+    gesamt: number
+    abgeschnitten: boolean
+    vorbehalt: string
+  } | null
+  vorgeschichte_stand: string | null
   gemeinde: { id: string; name: string } | null
 }
 
@@ -1261,6 +1284,8 @@ export const AMTSBLATT_QUERY = gql`
       vorschlag_begruendung
       entscheid
       ablehnungsgrund
+      vorgeschichte
+      vorgeschichte_stand
       gemeinde {
         id
         name

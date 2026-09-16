@@ -953,8 +953,38 @@ export interface Amtsblattmeldung {
   entscheid: AmtsblattEntscheid
   ablehnungsgrund: string | null
   ablehnungskommentar: string | null
+  /**
+   * What the Zettelkasten holds about this address or this company, fetched
+   * when the row was proposed.
+   *
+   * Context for the editor, never material for a model: it is not in any
+   * prompt, and it carries organisations only. `null` means nobody asked yet —
+   * "asked and found nothing" is an empty `treffer` with a `stand`.
+   */
+  vorgeschichte: Vorgeschichte | null
+  vorgeschichte_stand: string | null
   date_created: string | null
   date_updated: string | null
+}
+
+/** The Zettelkasten's answer as it is kept on the row. */
+export interface Vorgeschichte {
+  status: 'ok' | 'nicht_konfiguriert' | 'fehler'
+  /** The search term that was asked, so a reader can judge the answer. */
+  suche: string | null
+  treffer: {
+    publikationsnummer: string
+    datum: string
+    rubrik: string
+    titel: string
+    adresse: string | null
+  }[]
+  /** What the door found before the organisations-only filter. */
+  gesamt: number
+  /** True when the door had more rows than it returned. */
+  abgeschnitten: boolean
+  /** The door's caveat, word for word. */
+  vorbehalt: string
 }
 
 // ---------------------------------------------------------------------------

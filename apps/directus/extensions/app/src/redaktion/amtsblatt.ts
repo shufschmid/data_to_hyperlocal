@@ -875,3 +875,115 @@ export function artikelUnterlage(
   }
   return null
 }
+
+// ---------------------------------------------------------------------------
+// 4. Die Vorgeschichte: was zu dieser Zeile frueher schon publiziert wurde
+//
+// Not a model call. The Zettelkasten holds both Basel gazettes since 2018, and
+// what an editor wants next to today's row is what happened at the same address
+// before. The whole judgement is in the search term, and the search term is
+// built here, by rule, from the row's own `angaben`.
+//
+// The rule is a permission, not a prohibition: an address or a parcel is asked
+// for, a company is asked for when it is recognisably one, and a name is never
+// asked for. Searching a private person's name across eight years of
+// bankruptcies and payment orders would build exactly the dossier the whole
+// gazette desk is careful not to build — and it would do it silently.
+// ---------------------------------------------------------------------------
+
+/** What the search term is built from. Nothing else of the row is needed. */
+export interface VorgeschichteZeile {
+  angaben: readonly Angabe[] | null
+  /** The natural persons the publication names, as the desk already knows them. */
+  personen: readonly string[] | null
+}
+
+/** Labels that carry a place: an address, a parcel, a site. */
+const ADRESSE_BEZEICHNUNG = /strasse|adresse|standort|parzelle|grundstueck/i
+
+/** Labels that carry who is behind the project. */
+const BAUHERRSCHAFT_BEZEICHNUNG =
+  /bauherr|gesuchsteller|auftraggeb|zuschlag an|eigentuem/i
+
+/**
+ * Words that mark a legal entity — the whole allow-list.
+ *
+ * Deliberately short and deliberately dull: legal forms and public bodies. An
+ * "Immobilien" or a "Bau" in a name would catch "Bau Peter Muster" too, and the
+ * cost of a false positive here is a search for a person.
+ */
+const ORGANISATION =
+  /(^|[\s.,])(AG|SA|GmbH|Sàrl|Sarl|Sagl|LLC|Ltd|Genossenschaft|Stiftung|Verein|Gemeinde|Einwohnergemeinde|Bürgergemeinde|Buergergemeinde|Kirchgemeinde|Kanton|Bund|Holding|Korporation)([\s.,]|$)/
+
+/** Words that name the kind of place rather than the place. */
+const KEINE_STRASSE = new Set([
+  'parzelle',
+  'parzellen',
+  'grundstueck',
+  'strasse',
+  'strassenname',
+  'adresse',
+  'standort',
+  'nr',
+  'im',
+  'am',
+  'an',
+  'der',
+  'die',
+  'das'
+])
+
+function wertVon(
+  angaben: readonly Angabe[] | null,
+  muster: RegExp
+): string | null {
+  const treffer = (angaben ?? []).find((a) => muster.test(a.bezeichnung))
+  return treffer === undefined || treffer.wert.trim() === ''
+    ? null
+    : treffer.wert
+}
+
+/** A quoted FTS5 phrase. Quotes in the value would break the expression. */
+function phrase(wert: string): string {
+  return `"${wert.replace(/"/g, ' ').trim().replace(/\s+/g, ' ')}"`
+}
+
+/**
+ * The search term for one gazette row, or `null` when there is nothing to ask.
+ *
+ * `null` is a perfectly good answer and the common one for a private building
+ * application: no term, no request, no Vorgeschichte, and the section says so.
+ */
+export function suchbegriffFuer(zeile: VorgeschichteZeile): string | null {
+  const ort = wertVon(zeile.angaben, ADRESSE_BEZEICHNUNG)
+  if (ort !== null) {
+    const teile = ort.split(/[^\p{L}\p{N}]+/u).filter((t) => t !== '')
+    // Three letters, not four: «Hof», «Ried» und «Rain» sind Strassennamen,
+    // und die Woerter, die eine Art von Ort benennen statt den Ort, stehen in
+    // KEINE_STRASSE. Zwei Buchstaben waeren fast immer eine Abkuerzung.
+    const strasse = teile.find(
+      (t) => /\p{L}{3,}/u.test(t) && !KEINE_STRASSE.has(t.toLowerCase())
+    )
+    if (strasse !== undefined) {
+      // The house number is the first number AFTER the street. A number before
+      // it is the parcel, and parcel plus street would ask for both at once.
+      const nach = teile.slice(teile.indexOf(strasse) + 1)
+      const hausnummer = nach.find((t) => /^\d{1,4}[a-z]?$/i.test(t))
+      return hausnummer === undefined
+        ? phrase(strasse)
+        : `${phrase(strasse)} AND ${phrase(hausnummer)}`
+    }
+    const parzelle = teile.find((t) => /^\d{1,5}$/.test(t))
+    if (parzelle !== undefined) return phrase(parzelle)
+  }
+
+  const wer = wertVon(zeile.angaben, BAUHERRSCHAFT_BEZEICHNUNG)
+  if (wer === null) return null
+  // The postcode and the town are where the name ends; what follows is the
+  // address of the company, not its name.
+  const name = wer.split(/,|\s\d{4}\s/)[0]?.trim() ?? ''
+  if (name === '' || !ORGANISATION.test(name)) return null
+  const personen = (zeile.personen ?? []).map((p) => p.toLowerCase())
+  if (personen.includes(name.toLowerCase())) return null
+  return phrase(name)
+}

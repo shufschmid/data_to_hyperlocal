@@ -388,6 +388,23 @@ them is wrong even if it works.
    review's does). Dropping the row the moment the article existed made it
    vanish under the editor's hands with nothing on screen to say where the
    article had gone.
+   **The Vorgeschichte** is the one thing on this desk that comes from outside
+   the project: what the Zettelkasten (`shared/zettelkasten/`) already holds
+   about the same address or the same company, since 2018, both Basel gazettes,
+   every row with the raw fetch it came from. Fetched once per proposed row
+   after the plan reading (`redaktion/vorgeschichte.ts`, capped at 20 a
+   municipality a run), and on demand through
+   `POST /redaktion/amtsblatt/:id/vorgeschichte`. What it is: context for the
+   editor, collapsed under the row, every entry linking the canton's own PDF.
+   What it is NOT: material for a model. It is in no prompt, by decision — a
+   model that reads eight years of entries about an address writes about them,
+   and then the newsroom has published a dossier nobody checked. The whole
+   judgement sits in `suchbegriffFuer`: an address, a parcel or a company is
+   asked for, a NAME never, and what is not recognisably an organisation counts
+   as a person. Four states are told apart on the row and on screen — never
+   asked (`vorgeschichte: null`), nothing to ask (`suche: null`), not connected
+   (no `ZETTELKASTEN_TOKEN`), and asked but failed. None of them is shown as
+   "nothing found".
    Two things the articles do that nothing else does: they carry TWO built
    links (the official PDF and the documents), and they keep the names of
    natural persons OUT by default — an official publication may name a private
