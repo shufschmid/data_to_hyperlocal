@@ -39,6 +39,8 @@ function eintrag(ueber: Partial<AmtsblattFelder> = {}): AmtsblattFelder {
     vorschlag_begruendung: null,
     entscheid: 'offen',
     ablehnungsgrund: null,
+    vorgeschichte: null,
+    vorgeschichte_stand: null,
     gemeinde: { id: 'g1', name: 'Aesch' },
     ...ueber
   }

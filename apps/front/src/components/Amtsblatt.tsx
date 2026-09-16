@@ -115,6 +115,7 @@ export function Amtsblatt({
 
   function Zeile({ eintrag }: { eintrag: AmtsblattFelder }) {
     const [offen, setOffen] = useState(false)
+    const [vorgeschichteOffen, setVorgeschichteOffen] = useState(false)
     const meldung = meldungZu.get(eintrag.id)
     const doku = unterlage(eintrag)
     const lage = karte(eintrag)
@@ -222,6 +223,71 @@ export function Amtsblatt({
                       · {b}
                     </Typography>
                   ))}
+                </Stack>
+              </Collapse>
+            </Box>
+          )}
+
+          {/* Was der Zettelkasten zu dieser Adresse oder dieser Firma hat.
+              Kontext fuer die Redaktorin, kein Material fuer das Modell: die
+              Vorgeschichte steht in keinem Prompt. Eingeklappt, weil sie die
+              Zeile begleitet und nicht ersetzt, und stumm, solange niemand
+              gefragt hat — eine leere Vorgeschichte und eine ungefragte sind
+              zwei verschiedene Auskuenfte. */}
+          {eintrag.vorgeschichte !== null && (
+            <Box>
+              <Button size="small" onClick={() => setVorgeschichteOffen((o) => !o)}>
+                {vorgeschichteOffen
+                  ? 'Vorgeschichte ausblenden'
+                  : `Vorgeschichte im Zettelkasten (${eintrag.vorgeschichte.treffer.length})`}
+              </Button>
+              <Collapse in={vorgeschichteOffen} unmountOnExit>
+                <Stack spacing={1} sx={{ mt: 1, pl: 1, borderLeft: 3, borderColor: 'divider' }}>
+                  {eintrag.vorgeschichte.status === 'nicht_konfiguriert' && (
+                    <Typography variant="body2" color="text.secondary">
+                      Der Zettelkasten ist nicht angeschlossen.
+                    </Typography>
+                  )}
+                  {eintrag.vorgeschichte.status === 'fehler' && (
+                    <Typography variant="body2" color="text.secondary">
+                      Der Zettelkasten war nicht erreichbar. Was hier fehlt, fehlt darum und nicht, weil es
+                      nichts gibt.
+                    </Typography>
+                  )}
+                  {eintrag.vorgeschichte.status === 'ok' && eintrag.vorgeschichte.suche === null && (
+                    <Typography variant="body2" color="text.secondary">
+                      Diese Meldung nennt weder eine Adresse noch eine Organisation. Es wurde nichts gefragt.
+                    </Typography>
+                  )}
+                  {eintrag.vorgeschichte.status === 'ok' &&
+                    eintrag.vorgeschichte.suche !== null &&
+                    eintrag.vorgeschichte.treffer.length === 0 && (
+                      <Typography variant="body2" color="text.secondary">
+                        Nichts Frueheres gefunden.
+                      </Typography>
+                    )}
+                  {eintrag.vorgeschichte.treffer.map((t) => (
+                    <Typography key={t.publikationsnummer} variant="body2" color="text.secondary">
+                      · {datumText(t.datum)} · {t.rubrik} ·{' '}
+                      {t.adresse !== null ? (
+                        <Link href={t.adresse} target="_blank" rel="noopener">
+                          {t.titel}
+                        </Link>
+                      ) : (
+                        t.titel
+                      )}
+                    </Typography>
+                  ))}
+                  {eintrag.vorgeschichte.abgeschnitten && (
+                    <Typography variant="body2" color="text.secondary">
+                      Es gibt mehr als die gezeigten ({eintrag.vorgeschichte.gesamt} insgesamt).
+                    </Typography>
+                  )}
+                  {eintrag.vorgeschichte.vorbehalt !== '' && (
+                    <Typography variant="caption" color="text.secondary">
+                      {eintrag.vorgeschichte.vorbehalt}
+                    </Typography>
+                  )}
                 </Stack>
               </Collapse>
             </Box>

@@ -15,6 +15,7 @@ import {
   personenWarnungen,
   quelleZeile,
   quellenName,
+  suchbegriffFuer,
   TRIAGE_SYSTEM_PROMPT,
   zahlWarnungen,
   type TriageZeile
@@ -826,5 +827,94 @@ describe('parseTriage — Empfehlung zum Weiterreichen', () => {
     )
     expect(urteil?.empfehlung).toBeNull()
     expect(urteil?.empfehlung_regel).toBeNull()
+  })
+})
+
+describe('suchbegriffFuer', () => {
+  it('nimmt Strasse und Hausnummer, nicht die Parzelle davor', () => {
+    expect(
+      suchbegriffFuer({
+        angaben: [
+          { bezeichnung: 'Titel des Bauprojekts', wert: 'Solaranlage' },
+          {
+            bezeichnung: 'Parzelle Nr. / Strassenname',
+            wert: '800 - Hauptstrasse 3'
+          }
+        ],
+        personen: []
+      })
+    ).toBe('"Hauptstrasse" AND "3"')
+  })
+
+  it('nimmt die Strasse allein, wenn keine Hausnummer dabeisteht', () => {
+    expect(
+      suchbegriffFuer({
+        angaben: [{ bezeichnung: 'Strassenname', wert: 'Rheinfelderstrasse' }],
+        personen: []
+      })
+    ).toBe('"Rheinfelderstrasse"')
+  })
+
+  it('nimmt die Parzellennummer, wenn keine Strasse dasteht', () => {
+    // Parzellennummern gelten je Gemeinde, und die Gemeinde steht als Filter
+    // daneben. Ohne sie waere die Zahl allein wertlos.
+    expect(
+      suchbegriffFuer({
+        angaben: [{ bezeichnung: 'Parzelle', wert: '800' }],
+        personen: []
+      })
+    ).toBe('"800"')
+  })
+
+  it('nimmt die Bauherrschaft, wenn sie eine Organisation ist', () => {
+    expect(
+      suchbegriffFuer({
+        angaben: [
+          { bezeichnung: 'Bauherrschaft', wert: 'Musterbau AG, 4133 Pratteln' }
+        ],
+        personen: []
+      })
+    ).toBe('"Musterbau AG"')
+  })
+
+  it('fragt nicht nach einer Privatperson', () => {
+    // Der Kern der ganzen Funktion. Eine Suche nach einem Personennamen waere
+    // ein Dossier ueber eine Privatperson, gebaut aus amtlichen Anzeigen.
+    expect(
+      suchbegriffFuer({
+        angaben: [
+          { bezeichnung: 'Bauherrschaft', wert: 'Anna Lehmann, Aesch' }
+        ],
+        personen: ['Anna Lehmann']
+      })
+    ).toBeNull()
+  })
+
+  it('fragt auch nicht nach einem Namen ohne Rechtsform', () => {
+    // Erlaubnisliste: was nicht als Organisation zu erkennen ist, gilt als
+    // Person. Die Liste der Personen einer Meldung ist nicht vollstaendig.
+    expect(
+      suchbegriffFuer({
+        angaben: [{ bezeichnung: 'Bauherrschaft', wert: 'Peter Muster' }],
+        personen: []
+      })
+    ).toBeNull()
+  })
+
+  it('fragt gar nicht, wenn die Meldung keine Angaben traegt', () => {
+    expect(suchbegriffFuer({ angaben: null, personen: null })).toBeNull()
+    expect(suchbegriffFuer({ angaben: [], personen: [] })).toBeNull()
+  })
+
+  it('laesst keine Anfuehrungszeichen in den Ausdruck', () => {
+    // Der Ausdruck geht als FTS5-Ausdruck ueber die Tuer. Ein rohes
+    // Anfuehrungszeichen macht daraus einen Syntaxfehler, und ein Syntaxfehler
+    // je Zeile sieht aus wie eine leere Vorgeschichte.
+    expect(
+      suchbegriffFuer({
+        angaben: [{ bezeichnung: 'Strassenname', wert: 'Im "Hof" 3' }],
+        personen: []
+      })
+    ).toBe('"Hof" AND "3"')
   })
 })

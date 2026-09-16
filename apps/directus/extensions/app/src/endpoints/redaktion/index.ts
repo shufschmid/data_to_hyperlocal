@@ -155,6 +155,11 @@ import quellenPruefen from '../../operations/quellen-pruefen/api'
 import sportresultateHolen from '../../operations/sportresultate-holen/api'
 import wochenblattPruefen from '../../operations/wochenblatt-pruefen/api'
 import amtsblattPruefen from '../../operations/amtsblatt-pruefen/api'
+import {
+  ergaenzeVorgeschichte,
+  type VorgeschichteRohzeile
+} from '../../redaktion/vorgeschichte'
+import { konfiguration as zettelkastenKonfiguration } from '../../shared/zettelkasten'
 import { agendaSchluessel } from '../../shared/agenda'
 import { ladeTabelle, StatblFehler, tabellenId } from '../../shared/statbl'
 import { tabellenFelder } from '../../shared/statbl/parse'
@@ -1686,6 +1691,51 @@ export default defineEndpoint(
         })
 
         return res.status(202).json({ data: { gestartet: true } })
+      }
+    )
+
+    /**
+     * The Vorgeschichte on demand: what the Zettelkasten holds about this
+     * address or this company.
+     *
+     * Answers 200 with the result rather than 202: this is one request to a
+     * door in the house with a six-second limit, not a model call. The editor
+     * pressed a button and gets an answer, including the answer "the
+     * Zettelkasten is not connected".
+     */
+    router.post(
+      '/amtsblatt/:id/vorgeschichte',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const schema = await getSchema()
+          const meldungen = new ItemsService('amtsblattmeldungen', {
+            schema,
+            accountability: req.accountability
+          })
+          const zeile = (await meldungen.readOne(id, {
+            fields: ['id', 'angaben', 'personen', 'gemeinde.bfs_nummer']
+          })) as VorgeschichteRohzeile
+
+          // Written with the service that has the schema but no accountability,
+          // like the other rows this endpoint fills: the two fields are
+          // readonly at the desk, and an editor may not write them by hand.
+          await ergaenzeVorgeschichte(zeile, {
+            meldungen: new ItemsService('amtsblattmeldungen', { schema }),
+            logger,
+            kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch'),
+            konfiguration: zettelkastenKonfiguration()
+          })
+
+          const frisch = (await meldungen.readOne(id, {
+            fields: ['vorgeschichte', 'vorgeschichte_stand']
+          })) as { vorgeschichte: unknown; vorgeschichte_stand: string | null }
+          return res.json({ data: frisch })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
       }
     )
 

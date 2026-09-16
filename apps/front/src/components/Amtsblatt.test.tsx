@@ -26,9 +26,28 @@ function eintrag(ueber: Partial<AmtsblattFelder> = {}): AmtsblattFelder {
     vorschlag_begruendung: 'Solaranlage mit Aussenwirkung.',
     entscheid: 'offen',
     ablehnungsgrund: null,
+    vorgeschichte: null,
+    vorgeschichte_stand: null,
     gemeinde: { id: 'g1', name: 'Aesch' },
     ...ueber
   }
+}
+
+const VORGESCHICHTE = {
+  status: 'ok',
+  suche: '"Holeeweg" AND "12"',
+  treffer: [
+    {
+      publikationsnummer: 'BP-BL05-0000006774',
+      datum: '2024-05-14',
+      rubrik: 'BP-BL05',
+      titel: 'Baugesuch - Abbruch Scheune, Aesch',
+      adresse: 'https://amtsblattportal.ch/api/v1/publications/alt/pdf'
+    }
+  ],
+  gesamt: 1,
+  abgeschnitten: false,
+  vorbehalt: 'Belegt ist: diese Publikation ist amtlich erschienen.'
 }
 
 const GEMEINDEN: GemeindeFelder[] = [
@@ -324,5 +343,55 @@ describe('Amtsblatt', () => {
     render(<Amtsblatt eintraege={[]} gemeinden={GEMEINDEN} heute={HEUTE} />)
 
     expect(screen.getByText(/Nichts auf dem Tisch/)).toBeInTheDocument()
+  })
+})
+
+describe('Vorgeschichte aus dem Zettelkasten', () => {
+  it('zeigt die frueheren Publikationen erst auf Klick, mit dem Vorbehalt', async () => {
+    render(
+      <Amtsblatt
+        eintraege={[eintrag({ vorgeschichte: VORGESCHICHTE })]}
+        meldungen={[]}
+        gemeinden={GEMEINDEN}
+        heute={HEUTE}
+      />
+    )
+
+    expect(screen.queryByText(/Baugesuch - Abbruch Scheune/)).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /Vorgeschichte im Zettelkasten \(1\)/ }))
+
+    expect(screen.getByText(/Baugesuch - Abbruch Scheune/)).toBeInTheDocument()
+    // Der Vorbehalt steht dort, wo die Zeilen gelesen werden, nicht in einem
+    // Handbuch: er sagt, was sie belegen und was nicht.
+    expect(screen.getByText(/Belegt ist/)).toBeInTheDocument()
+  })
+
+  it('sagt, dass der Zettelkasten nicht angeschlossen ist', async () => {
+    render(
+      <Amtsblatt
+        eintraege={[
+          eintrag({
+            vorgeschichte: {
+              ...VORGESCHICHTE,
+              status: 'nicht_konfiguriert',
+              treffer: [],
+              gesamt: 0
+            }
+          })
+        ]}
+        meldungen={[]}
+        gemeinden={GEMEINDEN}
+        heute={HEUTE}
+      />
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: /Vorgeschichte im Zettelkasten/ }))
+    expect(screen.getByText(/Der Zettelkasten ist nicht angeschlossen/)).toBeInTheDocument()
+  })
+
+  it('schweigt, solange niemand gefragt hat', () => {
+    render(<Amtsblatt eintraege={[eintrag()]} meldungen={[]} gemeinden={GEMEINDEN} heute={HEUTE} />)
+
+    expect(screen.queryByRole('button', { name: /Vorgeschichte im Zettelkasten/ })).not.toBeInTheDocument()
   })
 })
