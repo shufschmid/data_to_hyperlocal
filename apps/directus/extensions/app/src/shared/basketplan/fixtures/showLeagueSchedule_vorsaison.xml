@@ -1,0 +1,544 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<basketplan version="2.0" remarks="Data Securtiy changes. If you lack some data please contact contact@orcasys.ch">
+<gameForm>
+  <GameForm/>
+</gameForm>
+<leagueHoldingList>
+  <ArrayList>
+    <LeagueHoldingRSS from="2025-09-17" id="10712" leagueId="3" leagueName="NL1 Men" name="Preliminary phase group East" numberOfPromotionPlaces="0" numberOfRelegationPlaces="0" phaseId="PRELIMINARY_ROUND" phaseName="Phase préliminaire" to="2026-04-12">
+      <games/>
+      <matchdays>
+        <matchday from="2025-09-26" id="10869" name="Day 1" to="2025-09-28">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2025-09-27" id="348301" locationCity="Aarau 4 Telli" locationId="112" locationName="Sportanlage Telli Spielhalle" locationShortName="Telli Spielhalle" matchDayName="Day 1" round="1" time="14:30" videoLink="https://www.youtube.com/watch?v=u2E_iV41VFo">
+              <guestTeam clubId="22" gender="M" id="6511" name="DDV Wild Ducks" pathToLogo="uploadedImages/63205__LOGO_FOR_TEAM__6511__DDV-Lugano-Logo---Blue.png" result="42" resultQ1="10" resultQ2="13" resultQ3="9" resultQ4="10"/>
+              <homeTeam clubId="87" gender="M" id="1043" name="BC Alte Kanti Aarau" pathToLogo="uploadedImages/10779__LOGO_FOR_TEAM__1043__Aarau.png" result="85" resultQ1="19" resultQ2="23" resultQ3="22" resultQ4="21"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-09-27" id="348300" locationCity="Stabio" locationId="908" locationName="SM Stabio" locationShortName="SM Stabio" matchDayName="Day 1" round="1" time="16:30">
+              <guestTeam clubId="111" gender="M" id="5526" name="BC Arlesheim" pathToLogo="uploadedImages/67047__LOGO_FOR_TEAM__5526__bca-logo-neu.png" result="69" resultQ1="13" resultQ2="24" resultQ3="9" resultQ4="23"/>
+              <homeTeam clubId="346" gender="M" id="7580" name="Stabio Snakes" pathToLogo="uploadedImages/80358__LOGO_FOR_TEAM__7580__Logo-Stabio-Snake-min.png" result="75" resultQ1="16" resultQ2="26" resultQ3="14" resultQ4="19"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-09-27" id="348304" locationCity="Köniz" locationId="1009" locationName="Sporthalle Weissenstein" locationShortName="Weissenstein" matchDayName="Day 1" round="1" time="17:30">
+              <guestTeam clubId="156" gender="M" id="6495" name="BC Allschwil-Algon" pathToLogo="uploadedImages/90720__LOGO_FOR_TEAM__6495__BCA_Logo_outline.png" result="74" resultQ1="13" resultQ2="17" resultQ3="18" resultQ4="26"/>
+              <homeTeam clubId="155" gender="M" id="6514" name="STB Giants Bern" pathToLogo="uploadedImages/51756__LOGO_FOR_TEAM__6514__STBBern.png" result="69" resultQ1="7" resultQ2="24" resultQ3="16" resultQ4="22"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-09-27" id="348303" locationCity="Zürich" locationId="1483" locationName="Schul- und Sportanlage Freilager" locationShortName="Freilager" matchDayName="Day 1" round="1" time="18:30">
+              <guestTeam clubId="19" gender="M" id="5088" name="Rapid Bienne Basket" pathToLogo="uploadedImages/30960__LOGO_FOR_TEAM__5088__RapidBienne1.png" result="60" resultQ1="22" resultQ2="18" resultQ3="3" resultQ4="17"/>
+              <homeTeam clubId="481" gender="M" id="7484" name="BC Zürich 93" pathToLogo="uploadedImages/83423__LOGO_FOR_TEAM__7484__81532_LOGO_FOR_CLUB_481_BZ93-LOGO-01.png" result="96" resultQ1="25" resultQ2="26" resultQ3="28" resultQ4="17"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-09-28" id="348302" locationCity="Baden" locationId="129" locationName="Kantonsschule Baden" locationShortName="Kanti Baden" matchDayName="Day 1" round="1" time="17:30" videoLink="https://www.youtube.com/watch?v=2qq8-0iLpbE">
+              <guestTeam clubId="54" gender="M" id="7264" name="GC Zürich U23" pathToLogo="uploadedImages/71484__LOGO_FOR_TEAM__7264__9987_LOGO_FOR_TEAM_1087_Grasshopper.png" result="76" resultQ1="19" resultQ2="17" resultQ3="22" resultQ4="18"/>
+              <homeTeam clubId="6" gender="M" id="793" name="Baden Basket 54" pathToLogo="uploadedImages/10292__LOGO_FOR_TEAM__793__Logo-BadenBasket54-SW-01.png" result="81" resultQ1="28" resultQ2="16" resultQ3="10" resultQ4="27"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2025-10-03" id="10870" name="Day 2" to="2025-10-05">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2025-10-03" id="348306" locationCity="Arlesheim" locationId="675" locationName="Hagenbuchen" locationShortName="Hagenbuchen" matchDayName="Day 2" round="1" time="20:30">
+              <guestTeam clubId="87" gender="M" id="1043" name="BC Alte Kanti Aarau" pathToLogo="uploadedImages/10779__LOGO_FOR_TEAM__1043__Aarau.png" result="62" resultQ1="14" resultQ2="17" resultQ3="12" resultQ4="19"/>
+              <homeTeam clubId="111" gender="M" id="5526" name="BC Arlesheim" pathToLogo="uploadedImages/67047__LOGO_FOR_TEAM__5526__bca-logo-neu.png" result="78" resultQ1="22" resultQ2="18" resultQ3="18" resultQ4="20"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-10-04" id="348309" locationCity="Bern" locationId="1384" locationName="Spitalacker" locationShortName="Spitalacker" matchDayName="Day 2" round="1" time="17:30">
+              <guestTeam clubId="481" gender="M" id="7484" name="BC Zürich 93" pathToLogo="uploadedImages/83423__LOGO_FOR_TEAM__7484__81532_LOGO_FOR_CLUB_481_BZ93-LOGO-01.png" result="73" resultQ1="21" resultQ2="17" resultQ3="0" resultQ4="35"/>
+              <homeTeam clubId="155" gender="M" id="6514" name="STB Giants Bern" pathToLogo="uploadedImages/51756__LOGO_FOR_TEAM__6514__STBBern.png" result="55" resultQ1="12" resultQ2="20" resultQ3="0" resultQ4="23"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-10-05" id="348307" locationCity="Zürich" locationId="1147" locationName="Fronwald" locationShortName="Fronwald" matchDayName="Day 2" round="1" time="16:00">
+              <guestTeam clubId="279" gender="M" id="5860" name="Viganello Caimans" pathToLogo="uploadedImages/79861__LOGO_FOR_TEAM__5860__VIGANELLO-CAIMANS--3.1-.png" result="81" resultQ1="25" resultQ2="18" resultQ3="24" resultQ4="14"/>
+              <homeTeam clubId="54" gender="M" id="7264" name="GC Zürich U23" pathToLogo="uploadedImages/71484__LOGO_FOR_TEAM__7264__9987_LOGO_FOR_TEAM_1087_Grasshopper.png" result="62" resultQ1="20" resultQ2="15" resultQ3="15" resultQ4="12"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-10-05" id="348308" locationCity="Biel/Bienne" locationId="800" locationName="Esplanade" locationShortName="Esplanade" matchDayName="Day 2" round="1" time="16:00">
+              <guestTeam clubId="6" gender="M" id="793" name="Baden Basket 54" pathToLogo="uploadedImages/10292__LOGO_FOR_TEAM__793__Logo-BadenBasket54-SW-01.png" result="69" resultQ1="18" resultQ2="23" resultQ3="19" resultQ4="9"/>
+              <homeTeam clubId="19" gender="M" id="5088" name="Rapid Bienne Basket" pathToLogo="uploadedImages/30960__LOGO_FOR_TEAM__5088__RapidBienne1.png" result="86" resultQ1="30" resultQ2="16" resultQ3="12" resultQ4="28"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-10-08" id="348305" locationCity="Pregassona" locationId="433" locationName="Scuole Medie" locationShortName="Scuole Medie" matchDayName="Day 2" round="1" time="20:30">
+              <guestTeam clubId="346" gender="M" id="7580" name="Stabio Snakes" pathToLogo="uploadedImages/80358__LOGO_FOR_TEAM__7580__Logo-Stabio-Snake-min.png" result="58" resultQ1="12" resultQ2="18" resultQ3="11" resultQ4="17"/>
+              <homeTeam clubId="22" gender="M" id="6511" name="DDV Wild Ducks" pathToLogo="uploadedImages/63205__LOGO_FOR_TEAM__6511__DDV-Lugano-Logo---Blue.png" result="49" resultQ1="10" resultQ2="14" resultQ3="9" resultQ4="16"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2025-10-10" id="10871" name="Day 3" to="2025-10-12">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2025-10-11" id="348310" locationCity="Massagno" locationId="426" locationName="Scuole Elementari Nosedo" locationShortName="SE Nosedo" matchDayName="Day 3" round="1" time="14:30">
+              <guestTeam clubId="6" gender="M" id="793" name="Baden Basket 54" pathToLogo="uploadedImages/10292__LOGO_FOR_TEAM__793__Logo-BadenBasket54-SW-01.png" result="58" resultQ1="18" resultQ2="12" resultQ3="13" resultQ4="15"/>
+              <homeTeam clubId="279" gender="M" id="5860" name="Viganello Caimans" pathToLogo="uploadedImages/79861__LOGO_FOR_TEAM__5860__VIGANELLO-CAIMANS--3.1-.png" result="94" resultQ1="22" resultQ2="22" resultQ3="27" resultQ4="23"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-10-11" id="348311" locationCity="Stabio" locationId="908" locationName="SM Stabio" locationShortName="SM Stabio" matchDayName="Day 3" round="1" time="16:30">
+              <guestTeam clubId="156" gender="M" id="6495" name="BC Allschwil-Algon" pathToLogo="uploadedImages/90720__LOGO_FOR_TEAM__6495__BCA_Logo_outline.png" result="59" resultQ1="19" resultQ2="11" resultQ3="16" resultQ4="13"/>
+              <homeTeam clubId="346" gender="M" id="7580" name="Stabio Snakes" pathToLogo="uploadedImages/80358__LOGO_FOR_TEAM__7580__Logo-Stabio-Snake-min.png" result="90" resultQ1="16" resultQ2="30" resultQ3="21" resultQ4="23"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-10-12" id="348313" locationCity="Aarau 4 Telli" locationId="112" locationName="Sportanlage Telli Spielhalle" locationShortName="Telli Spielhalle" matchDayName="Day 3" round="1" time="13:00" videoLink="https://www.youtube.com/watch?v=QIPwfmWjkYg">
+              <guestTeam clubId="481" gender="M" id="7484" name="BC Zürich 93" pathToLogo="uploadedImages/83423__LOGO_FOR_TEAM__7484__81532_LOGO_FOR_CLUB_481_BZ93-LOGO-01.png" result="77" resultQ1="11" resultQ2="22" resultQ3="18" resultQ4="26"/>
+              <homeTeam clubId="87" gender="M" id="1043" name="BC Alte Kanti Aarau" pathToLogo="uploadedImages/10779__LOGO_FOR_TEAM__1043__Aarau.png" result="83" resultQ1="21" resultQ2="25" resultQ3="20" resultQ4="17"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-10-12" id="348314" locationCity="Biel/Bienne" locationId="800" locationName="Esplanade" locationShortName="Esplanade" matchDayName="Day 3" round="1" time="16:00">
+              <guestTeam clubId="155" gender="M" id="6514" name="STB Giants Bern" pathToLogo="uploadedImages/51756__LOGO_FOR_TEAM__6514__STBBern.png" result="67" resultOT1="7" resultQ1="13" resultQ2="14" resultQ3="16" resultQ4="17"/>
+              <homeTeam clubId="19" gender="M" id="5088" name="Rapid Bienne Basket" pathToLogo="uploadedImages/30960__LOGO_FOR_TEAM__5088__RapidBienne1.png" result="73" resultOT1="13" resultQ1="11" resultQ2="18" resultQ3="22" resultQ4="9"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-10-19" id="348312" locationCity="Arlesheim" locationId="675" locationName="Hagenbuchen" locationShortName="Hagenbuchen" matchDayName="Day 3" round="1" time="18:30" videoLink="https://www.youtube.com/watch?v=zw-22wYUtPo">
+              <guestTeam clubId="54" gender="M" id="7264" name="GC Zürich U23" pathToLogo="uploadedImages/71484__LOGO_FOR_TEAM__7264__9987_LOGO_FOR_TEAM_1087_Grasshopper.png" result="57" resultQ1="12" resultQ2="11" resultQ3="14" resultQ4="20"/>
+              <homeTeam clubId="111" gender="M" id="5526" name="BC Arlesheim" pathToLogo="uploadedImages/67047__LOGO_FOR_TEAM__5526__bca-logo-neu.png" result="83" resultQ1="22" resultQ2="12" resultQ3="22" resultQ4="27"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2025-10-24" id="10872" name="Day 4" to="2025-10-26">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2025-10-18" id="348317" locationCity="Baden" locationId="129" locationName="Kantonsschule Baden" locationShortName="Kanti Baden" matchDayName="Day 4" round="1" time="15:00">
+              <guestTeam clubId="346" gender="M" id="7580" name="Stabio Snakes" pathToLogo="uploadedImages/80358__LOGO_FOR_TEAM__7580__Logo-Stabio-Snake-min.png" result="98" resultQ1="22" resultQ2="17" resultQ3="26" resultQ4="33"/>
+              <homeTeam clubId="6" gender="M" id="793" name="Baden Basket 54" pathToLogo="uploadedImages/10292__LOGO_FOR_TEAM__793__Logo-BadenBasket54-SW-01.png" result="67" resultQ1="19" resultQ2="16" resultQ3="14" resultQ4="18"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-10-25" id="348315" locationCity="Massagno" locationId="426" locationName="Scuole Elementari Nosedo" locationShortName="SE Nosedo" matchDayName="Day 4" round="1" time="14:00" videoLink="https://www.youtube.com/watch?v=A69U94PEm7o">
+              <guestTeam clubId="19" gender="M" id="5088" name="Rapid Bienne Basket" pathToLogo="uploadedImages/30960__LOGO_FOR_TEAM__5088__RapidBienne1.png" result="52" resultQ1="6" resultQ2="13" resultQ3="20" resultQ4="13"/>
+              <homeTeam clubId="279" gender="M" id="5860" name="Viganello Caimans" pathToLogo="uploadedImages/79861__LOGO_FOR_TEAM__5860__VIGANELLO-CAIMANS--3.1-.png" result="62" resultQ1="24" resultQ2="12" resultQ3="9" resultQ4="17"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-10-25" id="348319" locationCity="Bern" locationId="1384" locationName="Spitalacker" locationShortName="Spitalacker" matchDayName="Day 4" round="1" time="15:00" videoLink="https://www.youtube.com/watch?v=YcwCH3pcLnE">
+              <guestTeam clubId="22" gender="M" id="6511" name="DDV Wild Ducks" pathToLogo="uploadedImages/63205__LOGO_FOR_TEAM__6511__DDV-Lugano-Logo---Blue.png" result="50" resultQ1="10" resultQ2="14" resultQ3="18" resultQ4="8"/>
+              <homeTeam clubId="155" gender="M" id="6514" name="STB Giants Bern" pathToLogo="uploadedImages/51756__LOGO_FOR_TEAM__6514__STBBern.png" result="70" resultQ1="12" resultQ2="23" resultQ3="6" resultQ4="29"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-10-25" id="348316" locationCity="Allschwil" locationId="1254" locationName="Schulhaus Gartenhof" locationShortName="Gartenhof" matchDayName="Day 4" round="1" time="18:00" videoLink="https://www.youtube.com/watch?v=459PBEa7AXM">
+              <guestTeam clubId="87" gender="M" id="1043" name="BC Alte Kanti Aarau" pathToLogo="uploadedImages/10779__LOGO_FOR_TEAM__1043__Aarau.png" result="89" resultQ1="20" resultQ2="22" resultQ3="22" resultQ4="25"/>
+              <homeTeam clubId="156" gender="M" id="6495" name="BC Allschwil-Algon" pathToLogo="uploadedImages/90720__LOGO_FOR_TEAM__6495__BCA_Logo_outline.png" result="51" resultQ1="13" resultQ2="22" resultQ3="6" resultQ4="10"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-10-26" id="348318" locationCity="Zürich" locationId="1483" locationName="Schul- und Sportanlage Freilager" locationShortName="Freilager" matchDayName="Day 4" round="1" time="15:30" videoLink="https://www.youtube.com/watch?v=0FpshBqwi1I">
+              <guestTeam clubId="111" gender="M" id="5526" name="BC Arlesheim" pathToLogo="uploadedImages/67047__LOGO_FOR_TEAM__5526__bca-logo-neu.png" result="67" resultQ1="15" resultQ2="12" resultQ3="17" resultQ4="23"/>
+              <homeTeam clubId="481" gender="M" id="7484" name="BC Zürich 93" pathToLogo="uploadedImages/83423__LOGO_FOR_TEAM__7484__81532_LOGO_FOR_CLUB_481_BZ93-LOGO-01.png" result="60" resultQ1="25" resultQ2="11" resultQ3="11" resultQ4="13"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2025-10-31" id="10873" name="Day 5" to="2025-11-02">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2025-10-30" id="348321" locationCity="Stabio" locationId="908" locationName="SM Stabio" locationShortName="SM Stabio" matchDayName="Day 5" round="1" time="20:30">
+              <guestTeam clubId="279" gender="M" id="5860" name="Viganello Caimans" pathToLogo="uploadedImages/79861__LOGO_FOR_TEAM__5860__VIGANELLO-CAIMANS--3.1-.png" result="83" resultQ1="21" resultQ2="18" resultQ3="26" resultQ4="18"/>
+              <homeTeam clubId="346" gender="M" id="7580" name="Stabio Snakes" pathToLogo="uploadedImages/80358__LOGO_FOR_TEAM__7580__Logo-Stabio-Snake-min.png" result="77" resultQ1="14" resultQ2="17" resultQ3="22" resultQ4="24"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-11-01" id="348320" locationCity="Lugano" locationId="423" locationName="Scuole Elementari Gerra" locationShortName="SE Gerra" matchDayName="Day 5" round="1" time="15:00">
+              <guestTeam clubId="481" gender="M" id="7484" name="BC Zürich 93" pathToLogo="uploadedImages/83423__LOGO_FOR_TEAM__7484__81532_LOGO_FOR_CLUB_481_BZ93-LOGO-01.png" result="20"/>
+              <homeTeam clubId="22" gender="M" id="6511" name="DDV Wild Ducks" pathToLogo="uploadedImages/63205__LOGO_FOR_TEAM__6511__DDV-Lugano-Logo---Blue.png" result="0"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-11-02" id="348324" locationCity="Zürich" locationId="1147" locationName="Fronwald" locationShortName="Fronwald" matchDayName="Day 5" round="1" time="13:00" videoLink="https://www.youtube.com/watch?v=1HyXkB0pFMY">
+              <guestTeam clubId="87" gender="M" id="1043" name="BC Alte Kanti Aarau" pathToLogo="uploadedImages/10779__LOGO_FOR_TEAM__1043__Aarau.png" result="72" resultQ1="23" resultQ2="13" resultQ3="26" resultQ4="10"/>
+              <homeTeam clubId="54" gender="M" id="7264" name="GC Zürich U23" pathToLogo="uploadedImages/71484__LOGO_FOR_TEAM__7264__9987_LOGO_FOR_TEAM_1087_Grasshopper.png" result="59" resultQ1="20" resultQ2="7" resultQ3="8" resultQ4="24"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-11-02" id="348323" locationCity="Arlesheim" locationId="675" locationName="Hagenbuchen" locationShortName="Hagenbuchen" matchDayName="Day 5" round="1" time="16:30" videoLink="https://www.youtube.com/watch?v=7QP6bkibz6Q">
+              <guestTeam clubId="19" gender="M" id="5088" name="Rapid Bienne Basket" pathToLogo="uploadedImages/30960__LOGO_FOR_TEAM__5088__RapidBienne1.png" result="58" resultQ1="20" resultQ2="11" resultQ3="11" resultQ4="16"/>
+              <homeTeam clubId="111" gender="M" id="5526" name="BC Arlesheim" pathToLogo="uploadedImages/67047__LOGO_FOR_TEAM__5526__bca-logo-neu.png" result="88" resultQ1="23" resultQ2="15" resultQ3="28" resultQ4="22"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-11-02" id="348322" locationCity="Allschwil" locationId="1254" locationName="Schulhaus Gartenhof" locationShortName="Gartenhof" matchDayName="Day 5" round="1" time="17:30" videoLink="https://www.youtube.com/watch?v=esx3pw0NIOo">
+              <guestTeam clubId="6" gender="M" id="793" name="Baden Basket 54" pathToLogo="uploadedImages/10292__LOGO_FOR_TEAM__793__Logo-BadenBasket54-SW-01.png" result="100" resultOT1="16" resultQ1="19" resultQ2="26" resultQ3="17" resultQ4="22"/>
+              <homeTeam clubId="156" gender="M" id="6495" name="BC Allschwil-Algon" pathToLogo="uploadedImages/90720__LOGO_FOR_TEAM__6495__BCA_Logo_outline.png" result="93" resultOT1="9" resultQ1="16" resultQ2="25" resultQ3="24" resultQ4="19"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2025-11-07" id="10874" name="Day 6" to="2025-11-09">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2025-11-08" id="348326" locationCity="Aarau 4 Telli" locationId="112" locationName="Sportanlage Telli Spielhalle" locationShortName="Telli Spielhalle" matchDayName="Day 6" round="1" time="14:30" videoLink="https://www.youtube.com/watch?v=6sWtJw91yp4">
+              <guestTeam clubId="279" gender="M" id="5860" name="Viganello Caimans" pathToLogo="uploadedImages/79861__LOGO_FOR_TEAM__5860__VIGANELLO-CAIMANS--3.1-.png" result="67" resultQ1="20" resultQ2="17" resultQ3="12" resultQ4="18"/>
+              <homeTeam clubId="87" gender="M" id="1043" name="BC Alte Kanti Aarau" pathToLogo="uploadedImages/10779__LOGO_FOR_TEAM__1043__Aarau.png" result="89" resultQ1="26" resultQ2="15" resultQ3="29" resultQ4="19"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-11-09" id="348329" locationCity="Bern" locationId="1384" locationName="Spitalacker" locationShortName="Spitalacker" matchDayName="Day 6" round="1" time="15:00" videoLink="https://www.youtube.com/watch?v=Fv16asDsbBE">
+              <guestTeam clubId="111" gender="M" id="5526" name="BC Arlesheim" pathToLogo="uploadedImages/67047__LOGO_FOR_TEAM__5526__bca-logo-neu.png" result="76" resultQ1="19" resultQ2="16" resultQ3="20" resultQ4="21"/>
+              <homeTeam clubId="155" gender="M" id="6514" name="STB Giants Bern" pathToLogo="uploadedImages/51756__LOGO_FOR_TEAM__6514__STBBern.png" result="66" resultQ1="17" resultQ2="13" resultQ3="19" resultQ4="17"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-11-09" id="348327" locationCity="Zürich" locationId="1483" locationName="Schul- und Sportanlage Freilager" locationShortName="Freilager" matchDayName="Day 6" round="1" time="15:30" videoLink="https://www.youtube.com/watch?v=r3t53eWUv9U">
+              <guestTeam clubId="346" gender="M" id="7580" name="Stabio Snakes" pathToLogo="uploadedImages/80358__LOGO_FOR_TEAM__7580__Logo-Stabio-Snake-min.png" result="97" resultOT1="10" resultOT2="5" resultQ1="26" resultQ2="17" resultQ3="18" resultQ4="10"/>
+              <homeTeam clubId="481" gender="M" id="7484" name="BC Zürich 93" pathToLogo="uploadedImages/83423__LOGO_FOR_TEAM__7484__81532_LOGO_FOR_CLUB_481_BZ93-LOGO-01.png" result="98" resultOT1="10" resultOT2="5" resultQ1="23" resultQ2="20" resultQ3="13" resultQ4="15"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-11-09" id="348328" locationCity="Biel/Bienne" locationId="800" locationName="Esplanade" locationShortName="Esplanade" matchDayName="Day 6" round="1" time="16:00">
+              <guestTeam clubId="54" gender="M" id="7264" name="GC Zürich U23" pathToLogo="uploadedImages/71484__LOGO_FOR_TEAM__7264__9987_LOGO_FOR_TEAM_1087_Grasshopper.png" result="93" resultQ1="16" resultQ2="27" resultQ3="26" resultQ4="24"/>
+              <homeTeam clubId="19" gender="M" id="5088" name="Rapid Bienne Basket" pathToLogo="uploadedImages/30960__LOGO_FOR_TEAM__5088__RapidBienne1.png" result="76" resultQ1="25" resultQ2="14" resultQ3="22" resultQ4="15"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-02-15" id="348325" locationCity="Lugano" locationId="423" locationName="Scuole Elementari Gerra" locationShortName="SE Gerra" matchDayName="Day 6" round="1" time="14:00">
+              <guestTeam clubId="156" gender="M" id="6495" name="BC Allschwil-Algon" pathToLogo="uploadedImages/90720__LOGO_FOR_TEAM__6495__BCA_Logo_outline.png" result="110" resultQ1="26" resultQ2="23" resultQ3="24" resultQ4="37"/>
+              <homeTeam clubId="22" gender="M" id="6511" name="DDV Wild Ducks" pathToLogo="uploadedImages/63205__LOGO_FOR_TEAM__6511__DDV-Lugano-Logo---Blue.png" result="43" resultQ1="17" resultQ2="9" resultQ3="9" resultQ4="8"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2025-11-14" id="10875" name="Day 7" to="2025-11-16">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2025-11-15" id="348331" locationCity="Stabio" locationId="908" locationName="SM Stabio" locationShortName="SM Stabio" matchDayName="Day 7" round="1" time="16:30">
+              <guestTeam clubId="87" gender="M" id="1043" name="BC Alte Kanti Aarau" pathToLogo="uploadedImages/10779__LOGO_FOR_TEAM__1043__Aarau.png" result="72" resultQ1="25" resultQ2="13" resultQ3="17" resultQ4="17"/>
+              <homeTeam clubId="346" gender="M" id="7580" name="Stabio Snakes" pathToLogo="uploadedImages/80358__LOGO_FOR_TEAM__7580__Logo-Stabio-Snake-min.png" result="78" resultQ1="14" resultQ2="28" resultQ3="23" resultQ4="13"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-11-16" id="348332" locationCity="Allschwil" locationId="1254" locationName="Schulhaus Gartenhof" locationShortName="Gartenhof" matchDayName="Day 7" round="1" time="12:30" videoLink="https://www.youtube.com/watch?v=0X0ufXYsQQI">
+              <guestTeam clubId="481" gender="M" id="7484" name="BC Zürich 93" pathToLogo="uploadedImages/83423__LOGO_FOR_TEAM__7484__81532_LOGO_FOR_CLUB_481_BZ93-LOGO-01.png" result="66" resultQ1="17" resultQ2="16" resultQ3="14" resultQ4="19"/>
+              <homeTeam clubId="156" gender="M" id="6495" name="BC Allschwil-Algon" pathToLogo="uploadedImages/90720__LOGO_FOR_TEAM__6495__BCA_Logo_outline.png" result="71" resultQ1="21" resultQ2="14" resultQ3="16" resultQ4="20"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-11-16" id="348330" locationCity="Massagno" locationId="426" locationName="Scuole Elementari Nosedo" locationShortName="SE Nosedo" matchDayName="Day 7" round="1" time="12:30" videoLink="https://www.youtube.com/watch?v=oQPnYP7Z_GU">
+              <guestTeam clubId="111" gender="M" id="5526" name="BC Arlesheim" pathToLogo="uploadedImages/67047__LOGO_FOR_TEAM__5526__bca-logo-neu.png" result="85" resultQ1="26" resultQ2="15" resultQ3="16" resultQ4="28"/>
+              <homeTeam clubId="279" gender="M" id="5860" name="Viganello Caimans" pathToLogo="uploadedImages/79861__LOGO_FOR_TEAM__5860__VIGANELLO-CAIMANS--3.1-.png" result="54" resultQ1="12" resultQ2="12" resultQ3="15" resultQ4="15"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-11-16" id="348334" locationCity="Zürich" locationId="207" locationName="Im Birch Zürich" locationShortName="Im Birch Zürich" matchDayName="Day 7" round="1" time="13:00" videoLink="https://www.youtube.com/watch?v=Bw9_kdHIfLs">
+              <guestTeam clubId="22" gender="M" id="6511" name="DDV Wild Ducks" pathToLogo="uploadedImages/63205__LOGO_FOR_TEAM__6511__DDV-Lugano-Logo---Blue.png" result="63" resultQ1="12" resultQ2="13" resultQ3="22" resultQ4="16"/>
+              <homeTeam clubId="54" gender="M" id="7264" name="GC Zürich U23" pathToLogo="uploadedImages/71484__LOGO_FOR_TEAM__7264__9987_LOGO_FOR_TEAM_1087_Grasshopper.png" result="80" resultQ1="24" resultQ2="22" resultQ3="26" resultQ4="8"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-11-16" id="348333" locationCity="Baden" locationId="129" locationName="Kantonsschule Baden" locationShortName="Kanti Baden" matchDayName="Day 7" round="1" time="14:30" videoLink="https://www.youtube.com/watch?v=BAqQsmLoCR4">
+              <guestTeam clubId="155" gender="M" id="6514" name="STB Giants Bern" pathToLogo="uploadedImages/51756__LOGO_FOR_TEAM__6514__STBBern.png" result="66" resultQ1="16" resultQ2="20" resultQ3="14" resultQ4="16"/>
+              <homeTeam clubId="6" gender="M" id="793" name="Baden Basket 54" pathToLogo="uploadedImages/10292__LOGO_FOR_TEAM__793__Logo-BadenBasket54-SW-01.png" result="85" resultQ1="19" resultQ2="14" resultQ3="26" resultQ4="26"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2025-11-21" id="10876" name="Day 8" to="2025-11-23">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2025-11-22" id="348335" locationCity="Massagno" locationId="426" locationName="Scuole Elementari Nosedo" locationShortName="SE Nosedo" matchDayName="Day 8" round="1" time="14:00" videoLink="https://www.youtube.com/watch?v=dtTiSl4_o5w">
+              <guestTeam clubId="155" gender="M" id="6514" name="STB Giants Bern" pathToLogo="uploadedImages/51756__LOGO_FOR_TEAM__6514__STBBern.png" result="61" resultQ1="25" resultQ2="14" resultQ3="9" resultQ4="13"/>
+              <homeTeam clubId="279" gender="M" id="5860" name="Viganello Caimans" pathToLogo="uploadedImages/79861__LOGO_FOR_TEAM__5860__VIGANELLO-CAIMANS--3.1-.png" result="57" resultQ1="16" resultQ2="22" resultQ3="13" resultQ4="6"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-11-22" id="348336" locationCity="Arlesheim" locationId="675" locationName="Hagenbuchen" locationShortName="Hagenbuchen" matchDayName="Day 8" round="1" time="19:00" videoLink="https://www.youtube.com/watch?v=L6j1LnHYkPA">
+              <guestTeam clubId="156" gender="M" id="6495" name="BC Allschwil-Algon" pathToLogo="uploadedImages/90720__LOGO_FOR_TEAM__6495__BCA_Logo_outline.png" result="68" resultQ1="21" resultQ2="11" resultQ3="21" resultQ4="15"/>
+              <homeTeam clubId="111" gender="M" id="5526" name="BC Arlesheim" pathToLogo="uploadedImages/67047__LOGO_FOR_TEAM__5526__bca-logo-neu.png" result="86" resultQ1="22" resultQ2="31" resultQ3="12" resultQ4="21"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-11-23" id="348338" locationCity="Zürich" locationId="1147" locationName="Fronwald" locationShortName="Fronwald" matchDayName="Day 8" round="1" time="13:30">
+              <guestTeam clubId="346" gender="M" id="7580" name="Stabio Snakes" pathToLogo="uploadedImages/80358__LOGO_FOR_TEAM__7580__Logo-Stabio-Snake-min.png" result="62" resultQ1="12" resultQ2="21" resultQ3="14" resultQ4="15"/>
+              <homeTeam clubId="54" gender="M" id="7264" name="GC Zürich U23" pathToLogo="uploadedImages/71484__LOGO_FOR_TEAM__7264__9987_LOGO_FOR_TEAM_1087_Grasshopper.png" result="70" resultQ1="14" resultQ2="22" resultQ3="14" resultQ4="20"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-11-23" id="348337" locationCity="Zürich" locationId="1483" locationName="Schul- und Sportanlage Freilager" locationShortName="Freilager" matchDayName="Day 8" round="1" time="15:30" videoLink="https://www.youtube.com/watch?v=rOHukZnOOyQ">
+              <guestTeam clubId="6" gender="M" id="793" name="Baden Basket 54" pathToLogo="uploadedImages/10292__LOGO_FOR_TEAM__793__Logo-BadenBasket54-SW-01.png" result="64" resultQ1="10" resultQ2="13" resultQ3="24" resultQ4="17"/>
+              <homeTeam clubId="481" gender="M" id="7484" name="BC Zürich 93" pathToLogo="uploadedImages/83423__LOGO_FOR_TEAM__7484__81532_LOGO_FOR_CLUB_481_BZ93-LOGO-01.png" result="82" resultQ1="23" resultQ2="31" resultQ3="16" resultQ4="12"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-11-23" id="348339" locationCity="Biel/Bienne" locationId="800" locationName="Esplanade" locationShortName="Esplanade" matchDayName="Day 8" round="1" time="16:00">
+              <guestTeam clubId="22" gender="M" id="6511" name="DDV Wild Ducks" pathToLogo="uploadedImages/63205__LOGO_FOR_TEAM__6511__DDV-Lugano-Logo---Blue.png" result="74" resultQ1="17" resultQ2="21" resultQ3="16" resultQ4="20"/>
+              <homeTeam clubId="19" gender="M" id="5088" name="Rapid Bienne Basket" pathToLogo="uploadedImages/30960__LOGO_FOR_TEAM__5088__RapidBienne1.png" result="80" resultQ1="23" resultQ2="21" resultQ3="17" resultQ4="19"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2025-11-28" id="10877" name="Day 9" to="2025-11-30">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2025-11-29" id="348341" locationCity="Allschwil" locationId="1254" locationName="Schulhaus Gartenhof" locationShortName="Gartenhof" matchDayName="Day 9" round="1" time="14:00" videoLink="https://www.youtube.com/watch?v=nvpoj5EayZQ">
+              <guestTeam clubId="19" gender="M" id="5088" name="Rapid Bienne Basket" pathToLogo="uploadedImages/30960__LOGO_FOR_TEAM__5088__RapidBienne1.png" result="69" resultQ1="19" resultQ2="20" resultQ3="13" resultQ4="17"/>
+              <homeTeam clubId="156" gender="M" id="6495" name="BC Allschwil-Algon" pathToLogo="uploadedImages/90720__LOGO_FOR_TEAM__6495__BCA_Logo_outline.png" result="85" resultQ1="26" resultQ2="16" resultQ3="18" resultQ4="25"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-11-29" id="348340" locationCity="Pregassona" locationId="433" locationName="Scuole Medie" locationShortName="Scuole Medie" matchDayName="Day 9" round="1" time="15:00">
+              <guestTeam clubId="111" gender="M" id="5526" name="BC Arlesheim" pathToLogo="uploadedImages/67047__LOGO_FOR_TEAM__5526__bca-logo-neu.png" result="90" resultQ1="21" resultQ2="22" resultQ3="22" resultQ4="25"/>
+              <homeTeam clubId="22" gender="M" id="6511" name="DDV Wild Ducks" pathToLogo="uploadedImages/63205__LOGO_FOR_TEAM__6511__DDV-Lugano-Logo---Blue.png" result="48" resultQ1="11" resultQ2="18" resultQ3="8" resultQ4="11"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-11-29" id="348342" locationCity="Baden" locationId="129" locationName="Kantonsschule Baden" locationShortName="Kanti Baden" matchDayName="Day 9" round="1" time="18:00" videoLink="https://www.youtube.com/watch?v=TC_273ySV94">
+              <guestTeam clubId="87" gender="M" id="1043" name="BC Alte Kanti Aarau" pathToLogo="uploadedImages/10779__LOGO_FOR_TEAM__1043__Aarau.png" result="62" resultQ1="16" resultQ2="18" resultQ3="16" resultQ4="12"/>
+              <homeTeam clubId="6" gender="M" id="793" name="Baden Basket 54" pathToLogo="uploadedImages/10292__LOGO_FOR_TEAM__793__Logo-BadenBasket54-SW-01.png" result="67" resultQ1="18" resultQ2="14" resultQ3="22" resultQ4="13"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-11-30" id="348344" locationCity="Bern" locationId="1384" locationName="Spitalacker" locationShortName="Spitalacker" matchDayName="Day 9" round="1" time="14:30" videoLink="https://www.youtube.com/watch?v=ePJNwxT720A">
+              <guestTeam clubId="54" gender="M" id="7264" name="GC Zürich U23" pathToLogo="uploadedImages/71484__LOGO_FOR_TEAM__7264__9987_LOGO_FOR_TEAM_1087_Grasshopper.png" result="64" resultQ1="22" resultQ2="18" resultQ3="11" resultQ4="13"/>
+              <homeTeam clubId="155" gender="M" id="6514" name="STB Giants Bern" pathToLogo="uploadedImages/51756__LOGO_FOR_TEAM__6514__STBBern.png" result="74" resultQ1="20" resultQ2="19" resultQ3="17" resultQ4="18"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-11-30" id="348343" locationCity="Zürich" locationId="1483" locationName="Schul- und Sportanlage Freilager" locationShortName="Freilager" matchDayName="Day 9" round="1" time="15:30">
+              <guestTeam clubId="279" gender="M" id="5860" name="Viganello Caimans" pathToLogo="uploadedImages/79861__LOGO_FOR_TEAM__5860__VIGANELLO-CAIMANS--3.1-.png" result="69" resultQ1="15" resultQ2="17" resultQ3="18" resultQ4="19"/>
+              <homeTeam clubId="481" gender="M" id="7484" name="BC Zürich 93" pathToLogo="uploadedImages/83423__LOGO_FOR_TEAM__7484__81532_LOGO_FOR_CLUB_481_BZ93-LOGO-01.png" result="82" resultQ1="20" resultQ2="17" resultQ3="14" resultQ4="31"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2025-12-05" id="10878" name="Day 10" to="2025-12-07">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2025-12-06" id="348348" locationCity="Baden" locationId="129" locationName="Kantonsschule Baden" locationShortName="Kanti Baden" matchDayName="Day 10" round="1" time="15:00" videoLink="https://www.youtube.com/watch?v=Vi30SZLb_Eg">
+              <guestTeam clubId="22" gender="M" id="6511" name="DDV Wild Ducks" pathToLogo="uploadedImages/63205__LOGO_FOR_TEAM__6511__DDV-Lugano-Logo---Blue.png" result="63" resultQ1="17" resultQ2="16" resultQ3="13" resultQ4="17"/>
+              <homeTeam clubId="6" gender="M" id="793" name="Baden Basket 54" pathToLogo="uploadedImages/10292__LOGO_FOR_TEAM__793__Logo-BadenBasket54-SW-01.png" result="73" resultQ1="23" resultQ2="20" resultQ3="20" resultQ4="10"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-12-06" id="348346" locationCity="Stabio" locationId="908" locationName="SM Stabio" locationShortName="SM Stabio" matchDayName="Day 10" round="1" time="15:00">
+              <guestTeam clubId="155" gender="M" id="6514" name="STB Giants Bern" pathToLogo="uploadedImages/51756__LOGO_FOR_TEAM__6514__STBBern.png" result="42" resultQ1="10" resultQ2="11" resultQ3="10" resultQ4="11"/>
+              <homeTeam clubId="346" gender="M" id="7580" name="Stabio Snakes" pathToLogo="uploadedImages/80358__LOGO_FOR_TEAM__7580__Logo-Stabio-Snake-min.png" result="91" resultQ1="19" resultQ2="13" resultQ3="21" resultQ4="38"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-12-06" id="348349" locationCity="Zürich" locationId="1147" locationName="Fronwald" locationShortName="Fronwald" matchDayName="Day 10" round="1" time="17:30" videoLink="https://www.youtube.com/watch?v=ELnrHTPeqB4">
+              <guestTeam clubId="481" gender="M" id="7484" name="BC Zürich 93" pathToLogo="uploadedImages/83423__LOGO_FOR_TEAM__7484__81532_LOGO_FOR_CLUB_481_BZ93-LOGO-01.png" result="74" resultQ1="19" resultQ2="19" resultQ3="24" resultQ4="12"/>
+              <homeTeam clubId="54" gender="M" id="7264" name="GC Zürich U23" pathToLogo="uploadedImages/71484__LOGO_FOR_TEAM__7264__9987_LOGO_FOR_TEAM_1087_Grasshopper.png" result="57" resultQ1="17" resultQ2="10" resultQ3="8" resultQ4="22"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-12-06" id="348345" locationCity="Massagno" locationId="426" locationName="Scuole Elementari Nosedo" locationShortName="SE Nosedo" matchDayName="Day 10" round="1" time="17:30" videoLink="https://www.youtube.com/watch?v=QymwkpqHN34">
+              <guestTeam clubId="156" gender="M" id="6495" name="BC Allschwil-Algon" pathToLogo="uploadedImages/90720__LOGO_FOR_TEAM__6495__BCA_Logo_outline.png" result="71" resultQ1="20" resultQ2="14" resultQ3="16" resultQ4="21"/>
+              <homeTeam clubId="279" gender="M" id="5860" name="Viganello Caimans" pathToLogo="uploadedImages/79861__LOGO_FOR_TEAM__5860__VIGANELLO-CAIMANS--3.1-.png" result="93" resultQ1="24" resultQ2="29" resultQ3="24" resultQ4="16"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-12-07" id="348347" locationCity="Aarau 4 Telli" locationId="112" locationName="Sportanlage Telli Spielhalle" locationShortName="Telli Spielhalle" matchDayName="Day 10" round="1" time="13:00" videoLink="https://www.youtube.com/watch?v=ORANY0zTSEY">
+              <guestTeam clubId="19" gender="M" id="5088" name="Rapid Bienne Basket" pathToLogo="uploadedImages/30960__LOGO_FOR_TEAM__5088__RapidBienne1.png" result="69" resultQ1="18" resultQ2="12" resultQ3="18" resultQ4="21"/>
+              <homeTeam clubId="87" gender="M" id="1043" name="BC Alte Kanti Aarau" pathToLogo="uploadedImages/10779__LOGO_FOR_TEAM__1043__Aarau.png" result="92" resultQ1="18" resultQ2="23" resultQ3="21" resultQ4="30"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2025-12-12" id="10879" name="Day 11" to="2025-12-14">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2025-12-12" id="348350" locationCity="Pregassona" locationId="433" locationName="Scuole Medie" locationShortName="Scuole Medie" matchDayName="Day 11" round="1" time="20:00">
+              <guestTeam clubId="279" gender="M" id="5860" name="Viganello Caimans" pathToLogo="uploadedImages/79861__LOGO_FOR_TEAM__5860__VIGANELLO-CAIMANS--3.1-.png" result="63" resultQ1="16" resultQ2="13" resultQ3="16" resultQ4="18"/>
+              <homeTeam clubId="22" gender="M" id="6511" name="DDV Wild Ducks" pathToLogo="uploadedImages/63205__LOGO_FOR_TEAM__6511__DDV-Lugano-Logo---Blue.png" result="60" resultQ1="11" resultQ2="10" resultQ3="15" resultQ4="24"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-12-13" id="348353" locationCity="Aarau 4 Telli" locationId="112" locationName="Sportanlage Telli Spielhalle" locationShortName="Telli Spielhalle" matchDayName="Day 11" round="1" time="14:30" videoLink="https://www.youtube.com/watch?v=PMC4Ls-ssv4">
+              <guestTeam clubId="155" gender="M" id="6514" name="STB Giants Bern" pathToLogo="uploadedImages/51756__LOGO_FOR_TEAM__6514__STBBern.png" result="69" resultQ1="17" resultQ2="13" resultQ3="19" resultQ4="20"/>
+              <homeTeam clubId="87" gender="M" id="1043" name="BC Alte Kanti Aarau" pathToLogo="uploadedImages/10779__LOGO_FOR_TEAM__1043__Aarau.png" result="91" resultQ1="18" resultQ2="24" resultQ3="28" resultQ4="21"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-12-13" id="348352" locationCity="Arlesheim" locationId="675" locationName="Hagenbuchen" locationShortName="Hagenbuchen" matchDayName="Day 11" round="1" time="17:30" videoLink="https://www.youtube.com/watch?v=yW9jsjVQ0x4">
+              <guestTeam clubId="6" gender="M" id="793" name="Baden Basket 54" pathToLogo="uploadedImages/10292__LOGO_FOR_TEAM__793__Logo-BadenBasket54-SW-01.png" result="41" resultQ1="10" resultQ2="6" resultQ3="13" resultQ4="12"/>
+              <homeTeam clubId="111" gender="M" id="5526" name="BC Arlesheim" pathToLogo="uploadedImages/67047__LOGO_FOR_TEAM__5526__bca-logo-neu.png" result="76" resultQ1="22" resultQ2="21" resultQ3="16" resultQ4="17"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-12-14" id="348354" locationCity="Biel/Bienne" locationId="800" locationName="Esplanade" locationShortName="Esplanade" matchDayName="Day 11" round="1" time="16:00">
+              <guestTeam clubId="346" gender="M" id="7580" name="Stabio Snakes" pathToLogo="uploadedImages/80358__LOGO_FOR_TEAM__7580__Logo-Stabio-Snake-min.png" result="81" resultQ1="19" resultQ2="21" resultQ3="15" resultQ4="26"/>
+              <homeTeam clubId="19" gender="M" id="5088" name="Rapid Bienne Basket" pathToLogo="uploadedImages/30960__LOGO_FOR_TEAM__5088__RapidBienne1.png" result="69" resultQ1="19" resultQ2="26" resultQ3="14" resultQ4="10"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2025-12-14" id="348351" locationCity="Allschwil" locationId="1254" locationName="Schulhaus Gartenhof" locationShortName="Gartenhof" matchDayName="Day 11" round="1" time="17:30" videoLink="https://www.youtube.com/watch?v=VGCKloJSjJ8">
+              <guestTeam clubId="54" gender="M" id="7264" name="GC Zürich U23" pathToLogo="uploadedImages/71484__LOGO_FOR_TEAM__7264__9987_LOGO_FOR_TEAM_1087_Grasshopper.png" result="77" resultQ1="18" resultQ2="21" resultQ3="14" resultQ4="24"/>
+              <homeTeam clubId="156" gender="M" id="6495" name="BC Allschwil-Algon" pathToLogo="uploadedImages/90720__LOGO_FOR_TEAM__6495__BCA_Logo_outline.png" result="74" resultQ1="11" resultQ2="25" resultQ3="19" resultQ4="19"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2026-01-09" id="10880" name="Day 12" to="2026-01-11">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2026-01-10" id="348355" locationCity="Massagno" locationId="426" locationName="Scuole Elementari Nosedo" locationShortName="SE Nosedo" matchDayName="Day 12" round="2" time="14:00" videoLink="https://www.youtube.com/watch?v=TH71EqokkK4">
+              <guestTeam clubId="87" gender="M" id="1043" name="BC Alte Kanti Aarau" pathToLogo="uploadedImages/10779__LOGO_FOR_TEAM__1043__Aarau.png" result="93" resultQ1="21" resultQ2="19" resultQ3="29" resultQ4="24"/>
+              <homeTeam clubId="279" gender="M" id="5860" name="Viganello Caimans" pathToLogo="uploadedImages/79861__LOGO_FOR_TEAM__5860__VIGANELLO-CAIMANS--3.1-.png" result="76" resultQ1="25" resultQ2="15" resultQ3="16" resultQ4="20"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-01-10" id="348356" locationCity="Stabio" locationId="908" locationName="SM Stabio" locationShortName="SM Stabio" matchDayName="Day 12" round="2" time="15:30">
+              <guestTeam clubId="22" gender="M" id="6511" name="DDV Wild Ducks" pathToLogo="uploadedImages/63205__LOGO_FOR_TEAM__6511__DDV-Lugano-Logo---Blue.png" result="41" resultQ1="7" resultQ2="9" resultQ3="14" resultQ4="11"/>
+              <homeTeam clubId="346" gender="M" id="7580" name="Stabio Snakes" pathToLogo="uploadedImages/80358__LOGO_FOR_TEAM__7580__Logo-Stabio-Snake-min.png" result="78" resultQ1="23" resultQ2="14" resultQ3="20" resultQ4="21"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-01-10" id="348358" locationCity="Biel/Bienne" locationId="800" locationName="Esplanade" locationShortName="Esplanade" matchDayName="Day 12" round="2" time="17:30">
+              <guestTeam clubId="111" gender="M" id="5526" name="BC Arlesheim" pathToLogo="uploadedImages/67047__LOGO_FOR_TEAM__5526__bca-logo-neu.png" result="75" resultQ1="19" resultQ2="13" resultQ3="23" resultQ4="20"/>
+              <homeTeam clubId="19" gender="M" id="5088" name="Rapid Bienne Basket" pathToLogo="uploadedImages/30960__LOGO_FOR_TEAM__5088__RapidBienne1.png" result="67" resultQ1="18" resultQ2="25" resultQ3="13" resultQ4="11"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-01-10" id="348359" locationCity="Bern" locationId="1384" locationName="Spitalacker" locationShortName="Spitalacker" matchDayName="Day 12" round="2" time="17:30">
+              <guestTeam clubId="6" gender="M" id="793" name="Baden Basket 54" pathToLogo="uploadedImages/10292__LOGO_FOR_TEAM__793__Logo-BadenBasket54-SW-01.png" result="101" resultQ1="25" resultQ2="33" resultQ3="18" resultQ4="25"/>
+              <homeTeam clubId="155" gender="M" id="6514" name="STB Giants Bern" pathToLogo="uploadedImages/51756__LOGO_FOR_TEAM__6514__STBBern.png" result="60" resultQ1="14" resultQ2="13" resultQ3="24" resultQ4="9"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-01-11" id="348357" locationCity="Zürich" locationId="1483" locationName="Schul- und Sportanlage Freilager" locationShortName="Freilager" matchDayName="Day 12" round="2" time="15:30">
+              <guestTeam clubId="54" gender="M" id="7264" name="GC Zürich U23" pathToLogo="uploadedImages/71484__LOGO_FOR_TEAM__7264__9987_LOGO_FOR_TEAM_1087_Grasshopper.png" result="53" resultQ1="12" resultQ2="6" resultQ3="14" resultQ4="21"/>
+              <homeTeam clubId="481" gender="M" id="7484" name="BC Zürich 93" pathToLogo="uploadedImages/83423__LOGO_FOR_TEAM__7484__81532_LOGO_FOR_CLUB_481_BZ93-LOGO-01.png" result="66" resultQ1="23" resultQ2="14" resultQ3="17" resultQ4="12"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2026-01-16" id="10881" name="Day 13" to="2026-01-18">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2026-01-17" id="348360" locationCity="Pregassona" locationId="433" locationName="Scuole Medie" locationShortName="Scuole Medie" matchDayName="Day 13" round="2" time="15:00">
+              <guestTeam clubId="19" gender="M" id="5088" name="Rapid Bienne Basket" pathToLogo="uploadedImages/30960__LOGO_FOR_TEAM__5088__RapidBienne1.png" result="73" resultQ1="21" resultQ2="16" resultQ3="15" resultQ4="21"/>
+              <homeTeam clubId="22" gender="M" id="6511" name="DDV Wild Ducks" pathToLogo="uploadedImages/63205__LOGO_FOR_TEAM__6511__DDV-Lugano-Logo---Blue.png" result="76" resultQ1="24" resultQ2="22" resultQ3="14" resultQ4="16"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-01-17" id="348361" locationCity="Arlesheim" locationId="675" locationName="Hagenbuchen" locationShortName="Hagenbuchen" matchDayName="Day 13" round="2" time="17:30" videoLink="https://www.youtube.com/watch?v=Ah-Xw_mREnI">
+              <guestTeam clubId="155" gender="M" id="6514" name="STB Giants Bern" pathToLogo="uploadedImages/51756__LOGO_FOR_TEAM__6514__STBBern.png" result="64" resultQ1="12" resultQ2="16" resultQ3="15" resultQ4="21"/>
+              <homeTeam clubId="111" gender="M" id="5526" name="BC Arlesheim" pathToLogo="uploadedImages/67047__LOGO_FOR_TEAM__5526__bca-logo-neu.png" result="92" resultQ1="21" resultQ2="27" resultQ3="25" resultQ4="19"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-01-17" id="348363" locationCity="Baden" locationId="129" locationName="Kantonsschule Baden" locationShortName="Kanti Baden" matchDayName="Day 13" round="2" time="18:00" videoLink="https://www.youtube.com/watch?v=6XeWg6rjaTU">
+              <guestTeam clubId="481" gender="M" id="7484" name="BC Zürich 93" pathToLogo="uploadedImages/83423__LOGO_FOR_TEAM__7484__81532_LOGO_FOR_CLUB_481_BZ93-LOGO-01.png" result="63" resultQ1="18" resultQ2="19" resultQ3="19" resultQ4="7"/>
+              <homeTeam clubId="6" gender="M" id="793" name="Baden Basket 54" pathToLogo="uploadedImages/10292__LOGO_FOR_TEAM__793__Logo-BadenBasket54-SW-01.png" result="65" resultQ1="22" resultQ2="17" resultQ3="10" resultQ4="16"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-01-18" id="348362" locationCity="Aarau 4 Telli" locationId="112" locationName="Sportanlage Telli Spielhalle" locationShortName="Telli Spielhalle" matchDayName="Day 13" round="2" time="13:00" videoLink="https://www.youtube.com/watch?v=Om4H3pEP3Cs">
+              <guestTeam clubId="346" gender="M" id="7580" name="Stabio Snakes" pathToLogo="uploadedImages/80358__LOGO_FOR_TEAM__7580__Logo-Stabio-Snake-min.png" result="57" resultQ1="15" resultQ2="15" resultQ3="20" resultQ4="7"/>
+              <homeTeam clubId="87" gender="M" id="1043" name="BC Alte Kanti Aarau" pathToLogo="uploadedImages/10779__LOGO_FOR_TEAM__1043__Aarau.png" result="88" resultQ1="16" resultQ2="25" resultQ3="33" resultQ4="14"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-01-18" id="348364" locationCity="Zürich" locationId="1147" locationName="Fronwald" locationShortName="Fronwald" matchDayName="Day 13" round="2" time="16:00" videoLink="https://www.youtube.com/watch?v=ssS-YYKYKxU">
+              <guestTeam clubId="156" gender="M" id="6495" name="BC Allschwil-Algon" pathToLogo="uploadedImages/90720__LOGO_FOR_TEAM__6495__BCA_Logo_outline.png" result="58" resultQ1="4" resultQ2="14" resultQ3="17" resultQ4="23"/>
+              <homeTeam clubId="54" gender="M" id="7264" name="GC Zürich U23" pathToLogo="uploadedImages/71484__LOGO_FOR_TEAM__7264__9987_LOGO_FOR_TEAM_1087_Grasshopper.png" result="74" resultQ1="20" resultQ2="18" resultQ3="17" resultQ4="19"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2026-01-23" id="10882" name="Day 14" to="2026-01-25">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2026-01-24" id="348365" locationCity="Massagno" locationId="426" locationName="Scuole Elementari Nosedo" locationShortName="SE Nosedo" matchDayName="Day 14" round="2" time="14:00" videoLink="https://www.youtube.com/watch?v=gkJIUSbCOGs">
+              <guestTeam clubId="54" gender="M" id="7264" name="GC Zürich U23" pathToLogo="uploadedImages/71484__LOGO_FOR_TEAM__7264__9987_LOGO_FOR_TEAM_1087_Grasshopper.png" result="56" resultQ1="17" resultQ2="9" resultQ3="10" resultQ4="20"/>
+              <homeTeam clubId="279" gender="M" id="5860" name="Viganello Caimans" pathToLogo="uploadedImages/79861__LOGO_FOR_TEAM__5860__VIGANELLO-CAIMANS--3.1-.png" result="71" resultQ1="19" resultQ2="16" resultQ3="26" resultQ4="10"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-01-24" id="348367" locationCity="Baden" locationId="129" locationName="Kantonsschule Baden" locationShortName="Kanti Baden" matchDayName="Day 14" round="2" time="15:00" videoLink="https://www.youtube.com/watch?v=GHGR4uPoOjE">
+              <guestTeam clubId="111" gender="M" id="5526" name="BC Arlesheim" pathToLogo="uploadedImages/67047__LOGO_FOR_TEAM__5526__bca-logo-neu.png" result="84" resultQ1="18" resultQ2="16" resultQ3="22" resultQ4="28"/>
+              <homeTeam clubId="6" gender="M" id="793" name="Baden Basket 54" pathToLogo="uploadedImages/10292__LOGO_FOR_TEAM__793__Logo-BadenBasket54-SW-01.png" result="77" resultQ1="21" resultQ2="17" resultQ3="23" resultQ4="16"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-01-25" id="348368" locationCity="Zürich" locationId="1483" locationName="Schul- und Sportanlage Freilager" locationShortName="Freilager" matchDayName="Day 14" round="2" time="15:30">
+              <guestTeam clubId="22" gender="M" id="6511" name="DDV Wild Ducks" pathToLogo="uploadedImages/63205__LOGO_FOR_TEAM__6511__DDV-Lugano-Logo---Blue.png" result="80" resultOT1="11" resultQ1="24" resultQ2="3" resultQ3="17" resultQ4="25"/>
+              <homeTeam clubId="481" gender="M" id="7484" name="BC Zürich 93" pathToLogo="uploadedImages/83423__LOGO_FOR_TEAM__7484__81532_LOGO_FOR_CLUB_481_BZ93-LOGO-01.png" result="71" resultOT1="2" resultQ1="19" resultQ2="14" resultQ3="14" resultQ4="22"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-01-25" id="348369" locationCity="Biel/Bienne" locationId="800" locationName="Esplanade" locationShortName="Esplanade" matchDayName="Day 14" round="2" time="16:00">
+              <guestTeam clubId="87" gender="M" id="1043" name="BC Alte Kanti Aarau" pathToLogo="uploadedImages/10779__LOGO_FOR_TEAM__1043__Aarau.png" result="91" resultQ1="21" resultQ2="24" resultQ3="27" resultQ4="19"/>
+              <homeTeam clubId="19" gender="M" id="5088" name="Rapid Bienne Basket" pathToLogo="uploadedImages/30960__LOGO_FOR_TEAM__5088__RapidBienne1.png" result="93" resultQ1="23" resultQ2="21" resultQ3="23" resultQ4="26"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-01-25" id="348366" locationCity="Allschwil" locationId="1254" locationName="Schulhaus Gartenhof" locationShortName="Gartenhof" matchDayName="Day 14" round="2" time="17:30" videoLink="https://www.youtube.com/watch?v=MnGxM0bs1cM">
+              <guestTeam clubId="155" gender="M" id="6514" name="STB Giants Bern" pathToLogo="uploadedImages/51756__LOGO_FOR_TEAM__6514__STBBern.png" result="88" resultQ1="21" resultQ2="22" resultQ3="21" resultQ4="24"/>
+              <homeTeam clubId="156" gender="M" id="6495" name="BC Allschwil-Algon" pathToLogo="uploadedImages/90720__LOGO_FOR_TEAM__6495__BCA_Logo_outline.png" result="72" resultQ1="19" resultQ2="19" resultQ3="20" resultQ4="14"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2026-02-06" id="10883" name="Day 15" to="2026-02-08">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2026-02-07" id="348374" locationCity="Bern" locationId="1384" locationName="Spitalacker" locationShortName="Spitalacker" matchDayName="Day 15" round="2" time="15:00">
+              <guestTeam clubId="279" gender="M" id="5860" name="Viganello Caimans" pathToLogo="uploadedImages/79861__LOGO_FOR_TEAM__5860__VIGANELLO-CAIMANS--3.1-.png" result="53" resultQ1="16" resultQ2="16" resultQ3="11" resultQ4="10"/>
+              <homeTeam clubId="155" gender="M" id="6514" name="STB Giants Bern" pathToLogo="uploadedImages/51756__LOGO_FOR_TEAM__6514__STBBern.png" result="71" resultQ1="17" resultQ2="17" resultQ3="16" resultQ4="21"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-02-07" id="348372" locationCity="Aarau 4 Telli" locationId="112" locationName="Sportanlage Telli Spielhalle" locationShortName="Telli Spielhalle" matchDayName="Day 15" round="2" time="17:30" videoLink="https://www.youtube.com/watch?v=5qNSGImc0QA">
+              <guestTeam clubId="156" gender="M" id="6495" name="BC Allschwil-Algon" pathToLogo="uploadedImages/90720__LOGO_FOR_TEAM__6495__BCA_Logo_outline.png" result="69" resultQ1="22" resultQ2="20" resultQ3="16" resultQ4="11"/>
+              <homeTeam clubId="87" gender="M" id="1043" name="BC Alte Kanti Aarau" pathToLogo="uploadedImages/10779__LOGO_FOR_TEAM__1043__Aarau.png" result="92" resultQ1="25" resultQ2="18" resultQ3="28" resultQ4="21"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-02-07" id="348373" locationCity="Zürich" locationId="1147" locationName="Fronwald" locationShortName="Fronwald" matchDayName="Day 15" round="2" time="17:30">
+              <guestTeam clubId="19" gender="M" id="5088" name="Rapid Bienne Basket" pathToLogo="uploadedImages/30960__LOGO_FOR_TEAM__5088__RapidBienne1.png" result="89" resultQ1="27" resultQ2="19" resultQ3="16" resultQ4="27"/>
+              <homeTeam clubId="54" gender="M" id="7264" name="GC Zürich U23" pathToLogo="uploadedImages/71484__LOGO_FOR_TEAM__7264__9987_LOGO_FOR_TEAM_1087_Grasshopper.png" result="93" resultQ1="22" resultQ2="27" resultQ3="22" resultQ4="22"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-02-08" id="348371" locationCity="Arlesheim" locationId="675" locationName="Hagenbuchen" locationShortName="Hagenbuchen" matchDayName="Day 15" round="2" time="14:30" videoLink="https://www.youtube.com/watch?v=f6JhTYITQy8">
+              <guestTeam clubId="346" gender="M" id="7580" name="Stabio Snakes" pathToLogo="uploadedImages/80358__LOGO_FOR_TEAM__7580__Logo-Stabio-Snake-min.png" result="70" resultQ1="17" resultQ2="16" resultQ3="19" resultQ4="18"/>
+              <homeTeam clubId="111" gender="M" id="5526" name="BC Arlesheim" pathToLogo="uploadedImages/67047__LOGO_FOR_TEAM__5526__bca-logo-neu.png" result="85" resultQ1="22" resultQ2="18" resultQ3="22" resultQ4="23"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-02-28" id="348370" locationCity="Pregassona" locationId="433" locationName="Scuole Medie" locationShortName="Scuole Medie" matchDayName="Day 15" round="2" time="15:00">
+              <guestTeam clubId="6" gender="M" id="793" name="Baden Basket 54" pathToLogo="uploadedImages/10292__LOGO_FOR_TEAM__793__Logo-BadenBasket54-SW-01.png" result="74" resultQ1="18" resultQ2="20" resultQ3="11" resultQ4="25"/>
+              <homeTeam clubId="22" gender="M" id="6511" name="DDV Wild Ducks" pathToLogo="uploadedImages/63205__LOGO_FOR_TEAM__6511__DDV-Lugano-Logo---Blue.png" result="55" resultQ1="15" resultQ2="9" resultQ3="13" resultQ4="18"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2026-02-13" id="10884" name="Day 16" to="2026-02-15">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2026-02-12" id="348375" locationCity="Massagno" locationId="426" locationName="Scuole Elementari Nosedo" locationShortName="SE Nosedo" matchDayName="Day 16" round="2" time="20:30" videoLink="https://www.youtube.com/watch?v=u-sS9JhBqEk">
+              <guestTeam clubId="22" gender="M" id="6511" name="DDV Wild Ducks" pathToLogo="uploadedImages/63205__LOGO_FOR_TEAM__6511__DDV-Lugano-Logo---Blue.png" result="55" resultQ1="15" resultQ2="16" resultQ3="9" resultQ4="15"/>
+              <homeTeam clubId="279" gender="M" id="5860" name="Viganello Caimans" pathToLogo="uploadedImages/79861__LOGO_FOR_TEAM__5860__VIGANELLO-CAIMANS--3.1-.png" result="76" resultQ1="22" resultQ2="15" resultQ3="12" resultQ4="27"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-02-13" id="348377" locationCity="Basel" locationId="1229" locationName="Rollschuh-Sporthalle Morgarten" locationShortName="Rollschuh-Sporthalle Morgarten" matchDayName="Day 16" round="2" time="20:45" videoLink="https://www.youtube.com/watch?v=7ilQ936XZuA">
+              <guestTeam clubId="111" gender="M" id="5526" name="BC Arlesheim" pathToLogo="uploadedImages/67047__LOGO_FOR_TEAM__5526__bca-logo-neu.png" result="84" resultQ1="20" resultQ2="23" resultQ3="17" resultQ4="24"/>
+              <homeTeam clubId="156" gender="M" id="6495" name="BC Allschwil-Algon" pathToLogo="uploadedImages/90720__LOGO_FOR_TEAM__6495__BCA_Logo_outline.png" result="65" resultQ1="13" resultQ2="20" resultQ3="17" resultQ4="15"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-02-14" id="348378" locationCity="Zürich" locationId="1147" locationName="Fronwald" locationShortName="Fronwald" matchDayName="Day 16" round="2" time="17:30">
+              <guestTeam clubId="6" gender="M" id="793" name="Baden Basket 54" pathToLogo="uploadedImages/10292__LOGO_FOR_TEAM__793__Logo-BadenBasket54-SW-01.png" result="85" resultQ1="20" resultQ2="21" resultQ3="14" resultQ4="30"/>
+              <homeTeam clubId="54" gender="M" id="7264" name="GC Zürich U23" pathToLogo="uploadedImages/71484__LOGO_FOR_TEAM__7264__9987_LOGO_FOR_TEAM_1087_Grasshopper.png" result="98" resultQ1="21" resultQ2="25" resultQ3="31" resultQ4="21"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-02-14" id="348379" locationCity="Bern" locationId="1384" locationName="Spitalacker" locationShortName="Spitalacker" matchDayName="Day 16" round="2" time="17:30" videoLink="https://www.youtube.com/watch?v=PBlsschQiuA">
+              <guestTeam clubId="87" gender="M" id="1043" name="BC Alte Kanti Aarau" pathToLogo="uploadedImages/10779__LOGO_FOR_TEAM__1043__Aarau.png" result="104" resultQ1="24" resultQ2="31" resultQ3="21" resultQ4="28"/>
+              <homeTeam clubId="155" gender="M" id="6514" name="STB Giants Bern" pathToLogo="uploadedImages/51756__LOGO_FOR_TEAM__6514__STBBern.png" result="57" resultQ1="18" resultQ2="12" resultQ3="15" resultQ4="12"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-02-21" id="348376" locationCity="Stabio" locationId="908" locationName="SM Stabio" locationShortName="SM Stabio" matchDayName="Day 16" round="2" time="16:30">
+              <guestTeam clubId="481" gender="M" id="7484" name="BC Zürich 93" pathToLogo="uploadedImages/83423__LOGO_FOR_TEAM__7484__81532_LOGO_FOR_CLUB_481_BZ93-LOGO-01.png" result="67" resultQ1="18" resultQ2="19" resultQ3="13" resultQ4="17"/>
+              <homeTeam clubId="346" gender="M" id="7580" name="Stabio Snakes" pathToLogo="uploadedImages/80358__LOGO_FOR_TEAM__7580__Logo-Stabio-Snake-min.png" result="66" resultQ1="21" resultQ2="11" resultQ3="16" resultQ4="18"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2026-02-27" id="10885" name="Day 17" to="2026-03-01">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2026-02-28" id="348381" locationCity="Aarau 4 Telli" locationId="112" locationName="Sportanlage Telli Spielhalle" locationShortName="Telli Spielhalle" matchDayName="Day 17" round="2" time="14:30" videoLink="https://www.youtube.com/watch?v=IyJ3FCLurOE">
+              <guestTeam clubId="111" gender="M" id="5526" name="BC Arlesheim" pathToLogo="uploadedImages/67047__LOGO_FOR_TEAM__5526__bca-logo-neu.png" result="80" resultQ1="21" resultQ2="22" resultQ3="25" resultQ4="12"/>
+              <homeTeam clubId="87" gender="M" id="1043" name="BC Alte Kanti Aarau" pathToLogo="uploadedImages/10779__LOGO_FOR_TEAM__1043__Aarau.png" result="71" resultQ1="18" resultQ2="15" resultQ3="17" resultQ4="21"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-02-28" id="348380" locationCity="Stabio" locationId="908" locationName="SM Stabio" locationShortName="SM Stabio" matchDayName="Day 17" round="2" time="16:30">
+              <guestTeam clubId="54" gender="M" id="7264" name="GC Zürich U23" pathToLogo="uploadedImages/71484__LOGO_FOR_TEAM__7264__9987_LOGO_FOR_TEAM_1087_Grasshopper.png" result="53" resultQ1="9" resultQ2="9" resultQ3="14" resultQ4="21"/>
+              <homeTeam clubId="346" gender="M" id="7580" name="Stabio Snakes" pathToLogo="uploadedImages/80358__LOGO_FOR_TEAM__7580__Logo-Stabio-Snake-min.png" result="77" resultQ1="20" resultQ2="10" resultQ3="24" resultQ4="23"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-03-01" id="348383" locationCity="Zürich" locationId="1483" locationName="Schul- und Sportanlage Freilager" locationShortName="Freilager" matchDayName="Day 17" round="2" time="15:30" videoLink="https://www.youtube.com/watch?v=3euAGPmXHAg">
+              <guestTeam clubId="155" gender="M" id="6514" name="STB Giants Bern" pathToLogo="uploadedImages/51756__LOGO_FOR_TEAM__6514__STBBern.png" result="52" resultQ1="15" resultQ2="9" resultQ3="13" resultQ4="15"/>
+              <homeTeam clubId="481" gender="M" id="7484" name="BC Zürich 93" pathToLogo="uploadedImages/83423__LOGO_FOR_TEAM__7484__81532_LOGO_FOR_CLUB_481_BZ93-LOGO-01.png" result="56" resultQ1="16" resultQ2="18" resultQ3="7" resultQ4="15"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-03-01" id="348384" locationCity="Biel/Bienne" locationId="800" locationName="Esplanade" locationShortName="Esplanade" matchDayName="Day 17" round="2" time="16:00">
+              <guestTeam clubId="279" gender="M" id="5860" name="Viganello Caimans" pathToLogo="uploadedImages/79861__LOGO_FOR_TEAM__5860__VIGANELLO-CAIMANS--3.1-.png" result="72" resultQ1="18" resultQ2="16" resultQ3="21" resultQ4="17"/>
+              <homeTeam clubId="19" gender="M" id="5088" name="Rapid Bienne Basket" pathToLogo="uploadedImages/30960__LOGO_FOR_TEAM__5088__RapidBienne1.png" result="67" resultQ1="14" resultQ2="17" resultQ3="17" resultQ4="19"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-03-01" id="348382" locationCity="Baden" locationId="129" locationName="Kantonsschule Baden" locationShortName="Kanti Baden" matchDayName="Day 17" round="2" time="17:30" videoLink="https://www.youtube.com/watch?v=GoHXiLrz2g4">
+              <guestTeam clubId="156" gender="M" id="6495" name="BC Allschwil-Algon" pathToLogo="uploadedImages/90720__LOGO_FOR_TEAM__6495__BCA_Logo_outline.png" result="73" resultQ1="23" resultQ2="12" resultQ3="18" resultQ4="20"/>
+              <homeTeam clubId="6" gender="M" id="793" name="Baden Basket 54" pathToLogo="uploadedImages/10292__LOGO_FOR_TEAM__793__Logo-BadenBasket54-SW-01.png" result="94" resultQ1="19" resultQ2="24" resultQ3="20" resultQ4="31"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2026-03-06" id="10886" name="Day 18" to="2026-03-08">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2026-03-05" id="348385" locationCity="Massagno" locationId="426" locationName="Scuole Elementari Nosedo" locationShortName="SE Nosedo" matchDayName="Day 18" round="2" time="20:30" videoLink="https://www.youtube.com/watch?v=EnbiUhRM4SE">
+              <guestTeam clubId="346" gender="M" id="7580" name="Stabio Snakes" pathToLogo="uploadedImages/80358__LOGO_FOR_TEAM__7580__Logo-Stabio-Snake-min.png" result="88" resultOT1="5" resultQ1="25" resultQ2="24" resultQ3="16" resultQ4="18"/>
+              <homeTeam clubId="279" gender="M" id="5860" name="Viganello Caimans" pathToLogo="uploadedImages/79861__LOGO_FOR_TEAM__5860__VIGANELLO-CAIMANS--3.1-.png" result="92" resultOT1="9" resultQ1="24" resultQ2="27" resultQ3="19" resultQ4="13"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-03-07" id="348388" locationCity="Aarau 4 Telli" locationId="112" locationName="Sportanlage Telli Spielhalle" locationShortName="Telli Spielhalle" matchDayName="Day 18" round="2" time="14:30" videoLink="https://www.youtube.com/watch?v=cUDFL92-rrw">
+              <guestTeam clubId="6" gender="M" id="793" name="Baden Basket 54" pathToLogo="uploadedImages/10292__LOGO_FOR_TEAM__793__Logo-BadenBasket54-SW-01.png" result="79" resultQ1="30" resultQ2="14" resultQ3="17" resultQ4="18"/>
+              <homeTeam clubId="87" gender="M" id="1043" name="BC Alte Kanti Aarau" pathToLogo="uploadedImages/10779__LOGO_FOR_TEAM__1043__Aarau.png" result="85" resultQ1="17" resultQ2="22" resultQ3="19" resultQ4="27"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-03-07" id="348387" locationCity="Arlesheim" locationId="675" locationName="Hagenbuchen" locationShortName="Hagenbuchen" matchDayName="Day 18" round="2" time="17:30" videoLink="https://www.youtube.com/watch?v=_RvhTkuVvNc">
+              <guestTeam clubId="481" gender="M" id="7484" name="BC Zürich 93" pathToLogo="uploadedImages/83423__LOGO_FOR_TEAM__7484__81532_LOGO_FOR_CLUB_481_BZ93-LOGO-01.png" result="59" resultQ1="15" resultQ2="12" resultQ3="16" resultQ4="16"/>
+              <homeTeam clubId="111" gender="M" id="5526" name="BC Arlesheim" pathToLogo="uploadedImages/67047__LOGO_FOR_TEAM__5526__bca-logo-neu.png" result="82" resultQ1="17" resultQ2="26" resultQ3="23" resultQ4="16"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-03-07" id="348389" locationCity="Bern" locationId="1384" locationName="Spitalacker" locationShortName="Spitalacker" matchDayName="Day 18" round="2" time="17:30" videoLink="https://www.youtube.com/watch?v=OEhSI5nnSfo">
+              <guestTeam clubId="19" gender="M" id="5088" name="Rapid Bienne Basket" pathToLogo="uploadedImages/30960__LOGO_FOR_TEAM__5088__RapidBienne1.png" result="76" resultQ1="29" resultQ2="9" resultQ3="21" resultQ4="17"/>
+              <homeTeam clubId="155" gender="M" id="6514" name="STB Giants Bern" pathToLogo="uploadedImages/51756__LOGO_FOR_TEAM__6514__STBBern.png" result="81" resultQ1="20" resultQ2="17" resultQ3="19" resultQ4="25"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-03-07" id="348386" locationCity="Allschwil" locationId="1254" locationName="Schulhaus Gartenhof" locationShortName="Gartenhof" matchDayName="Day 18" round="2" time="18:00" videoLink="https://www.youtube.com/watch?v=xJ5jZdEoBIk">
+              <guestTeam clubId="22" gender="M" id="6511" name="DDV Wild Ducks" pathToLogo="uploadedImages/63205__LOGO_FOR_TEAM__6511__DDV-Lugano-Logo---Blue.png" result="81" resultQ1="18" resultQ2="24" resultQ3="18" resultQ4="21"/>
+              <homeTeam clubId="156" gender="M" id="6495" name="BC Allschwil-Algon" pathToLogo="uploadedImages/90720__LOGO_FOR_TEAM__6495__BCA_Logo_outline.png" result="68" resultQ1="16" resultQ2="15" resultQ3="22" resultQ4="15"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2026-03-14" id="10887" name="Day 19" to="2026-03-16">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2026-03-14" id="348394" locationCity="Zürich" locationId="1147" locationName="Fronwald" locationShortName="Fronwald" matchDayName="Day 19" round="2" time="14:30">
+              <guestTeam clubId="155" gender="M" id="6514" name="STB Giants Bern" pathToLogo="uploadedImages/51756__LOGO_FOR_TEAM__6514__STBBern.png" result="75" resultQ1="20" resultQ2="15" resultQ3="17" resultQ4="23"/>
+              <homeTeam clubId="54" gender="M" id="7264" name="GC Zürich U23" pathToLogo="uploadedImages/71484__LOGO_FOR_TEAM__7264__9987_LOGO_FOR_TEAM_1087_Grasshopper.png" result="65" resultQ1="22" resultQ2="12" resultQ3="18" resultQ4="13"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-03-14" id="348390" locationCity="Pregassona" locationId="433" locationName="Scuole Medie" locationShortName="Scuole Medie" matchDayName="Day 19" round="2" time="15:00">
+              <guestTeam clubId="87" gender="M" id="1043" name="BC Alte Kanti Aarau" pathToLogo="uploadedImages/10779__LOGO_FOR_TEAM__1043__Aarau.png" result="79" resultQ1="15" resultQ2="26" resultQ3="24" resultQ4="14"/>
+              <homeTeam clubId="22" gender="M" id="6511" name="DDV Wild Ducks" pathToLogo="uploadedImages/63205__LOGO_FOR_TEAM__6511__DDV-Lugano-Logo---Blue.png" result="66" resultQ1="21" resultQ2="12" resultQ3="14" resultQ4="19"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-03-14" id="348391" locationCity="Stabio" locationId="908" locationName="SM Stabio" locationShortName="SM Stabio" matchDayName="Day 19" round="2" time="16:30">
+              <guestTeam clubId="19" gender="M" id="5088" name="Rapid Bienne Basket" pathToLogo="uploadedImages/30960__LOGO_FOR_TEAM__5088__RapidBienne1.png" result="67" resultQ1="22" resultQ2="15" resultQ3="16" resultQ4="14"/>
+              <homeTeam clubId="346" gender="M" id="7580" name="Stabio Snakes" pathToLogo="uploadedImages/80358__LOGO_FOR_TEAM__7580__Logo-Stabio-Snake-min.png" result="106" resultQ1="21" resultQ2="29" resultQ3="26" resultQ4="30"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-03-14" id="348392" locationCity="Baden" locationId="129" locationName="Kantonsschule Baden" locationShortName="Kanti Baden" matchDayName="Day 19" round="2" time="18:00" videoLink="https://www.youtube.com/watch?v=0s1kxkXILyA">
+              <guestTeam clubId="279" gender="M" id="5860" name="Viganello Caimans" pathToLogo="uploadedImages/79861__LOGO_FOR_TEAM__5860__VIGANELLO-CAIMANS--3.1-.png" result="76" resultOT1="4" resultQ1="17" resultQ2="20" resultQ3="17" resultQ4="18"/>
+              <homeTeam clubId="6" gender="M" id="793" name="Baden Basket 54" pathToLogo="uploadedImages/10292__LOGO_FOR_TEAM__793__Logo-BadenBasket54-SW-01.png" result="80" resultOT1="8" resultQ1="19" resultQ2="19" resultQ3="19" resultQ4="15"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-03-15" id="348393" locationCity="Zürich" locationId="1483" locationName="Schul- und Sportanlage Freilager" locationShortName="Freilager" matchDayName="Day 19" round="2" time="16:00" videoLink="https://www.youtube.com/watch?v=keZs4UPS7i0">
+              <guestTeam clubId="156" gender="M" id="6495" name="BC Allschwil-Algon" pathToLogo="uploadedImages/90720__LOGO_FOR_TEAM__6495__BCA_Logo_outline.png" result="65" resultQ1="16" resultQ2="20" resultQ3="9" resultQ4="20"/>
+              <homeTeam clubId="481" gender="M" id="7484" name="BC Zürich 93" pathToLogo="uploadedImages/83423__LOGO_FOR_TEAM__7484__81532_LOGO_FOR_CLUB_481_BZ93-LOGO-01.png" result="76" resultQ1="12" resultQ2="17" resultQ3="25" resultQ4="22"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2026-03-20" id="10888" name="Day 20" to="2026-03-22">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2026-03-21" id="348397" locationCity="Allschwil" locationId="1254" locationName="Schulhaus Gartenhof" locationShortName="Gartenhof" matchDayName="Day 20" round="2" time="15:00" videoLink="https://www.youtube.com/watch?v=WOs-Y7NOxa4">
+              <guestTeam clubId="279" gender="M" id="5860" name="Viganello Caimans" pathToLogo="uploadedImages/79861__LOGO_FOR_TEAM__5860__VIGANELLO-CAIMANS--3.1-.png" result="70" resultQ1="21" resultQ2="19" resultQ3="16" resultQ4="14"/>
+              <homeTeam clubId="156" gender="M" id="6495" name="BC Allschwil-Algon" pathToLogo="uploadedImages/90720__LOGO_FOR_TEAM__6495__BCA_Logo_outline.png" result="69" resultQ1="11" resultQ2="21" resultQ3="16" resultQ4="21"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-03-21" id="348395" locationCity="Pregassona" locationId="433" locationName="Scuole Medie" locationShortName="Scuole Medie" matchDayName="Day 20" round="2" time="15:00">
+              <guestTeam clubId="155" gender="M" id="6514" name="STB Giants Bern" pathToLogo="uploadedImages/51756__LOGO_FOR_TEAM__6514__STBBern.png" result="50" resultQ1="6" resultQ2="14" resultQ3="8" resultQ4="22"/>
+              <homeTeam clubId="22" gender="M" id="6511" name="DDV Wild Ducks" pathToLogo="uploadedImages/63205__LOGO_FOR_TEAM__6511__DDV-Lugano-Logo---Blue.png" result="49" resultQ1="19" resultQ2="8" resultQ3="10" resultQ4="12"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-03-21" id="348396" locationCity="Stabio" locationId="908" locationName="SM Stabio" locationShortName="SM Stabio" matchDayName="Day 20" round="2" time="16:30">
+              <guestTeam clubId="6" gender="M" id="793" name="Baden Basket 54" pathToLogo="uploadedImages/10292__LOGO_FOR_TEAM__793__Logo-BadenBasket54-SW-01.png" result="55" resultQ1="15" resultQ2="8" resultQ3="10" resultQ4="22"/>
+              <homeTeam clubId="346" gender="M" id="7580" name="Stabio Snakes" pathToLogo="uploadedImages/80358__LOGO_FOR_TEAM__7580__Logo-Stabio-Snake-min.png" result="95" resultQ1="23" resultQ2="19" resultQ3="28" resultQ4="25"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-03-21" id="348398" locationCity="Zürich" locationId="1147" locationName="Fronwald" locationShortName="Fronwald" matchDayName="Day 20" round="2" time="17:30">
+              <guestTeam clubId="111" gender="M" id="5526" name="BC Arlesheim" pathToLogo="uploadedImages/67047__LOGO_FOR_TEAM__5526__bca-logo-neu.png" result="79" resultQ1="19" resultQ2="14" resultQ3="30" resultQ4="16"/>
+              <homeTeam clubId="54" gender="M" id="7264" name="GC Zürich U23" pathToLogo="uploadedImages/71484__LOGO_FOR_TEAM__7264__9987_LOGO_FOR_TEAM_1087_Grasshopper.png" result="52" resultQ1="11" resultQ2="12" resultQ3="12" resultQ4="17"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-03-22" id="348399" locationCity="Biel/Bienne" locationId="800" locationName="Esplanade" locationShortName="Esplanade" matchDayName="Day 20" round="2" time="16:00">
+              <guestTeam clubId="481" gender="M" id="7484" name="BC Zürich 93" pathToLogo="uploadedImages/83423__LOGO_FOR_TEAM__7484__81532_LOGO_FOR_CLUB_481_BZ93-LOGO-01.png" result="85" resultQ1="22" resultQ2="24" resultQ3="25" resultQ4="14"/>
+              <homeTeam clubId="19" gender="M" id="5088" name="Rapid Bienne Basket" pathToLogo="uploadedImages/30960__LOGO_FOR_TEAM__5088__RapidBienne1.png" result="60" resultQ1="16" resultQ2="13" resultQ3="15" resultQ4="16"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2026-03-27" id="10889" name="Day 21" to="2026-03-29">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2026-03-28" id="348402" locationCity="Arlesheim" locationId="675" locationName="Hagenbuchen" locationShortName="Hagenbuchen" matchDayName="Day 21" round="2" time="12:30" videoLink="https://www.youtube.com/watch?v=lOJath6n5KQ">
+              <guestTeam clubId="22" gender="M" id="6511" name="DDV Wild Ducks" pathToLogo="uploadedImages/63205__LOGO_FOR_TEAM__6511__DDV-Lugano-Logo---Blue.png" result="27" resultQ1="8" resultQ2="7" resultQ3="6" resultQ4="6"/>
+              <homeTeam clubId="111" gender="M" id="5526" name="BC Arlesheim" pathToLogo="uploadedImages/67047__LOGO_FOR_TEAM__5526__bca-logo-neu.png" result="87" resultQ1="20" resultQ2="18" resultQ3="26" resultQ4="23"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-03-28" id="348400" locationCity="Massagno" locationId="426" locationName="Scuole Elementari Nosedo" locationShortName="SE Nosedo" matchDayName="Day 21" round="2" time="14:00" videoLink="https://www.youtube.com/watch?v=OUeFANNH3YU">
+              <guestTeam clubId="481" gender="M" id="7484" name="BC Zürich 93" pathToLogo="uploadedImages/83423__LOGO_FOR_TEAM__7484__81532_LOGO_FOR_CLUB_481_BZ93-LOGO-01.png" result="65" resultQ1="10" resultQ2="22" resultQ3="20" resultQ4="13"/>
+              <homeTeam clubId="279" gender="M" id="5860" name="Viganello Caimans" pathToLogo="uploadedImages/79861__LOGO_FOR_TEAM__5860__VIGANELLO-CAIMANS--3.1-.png" result="81" resultQ1="28" resultQ2="14" resultQ3="17" resultQ4="22"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-03-28" id="348401" locationCity="Allschwil" locationId="1254" locationName="Schulhaus Gartenhof" locationShortName="Gartenhof" matchDayName="Day 21" round="2" time="15:00" videoLink="https://www.youtube.com/watch?v=qFaH7xkeLWg">
+              <guestTeam clubId="346" gender="M" id="7580" name="Stabio Snakes" pathToLogo="uploadedImages/80358__LOGO_FOR_TEAM__7580__Logo-Stabio-Snake-min.png" result="95" resultQ1="18" resultQ2="25" resultQ3="23" resultQ4="29"/>
+              <homeTeam clubId="156" gender="M" id="6495" name="BC Allschwil-Algon" pathToLogo="uploadedImages/90720__LOGO_FOR_TEAM__6495__BCA_Logo_outline.png" result="58" resultQ1="22" resultQ2="14" resultQ3="12" resultQ4="10"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-03-28" id="348403" locationCity="Aarau 4 Telli" locationId="112" locationName="Sportanlage Telli Spielhalle" locationShortName="Telli Spielhalle" matchDayName="Day 21" round="2" time="17:30" videoLink="https://www.youtube.com/watch?v=vk4v9yATtp4">
+              <guestTeam clubId="54" gender="M" id="7264" name="GC Zürich U23" pathToLogo="uploadedImages/71484__LOGO_FOR_TEAM__7264__9987_LOGO_FOR_TEAM_1087_Grasshopper.png" result="59" resultQ1="13" resultQ2="12" resultQ3="21" resultQ4="13"/>
+              <homeTeam clubId="87" gender="M" id="1043" name="BC Alte Kanti Aarau" pathToLogo="uploadedImages/10779__LOGO_FOR_TEAM__1043__Aarau.png" result="77" resultQ1="26" resultQ2="17" resultQ3="17" resultQ4="17"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-03-28" id="348404" locationCity="Baden" locationId="129" locationName="Kantonsschule Baden" locationShortName="Kanti Baden" matchDayName="Day 21" round="2" time="18:00" videoLink="https://www.youtube.com/watch?v=XCEf7zPOoq0">
+              <guestTeam clubId="19" gender="M" id="5088" name="Rapid Bienne Basket" pathToLogo="uploadedImages/30960__LOGO_FOR_TEAM__5088__RapidBienne1.png" result="97" resultQ1="16" resultQ2="26" resultQ3="24" resultQ4="31"/>
+              <homeTeam clubId="6" gender="M" id="793" name="Baden Basket 54" pathToLogo="uploadedImages/10292__LOGO_FOR_TEAM__793__Logo-BadenBasket54-SW-01.png" result="86" resultQ1="24" resultQ2="20" resultQ3="28" resultQ4="14"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2026-04-12" id="10890" name="Day 22" to="2026-04-12">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2026-02-22" id="348405" locationCity="Pregassona" locationId="433" locationName="Scuole Medie" locationShortName="Scuole Medie" matchDayName="Day 22" round="2" time="15:00">
+              <guestTeam clubId="54" gender="M" id="7264" name="GC Zürich U23" pathToLogo="uploadedImages/71484__LOGO_FOR_TEAM__7264__9987_LOGO_FOR_TEAM_1087_Grasshopper.png" result="72" resultQ1="20" resultQ2="12" resultQ3="19" resultQ4="21"/>
+              <homeTeam clubId="22" gender="M" id="6511" name="DDV Wild Ducks" pathToLogo="uploadedImages/63205__LOGO_FOR_TEAM__6511__DDV-Lugano-Logo---Blue.png" result="32" resultQ1="7" resultQ2="9" resultQ3="8" resultQ4="8"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-04-12" id="348409" locationCity="Bern" locationId="1384" locationName="Spitalacker" locationShortName="Spitalacker" matchDayName="Day 22" round="2" time="14:00" videoLink="https://www.youtube.com/watch?v=OI2_uBv7eXw">
+              <guestTeam clubId="346" gender="M" id="7580" name="Stabio Snakes" pathToLogo="uploadedImages/80358__LOGO_FOR_TEAM__7580__Logo-Stabio-Snake-min.png" result="83" resultQ1="28" resultQ2="17" resultQ3="20" resultQ4="18"/>
+              <homeTeam clubId="155" gender="M" id="6514" name="STB Giants Bern" pathToLogo="uploadedImages/51756__LOGO_FOR_TEAM__6514__STBBern.png" result="71" resultQ1="10" resultQ2="21" resultQ3="20" resultQ4="20"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-04-12" id="348407" locationCity="Zürich" locationId="1483" locationName="Schul- und Sportanlage Freilager" locationShortName="Freilager" matchDayName="Day 22" round="2" time="15:30" videoLink="https://www.youtube.com/watch?v=Dsw63N30VZA">
+              <guestTeam clubId="87" gender="M" id="1043" name="BC Alte Kanti Aarau" pathToLogo="uploadedImages/10779__LOGO_FOR_TEAM__1043__Aarau.png" result="64" resultQ1="22" resultQ2="16" resultQ3="19" resultQ4="7"/>
+              <homeTeam clubId="481" gender="M" id="7484" name="BC Zürich 93" pathToLogo="uploadedImages/83423__LOGO_FOR_TEAM__7484__81532_LOGO_FOR_CLUB_481_BZ93-LOGO-01.png" result="76" resultQ1="22" resultQ2="19" resultQ3="23" resultQ4="12"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-04-12" id="348408" locationCity="Biel/Bienne" locationId="800" locationName="Esplanade" locationShortName="Esplanade" matchDayName="Day 22" round="2" time="16:00">
+              <guestTeam clubId="156" gender="M" id="6495" name="BC Allschwil-Algon" pathToLogo="uploadedImages/90720__LOGO_FOR_TEAM__6495__BCA_Logo_outline.png" result="91" resultQ1="17" resultQ2="26" resultQ3="28" resultQ4="20"/>
+              <homeTeam clubId="19" gender="M" id="5088" name="Rapid Bienne Basket" pathToLogo="uploadedImages/30960__LOGO_FOR_TEAM__5088__RapidBienne1.png" result="90" resultQ1="22" resultQ2="23" resultQ3="17" resultQ4="28"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-04-12" id="348406" locationCity="Arlesheim" locationId="675" locationName="Hagenbuchen" locationShortName="Hagenbuchen" matchDayName="Day 22" round="2" time="16:30" videoLink="https://www.youtube.com/watch?v=EK4qsUQanP8">
+              <guestTeam clubId="279" gender="M" id="5860" name="Viganello Caimans" pathToLogo="uploadedImages/79861__LOGO_FOR_TEAM__5860__VIGANELLO-CAIMANS--3.1-.png" result="65" resultQ1="16" resultQ2="14" resultQ3="14" resultQ4="21"/>
+              <homeTeam clubId="111" gender="M" id="5526" name="BC Arlesheim" pathToLogo="uploadedImages/67047__LOGO_FOR_TEAM__5526__bca-logo-neu.png" result="75" resultQ1="18" resultQ2="18" resultQ3="18" resultQ4="21"/>
+            </GameRSS>
+          </games>
+        </matchday>
+      </matchdays>
+      <teams/>
+    </LeagueHoldingRSS>
+  </ArrayList>
+</leagueHoldingList>
+</basketplan>
