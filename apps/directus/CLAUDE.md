@@ -124,6 +124,13 @@ Rules for the rare migration you do write:
 - Export `up(knex)` and `down(knex)`. Assume it may run against a database that
   already has data — `ON CONFLICT DO NOTHING`, `IF NOT EXISTS`, guarded
   `ADD CONSTRAINT`.
+- **A change that must not be undone gets a `down` that THROWS, never an empty
+  one.** Seeded rows an editor has since edited, a source line published
+  articles now stand on: undoing those destroys work. An empty body looks like
+  a rollback and performs none, and the architecture rule
+  `migrations-reversible-mts` reads it as a missing `down` — a throw with the
+  reason is the form it accepts. `20260903A-simap-quelle.mts` and
+  `20260907A-spielbericht-quelle.mts` are the two examples.
 - Never edit a migration that has run somewhere. Add a new one.
 
 ## Adding server-side logic

@@ -64,7 +64,15 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 export async function down(): Promise<void> {
-  // Deliberately empty. Deleting a source row would take an editor's own
-  // settings and the feed's freshness history with it, and a row nobody
-  // dispatches on costs nothing.
+  // Deliberately irreversible, and it says so instead of doing nothing
+  // quietly. Deleting a source row would take an editor's own settings and
+  // the feed's freshness history with it, while a row nobody dispatches on
+  // costs nothing — so there is no rollback worth running, and an empty
+  // `down` reported one that never happened. Refusing out loud is the form
+  // `migrations-reversible-mts` accepts for a change that cannot be undone.
+  throw new Error(
+    'Nicht umkehrbar: die Quellenzeilen "amtsblatt" und "simap" bleiben stehen. ' +
+      'Sie zu loeschen naehme die Einstellungen der Redaktorin und die Pruefhistorie mit; ' +
+      'wer sie wirklich weghaben will, entfernt sie von Hand in der Admin-UI.'
+  )
 }
