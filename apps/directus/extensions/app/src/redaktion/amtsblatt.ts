@@ -145,7 +145,7 @@ const GRUND_TEXT: Record<string, string> = {
  *
  * The decision rows ARE the memory — no distillation call, no second store,
  * exactly as in the press review. Scoped per municipality on purpose: what
- * counts as local news in Riehen says little about Dornach.
+ * counts as local news in Riehen says little about Pratteln.
  *
  * A hand-up reads by the Chefredaktion's verdict, not as a blanket "yes": one
  * she binned is a wrong proposal too. And a hand-up a RULE made is no example
