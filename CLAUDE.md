@@ -110,6 +110,7 @@ them is wrong even if it works.
    | `telebasel.ch`                              | two plain GETs per punkt6 episode — `robots.txt` allows `/sendungen/`, and the episode page carries one schema.org `Clip` per Beitrag with exact start/end seconds, so no model is needed to find the boundaries                                                                                                                                                                                                                                                                                           | `punkt6/telebasel-client.ts`          |
    | `swiss.basketball`                          | the association's own mirror of Basketplan — `/basketplan/showLeagueSchedule.do?…&xmlView=rss` answers one `<GameRSS>` per match, and its `robots.txt` allows everything. The ORIGINAL, `basketplan.ch`, bars us with a blanket `Disallow: /` on both hosts and documents no API (measured 17.09.2026), so that door stays shut and the code refuses it. One request per GROUP, once a day. `referees` is dropped at the parser's boundary and `findTeamById.do` is never called: both carry personal data | `shared/basketplan/`                  |
    | the municipalities' own websites            | one host per municipality, only the news page an editor registered (`gemeinden.news_url`), the detail pages it links and the same-site PDFs behind them — read once a day at 13:00, sequentially, the host's `robots.txt` honoured (crawl-delay, disallowed paths), a 429 raises that host's spacing for the rest of the run, never a redirect onto another site. Measured on the first nine: four CMS families, no bot wall                                                                               | `shared/gemeindeseite/`               |
+   | `www.euroairport.com`                       | the ILS-33 usage statistics: how many of a month's landings came in over the south (runway 33) — one HTML overview page and one PDF per month, text layer, no auth. `robots.txt` bars `/admin/`, `/core/`, `/profiles/`, `/search/`, `/user/…` and the facet parameters; neither `/de/publikationen/` nor `/sites/default/files/` is among them, and there is no bot check. One request a day plus one per new month                                                                                       | `shared/euroairport/`                 |
 
    The crawler is the one host we do not own the other end of, and it exists for
    a measured reason: the football association's Match Center answers `curl`
@@ -594,6 +595,64 @@ them is wrong even if it works.
    no visible origin at all. Announced entries without a date hang below the
    list, grouped by quarter, and move up by themselves once they get one.
 
+   **The SÜDANFLUG-QUOTE is the fourth thing in that list, and deliberately not
+   a tenth tab.** The EuroAirport publishes one PDF a month saying how many of
+   the month's IFR landings came in over the south — over runway 33, and
+   therefore over Binningen and Allschwil, where it is the summer's standing
+   argument. It is a statistic like the others, only from a different office,
+   so it shares the desk: one row per month, dated by the sheet's own „Stand",
+   a chip when a threshold was CROSSED, and below it one „Meldung erzeugen"
+   button per affected municipality that turns into the article's card once it
+   exists (`shared/euroairport/`, `redaktion/suedanflug.ts`). Nine things are
+   worth knowing before touching it.
+   **The reading is deterministic — no model touches the figure.** The 43,7
+   percent the Binninger Wochenblatt printed for July 2026 stands in the PDF as
+   `TOTAL 3778 1652 43,7%`, and that is the whole extraction.
+   **Month and year come from the table cell, never from the file name.** The
+   July 2023 sheet is called `…_2023_Juillet.pdf` and carries no month number
+   at all; the August 2026 sheet sits in the upload folder `2026/09`. The
+   addresses are read off the overview page and never guessed.
+   **Three measured peculiarities, each with a consequence.** The figures stay
+   provisional for ever (December 2025, updated 30 January 2026, still says
+   „Provisorische Zahlen"), which is why the revision watchdog has a third case
+   here and why every article has to SAY it is provisional — there is a check.
+   The source contradicts itself (7 August 2026: 130 south landings on 128
+   approaches, 101,6 percent, printed that way), which is reported as a Befund
+   on the row and never smoothed. And a dash is not a missing value but no
+   south landing, so those days count as zero.
+   **The text layer does NOT come from `shared/pdf-text.ts`.** That module
+   splits every page at `pageWidth/2` for the two-column SMD dossiers it was
+   written for; this sheet is one landscape table 841.8 pt wide, and the split
+   at 420.9 pt cut the quota and the Uhrzeit off all 31 day lines (measured).
+   `extrahiereText` from `shared/wochenblatt` — the press review's, reused by
+   the municipal-pages reader — takes pdfjs from the same single `unpdf` copy
+   and returns the table intact. A test runs it against the real PDF.
+   **The run is frugal and its cap is audible:** the overview once a day, and a
+   month's PDF only when the month is new or its address moved (a re-upload
+   lands under a new file name — that is the only signal the source gives).
+   Twelve sheets per run, newest first, the rest named in the result.
+   **The thresholds live in `quellen.konfiguration`,** not in the code and not
+   in the prompt: `{monatsschwelle: 40, jahresschwellen: [8, 10]}`. 40 percent
+   in a month is the NEWSROOM's threshold (Jolanda's word); 8 and 10 percent
+   over the year are the runway-use agreement of 10 February 2006, and an
+   article says whose each one is. The year thresholds propose only when they
+   are CROSSED, because the canton's year has run above 10 percent every year
+   the Schutzverband published (2022: 11,48; 2023: 13,79; 2024: 13,42) and a
+   proposal on „is above" would fire every month for ever.
+   **Who is affected is `gemeinden.suedanflug`,** maintained by hand like
+   `plz`: the airport publishes one quota for itself and no breakdown by place.
+   Empty means the row still appears and says so rather than showing a button
+   into nothing.
+   **The place rule is a CHECK, not only a prompt line, and it is the most
+   important one here.** „In Binningen lag die Quote bei 43,7 Prozent" is
+   fluent, plausible and false, and no reader can tell — the quota belongs to
+   the airport. `ortsWarnungen` catches the locative, „für/von" and the
+   genitive, each only inside a sentence that also carries a figure; the
+   correct form („43,7 Prozent aller Landungen erfolgten über den Süden, also
+   über Binningen") uses none of them.
+   **No Meldung without a person's click.** A crossed threshold is a mark on
+   the row, and the run makes no model call at all.
+
    When it turns us away, that is not silence: the workspace shows a banner
    naming the source, the reason and the date of the last attempt, with a link
    to the page and a form to type the entry in by hand
@@ -686,6 +745,9 @@ them is wrong even if it works.
 | a change to what the Dorfkönig reads                | `endpoints/api/` in the bundle — the register drives the routes AND the docs; contract in [apps/directus/SCHNITTSTELLE.md](apps/directus/SCHNITTSTELLE.md)                                                                                                                         |
 | who may enter from the We.Publish editor            | `redaktion/editorzugang.ts` — `rolleFuer` (which editor permission opens the door) and `pruefeToken` (whose token is accepted); the Directus user itself is created by hand in the admin UI, never here                                                                            |
 | a second medium, or a second statistics portal      | [apps/directus/MEDIUM_ANLEGEN.md](apps/directus/MEDIUM_ANLEGEN.md) — a portal is a ROW in `quellen` (`basis_url` + `konfiguration`), never a constant and never an environment variable                                                                                            |
+| which municipalities lie under the south approach   | „Gemeinden" → die Karte → `gemeinden.suedanflug`; die Quote gilt für den FLUGHAFEN, wer betroffen ist, entscheidet die Redaktion. Leer heisst: die Monatszeile steht da und sagt, dass niemand erfasst ist                                                                         |
+| the thresholds of the Südanflug-Quote               | `quellen.konfiguration` der EuroAirport-Zeile (`{monatsschwelle, jahresschwellen}`) — 40 Prozent im Monat ist die Schwelle der Redaktion, 8 und 10 im Jahr die der Pistenbenutzungsvereinbarung von 2006                                                                           |
+| a new rule about what a Südanflug-Meldung may say   | `redaktion/suedanflug.ts` — the prompt **and** the checks (Ortsregel, Provisorik, Attribution an den EuroAirport, Ziffern, absolute Daten, keine selbst geschriebenen Links)                                                                                                       |
 | a new environment variable                          | `apps/directus/.env.example` **and** root `.env.example` **and** docker-compose.yml                                                                                                                                                                                                |
 
 A change that spans both apps starts in `apps/directus` — data model first, then the
@@ -759,6 +821,11 @@ Flow "Quellen taeglich pruefen"  (0 6 * * *)
        │                    sized for 188 datasets, data.bs.ch carries 361
        ├─ shared/agenda/  → the office's agenda: what is coming?
        │                    writes datensaetze + ankuendigungen
+       ├─ shared/euroairport/ → die ILS-33-Uebersicht: neue Monate, bewegte
+       │                    Adressen. Ein PDF je neuem Monat, hoechstens 12,
+       │                    neueste zuerst; `bewerteMonat` markiert eine
+       │                    gerissene Schwelle als VORSCHLAG (kein Modell).
+       │                    Bewegte Zahlen → Revisionswaechter, dritter Fall
        └─ agenda/zuordnung  1× Sonnet per published agenda entry:
                             which portal datasets is this? (catalogue cached)
                             Where the entry links one of the office's web
@@ -1257,6 +1324,22 @@ the report's own card, and the red counter now splits: `revisionZaehlerSport`
 on „Sportresultate", `revisionZaehlerStatistik` on „statistik.bl" — one field,
 two watchdogs, and a finding belongs on the desk that can open the article.
 
+**And a THIRD case since the same day, which is the one the whole idea was
+built for.** The EuroAirport's south-approach figures are not provisional until
+they are final — they are provisional for ever: the sheet for December 2025,
+updated on 30 January 2026, still says „Provisorische Zahlen", and a revised
+month is simply re-uploaded under a new file name. So `quellen-pruefen`
+measures the published articles of THAT month against the new state
+(`redaktion/revisionsuedanflug.ts`). Two things differ from its neighbours and
+both are measured. BOTH counts and the quota are compared, not just the
+percentage: 3304 of 7556 is the same 43,7 percent and a different month, and an
+article naming the absolute figures is wrong after such a correction while the
+quota alone would have noticed nothing. And only what the text actually wrote
+down counts — „Der Juli war laut" survives every revision, and flagging it
+would teach the desk to ignore the chip. `revisionZaehlerStatistik` carries it
+without a change, because a south-approach article has no `spiel`; that was
+checked rather than assumed, and there is a test.
+
 ## Where the memory lives
 
 - `laeufe` + `meldungen` of earlier periods — what was published about this
@@ -1282,7 +1365,7 @@ two watchdogs, and a finding belongs on the desk that can open the article.
 - `redaktionswissen` — the one rule store, for EVERY desk since September
   2026 (it was the statistics feed's alone before). Each rule carries its
   `bereich` (statistik · sport · entsorgung · presseschau · amtsblatt ·
-  gemeinde · sendung), its `stufe` (`sichtung`: what gets proposed; `text`: how a
+  gemeinde · sendung · suedanflug), its `stufe` (`sichtung`: what gets proposed; `text`: how a
   Meldung is written), its `wirkung` (`hinweis`, or `weiterreichen` for a
   Sichtung rule that may hand matching proposals to the Chefredaktion by
   itself), its `herkunft` (chat · kommentar · entscheid · manuell) and a
@@ -1302,6 +1385,17 @@ two watchdogs, and a finding belongs on the desk that can open the article.
   beleg, a switch, the automation's switch and its track record, and a
   „Regel erfassen" dialog (`POST /redaktion/wissen`) — the cheapest learning
   of all.
+- `suedanflugquoten` — one row per month of the EuroAirport's ILS-33 sheet:
+  the two counts, the printed quota, every day line, the sheet's own
+  contradictions (`befunde`), the address and the sha256 of the text layer.
+  Identity `(jahr, monat)`, a composite unique in
+  `migrations/20260917B-suedanflug.mts`, because the airport re-uploads a month
+  when it revises it and two rows would split one month's history. The
+  checksum is what says whether a re-upload actually changed anything; the
+  stored day lines are what the year figure, the neighbours and the peak day
+  are computed from, so an article is written from what the editor saw and not
+  from a fresh fetch. `gemeinden.suedanflug` belongs here too — who lies under
+  the approach is the newsroom's judgement, not a column of the source.
 - `vereine` — which clubs speak for a municipality, and why. Recorded from the
   Gemeinden tab through `POST /redaktion/vereine`, whose one rule with teeth is
   that `swissvolley`, `handball` and `basketball` need an `ergebnis_url`: those
