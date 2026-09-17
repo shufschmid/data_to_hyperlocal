@@ -92,7 +92,7 @@ them is wrong even if it works.
    | `data.bl.ch`                                | open-data catalogue and records (no auth, documented API)                                                                                                                                                                                                                                                                                                                                                                        | `shared/ods/`                |
    | `www.baselland.ch`                          | the publication agenda — announcements the API cannot give — and the office's own web article behind an entry, read once per announcement for the mapping and the briefing                                                                                                                                                                                                                                                       | `shared/agenda/`             |
    | `statistik.bl.ch`                           | tables the open-data portal does not carry                                                                                                                                                                                                                                                                                                                                                                                       | `shared/statbl/`             |
-   | `crawler.wepublish.dev`                     | renders sport pages that refuse a plain request                                                                                                                                                                                                                                                                                                                                                                                  | `shared/crawler/`            |
+   | `crawler.wepublish.dev`                     | renders sport pages that refuse a plain request, and is the second door for any page a direct read cannot get (since 17.09.2026, see the note on refusals)                                                                                                                                                                                                                                                                       | `shared/crawler/`            |
    | `www.binninger-wochenblatt.ch`              | the first registered weekly-paper archive — one host per Blatt, only archives an editor registered, read once a day                                                                                                                                                                                                                                                                                                              | `shared/wochenblatt/`        |
    | `www.lokalzeitungen.ch`                     | the platform hosting the Riehener Zeitung (and others) — the paper page links the current issue, the issue page links a paywall-free PDF from its title; only that free door is used                                                                                                                                                                                                                                             | `shared/wochenblatt/`        |
    | `www.wochenblatt.ch`                        | the Wochenblatt für das Birseck's e-paper listing — plain links to issuu readers, newest first, the slug carries number and date                                                                                                                                                                                                                                                                                                 | `shared/wochenblatt/`        |
@@ -114,8 +114,10 @@ them is wrong even if it works.
    streams its fixtures over RSC — its raw HTML holds the club name and nothing
    else. The service runs a real browser and returns Markdown. We identify
    ourselves, read only pages an editor registered against a club, and read each
-   once a day. `CRAWLER_KEY` empty means the sport features stay quiet; nothing
-   else notices.
+   once a day. Since 17 September 2026 it is also the second door for any page a
+   direct read cannot get — see the note on refusals below. `CRAWLER_KEY` empty
+   means the sport features stay quiet and that door stays shut; nothing else
+   notices.
 
    The portal is also _watched_, but only where it has to be. An inventory walks
    it once (`operations/portal-inventur`) and asks three questions per page: is
@@ -424,7 +426,7 @@ them is wrong even if it works.
    the page's template FROM THE HTML, never from the host — four families cover
    the nine sites (Weblication, i-web with a DataTables archive in one
    attribute, i-web cards, Backslash), an unrecognised page is a loud error on
-   the municipality's own status line, and no municipality has code of its own.
+   the municipality's own status line, and no municipality has code of its own. A page the server cannot get directly is tried through the crawler — the row says „Über den Crawler gelesen", the run's result names the host.
    The item's identity is its normalized list link; every new one is OPENED —
    the detail page, plus up to three same-site PDFs it links, text layer via
    unpdf — and stored whole, every cap declared on the row (`hinweise`,
@@ -592,12 +594,28 @@ them is wrong even if it works.
    rather than adding a second one). An absence is otherwise
    indistinguishable from "nothing was published".
 
-   **Do not try to make it pass.** Cloudflare fingerprints the TLS handshake, not
-   just the User-Agent — measured on this host, `curl` gets through where Node's
-   `undici` is refused with the identical header. The fixes for that are faking a
-   browser fingerprint or shelling out to another client, and both are
-   circumvention rather than politeness. If we cannot get in as ourselves, we do
-   not get in; the open-data API carries the pipeline either way.
+   **A refusal is accepted — and the crawler is tried anyway.** Cloudflare
+   fingerprints the TLS handshake, not just the User-Agent — measured on this
+   host, `curl` gets through where Node's `undici` is refused with the
+   identical header. We do not fake a browser or a fingerprint: if a host turns
+   away our identified client, that is its answer. But since 17 September 2026
+   the same page is ALSO tried through we.publish's crawler wherever a direct
+   read fails (timeout, dead socket, 403, 429, 5xx) — the newsroom's decision
+   after pratteln.ch answered the server with timeouts for two days while the
+   same page loaded from anywhere else. The crawler is a separate we.publish
+   product with its own rules and, for some sites, its own agreements with the
+   publishers; those are not this project's, it stays a helper, and every page
+   it delivered says so on the row („Über den Crawler gelesen") and in the
+   run's result (`shared/crawler/fallback.ts`). Pages and text files only: a
+   PDF comes back from it as escaped text (measured), so documents stay direct
+   and a host that refuses those too leaves a declared gap. The agenda host
+   keeps its hand-entry form either way. Every page reader goes through it: the
+   Gemeindeseiten reader with its own protocol, and the agenda, statistik.bl,
+   the Wochenblatt archives, the Amtsblatt's plan pages and telebasel through
+   `fetchMitZweiterTuer` — a fetch with the door built in, handed to readers as
+   their `fetchImpl` — while each run declares the hosts it needed
+   (`ueberCrawler`, read from a process-wide record by the run's own window).
+   Data APIs, documents and images never take the door (`fuerZweiteTuer`).
 
 5. **No persistent file storage outside Directus.** Application code never writes to
    the filesystem — no temp caches, no JSON state files, no log files, no

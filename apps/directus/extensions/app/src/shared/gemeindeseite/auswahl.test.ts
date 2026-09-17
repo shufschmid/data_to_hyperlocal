@@ -219,3 +219,20 @@ describe('zeileAus', () => {
     expect(zeile.hinweise).toEqual(['Kein Text gefunden'])
   })
 })
+
+describe('zeileAus: die zweite Tuer', () => {
+  it('sagt auf der Zeile, wenn die Seite ueber den Crawler kam', () => {
+    const zeile = zeileAus({
+      eintrag: eintrag('a', '2026-09-10'),
+      detail: null,
+      pdf: { text: 'Text', seiten: 1 },
+      anhaenge: [],
+      gemeindeId: 'g',
+      quelleSeite: 'https://www.example.ch/aktuelles',
+      plattform: 'weblication',
+      gelesenAm: '2026-09-17T11:00:00Z',
+      transport: 'crawler'
+    })
+    expect(zeile.hinweise).toContain('Über den Crawler gelesen')
+  })
+})

@@ -1,3 +1,4 @@
+import { fetchMitZweiterTuer } from '../../shared/crawler/fallback'
 import { createError, ErrorCode, isDirectusError } from '@directus/errors'
 import { defineEndpoint } from '@directus/extensions-sdk'
 import type { NextFunction, Response } from 'express'
@@ -78,7 +79,9 @@ export default defineEndpoint((router, { services, getSchema, logger }) => {
             const { stream } = await assets.getAsset(fileId)
             return buffer(stream)
           },
-          telebaselClient: createTelebaselClient(),
+          // telebasel.ch through the second door where a direct read fails —
+          // the ported client takes a fetch, so it stays unchanged.
+          telebaselClient: createTelebaselClient(fetchMitZweiterTuer()),
           logger
         })
 

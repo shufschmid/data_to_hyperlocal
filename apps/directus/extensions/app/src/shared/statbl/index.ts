@@ -1,3 +1,4 @@
+import { fetchMitZweiterTuer } from '../crawler/fallback'
 import {
   angleicheSpalten,
   GEMEINDE_SPALTE,
@@ -102,8 +103,13 @@ export type Holer = (
   url: string
 ) => Promise<{ ok: boolean; status: number; text(): Promise<string> }>
 
-const standardHoler: Holer = (url) =>
-  fetch(url, {
+let abruf: typeof fetch | null = null
+
+const standardHoler: Holer = (url) => {
+  // Built on first use, not at import: whether the second door exists is a
+  // question for the environment, and tests run without one.
+  abruf ??= fetchMitZweiterTuer()
+  return abruf(url, {
     headers: {
       // The same honesty as the agenda connector: a name, a purpose, a way to
       // reach us. Never a browser's User-Agent.
@@ -112,6 +118,7 @@ const standardHoler: Holer = (url) =>
     },
     redirect: 'follow'
   })
+}
 
 let KONTAKT = 'it@bajour.ch'
 

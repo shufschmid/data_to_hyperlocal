@@ -15,6 +15,8 @@ import { optionalEnv, requireEnv } from '../env'
 
 export interface ScrapeErgebnis {
   markdown: string
+  /** The rendered page's HTML — only when `formats` asked for `html` (the second door does). */
+  html: string | null
   /**
    * Every href of the RENDERED page, absolute — only when `formats` asked for
    * `links`. This is what carries the Match Center's telegram buttons, which
@@ -47,6 +49,7 @@ interface CrawlerAntwort {
   success?: boolean
   data?: {
     markdown?: string
+    html?: string
     links?: unknown
     metadata?: {
       renderer?: string
@@ -114,6 +117,17 @@ export async function scrape(
     }
 
     const körper = (await antwort.json()) as CrawlerAntwort
+    // `renderer: none` without a status is the service saying it never reached
+    // the host (measured on statistik.bl.ch while it reset every connection) —
+    // an empty body then is not an empty page, and the caller should hear the
+    // difference.
+    const meta = körper.data?.metadata
+    if (
+      meta?.renderer === 'none' &&
+      (meta.statusCode ?? meta.status_code) == null
+    ) {
+      throw new CrawlerFehler('Crawler erreichte die Seite nicht.', url)
+    }
     const markdown = körper.data?.markdown ?? ''
     const formate = optionen.formats ?? ['markdown']
 
@@ -123,6 +137,10 @@ export async function scrape(
     if (formate.includes('markdown') && markdown.trim() === '') {
       throw new CrawlerFehler('Crawler lieferte eine leere Seite.', url)
     }
+    const html = typeof körper.data?.html === 'string' ? körper.data.html : null
+    if (formate.includes('html') && (html ?? '').trim() === '') {
+      throw new CrawlerFehler('Crawler lieferte eine leere Seite.', url)
+    }
 
     const metadaten = körper.data?.metadata
     const links = Array.isArray(körper.data?.links)
@@ -130,13 +148,17 @@ export async function scrape(
       : []
     return {
       markdown,
+      html,
       links,
       renderer: metadaten?.renderer ?? null,
       statusCode: metadaten?.statusCode ?? metadaten?.status_code ?? null,
-      // The per-format map is the precise one; the flat flag covers v2.5-era
-      // answers where neither exists — then nothing is claimed.
+      // The per-format map is the precise one (any requested format cut is a
+      // cut); the flat flag covers v2.5-era answers where the map is missing —
+      // and where neither exists, nothing is claimed.
       abgeschnitten:
-        metadaten?.truncation?.['markdown'] ?? metadaten?.truncated ?? false
+        metadaten?.truncation === undefined
+          ? (metadaten?.truncated ?? false)
+          : formate.some((f) => metadaten.truncation?.[f] === true)
     }
   } catch (fehler) {
     if (fehler instanceof CrawlerFehler) throw fehler

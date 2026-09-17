@@ -1,3 +1,4 @@
+import { fetchMitZweiterTuer } from '../shared/crawler/fallback'
 import type { Knex } from 'knex'
 import {
   cacheableSystem,
@@ -1191,7 +1192,8 @@ async function ladeWebartikel(
 
   try {
     const artikel = await fetchWebartikel(ankuendigung.link as string, {
-      kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch')
+      kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch'),
+      fetchImpl: fetchMitZweiterTuer()
     })
     return artikel.text === '' ? null : artikel.text
   } catch (fehler) {

@@ -1,3 +1,7 @@
+import {
+  fetchMitZweiterTuer,
+  zweiteTuerSeit
+} from '../../shared/crawler/fallback'
 import { defineOperationApi } from '@directus/extensions-sdk'
 import { cacheableSystem, completeJson } from '../../shared/claude'
 import { scrape } from '../../shared/crawler'
@@ -112,6 +116,8 @@ export interface Options {
 const MAX_REVISIONEN = 50
 
 interface Ergebnis {
+  /** Hosts a page came from through the crawler after the direct read failed (shared/crawler/fallback.ts). */
+  ueberCrawler: string[]
   quellen: number
   gesehen: number
   neu: number
@@ -147,7 +153,10 @@ export default defineOperationApi<Options>({
     const bereicheService = new ItemsService('portal_bereiche', { schema })
     const seitenService = new ItemsService('portal_seiten', { schema })
 
+    const laufStart = Date.now()
+    const tuer = fetchMitZweiterTuer()
     const ergebnis: Ergebnis = {
+      ueberCrawler: [],
       quellen: 0,
       gesehen: 0,
       neu: 0,
@@ -244,6 +253,7 @@ export default defineOperationApi<Options>({
     await pruefeBereiche()
     await pruefeRevisionen()
 
+    ergebnis.ueberCrawler = zweiteTuerSeit(laufStart)
     return ergebnis
 
     async function pruefeQuelle(
@@ -278,6 +288,10 @@ export default defineOperationApi<Options>({
     ): Promise<void> {
       const eintraege = await fetchAgenda(quelle.basis_url, {
         kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch'),
+        // A dead connection or a 403 goes through the second door at once;
+        // the challenge (a 200 with a bot page) still takes the spaced
+        // attempts and the browser route last — see fetchAgenda.
+        fetchImpl: tuer,
         // Offered, not used by default: fetchAgenda only reaches for this once
         // every honest attempt has been turned away. Without CRAWLER_KEY the
         // call throws and the run reports the bot check as before.
@@ -1191,7 +1205,8 @@ export default defineOperationApi<Options>({
           // the three housing datasets; the article says what was counted.
           const artikel = istWebartikel(eintrag.link)
             ? await fetchWebartikel(eintrag.link as string, {
-                kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch')
+                kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch'),
+                fetchImpl: tuer
               }).catch((fehler) => {
                 logger.info(
                   `quellen-pruefen: Webartikel zu "${eintrag.titel}" nicht gelesen (${fehler instanceof Error ? fehler.message : String(fehler)})`

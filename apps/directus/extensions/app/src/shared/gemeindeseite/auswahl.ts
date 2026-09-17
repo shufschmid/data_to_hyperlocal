@@ -159,6 +159,8 @@ export interface ZeilenEingabe {
   quelleSeite: string
   plattform: Plattform
   gelesenAm: string
+  /** Which door the page came through; the row says when it was the crawler. */
+  transport?: 'direkt' | 'crawler'
 }
 
 /**
@@ -183,6 +185,7 @@ export function zeileAus(eingabe: ZeilenEingabe): MitteilungsZeile {
   if (pdf !== null) hinweise.push('Direkt verlinktes PDF – Text aus dem PDF')
   if (detail?.verfahren === 'generisch')
     hinweise.push('Inhalt generisch extrahiert – Seitenaufbau unbekannt')
+  if (eingabe.transport === 'crawler') hinweise.push('Über den Crawler gelesen')
 
   const ungelesen = anhaenge.filter((a) => !a.gelesen).length
   if (ungelesen > 0)

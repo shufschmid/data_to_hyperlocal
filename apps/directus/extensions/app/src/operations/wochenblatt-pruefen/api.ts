@@ -1,3 +1,7 @@
+import {
+  fetchMitZweiterTuer,
+  zweiteTuerSeit
+} from '../../shared/crawler/fallback'
 import { defineOperationApi } from '@directus/extensions-sdk'
 import { completeChatJson } from '../../shared/claude'
 import {
@@ -54,6 +58,8 @@ interface Optionen {
 }
 
 interface Ergebnis {
+  /** Hosts a page came from through the crawler after the direct read failed (shared/crawler/fallback.ts). */
+  ueberCrawler: string[]
   blaetter: number
   neueAusgaben: number
   kandidaten: number
@@ -103,7 +109,10 @@ export default defineOperationApi<Optionen>({
     })
     const files = new FilesService({ schema, knex: database })
 
+    const laufStart = Date.now()
+    const tuer = fetchMitZweiterTuer()
     const ergebnis: Ergebnis = {
+      ueberCrawler: [],
       blaetter: 0,
       neueAusgaben: 0,
       kandidaten: 0,
@@ -175,6 +184,7 @@ export default defineOperationApi<Optionen>({
       }
     }
 
+    ergebnis.ueberCrawler = zweiteTuerSeit(laufStart)
     return ergebnis
 
     interface BlattZeile {
@@ -203,7 +213,8 @@ export default defineOperationApi<Optionen>({
         blatt.konnektor,
         blatt.archiv_url,
         {
-          kontakt
+          kontakt,
+          fetchImpl: tuer
         }
       )
 
@@ -225,7 +236,10 @@ export default defineOperationApi<Optionen>({
           blatt.konnektor,
           eintrag.seiteUrl,
           {
-            kontakt
+            kontakt,
+            // The reader pages behind an issue (issuu, Localpoint) may come
+            // through the door; the PDF itself never does (fuerZweiteTuer).
+            fetchImpl: tuer
           }
         )
         const layer = await extrahiereText(pdf.daten)

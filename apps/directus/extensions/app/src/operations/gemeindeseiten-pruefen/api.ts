@@ -1,3 +1,7 @@
+import {
+  crawlerKonfiguriert,
+  holeUeberCrawler
+} from '../../shared/crawler/fallback'
 import { defineOperationApi } from '@directus/extensions-sdk'
 import { optionalEnv } from '../../shared/env'
 import {
@@ -80,6 +84,8 @@ interface Ergebnis {
   anfragen: number
   /** Hosts that asked for spacing (429/503) — the reader slowed down, the run says where. */
   gebremst: string[]
+  /** Hosts a page came from through the crawler after the direct read failed. */
+  ueberCrawler: string[]
   fehler: string[]
 }
 
@@ -139,6 +145,7 @@ export default defineOperationApi<Optionen>({
       aufgeraeumt: { geloescht: 0, verfallen: 0 },
       anfragen: 0,
       gebremst: [],
+      ueberCrawler: [],
       fehler: []
     }
 
@@ -175,7 +182,13 @@ export default defineOperationApi<Optionen>({
       )
     }
 
-    const leser = erstelleLeser({ kontakt, pauseMs })
+    // The second door: only where the direct read fails, only for pages —
+    // see shared/crawler/fallback.ts for the newsroom's decision.
+    const leser = erstelleLeser({
+      kontakt,
+      pauseMs,
+      crawler: crawlerKonfiguriert() ? holeUeberCrawler : null
+    })
 
     for (const gemeinde of gemeinden) {
       ergebnis.gemeinden += 1
@@ -255,6 +268,7 @@ export default defineOperationApi<Optionen>({
               detail: gelesen.detail,
               pdf: gelesen.pdf,
               anhaenge: gelesen.anhaenge,
+              transport: gelesen.transport,
               gemeindeId: gemeinde.id,
               quelleSeite: newsUrl,
               plattform: uebersicht.plattform,
@@ -335,6 +349,7 @@ export default defineOperationApi<Optionen>({
     const protokoll = leser.protokoll()
     ergebnis.anfragen = protokoll.anfragen
     ergebnis.gebremst = protokoll.gebremst
+    ergebnis.ueberCrawler = protokoll.ueberCrawler
     return ergebnis
   }
 })

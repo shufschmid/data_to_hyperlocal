@@ -73,7 +73,13 @@ const ROBOTS = 'https://www.example.ch/robots.txt'
 const SEITE = 'https://www.example.ch/aktuelles'
 const SEITE2 = 'https://www.example.ch/aktuelles/zwei.php'
 
-function leser(stub: Stub, extra: { pauseMs?: number } = {}) {
+function leser(
+  stub: Stub,
+  extra: {
+    pauseMs?: number
+    crawler?: ((url: string) => Promise<Response>) | null
+  } = {}
+) {
   const sleep = vi
     .fn<(ms: number) => Promise<void>>()
     .mockResolvedValue(undefined)
@@ -111,7 +117,12 @@ describe('erstelleLeser', () => {
     const eins = await l.liesSeite(SEITE, 'example.ch')
     const zwei = await l.liesSeite(SEITE2, 'example.ch')
 
-    expect(eins).toEqual({ art: 'html', html: '<html>eins</html>', url: SEITE })
+    expect(eins).toEqual({
+      art: 'html',
+      html: '<html>eins</html>',
+      url: SEITE,
+      transport: 'direkt'
+    })
     expect(zwei.art).toBe('html')
     expect(stub.aufrufe.map((a) => a.url)).toEqual([ROBOTS, SEITE, SEITE2])
     expect(stub.aufrufe[1]?.headers['User-Agent']).toContain('it@bajour.ch')
@@ -454,7 +465,8 @@ describe('liesMitteilung', () => {
     expect(gelesen).toEqual({
       detail: null,
       pdf: { text: 'Inhalt von Medienmitteilung', seiten: 1 },
-      anhaenge: []
+      anhaenge: [],
+      transport: 'direkt'
     })
   })
 
@@ -488,5 +500,122 @@ describe('retryAfterMs', () => {
     expect(retryAfterMs('600', 10_000)).toBe(60_000)
     expect(retryAfterMs(null, 10_000)).toBe(10_000)
     expect(retryAfterMs('Wed, 21 Oct 2026 07:28:00 GMT', 10_000)).toBe(10_000)
+  })
+})
+
+describe('die zweite Tuer', () => {
+  const PDF = 'https://www.example.ch/dok.pdf'
+  const crawlerSeite = (html: string, status = 200) =>
+    new Response(html, {
+      status,
+      headers: {
+        'content-type': 'text/html; charset=utf-8',
+        'x-redaktion-transport': 'crawler'
+      }
+    })
+
+  it('nach einem Timeout kommt dieselbe Seite ueber den Crawler — gekennzeichnet und protokolliert', async () => {
+    const stub = stubFetch({
+      [ROBOTS]: { status: 404 },
+      [SEITE]: () => {
+        throw new Error('The operation was aborted due to timeout')
+      }
+    })
+    const crawler = vi.fn(async () =>
+      crawlerSeite('<html>ueber die zweite Tuer</html>')
+    )
+    const { l } = leser(stub, { crawler })
+    await expect(l.liesSeite(SEITE, 'example.ch')).resolves.toMatchObject({
+      art: 'html',
+      html: '<html>ueber die zweite Tuer</html>',
+      transport: 'crawler'
+    })
+    expect(stub.aufrufe.filter((a) => a.url === SEITE)).toHaveLength(2)
+    expect(crawler).toHaveBeenCalledWith(SEITE)
+    expect(l.protokoll().ueberCrawler).toEqual(['www.example.ch'])
+  })
+
+  it('403 geht durch die zweite Tuer, 404 nicht', async () => {
+    const stub = stubFetch({
+      [ROBOTS]: { status: 404 },
+      [SEITE]: { status: 403 },
+      [SEITE2]: { status: 404 }
+    })
+    const crawler = vi.fn(async () => crawlerSeite('<html>da</html>'))
+    const { l } = leser(stub, { crawler })
+    await expect(l.liesSeite(SEITE, 'example.ch')).resolves.toMatchObject({
+      transport: 'crawler'
+    })
+    await expect(l.liesSeite(SEITE2, 'example.ch')).rejects.toThrow(
+      /antwortete mit 404\./
+    )
+    expect(crawler).toHaveBeenCalledTimes(1)
+  })
+
+  it('ein Dokument geht nie ueber den Crawler', async () => {
+    const stub = stubFetch({
+      [ROBOTS]: { status: 404 },
+      [PDF]: { status: 403 }
+    })
+    const crawler = vi.fn(async () => crawlerSeite('<html>nein</html>'))
+    const { l } = leser(stub, { crawler })
+    await expect(l.liesPdf(PDF, 'example.ch', 1_000_000)).rejects.toThrow(
+      /antwortete mit 403/
+    )
+    expect(crawler).not.toHaveBeenCalled()
+  })
+
+  it('scheitern beide Tueren, nennt der Fehler beide; weist auch der Crawler ab, bleibt es eine Abweisung', async () => {
+    const stub = stubFetch({
+      [ROBOTS]: { status: 404 },
+      [SEITE]: { status: 503 },
+      [SEITE2]: { status: 403 }
+    })
+    const crawler = vi
+      .fn<(url: string) => Promise<Response>>()
+      .mockRejectedValueOnce(new Error('Crawler antwortete mit HTTP 502.'))
+      .mockResolvedValueOnce(crawlerSeite('<html>weg</html>', 403))
+    const { l } = leser(stub, { crawler })
+    await expect(l.liesSeite(SEITE, 'example.ch')).rejects.toThrow(
+      /Direkt: Seite antwortete mit 503; über den Crawler: Crawler antwortete mit HTTP 502/
+    )
+    await expect(l.liesSeite(SEITE2, 'example.ch')).rejects.toThrow(
+      /antwortete mit 403 — direkt und über den Crawler/
+    )
+  })
+
+  it('auch die robots.txt kommt notfalls ueber den Crawler — und gilt dann', async () => {
+    const stub = stubFetch({
+      [ROBOTS]: () => {
+        throw new Error('ECONNRESET')
+      },
+      [SEITE]: { body: '<html>da</html>' }
+    })
+    const crawler = vi.fn(
+      async () =>
+        new Response('User-agent: *\nDisallow: /aktuelles\n', {
+          status: 200,
+          headers: {
+            'content-type': 'text/plain; charset=utf-8',
+            'x-redaktion-transport': 'crawler'
+          }
+        })
+    )
+    const { l } = leser(stub, { crawler })
+    await expect(l.liesSeite(SEITE, 'example.ch')).rejects.toThrow(
+      /robots.txt von www.example.ch verbietet/
+    )
+    expect(crawler).toHaveBeenCalledWith(ROBOTS)
+  })
+
+  it('ohne Crawler bleibt es beim direkten Weg', async () => {
+    const stub = stubFetch({
+      [ROBOTS]: { status: 404 },
+      [SEITE]: { status: 403 }
+    })
+    const { l } = leser(stub)
+    await expect(l.liesSeite(SEITE, 'example.ch')).rejects.toThrow(
+      /antwortete mit 403\./
+    )
   })
 })

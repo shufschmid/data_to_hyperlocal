@@ -1,3 +1,7 @@
+import {
+  fetchMitZweiterTuer,
+  zweiteTuerSeit
+} from '../../shared/crawler/fallback'
 import { defineOperationApi } from '@directus/extensions-sdk'
 import { completeJson } from '../../shared/claude'
 import { optionalEnv } from '../../shared/env'
@@ -89,6 +93,8 @@ interface Optionen {
 }
 
 interface Ergebnis {
+  /** Hosts a page came from through the crawler after the direct read failed (shared/crawler/fallback.ts). */
+  ueberCrawler: string[]
   gemeinden: number
   neu: number
   /** Of `neu`, how many came from simap.ch rather than the gazette portal. */
@@ -131,7 +137,9 @@ export default defineOperationApi<Optionen>({
     const planBudget = Math.max(0, optionen.plaene ?? 6)
     const nachlauf = Math.max(1, optionen.nachlauf ?? NACHLAUF_TAGE)
     const kontakt = optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch')
-    const abruf = { kontakt }
+    // The portal's API is data and stays direct (fuerZweiteTuer); the plan
+    // pages on bgauflage.bl.ch are pages and may come through the door.
+    const abruf = { kontakt, fetchImpl: fetchMitZweiterTuer() }
     // Read once per run, not per row: without a token the Zettelkasten phase
     // is skipped entirely rather than writing "not connected" twenty times.
     const zettelkasten = zettelkastenKonfiguration()
@@ -155,7 +163,9 @@ export default defineOperationApi<Optionen>({
       SICHTUNGSREGELN_UEBERSCHRIFT
     )
 
+    const laufStart = Date.now()
     const ergebnis: Ergebnis = {
+      ueberCrawler: [],
       gemeinden: 0,
       neu: 0,
       beschaffungen: 0,
@@ -657,6 +667,7 @@ export default defineOperationApi<Optionen>({
       })
     }
 
+    ergebnis.ueberCrawler = zweiteTuerSeit(laufStart)
     return ergebnis
   }
 })

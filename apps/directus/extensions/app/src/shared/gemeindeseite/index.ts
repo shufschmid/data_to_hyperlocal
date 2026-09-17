@@ -1,3 +1,9 @@
+import {
+  lohntCrawler,
+  TRANSPORT_HEADER,
+  type HtmlAbruf,
+  type Transport
+} from '../crawler/fallback'
 // Reads municipal news pages — politely, and only what an editor registered.
 //
 // Same manners as every other connector, written down once more because the
@@ -60,11 +66,16 @@ export interface AbrufOptionen {
   fetchImpl?: typeof fetch
   sleep?: (ms: number) => Promise<void>
   jetzt?: () => number
+  /**
+   * The second door for pages and text files — see `shared/crawler/fallback.ts`.
+   * null (the default) means there is none; documents never go through it.
+   */
+  crawler?: HtmlAbruf | null
 }
 
 export type Seite =
-  | { art: 'html'; html: string; url: string }
-  | { art: 'pdf'; daten: Buffer; url: string }
+  | { art: 'html'; html: string; url: string; transport: Transport }
+  | { art: 'pdf'; daten: Buffer; url: string; transport: Transport }
 
 export interface GeladenesPdf {
   daten: Buffer
@@ -81,6 +92,8 @@ export interface Leser {
     robotsGesperrt: string[]
     /** Hosts that answered 429/503 once — their spacing was raised for the rest of the run. */
     gebremst: string[]
+    /** Hosts a page came from through the crawler after the direct read failed — declared, never silent. */
+    ueberCrawler: string[]
   }
 }
 
@@ -152,6 +165,8 @@ export function erstelleLeser(options: AbrufOptionen): Leser {
   const bremse = new Map<string, number>()
   let anfragen = 0
   const robotsGesperrt: string[] = []
+  const crawler = options.crawler ?? null
+  const ueberCrawler = new Set<string>()
 
   async function warte(url: URL, regeln: RobotsStand): Promise<void> {
     const delay = Math.max(
@@ -170,20 +185,7 @@ export function erstelleLeser(options: AbrufOptionen): Leser {
     }
   }
 
-  async function anfrage(
-    url: URL,
-    accept: string,
-    timeoutMs: number
-  ): Promise<Response> {
-    const init: RequestInit = {
-      headers: {
-        'User-Agent': userAgent,
-        Accept: accept,
-        'Accept-Language': 'de-CH,de;q=0.9'
-      },
-      redirect: 'follow',
-      signal: AbortSignal.timeout(timeoutMs)
-    }
+  async function direkt(url: URL, init: RequestInit): Promise<Response> {
     for (let versuch = 1; ; versuch += 1) {
       anfragen += 1
       letzterAbruf.set(url.host, jetzt())
@@ -212,6 +214,58 @@ export function erstelleLeser(options: AbrufOptionen): Leser {
     }
   }
 
+  /**
+   * One address, two doors: direct first, as ourselves — and where the host
+   * turns that away (`lohntCrawler`), the same address through the crawler,
+   * for pages and text files only, never for documents. The answer says which
+   * door it came through (`TRANSPORT_HEADER`), and a failure names both.
+   */
+  async function anfrage(
+    url: URL,
+    accept: string,
+    timeoutMs: number,
+    zweiteTuer: boolean
+  ): Promise<Response> {
+    const init: RequestInit = {
+      headers: {
+        'User-Agent': userAgent,
+        Accept: accept,
+        'Accept-Language': 'de-CH,de;q=0.9'
+      },
+      redirect: 'follow',
+      signal: AbortSignal.timeout(timeoutMs)
+    }
+    let antwort: Response | null = null
+    let direkterFehler: GemeindeseiteFehler | null = null
+    try {
+      antwort = await direkt(url, init)
+    } catch (error) {
+      if (!(error instanceof GemeindeseiteFehler)) throw error
+      direkterFehler = error
+    }
+    const abgewiesen =
+      antwort === null ? true : lohntCrawler({ status: antwort.status })
+    if (!zweiteTuer || crawler === null || !abgewiesen) {
+      if (antwort !== null) return antwort
+      throw direkterFehler as GemeindeseiteFehler
+    }
+    const grund =
+      antwort === null
+        ? (direkterFehler as GemeindeseiteFehler).message
+        : `Seite antwortete mit ${antwort.status}`
+    try {
+      const ueber = await crawler(url.toString())
+      anfragen += 1
+      ueberCrawler.add(url.host)
+      return ueber
+    } catch (error) {
+      throw new GemeindeseiteFehler(
+        `Direkt: ${grund}; über den Crawler: ${fehlerText(error)}`,
+        url.toString()
+      )
+    }
+  }
+
   function robotsFuer(url: URL): Promise<RobotsStand> {
     const origin = url.origin
     const bekannt = robots.get(origin)
@@ -221,7 +275,8 @@ export function erstelleLeser(options: AbrufOptionen): Leser {
         const antwort = await anfrage(
           new URL('/robots.txt', origin),
           'text/plain',
-          20_000
+          20_000,
+          true
         )
         if (antwort.ok) return parseRobots(await antwort.text())
         if (antwort.status >= 500) return 'unerreichbar'
@@ -262,11 +317,12 @@ export function erstelleLeser(options: AbrufOptionen): Leser {
     url: URL,
     siteVon: string,
     accept: string,
-    timeoutMs: number
+    timeoutMs: number,
+    zweiteTuer: boolean
   ): Promise<Response> {
     const regeln = await pruefeZugang(url, siteVon)
     await warte(url, regeln)
-    const antwort = await anfrage(url, accept, timeoutMs)
+    const antwort = await anfrage(url, accept, timeoutMs, zweiteTuer)
     const gelandet = new URL(antwort.url || url.toString())
     if (!gleicheSite(gelandet.hostname, siteVon)) {
       throw new GemeindeseiteFehler(
@@ -277,12 +333,22 @@ export function erstelleLeser(options: AbrufOptionen): Leser {
     if (gelandet.pathname !== url.pathname)
       await pruefeZugang(gelandet, siteVon)
     if (!antwort.ok) {
+      const beide =
+        antwort.headers.get(TRANSPORT_HEADER) === 'crawler'
+          ? ' — direkt und über den Crawler'
+          : ''
       throw new GemeindeseiteFehler(
-        `Seite antwortete mit ${antwort.status}.`,
+        `Seite antwortete mit ${antwort.status}${beide}.`,
         url.toString()
       )
     }
     return antwort
+  }
+
+  function transportVon(antwort: Response): Transport {
+    return antwort.headers.get(TRANSPORT_HEADER) === 'crawler'
+      ? 'crawler'
+      : 'direkt'
   }
 
   function zuGross(antwort: Response, grenze: number, url: string): void {
@@ -302,10 +368,12 @@ export function erstelleLeser(options: AbrufOptionen): Leser {
         url,
         siteVon,
         'text/html,application/xhtml+xml,application/pdf;q=0.8',
-        20_000
+        20_000,
+        true
       )
       const typ = antwort.headers.get('content-type') ?? ''
       const endgueltig = antwort.url || adresse
+      const transport = transportVon(antwort)
 
       if (typ.includes('application/pdf')) {
         zuGross(antwort, maxPdfBytes, adresse)
@@ -316,7 +384,7 @@ export function erstelleLeser(options: AbrufOptionen): Leser {
             adresse
           )
         }
-        return { art: 'pdf', daten, url: endgueltig }
+        return { art: 'pdf', daten, url: endgueltig, transport }
       }
 
       zuGross(antwort, HTML_MAX_BYTES, adresse)
@@ -327,7 +395,7 @@ export function erstelleLeser(options: AbrufOptionen): Leser {
             `PDF ist ${Math.round(daten.length / 1024 / 1024)} MB gross.`,
             adresse
           )
-        return { art: 'pdf', daten, url: endgueltig }
+        return { art: 'pdf', daten, url: endgueltig, transport }
       }
       if (!/text\/html|application\/xhtml/i.test(typ)) {
         throw new GemeindeseiteFehler(
@@ -341,7 +409,12 @@ export function erstelleLeser(options: AbrufOptionen): Leser {
           adresse
         )
       }
-      return { art: 'html', html: dekodiere(daten, typ), url: endgueltig }
+      return {
+        art: 'html',
+        html: dekodiere(daten, typ),
+        url: endgueltig,
+        transport
+      }
     },
 
     async liesPdf(adresse, siteVon, maxBytes) {
@@ -350,7 +423,8 @@ export function erstelleLeser(options: AbrufOptionen): Leser {
         url,
         siteVon,
         'application/pdf,*/*;q=0.5',
-        60_000
+        60_000,
+        false
       )
       zuGross(antwort, maxBytes, adresse)
       const daten = Buffer.from(await antwort.arrayBuffer())
@@ -376,7 +450,8 @@ export function erstelleLeser(options: AbrufOptionen): Leser {
       return {
         anfragen,
         robotsGesperrt: [...robotsGesperrt],
-        gebremst: [...bremse.keys()]
+        gebremst: [...bremse.keys()],
+        ueberCrawler: [...ueberCrawler]
       }
     }
   }
@@ -401,6 +476,8 @@ export interface Uebersicht {
   eintraege: ListenEintrag[]
   /** Where the page actually was after redirects. */
   url: string
+  /** Which door the page came through. */
+  transport: Transport
 }
 
 /**
@@ -435,7 +512,7 @@ export async function leseUebersicht(
       adresse
     )
   }
-  return { plattform, eintraege, url: seite.url }
+  return { plattform, eintraege, url: seite.url, transport: seite.transport }
 }
 
 export interface GeleseneMitteilung {
@@ -444,6 +521,8 @@ export interface GeleseneMitteilung {
   /** The text layer of a directly linked PDF, or null. */
   pdf: { text: string; seiten: number } | null
   anhaenge: Anhang[]
+  /** Which door the page came through — the row says when it was the crawler. */
+  transport: Transport
 }
 
 function anhangGrund(error: unknown): AnhangGrund {
@@ -478,7 +557,12 @@ export async function liesMitteilung(
 
   const seite = await leser.liesSeite(eintrag.url, siteVon, anhangMaxBytes)
   if (seite.art === 'pdf') {
-    return { detail: null, pdf: await liesText(seite.daten), anhaenge: [] }
+    return {
+      detail: null,
+      pdf: await liesText(seite.daten),
+      anhaenge: [],
+      transport: seite.transport
+    }
   }
 
   const detail = parseDetail(seite.html, familie, seite.url, heute)
@@ -553,5 +637,5 @@ export async function liesMitteilung(
     }
   }
 
-  return { detail, pdf: null, anhaenge }
+  return { detail, pdf: null, anhaenge, transport: seite.transport }
 }

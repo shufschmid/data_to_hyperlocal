@@ -1,3 +1,4 @@
+import { fetchMitZweiterTuer } from '../../shared/crawler/fallback'
 import { defineOperationApi } from '@directus/extensions-sdk'
 import { buffer } from 'node:stream/consumers'
 import {
@@ -72,7 +73,9 @@ export default defineOperationApi<Options>({
             const { stream } = await assets.getAsset(fileId)
             return buffer(stream)
           },
-          telebaselClient: createTelebaselClient(),
+          // telebasel.ch through the second door where a direct read fails —
+          // the ported client takes a fetch, so it stays unchanged.
+          telebaselClient: createTelebaselClient(fetchMitZweiterTuer()),
           logger
         })
         if (result.status === 'processed') processed++

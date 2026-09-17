@@ -1,3 +1,8 @@
+import {
+  crawlerKonfiguriert,
+  fetchMitZweiterTuer,
+  holeUeberCrawler
+} from '../../shared/crawler/fallback'
 import { createError } from '@directus/errors'
 import { defineEndpoint } from '@directus/extensions-sdk'
 import type { NextFunction, Response } from 'express'
@@ -643,7 +648,8 @@ export default defineEndpoint(
         // fail the form, not become a row that errors every morning at nine.
         try {
           await fetchAusgabenliste(konnektor, archivUrl, {
-            kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch')
+            kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch'),
+            fetchImpl: fetchMitZweiterTuer()
           })
         } catch (fehler) {
           logger.warn(
@@ -1666,7 +1672,8 @@ export default defineEndpoint(
                 meldungen,
                 logger,
                 abruf: {
-                  kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch')
+                  kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch'),
+                  fetchImpl: fetchMitZweiterTuer()
                 }
               }
             )
@@ -1780,7 +1787,8 @@ export default defineEndpoint(
           // for one whose detail request failed while it was collected.
           if (zeile.angaben === null || zeile.angaben.length === 0) {
             const abruf = {
-              kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch')
+              kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch'),
+              fetchImpl: fetchMitZweiterTuer()
             }
             const meldungenSystem = new ItemsService('amtsblattmeldungen', {
               schema
@@ -2899,7 +2907,8 @@ export default defineEndpoint(
           let gefunden = 0
           try {
             const leser = erstelleLeser({
-              kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch')
+              kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch'),
+              crawler: crawlerKonfiguriert() ? holeUeberCrawler : null
             })
             const heute = heuteAus(
               new Date().toLocaleDateString('sv-SE', {
