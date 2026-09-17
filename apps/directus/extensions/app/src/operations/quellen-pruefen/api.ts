@@ -53,6 +53,10 @@ import {
 import { liesMonatsblatt, liesUebersicht } from '../../shared/euroairport'
 import { bewerteMonat, leseSchwellen } from '../../redaktion/suedanflug'
 import {
+  revisionsSchreibungenSuedanflug,
+  type RevisionsQuotenMeldung
+} from '../../redaktion/revisionsuedanflug'
+import {
   aenderungsSatz,
   monatDeutsch,
   zuHolen,
@@ -506,6 +510,12 @@ export default defineOperationApi<Options>({
             if (satz !== null) {
               ergebnis.geaendert += 1
               ergebnis.hinweise.push(satz)
+              // A changed figure is an event: the already published articles
+              // of THIS month are measured against the new state. It states
+              // and never acts — nothing is republished, rewritten or pulled
+              // back. The airport's figures are provisional for ever, which is
+              // the case the watchdog was built for.
+              await pruefeQuotenRevision(alt, blatt)
             }
           }
 
@@ -530,6 +540,67 @@ export default defineOperationApi<Options>({
             `${monatDeutsch(ausgabe.jahr, ausgabe.monat)}: ${text}`
           )
         }
+      }
+    }
+
+    /**
+     * The third revision watchdog, and the case the whole idea was built for.
+     *
+     * The airport's figures stay provisional and a month is re-uploaded when
+     * it is revised, so a published article can quietly stop being correct
+     * months after it went out. Only the articles of THIS month are measured,
+     * and only what they actually wrote down counts
+     * (`revisionsSchreibungenSuedanflug`).
+     *
+     * Fail-open per month, like its two neighbours: a finding that cannot be
+     * written is a warning in the log, never a lost run.
+     */
+    async function pruefeQuotenRevision(
+      alt: GespeicherterMonat,
+      neu: { anfluege: number; suedlandungen: number; quote: number | null }
+    ): Promise<void> {
+      const meldungenService = new ItemsService('meldungen', { schema })
+
+      try {
+        const meldungen = (await meldungenService.readByQuery({
+          filter: {
+            status: { _eq: 'publiziert' },
+            suedanflugquote: { _eq: alt.id }
+          },
+          fields: ['id', 'titel', 'lead', 'text', 'revision_hinweis'],
+          sort: ['-publiziert_am'],
+          limit: MAX_REVISIONEN
+        })) as RevisionsQuotenMeldung[]
+        if (meldungen.length === 0) return
+
+        const schreibungen = revisionsSchreibungenSuedanflug(
+          meldungen,
+          alt,
+          { jahr: alt.jahr, monat: alt.monat, ...neu },
+          new Date().toISOString()
+        )
+
+        for (const schreibung of schreibungen) {
+          try {
+            await meldungenService.updateOne(schreibung.id, {
+              revision_hinweis: schreibung.revision_hinweis,
+              revision_geprueft_am: schreibung.revision_geprueft_am
+            })
+            ergebnis.revidiert += 1
+          } catch (error) {
+            // One article that will not take the finding must not cost the
+            // others theirs.
+            logger.warn(
+              error,
+              `quellen-pruefen: Revisionsbefund fuer Meldung ${schreibung.id} nicht schreibbar`
+            )
+          }
+        }
+      } catch (error) {
+        logger.warn(
+          error,
+          `quellen-pruefen: Revision ${monatDeutsch(alt.jahr, alt.monat)} fehlgeschlagen`
+        )
       }
     }
 

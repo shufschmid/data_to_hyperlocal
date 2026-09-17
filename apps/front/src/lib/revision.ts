@@ -37,10 +37,14 @@ export function revisionZaehler(zeilen: readonly MitRevision[]): number {
 /**
  * A Meldung as the two counters tell them apart.
  *
- * Two watchdogs write into the one `revision_hinweis` field since 17 September
- * 2026: the statistics one when a dataset's figures move under a published
- * article, the sport one when an association corrects a result under a
- * published match report. A match report is the one that carries `spiel`.
+ * THREE watchdogs write into the one `revision_hinweis` field since 17
+ * September 2026: the statistics one when a dataset's figures move under a
+ * published article, the sport one when an association corrects a result under
+ * a published match report, and the EuroAirport one when the airport revises a
+ * month of its permanently provisional south-approach figures. A match report
+ * is the one that carries `spiel`; the other two both belong on the
+ * statistik.bl desk, which is where their articles can be opened — so the
+ * split below needed no change for the third.
  */
 export interface MitSpiel extends MitRevision {
   spiel: { id: string } | null
