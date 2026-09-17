@@ -61,7 +61,13 @@ export interface SimapVergabestelle {
 }
 
 /** Picks the adapter in `shared/` that knows how to read a source. */
-export type QuellenTyp = 'ods' | 'agenda' | 'statbl' | 'amtsblatt' | 'simap'
+export type QuellenTyp =
+  | 'ods'
+  | 'agenda'
+  | 'statbl'
+  | 'amtsblatt'
+  | 'simap'
+  | 'euroairport'
 
 export interface Quelle {
   id: string
@@ -790,6 +796,7 @@ export interface Schema {
   wochenblattgemeinden: Wochenblattgemeinde[]
   recherchehinweise: Recherchehinweis[]
   gemeindemitteilungen: Gemeindemitteilung[]
+  suedanflugquoten: Suedanflugquote[]
 }
 
 export type MitteilungsPlattform =
@@ -1118,6 +1125,53 @@ export interface Punkt6Edition {
   episode_url: string | null
   /** Set when no telebasel.ch episode was found; the edition still gets created. */
   resolution_error: string | null
+  date_created: string | null
+  date_updated: string | null
+}
+
+/**
+ * One day of the EuroAirport's ILS-33 sheet, as the sheet prints it.
+ *
+ * Structurally identical to `Tag` in `shared/euroairport/parse.ts` on purpose:
+ * the parser's output is stored verbatim, so the two must stay assignable in
+ * both directions. Optional properties here would break that quietly.
+ */
+export interface Suedanflugtag {
+  datum: string
+  anfluege: number
+  /** A dash on the sheet means no south landing, so it means zero. */
+  suedlandungen: number
+  quote: number | null
+  zeitfenster: string[]
+}
+
+/**
+ * One month of the EuroAirport's ILS-33 usage statistics.
+ *
+ * The identity is `(jahr, monat)` — a composite unique in
+ * `migrations/20260917B-suedanflug.mts`, because the airport re-uploads a
+ * month whenever it revises it, and two rows would split one month's history
+ * in two. Everything here is the sheet's own arithmetic; nothing is computed,
+ * and where the sheet disagrees with itself that stands in `befunde`.
+ */
+export interface Suedanflugquote {
+  id: string
+  jahr: number
+  monat: number
+  anfluege: number | null
+  suedlandungen: number | null
+  /** As PRINTED, in percent. The airport's figure, never a municipality's. */
+  quote: number | null
+  aktualisiert_am: string | null
+  /** Measured: the sheet says so months later too, so this is effectively always true. */
+  provisorisch: boolean
+  /** `cast-json`: one entry per day of the month. */
+  tage: Suedanflugtag[] | null
+  /** `cast-json`: German sentences where the sheet contradicts itself. */
+  befunde: string[] | null
+  quelle_url: string | null
+  /** sha256 of the text layer — what says whether a re-upload changed anything. */
+  pruefsumme: string | null
   date_created: string | null
   date_updated: string | null
 }
