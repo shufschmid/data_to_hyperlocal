@@ -6,7 +6,12 @@
 // and may change. The framework's own shape must never show through, which is
 // why every refusal in this API goes through `fehler()`.
 
-import { GRENZE_HOECHST, GRENZE_VORGABE } from './register'
+import {
+  FENSTER_HOECHST,
+  FENSTER_VORGABE,
+  GRENZE_HOECHST,
+  GRENZE_VORGABE
+} from './register'
 
 export type FehlerCode =
   | 'ungueltige_eingabe'
@@ -57,6 +62,19 @@ export function leseGrenze(roh: unknown): Gelesen<number> {
   if (wert === null) return schlecht
   const zahl = ganzeZahl(wert)
   if (zahl === null || zahl < 1 || zahl > GRENZE_HOECHST) return schlecht
+  return { ok: true, wert: zahl }
+}
+
+export function leseFenster(roh: unknown): Gelesen<number> {
+  const wert = einWert(roh)
+  if (wert === undefined) return { ok: true, wert: FENSTER_VORGABE }
+  const schlecht = {
+    ok: false as const,
+    meldung: `Der Parameter «fenster» muss eine ganze Zahl zwischen 1 und ${FENSTER_HOECHST} sein.`
+  }
+  if (wert === null) return schlecht
+  const zahl = ganzeZahl(wert)
+  if (zahl === null || zahl < 1 || zahl > FENSTER_HOECHST) return schlecht
   return { ok: true, wert: zahl }
 }
 

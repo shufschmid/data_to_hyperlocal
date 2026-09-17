@@ -10,6 +10,11 @@ import { completeChatJson, completeJson } from '../../shared/claude'
 import { scrape } from '../../shared/crawler'
 import { parseTelegrammSeite } from '../../shared/matchcenter/parse'
 import { isAuthenticated, type ApiRequest } from '../../shared/http'
+import {
+  redaktionsbilanz,
+  FENSTER_TAGE,
+  type BilanzZeile
+} from '../../redaktion/bilanz'
 import { drain, eroeffneLaeufe, type DrainKontext } from '../../redaktion/drain'
 import {
   buildSpielberichtRevision,
@@ -498,6 +503,59 @@ export default defineEndpoint(
       sport: null,
       fehler: null
     }
+
+    // Wie viel auf welchem Tisch liegt — dieselbe Rechnung wie `/api/v1/bilanz`,
+    // nur hinter der Anmeldung statt hinter dem Schalter der offenen Tuer. Der
+    // Arbeitsplatz zeigt die Zahl im Kopf, und er soll sie auch dann sehen, wenn
+    // die Schnittstelle nach aussen zu ist: sie ist seine eigene Arbeit.
+    router.get(
+      '/bilanz',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        try {
+          const schema = await getSchema()
+          const meldungen = new ItemsService('meldungen', {
+            schema,
+            accountability: req.accountability
+          })
+          const ab = new Date(
+            Date.now() - (FENSTER_TAGE + 1) * 86_400_000
+          ).toISOString()
+          const zeilen = (await meldungen.readByQuery({
+            filter: {
+              _or: [
+                { status: { _in: ['entwurf', 'in_pruefung', 'freigegeben'] } },
+                { publiziert_am: { _gte: ab } },
+                { freigegeben_am: { _gte: ab } },
+                { zurueckgezogen_am: { _gte: ab } }
+              ]
+            },
+            fields: [
+              'status',
+              'lauf',
+              'spiel',
+              'kandidat',
+              'amtsblattmeldung',
+              'gemeindemitteilung',
+              'sendungskandidat',
+              'erscheint_am',
+              'date_created',
+              'freigegeben_am',
+              'publiziert_am',
+              'zurueckgezogen_am'
+            ],
+            limit: -1
+          })) as unknown as BilanzZeile[]
+
+          return res.json({
+            data: redaktionsbilanz(zeilen, { jetzt: new Date().toISOString() })
+          })
+        } catch (error) {
+          logger.error(error, 'redaktion: Bilanz konnte nicht gerechnet werden')
+          return next(error)
+        }
+      }
+    )
 
     router.get(
       '/quellen/lauf',

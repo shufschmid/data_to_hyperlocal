@@ -8,6 +8,7 @@
 import {
   fehler,
   istKennung,
+  leseFenster,
   leseGrenze,
   leseSeit,
   leseVersatz,
@@ -20,6 +21,7 @@ import {
   GRENZE_HOECHST,
   REGISTER
 } from './register'
+import { redaktionsbilanz, type BilanzZeile } from '../../redaktion/bilanz'
 import {
   buildSlugMap,
   gemeindeSlug,
@@ -90,6 +92,14 @@ export interface Deps {
   ladeKorrekturen(abfrage: Abfrage): Promise<Korrekturzeile[]>
   zaehleKorrekturen(abfrage: Abfrage): Promise<number>
   ladeGemeinden(): Promise<GemeindeZeile[]>
+  /**
+   * Every article that is either waiting or was touched inside the window.
+   *
+   * One query rather than an aggregate per desk: the balance is a handful of
+   * counters over a few hundred rows, and eight aggregates would be eight
+   * chances for the conditions to drift apart.
+   */
+  ladeBilanzZeilen(fensterTage: number): Promise<BilanzZeile[]>
   datenbankBereit(): Promise<boolean>
   /** Read per request, so flipping the switch needs no code change. */
   istOffen(): boolean
@@ -286,6 +296,31 @@ function korrekturenListe(deps: Deps): Handler {
   }
 }
 
+/**
+ * How much lies on which desk.
+ *
+ * Mengen only: no title, no text, no name. What it does say is how long the
+ * oldest waiting article has been waiting, and that is the number the Lagebild
+ * asked for (D8) and nobody had.
+ */
+function bilanz(deps: Deps): Handler {
+  return async (req, res) => {
+    const fenster = leseFenster(req.query['fenster'])
+    if (!fenster.ok) {
+      sendeFehler(res, 400, 'ungueltige_eingabe', fenster.meldung)
+      return
+    }
+    const zeilen = await deps.ladeBilanzZeilen(fenster.wert)
+    sende(res, 200, {
+      ...redaktionsbilanz(zeilen, {
+        jetzt: deps.jetzt(),
+        fensterTage: fenster.wert
+      }),
+      medium: deps.medium()
+    })
+  }
+}
+
 function gemeindenListe(deps: Deps): Handler {
   return async (_req, res) => {
     const gemeinden = await deps.ladeGemeinden()
@@ -316,6 +351,7 @@ const HANDLER: Record<string, (deps: Deps) => Handler> = {
   '/v1/artikel': artikelListe,
   '/v1/artikel/:id': artikelEinzeln,
   '/v1/korrekturen': korrekturenListe,
+  '/v1/bilanz': bilanz,
   '/v1/gemeinden': gemeindenListe
 }
 

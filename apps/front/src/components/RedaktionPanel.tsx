@@ -95,6 +95,7 @@ import { Sportresultate } from './Sportresultate'
 import { Entsorgung } from './Entsorgung'
 import { EntsorgungHinweis } from './EntsorgungHinweis'
 import { GemeindeBlogs } from './GemeindeBlogs'
+import { Wochenzahl, type WochenzahlBilanz } from './Wochenzahl'
 import { AgendaErfassen } from './AgendaErfassen'
 import { PortalUebersicht } from './PortalUebersicht'
 import { QuellenHinweis } from './QuellenHinweis'
@@ -428,6 +429,24 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
     ])
   }, [laeufe, alleMeldungen, datensaetze, sendungskandidaten, amtsblatt, gemeindeseiten])
 
+  // Die Wochenzahl: einmal beim Aufbau geholt und nach jeder Aktion neu. Sie ist
+  // Auskunft und kein Arbeitsmittel, darum kein Poll und kein Ladebalken --
+  // schlaegt der Abruf fehl, steht die Zeile einfach nicht da.
+  const [bilanz, setBilanz] = useState<WochenzahlBilanz | null>(null)
+  const ladeBilanz = useCallback(async () => {
+    try {
+      const antwort = await fetch('/api/redaktion/bilanz')
+      if (!antwort.ok) return
+      const inhalt = (await antwort.json()) as { data?: WochenzahlBilanz }
+      setBilanz(inhalt.data ?? null)
+    } catch {
+      // Siehe oben: eine fehlende Zeile ist besser als eine falsche.
+    }
+  }, [])
+  useEffect(() => {
+    void ladeBilanz()
+  }, [ladeBilanz])
+
   // The hand-started scrape run: state lives in the extension's process, this
   // only mirrors it. Polled while a run is under way; when it finishes, the
   // affected tabs are refetched once.
@@ -522,6 +541,9 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
         return
       }
       await allesNeuLaden()
+      // Die Wochenzahl gehoert dazu: wer eben publiziert hat, soll es in der
+      // Kopfzeile sehen und nicht erst beim naechsten Laden der Seite.
+      await ladeBilanz()
     } catch (error) {
       // Without this, a failing refetch — a broken query, a dropped connection —
       // skipped the reset below and left every button in the workspace disabled
@@ -716,6 +738,8 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
         kalender={kalender.data?.entsorgungskalender ?? []}
         onErfassen={() => setReiter('entsorgung')}
       />
+
+      <Wochenzahl bilanz={bilanz} />
 
       <Stack direction="row" sx={{ alignItems: 'center', gap: 1 }}>
         <Tabs

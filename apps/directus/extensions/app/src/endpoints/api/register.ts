@@ -17,7 +17,7 @@ export const KONVENTION = 'wepublish-rest/1'
  * crosses the TypeScript `rootDir` and depends on how the extension bundler
  * inlines JSON. One string is not worth that risk.
  */
-export const VERSION = '1.1.0'
+export const VERSION = '1.2.0'
 
 /** Everything this API serves is public — see R4a and `BLOG_API_OFFEN`. */
 export const MERKMAL = 'keines'
@@ -25,6 +25,16 @@ export const MERKMAL = 'keines'
 /** Paging bounds, documented in the contract and enforced in `parameter.ts`. */
 export const GRENZE_VORGABE = 100
 export const GRENZE_HOECHST = 500
+
+/**
+ * How far the weekly figures of `/v1/bilanz` look back.
+ *
+ * Seven days by default because that is the rhythm the newsroom works in. The
+ * ceiling is a year: the balance reads every waiting article to compute it, and
+ * an unbounded window would turn a monitoring call into a table scan.
+ */
+export const FENSTER_VORGABE = 7
+export const FENSTER_HOECHST = 365
 
 export interface ParameterDoku {
   name: string
@@ -152,6 +162,28 @@ export const REGISTER: readonly RouteEintrag[] = [
         obligatorisch: false
       },
       ...BLAETTERN
+    ]
+  },
+  {
+    pfad: '/v1/bilanz',
+    methoden: ['GET'],
+    zweck:
+      'Wie viel auf welchem Tisch liegt und wie lange schon. Nur Mengen und Tage, kein Titel und kein Text.',
+    merkmal_noetig: 'keines',
+    // Content, although it carries no article: the switch means «this instance
+    // serves the outside world», and how much unpublished work lies inside is
+    // not less private than what has already gone out. A monitor that only
+    // needs to know whether the service carries asks /v1/gesundheit, and that
+    // one answers either way.
+    inhalt: true,
+    parameter: [
+      {
+        name: 'fenster',
+        ort: 'query',
+        typ: 'integer',
+        beschreibung: `Wie viele Tage die Wochenzahlen zurueckreichen (1 bis ${FENSTER_HOECHST}, Vorgabe ${FENSTER_VORGABE}).`,
+        obligatorisch: false
+      }
     ]
   },
   {

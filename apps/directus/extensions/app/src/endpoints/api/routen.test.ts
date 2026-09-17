@@ -109,6 +109,7 @@ function stubDeps(ueber: Partial<Deps> = {}): Deps {
         bezirk: 'Arlesheim'
       }
     ]),
+    ladeBilanzZeilen: vi.fn().mockResolvedValue([BILANZZEILE]),
     datenbankBereit: vi.fn().mockResolvedValue(true),
     istOffen: () => true,
     medium: () => 'bajour',
@@ -116,6 +117,22 @@ function stubDeps(ueber: Partial<Deps> = {}): Deps {
     logger: { error: vi.fn() },
     ...ueber
   }
+}
+
+/** Ein Beitrag, der auf dem Statistik-Tisch auf eine Unterschrift wartet. */
+const BILANZZEILE = {
+  status: 'entwurf',
+  lauf: 'l-1',
+  spiel: null,
+  kandidat: null,
+  amtsblattmeldung: null,
+  gemeindemitteilung: null,
+  sendungskandidat: null,
+  erscheint_am: null,
+  date_created: '2026-08-31T12:00:00.000Z',
+  freigegeben_am: null,
+  publiziert_am: null,
+  zurueckgezogen_am: null
 }
 
 /** Ruft die verdrahtete GET-Route eines Pfades auf. */
@@ -589,6 +606,64 @@ describe('/v1/korrekturen', () => {
   it('haengt hinter dem Schalter wie jede andere Inhaltsroute', async () => {
     const antwort = await rufe(
       '/v1/korrekturen',
+      stubDeps({ istOffen: () => false })
+    )
+    expect(antwort.status).toBe(503)
+  })
+})
+
+describe('/v1/bilanz', () => {
+  it('sagt, wie viel auf welchem Tisch liegt und wie lange schon', async () => {
+    const koerper = (await rufe('/v1/bilanz', stubDeps())).koerper as Record<
+      string,
+      unknown
+    >
+    const gesamt = koerper['gesamt'] as Record<string, unknown>
+
+    expect(gesamt['offen']).toBe(1)
+    expect(gesamt['aeltester_tage']).toBe(3)
+    expect(koerper['fenster_tage']).toBe(7)
+    expect(koerper['medium']).toBe('bajour')
+    expect(koerper['stand']).toBe('2026-09-03T12:00:00.000Z')
+  })
+
+  it('verraet keinen Titel und keinen Text', async () => {
+    // Der Weg ist offen wie die uebrigen. Was ihn tragbar macht, ist nicht der
+    // Anrufer, sondern dass hier nur Zahlen stehen: eine Menge sagt nichts
+    // darueber, WAS jemand schreibt.
+    const antwort = JSON.stringify(
+      (await rufe('/v1/bilanz', stubDeps())).koerper
+    )
+    expect(antwort).not.toContain('titel')
+    expect(antwort).not.toContain('lead')
+    expect(antwort).not.toContain('text')
+  })
+
+  it('nimmt das Fenster vom Anrufer und reicht es weiter', async () => {
+    const deps = stubDeps()
+    const koerper = (await rufe('/v1/bilanz', deps, anfrage({ fenster: '30' })))
+      .koerper as Record<string, unknown>
+    expect(koerper['fenster_tage']).toBe(30)
+    expect(deps.ladeBilanzZeilen).toHaveBeenCalledWith(30)
+  })
+
+  it('weist ein unsinniges Fenster ab, statt still die Vorgabe zu nehmen', async () => {
+    const antwort = await rufe(
+      '/v1/bilanz',
+      stubDeps(),
+      anfrage({ fenster: 'viele' })
+    )
+    expect(antwort.status).toBe(400)
+    expect((antwort.koerper as { fehler: { code: string } }).fehler.code).toBe(
+      'ungueltige_eingabe'
+    )
+  })
+
+  it('haengt hinter dem Schalter wie jede andere Inhaltsroute', async () => {
+    // Unveroeffentlichte Arbeit ist nicht weniger privat als veroeffentlichte.
+    // Wer nur wissen will, ob der Dienst traegt, fragt /v1/gesundheit.
+    const antwort = await rufe(
+      '/v1/bilanz',
       stubDeps({ istOffen: () => false })
     )
     expect(antwort.status).toBe(503)
