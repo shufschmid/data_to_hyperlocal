@@ -16,6 +16,12 @@ import { parseHandball } from '../../shared/handball/parse'
 import { ersteMannschaftAbgleich } from '../../redaktion/mannschaft'
 import { schreibeSpielberichte } from '../../redaktion/spielberichte'
 import { ladeRegeln } from '../../redaktion/gedaechtnis'
+import {
+  revisionsSchreibungenSpiel,
+  type RevisionsSpiel,
+  type RevisionsSpielMeldung,
+  type SpielStand
+} from '../../redaktion/revisionsport'
 
 // Reads the Match Center once a day and records what our clubs are playing.
 //
@@ -395,6 +401,68 @@ export default defineOperationApi<Optionen>({
 
     let neu = 0
     let aktualisiert = 0
+    let revidiert = 0
+
+    /**
+     * The revision watchdog for the sport desk — the one pass here that looks
+     * BACK.
+     *
+     * Everything else in this run asks what is new. But an association revises
+     * too: a forfait, an upheld protest, a typo in the score sheet, and the row
+     * a PUBLISHED report stands on quietly changes under it. `revision.ts` does
+     * this for the statistics feed; `revisionsport.ts` holds the rule for this
+     * one, with the very digit check that cleared the report for publication.
+     *
+     * It states and never acts. No report is retracted, rewritten or
+     * republished here — the finding lands on the row, the desk shows it as the
+     * red «Zahlen revidiert» chip, and a person decides. `/korrekturen` is what
+     * carries a retraction out, once a person has made it.
+     *
+     * Bounded by construction (only the rows this run actually moved) and
+     * fail-open per report: a finding that will not write must not cost the run
+     * its actual work.
+     */
+    async function pruefeSpielrevision(
+      spielId: string,
+      vorher: SpielStand,
+      nachher: RevisionsSpiel
+    ): Promise<void> {
+      try {
+        // Published only: a draft is still being worked on, and its figures are
+        // checked on the way out anyway.
+        const berichte = (await meldungenService.readByQuery({
+          filter: { status: { _eq: 'publiziert' }, spiel: { _eq: spielId } },
+          fields: ['id', 'titel', 'lead', 'text', 'revision_hinweis'],
+          limit: -1
+        })) as RevisionsSpielMeldung[]
+        if (berichte.length === 0) return
+
+        for (const schreibung of revisionsSchreibungenSpiel(
+          berichte,
+          vorher,
+          nachher,
+          new Date().toISOString()
+        )) {
+          try {
+            await meldungenService.updateOne(schreibung.id, {
+              revision_hinweis: schreibung.revision_hinweis,
+              revision_geprueft_am: schreibung.revision_geprueft_am
+            })
+            revidiert += 1
+          } catch (ausnahme) {
+            logger.warn(
+              ausnahme,
+              `sportresultate: Revisionsbefund fuer Meldung ${schreibung.id} nicht schreibbar.`
+            )
+          }
+        }
+      } catch (ausnahme) {
+        logger.warn(
+          ausnahme,
+          `sportresultate: Revision fuer Spiel ${spielId} nicht geprueft.`
+        )
+      }
+    }
 
     // The work cap says when it bites — fixtures beyond it are not stored this
     // run, and a silent cut here would read as "no match happened".
@@ -421,6 +489,7 @@ export default defineOperationApi<Optionen>({
           tore_heim: number | null
           tore_gast: number | null
           status: string | null
+          datum: string
         }>
 
         const treffer = vorhanden[0]
@@ -437,8 +506,16 @@ export default defineOperationApi<Optionen>({
           treffer.tore_gast !== begegnung.toreGast ||
           (treffer.status ?? null) !== begegnung.status
         if (geaendert) {
+          // Held BEFORE the write: the watchdog needs both sides, and after the
+          // update the old one is gone for good.
+          const vorher: SpielStand = {
+            tore_heim: treffer.tore_heim,
+            tore_gast: treffer.tore_gast,
+            datum: treffer.datum
+          }
           await spieleService.updateOne(treffer.id, felder)
           aktualisiert += 1
+          await pruefeSpielrevision(treffer.id, vorher, felder)
         }
       } catch (ausnahme) {
         // One bad entry must not abort the run — the rest of the day's fixtures
@@ -457,6 +534,11 @@ export default defineOperationApi<Optionen>({
       )
     }
     logger.info(`sportresultate: ${neu} neu, ${aktualisiert} aktualisiert.`)
+    if (revidiert > 0) {
+      logger.warn(
+        `sportresultate: ${revidiert} publizierte(r) Spielbericht(e) mit Revisionsbefund — der Verband hat korrigiert.`
+      )
+    }
 
     // Attach discovered telegrams — AFTER the fixture writes, so a match that
     // arrived together with its result (a cup round never seen upcoming) can
@@ -625,6 +707,7 @@ export default defineOperationApi<Optionen>({
       gefunden: zeilen.length,
       neu,
       aktualisiert,
+      revidiert,
       uebersprungen,
       entfernt,
       nachgetragen,
