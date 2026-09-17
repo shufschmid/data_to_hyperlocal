@@ -1130,10 +1130,19 @@ Why the others are not built, so nobody repeats the search:
 - **Chess** — `swisschess.ch/…/smm` is a _news feed_ about the championship. It
   names Riehen constantly in prose but carries no fixture table and no link to
   one. Needs a different URL, not a parser.
-- **Basketball** — `basketplan.ch` is the best source of the lot: plain `curl`
-  works, it is server-rendered, and `POST /exportGames.do` yields Excel and iCal
-  from `federationId` + `leagueHoldingId` + a date range. Missing is only which
-  league BC Arlesheim plays in.
+- **Basketball** — `basketplan.ch` answers, but its `robots.txt` is a
+  blanket `Disallow: /` on both hosts (measured 17.09.2026) and it publishes
+  no documented API, so the `exportGames.do` door stays shut. The data is
+  reachable anyway: Swiss Basketball mirrors Basketplan under its own
+  origin, whose `robots.txt` allows everything, and
+  `swiss.basketball/basketplan/showLeagueSchedule.do?…&xmlView=rss` returns
+  one `GameRSS` per match with a six-digit id and a `result` attribute that
+  exists only once the match is played. BC Arlesheim's first team is the
+  WOMEN's side (NLB Women, `leagueHoldingId` 11329) — the men play one tier
+  lower (NL1 Men, 11450), and the same request also carries BC
+  Allschwil-Algon and Liestal Basket 44. Not built: reading one operator's
+  data off another's permitted host is the newsroom's decision, not the
+  code's.
 
 `spiele.spielnummer` is "the identity at the source", not always a number:
 football uses the SFV's Spielnummer, volleyball has none, so the connector
