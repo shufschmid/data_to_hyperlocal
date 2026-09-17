@@ -241,8 +241,20 @@ export function buildSpielberichtRevision(
 const VERBAND: Readonly<Record<string, string>> = {
   fvnws: 'Fussballverband Nordwestschweiz',
   swissvolley: 'Swiss Volley',
-  handball: 'Swiss Handball'
+  handball: 'Swiss Handball',
+  basketball: 'Swiss Basketball'
 }
+
+/**
+ * Sources whose `ergebnis_url` is a machine door rather than a page.
+ *
+ * Basketball is the only one so far: `showLeagueSchedule.do` answers
+ * `text/xml` whether or not `xmlView=rss` is asked for (measured 17 September
+ * 2026), so a reader following it lands on a dump. The fixture's `quelle_url`
+ * carries the association's own league page instead, and that is what the
+ * report points at.
+ */
+const XML_TUER = new Set(['basketball'])
 
 export function verbandsName(quelle: string | null): string {
   return VERBAND[quelle ?? ''] ?? 'Verbandsseite'
@@ -266,7 +278,15 @@ export function verbandsQuelle(
 ): SpielQuelle | null {
   // The telegram outranks both: it is the association's page for THIS match —
   // the reader lands on the report, not on a list the match will roll off.
-  const url = (telegrammUrl ?? verein.ergebnis_url ?? fixtureUrl ?? '').trim()
+  //
+  // Which of the other two comes first depends on what they are. Everywhere but
+  // basketball, `ergebnis_url` is the club's own results page and the fixture's
+  // address is a forward-only list; for basketball it is the reverse, because
+  // what is read there is XML and what the fixture stored is the league page.
+  const reihenfolge = XML_TUER.has(verein.quelle ?? '')
+    ? [fixtureUrl, verein.ergebnis_url]
+    : [verein.ergebnis_url, fixtureUrl]
+  const url = (telegrammUrl ?? reihenfolge[0] ?? reihenfolge[1] ?? '').trim()
   if (url === '') return null
   return { name: verbandsName(verein.quelle), url }
 }

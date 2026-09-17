@@ -1,0 +1,468 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<basketplan version="2.0" remarks="Data Securtiy changes. If you lack some data please contact contact@orcasys.ch">
+<gameForm>
+  <GameForm/>
+</gameForm>
+<leagueHoldingList>
+  <ArrayList>
+    <LeagueHoldingRSS from="2026-09-01" id="11329" leagueId="7" leagueName="NLB Women" name="Preliminary phase" numberOfPromotionPlaces="0" numberOfRelegationPlaces="0" phaseId="PRELIMINARY_ROUND" phaseName="Phase préliminaire" to="2027-06-30">
+      <games/>
+      <matchdays>
+        <matchday from="2026-09-25" id="11709" name="Day 1" to="2026-09-27">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2026-09-26" id="367541" locationCity="Zürich" locationId="1483" locationName="Schul- und Sportanlage Freilager" locationShortName="Freilager" matchDayName="Day 1" round="1" time="14:00">
+              <guestTeam clubId="107" gender="F" id="6524" name="USY Bisonnes" pathToLogo="uploadedImages/53639__LOGO_FOR_TEAM__6524__43968_LOGO_FOR_TEAM_6133_USY-Bisons-1.png"/>
+              <homeTeam clubId="481" gender="F" id="7485" name="BC Zürich 93 Lions" pathToLogo="uploadedImages/81532__LOGO_FOR_CLUB__481__BZ93-LOGO-01.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-09-26" id="367544" locationCity="Blonay" locationId="660" locationName="Bahyse IV A&amp;B" locationShortName="Bahyse IV" matchDayName="Day 1" round="1" time="14:00">
+              <guestTeam clubId="44" gender="F" id="4110" name="Martigny Basket" pathToLogo="uploadedImages/46904__LOGO_FOR_TEAM__4110__MartignyNew.png"/>
+              <homeTeam clubId="45" gender="F" id="692" name="Blonay Basket" pathToLogo="uploadedImages/10055__LOGO_FOR_TEAM__692__Logo_BB_2007_simplified.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-09-26" id="367546" locationCity="Grand-Saconnex" locationId="601" locationName="Salle polyvalente Pommier" locationShortName="Salle polyvalente Pommier" matchDayName="Day 1" round="1" time="14:30">
+              <guestTeam clubId="23" gender="F" id="407" name="Lausanne Prilly Basket" pathToLogo="uploadedImages/89596__LOGO_FOR_TEAM__407__Lausanne_Prilly_Basketball_Logo.png"/>
+              <homeTeam clubId="120" gender="F" id="5645" name="Lionnes de Genève pwd by Grand-Saconnex" pathToLogo="uploadedImages/54331__LOGO_FOR_TEAM__5645__logoLions22typorouge--2-.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-09-26" id="367540" locationCity="Riva San Vitale" locationId="721" locationName="Pala San Giorgio" locationShortName="Pala San Giorgio" matchDayName="Day 1" round="1" time="16:00">
+              <guestTeam clubId="69" gender="F" id="4112" name="BC Winterthur" pathToLogo="uploadedImages/23301__LOGO_FOR_TEAM__4112__Winterthur1.svg"/>
+              <homeTeam clubId="7" gender="F" id="398" name="Riva Basket" pathToLogo="uploadedImages/58565__LOGO_FOR_TEAM__398__RIVA.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-09-26" id="367539" locationCity="Bellinzona" locationId="409" locationName="Palasport" locationShortName="Palasport" matchDayName="Day 1" round="1" time="17:30">
+              <guestTeam clubId="199" gender="F" id="1269" name="Elfic Fribourg Génération" pathToLogo="uploadedImages/10059__LOGO_FOR_TEAM__1269__Elfic.png"/>
+              <homeTeam clubId="296" gender="F" id="787" name="Bellinzona" pathToLogo="uploadedImages/58566__LOGO_FOR_TEAM__787__BELLINZONA.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-09-27" id="367545" locationCity="Sion" locationId="532" locationName="Creusets" locationShortName="Creusets" matchDayName="Day 1" round="1" time="13:00">
+              <guestTeam clubId="105" gender="F" id="406" name="Citroën Muraltese" pathToLogo="uploadedImages/65925__LOGO_FOR_TEAM__406__Muraltese-1000x1000.png"/>
+              <homeTeam clubId="70" gender="F" id="681" name="Sion Basket" pathToLogo="uploadedImages/70262__LOGO_FOR_TEAM__681__logo_contour.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-09-27" id="367543" locationCity="Nyon" locationId="604" locationName="Rocher" locationShortName="Rocher" matchDayName="Day 1" round="1" time="14:00">
+              <guestTeam clubId="43" gender="F" id="4658" name="BC Fémina Bern" pathToLogo="uploadedImages/32178__LOGO_FOR_TEAM__4658__FeminaBern.png"/>
+              <homeTeam clubId="195" gender="F" id="5646" name="Nyon Basket Féminin Espoirs" pathToLogo="uploadedImages/31736__LOGO_FOR_TEAM__5646__NyonFeminin.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-09-27" id="367542" locationCity="Villars-sur-Glâne" locationId="311" locationName="CS Platy " locationShortName="CS Platy " matchDayName="Day 1" round="1" time="15:00">
+              <guestTeam clubId="111" gender="F" id="515" name="BC Arlesheim" pathToLogo="uploadedImages/67045__LOGO_FOR_TEAM__515__bca-logo-neu.png"/>
+              <homeTeam clubId="13" gender="F" id="5527" name="Villars Basket" pathToLogo="uploadedImages/70820__LOGO_FOR_TEAM__5527__LOGO-NEW.png"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2026-10-02" id="11710" name="Day 2" to="2026-10-04">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-03" id="367549" locationCity="Winterthur" locationId="1222" locationName="Neuhegi" locationShortName="Neuhegi" matchDayName="Day 2" round="1" time="14:30">
+              <guestTeam clubId="45" gender="F" id="692" name="Blonay Basket" pathToLogo="uploadedImages/10055__LOGO_FOR_TEAM__692__Logo_BB_2007_simplified.png"/>
+              <homeTeam clubId="69" gender="F" id="4112" name="BC Winterthur" pathToLogo="uploadedImages/23301__LOGO_FOR_TEAM__4112__Winterthur1.svg"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-03" id="367551" locationCity="Villars-sur-Glâne" locationId="311" locationName="CS Platy " locationShortName="CS Platy " matchDayName="Day 2" round="1" time="14:30">
+              <guestTeam clubId="107" gender="F" id="6524" name="USY Bisonnes" pathToLogo="uploadedImages/53639__LOGO_FOR_TEAM__6524__43968_LOGO_FOR_TEAM_6133_USY-Bisons-1.png"/>
+              <homeTeam clubId="13" gender="F" id="5527" name="Villars Basket" pathToLogo="uploadedImages/70820__LOGO_FOR_TEAM__5527__LOGO-NEW.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-03" id="367548" locationCity="Arlesheim" locationId="675" locationName="Hagenbuchen" locationShortName="Hagenbuchen" matchDayName="Day 2" round="1" time="15:00">
+              <guestTeam clubId="481" gender="F" id="7485" name="BC Zürich 93 Lions" pathToLogo="uploadedImages/81532__LOGO_FOR_CLUB__481__BZ93-LOGO-01.png"/>
+              <homeTeam clubId="111" gender="F" id="515" name="BC Arlesheim" pathToLogo="uploadedImages/67045__LOGO_FOR_TEAM__515__bca-logo-neu.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-03" id="367554" locationCity="Martigny" locationId="521" locationName="Salle du Midi" locationShortName="Salle du Midi" matchDayName="Day 2" round="1" time="16:00">
+              <guestTeam clubId="296" gender="F" id="787" name="Bellinzona" pathToLogo="uploadedImages/58566__LOGO_FOR_TEAM__787__BELLINZONA.png"/>
+              <homeTeam clubId="44" gender="F" id="4110" name="Martigny Basket" pathToLogo="uploadedImages/46904__LOGO_FOR_TEAM__4110__MartignyNew.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-03" id="367547" locationCity="Minusio" locationId="429" locationName="Scuole Medie Vignascia" locationShortName="Scuole Medie" matchDayName="Day 2" round="1" time="17:00">
+              <guestTeam clubId="7" gender="F" id="398" name="Riva Basket" pathToLogo="uploadedImages/58565__LOGO_FOR_TEAM__398__RIVA.png"/>
+              <homeTeam clubId="105" gender="F" id="406" name="Citroën Muraltese" pathToLogo="uploadedImages/65925__LOGO_FOR_TEAM__406__Muraltese-1000x1000.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-03" id="367552" locationCity="Fribourg" locationId="764" locationName="Site Sportif St. Léonard" locationShortName="St-Léonard" matchDayName="Day 2" round="1" time="17:00">
+              <guestTeam clubId="120" gender="F" id="5645" name="Lionnes de Genève pwd by Grand-Saconnex" pathToLogo="uploadedImages/54331__LOGO_FOR_TEAM__5645__logoLions22typorouge--2-.png"/>
+              <homeTeam clubId="199" gender="F" id="1269" name="Elfic Fribourg Génération" pathToLogo="uploadedImages/10059__LOGO_FOR_TEAM__1269__Elfic.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-03" id="367550" locationCity="Bern" locationId="1384" locationName="Spitalacker" locationShortName="Spitalacker" matchDayName="Day 2" round="1" time="17:30">
+              <guestTeam clubId="70" gender="F" id="681" name="Sion Basket" pathToLogo="uploadedImages/70262__LOGO_FOR_TEAM__681__logo_contour.png"/>
+              <homeTeam clubId="43" gender="F" id="4658" name="BC Fémina Bern" pathToLogo="uploadedImages/32178__LOGO_FOR_TEAM__4658__FeminaBern.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-04" id="367553" locationCity="Lausanne" locationId="467" locationName="Vallée de la Jeunesse" locationShortName="Vallée Jeunesse" matchDayName="Day 2" round="1" time="15:00">
+              <guestTeam clubId="195" gender="F" id="5646" name="Nyon Basket Féminin Espoirs" pathToLogo="uploadedImages/31736__LOGO_FOR_TEAM__5646__NyonFeminin.png"/>
+              <homeTeam clubId="23" gender="F" id="407" name="Lausanne Prilly Basket" pathToLogo="uploadedImages/89596__LOGO_FOR_TEAM__407__Lausanne_Prilly_Basketball_Logo.png"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2026-10-09" id="11711" name="Day 3" to="2026-10-11">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-10" id="367559" locationCity="Lausanne" locationId="467" locationName="Vallée de la Jeunesse" locationShortName="Vallée Jeunesse" matchDayName="Day 3" round="1" time="14:00">
+              <guestTeam clubId="105" gender="F" id="406" name="Citroën Muraltese" pathToLogo="uploadedImages/65925__LOGO_FOR_TEAM__406__Muraltese-1000x1000.png"/>
+              <homeTeam clubId="23" gender="F" id="407" name="Lausanne Prilly Basket" pathToLogo="uploadedImages/89596__LOGO_FOR_TEAM__407__Lausanne_Prilly_Basketball_Logo.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-10" id="367561" locationCity="Blonay" locationId="660" locationName="Bahyse IV A&amp;B" locationShortName="Bahyse IV" matchDayName="Day 3" round="1" time="15:30">
+              <guestTeam clubId="199" gender="F" id="1269" name="Elfic Fribourg Génération" pathToLogo="uploadedImages/10059__LOGO_FOR_TEAM__1269__Elfic.png"/>
+              <homeTeam clubId="45" gender="F" id="692" name="Blonay Basket" pathToLogo="uploadedImages/10055__LOGO_FOR_TEAM__692__Logo_BB_2007_simplified.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-10" id="367562" locationCity="Martigny" locationId="521" locationName="Salle du Midi" locationShortName="Salle du Midi" matchDayName="Day 3" round="1" time="16:00">
+              <guestTeam clubId="195" gender="F" id="5646" name="Nyon Basket Féminin Espoirs" pathToLogo="uploadedImages/31736__LOGO_FOR_TEAM__5646__NyonFeminin.png"/>
+              <homeTeam clubId="44" gender="F" id="4110" name="Martigny Basket" pathToLogo="uploadedImages/46904__LOGO_FOR_TEAM__4110__MartignyNew.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-10" id="367556" locationCity="Riva San Vitale" locationId="721" locationName="Pala San Giorgio" locationShortName="Pala San Giorgio" matchDayName="Day 3" round="1" time="16:00">
+              <guestTeam clubId="70" gender="F" id="681" name="Sion Basket" pathToLogo="uploadedImages/70262__LOGO_FOR_TEAM__681__logo_contour.png"/>
+              <homeTeam clubId="7" gender="F" id="398" name="Riva Basket" pathToLogo="uploadedImages/58565__LOGO_FOR_TEAM__398__RIVA.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-10" id="367555" locationCity="Bellinzona" locationId="409" locationName="Palasport" locationShortName="Palasport" matchDayName="Day 3" round="1" time="17:30">
+              <guestTeam clubId="111" gender="F" id="515" name="BC Arlesheim" pathToLogo="uploadedImages/67045__LOGO_FOR_TEAM__515__bca-logo-neu.png"/>
+              <homeTeam clubId="296" gender="F" id="787" name="Bellinzona" pathToLogo="uploadedImages/58566__LOGO_FOR_TEAM__787__BELLINZONA.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-11" id="367560" locationCity="Grandson" locationId="1569" locationName="Collège de Grandson, site de Borné-Nau" locationShortName="Collège de Grandson" matchDayName="Day 3" round="1" time="14:00">
+              <guestTeam clubId="120" gender="F" id="5645" name="Lionnes de Genève pwd by Grand-Saconnex" pathToLogo="uploadedImages/54331__LOGO_FOR_TEAM__5645__logoLions22typorouge--2-.png"/>
+              <homeTeam clubId="107" gender="F" id="6524" name="USY Bisonnes" pathToLogo="uploadedImages/53639__LOGO_FOR_TEAM__6524__43968_LOGO_FOR_TEAM_6133_USY-Bisons-1.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-11" id="367558" locationCity="Winterthur" locationId="1222" locationName="Neuhegi" locationShortName="Neuhegi" matchDayName="Day 3" round="1" time="16:00">
+              <guestTeam clubId="13" gender="F" id="5527" name="Villars Basket" pathToLogo="uploadedImages/70820__LOGO_FOR_TEAM__5527__LOGO-NEW.png"/>
+              <homeTeam clubId="69" gender="F" id="4112" name="BC Winterthur" pathToLogo="uploadedImages/23301__LOGO_FOR_TEAM__4112__Winterthur1.svg"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-11" id="367557" locationCity="Zürich" locationId="1483" locationName="Schul- und Sportanlage Freilager" locationShortName="Freilager" matchDayName="Day 3" round="1" time="17:00">
+              <guestTeam clubId="43" gender="F" id="4658" name="BC Fémina Bern" pathToLogo="uploadedImages/32178__LOGO_FOR_TEAM__4658__FeminaBern.png"/>
+              <homeTeam clubId="481" gender="F" id="7485" name="BC Zürich 93 Lions" pathToLogo="uploadedImages/81532__LOGO_FOR_CLUB__481__BZ93-LOGO-01.png"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2026-10-16" id="11712" name="Day 4" to="2026-10-18">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-17" id="367566" locationCity="Villars-sur-Glâne" locationId="311" locationName="CS Platy " locationShortName="CS Platy " matchDayName="Day 4" round="1" time="14:30">
+              <guestTeam clubId="44" gender="F" id="4110" name="Martigny Basket" pathToLogo="uploadedImages/46904__LOGO_FOR_TEAM__4110__MartignyNew.png"/>
+              <homeTeam clubId="13" gender="F" id="5527" name="Villars Basket" pathToLogo="uploadedImages/70820__LOGO_FOR_TEAM__5527__LOGO-NEW.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-17" id="367563" locationCity="Minusio" locationId="429" locationName="Scuole Medie Vignascia" locationShortName="Scuole Medie" matchDayName="Day 4" round="1" time="17:00">
+              <guestTeam clubId="199" gender="F" id="1269" name="Elfic Fribourg Génération" pathToLogo="uploadedImages/10059__LOGO_FOR_TEAM__1269__Elfic.png"/>
+              <homeTeam clubId="105" gender="F" id="406" name="Citroën Muraltese" pathToLogo="uploadedImages/65925__LOGO_FOR_TEAM__406__Muraltese-1000x1000.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-17" id="367565" locationCity="Bern" locationId="1085" locationName="Turnhalle Brünnen 1+2" locationShortName="Turnhalle Brünnen 1+2" matchDayName="Day 4" round="1" time="17:30">
+              <guestTeam clubId="45" gender="F" id="692" name="Blonay Basket" pathToLogo="uploadedImages/10055__LOGO_FOR_TEAM__692__Logo_BB_2007_simplified.png"/>
+              <homeTeam clubId="43" gender="F" id="4658" name="BC Fémina Bern" pathToLogo="uploadedImages/32178__LOGO_FOR_TEAM__4658__FeminaBern.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-17" id="367569" locationCity="Sion" locationId="532" locationName="Creusets" locationShortName="Creusets" matchDayName="Day 4" round="1" time="17:30">
+              <guestTeam clubId="23" gender="F" id="407" name="Lausanne Prilly Basket" pathToLogo="uploadedImages/89596__LOGO_FOR_TEAM__407__Lausanne_Prilly_Basketball_Logo.png"/>
+              <homeTeam clubId="70" gender="F" id="681" name="Sion Basket" pathToLogo="uploadedImages/70262__LOGO_FOR_TEAM__681__logo_contour.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-18" id="367570" locationCity="Grand-Saconnex" locationId="601" locationName="Salle polyvalente Pommier" locationShortName="Salle polyvalente Pommier" matchDayName="Day 4" round="1" time="13:00">
+              <guestTeam clubId="69" gender="F" id="4112" name="BC Winterthur" pathToLogo="uploadedImages/23301__LOGO_FOR_TEAM__4112__Winterthur1.svg"/>
+              <homeTeam clubId="120" gender="F" id="5645" name="Lionnes de Genève pwd by Grand-Saconnex" pathToLogo="uploadedImages/54331__LOGO_FOR_TEAM__5645__logoLions22typorouge--2-.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-18" id="367567" locationCity="Nyon" locationId="604" locationName="Rocher" locationShortName="Rocher" matchDayName="Day 4" round="1" time="13:00">
+              <guestTeam clubId="481" gender="F" id="7485" name="BC Zürich 93 Lions" pathToLogo="uploadedImages/81532__LOGO_FOR_CLUB__481__BZ93-LOGO-01.png"/>
+              <homeTeam clubId="195" gender="F" id="5646" name="Nyon Basket Féminin Espoirs" pathToLogo="uploadedImages/31736__LOGO_FOR_TEAM__5646__NyonFeminin.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-18" id="367564" locationCity="Arlesheim" locationId="675" locationName="Hagenbuchen" locationShortName="Hagenbuchen" matchDayName="Day 4" round="1" time="14:00">
+              <guestTeam clubId="7" gender="F" id="398" name="Riva Basket" pathToLogo="uploadedImages/58565__LOGO_FOR_TEAM__398__RIVA.png"/>
+              <homeTeam clubId="111" gender="F" id="515" name="BC Arlesheim" pathToLogo="uploadedImages/67045__LOGO_FOR_TEAM__515__bca-logo-neu.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-18" id="367568" locationCity="Grandson" locationId="1569" locationName="Collège de Grandson, site de Borné-Nau" locationShortName="Collège de Grandson" matchDayName="Day 4" round="1" time="14:00">
+              <guestTeam clubId="296" gender="F" id="787" name="Bellinzona" pathToLogo="uploadedImages/58566__LOGO_FOR_TEAM__787__BELLINZONA.png"/>
+              <homeTeam clubId="107" gender="F" id="6524" name="USY Bisonnes" pathToLogo="uploadedImages/53639__LOGO_FOR_TEAM__6524__43968_LOGO_FOR_TEAM_6133_USY-Bisons-1.png"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2026-10-23" id="11713" name="Day 5" to="2026-10-25">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-24" id="367577" locationCity="Blonay" locationId="660" locationName="Bahyse IV A&amp;B" locationShortName="Bahyse IV" matchDayName="Day 5" round="1" time="14:00">
+              <guestTeam clubId="107" gender="F" id="6524" name="USY Bisonnes" pathToLogo="uploadedImages/53639__LOGO_FOR_TEAM__6524__43968_LOGO_FOR_TEAM_6133_USY-Bisons-1.png"/>
+              <homeTeam clubId="45" gender="F" id="692" name="Blonay Basket" pathToLogo="uploadedImages/10055__LOGO_FOR_TEAM__692__Logo_BB_2007_simplified.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-24" id="367573" locationCity="Riva San Vitale" locationId="721" locationName="Pala San Giorgio" locationShortName="Pala San Giorgio" matchDayName="Day 5" round="1" time="16:00">
+              <guestTeam clubId="120" gender="F" id="5645" name="Lionnes de Genève pwd by Grand-Saconnex" pathToLogo="uploadedImages/54331__LOGO_FOR_TEAM__5645__logoLions22typorouge--2-.png"/>
+              <homeTeam clubId="7" gender="F" id="398" name="Riva Basket" pathToLogo="uploadedImages/58565__LOGO_FOR_TEAM__398__RIVA.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-24" id="367574" locationCity="Zürich" locationId="1483" locationName="Schul- und Sportanlage Freilager" locationShortName="Freilager" matchDayName="Day 5" round="1" time="17:00">
+              <guestTeam clubId="44" gender="F" id="4110" name="Martigny Basket" pathToLogo="uploadedImages/46904__LOGO_FOR_TEAM__4110__MartignyNew.png"/>
+              <homeTeam clubId="481" gender="F" id="7485" name="BC Zürich 93 Lions" pathToLogo="uploadedImages/81532__LOGO_FOR_CLUB__481__BZ93-LOGO-01.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-24" id="367572" locationCity="Minusio" locationId="429" locationName="Scuole Medie Vignascia" locationShortName="Scuole Medie" matchDayName="Day 5" round="1" time="17:00">
+              <guestTeam clubId="195" gender="F" id="5646" name="Nyon Basket Féminin Espoirs" pathToLogo="uploadedImages/31736__LOGO_FOR_TEAM__5646__NyonFeminin.png"/>
+              <homeTeam clubId="105" gender="F" id="406" name="Citroën Muraltese" pathToLogo="uploadedImages/65925__LOGO_FOR_TEAM__406__Muraltese-1000x1000.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-24" id="367578" locationCity="Sion" locationId="532" locationName="Creusets" locationShortName="Creusets" matchDayName="Day 5" round="1" time="17:30">
+              <guestTeam clubId="13" gender="F" id="5527" name="Villars Basket" pathToLogo="uploadedImages/70820__LOGO_FOR_TEAM__5527__LOGO-NEW.png"/>
+              <homeTeam clubId="70" gender="F" id="681" name="Sion Basket" pathToLogo="uploadedImages/70262__LOGO_FOR_TEAM__681__logo_contour.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-25" id="367575" locationCity="Bern" locationId="1384" locationName="Spitalacker" locationShortName="Spitalacker" matchDayName="Day 5" round="1" time="13:00">
+              <guestTeam clubId="69" gender="F" id="4112" name="BC Winterthur" pathToLogo="uploadedImages/23301__LOGO_FOR_TEAM__4112__Winterthur1.svg"/>
+              <homeTeam clubId="43" gender="F" id="4658" name="BC Fémina Bern" pathToLogo="uploadedImages/32178__LOGO_FOR_TEAM__4658__FeminaBern.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-25" id="367576" locationCity="Fribourg" locationId="764" locationName="Site Sportif St. Léonard" locationShortName="St-Léonard" matchDayName="Day 5" round="1" time="13:00">
+              <guestTeam clubId="111" gender="F" id="515" name="BC Arlesheim" pathToLogo="uploadedImages/67045__LOGO_FOR_TEAM__515__bca-logo-neu.png"/>
+              <homeTeam clubId="199" gender="F" id="1269" name="Elfic Fribourg Génération" pathToLogo="uploadedImages/10059__LOGO_FOR_TEAM__1269__Elfic.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-25" id="367571" locationCity="Bellinzona" locationId="409" locationName="Palasport" locationShortName="Palasport" matchDayName="Day 5" round="1" time="15:00">
+              <guestTeam clubId="23" gender="F" id="407" name="Lausanne Prilly Basket" pathToLogo="uploadedImages/89596__LOGO_FOR_TEAM__407__Lausanne_Prilly_Basketball_Logo.png"/>
+              <homeTeam clubId="296" gender="F" id="787" name="Bellinzona" pathToLogo="uploadedImages/58566__LOGO_FOR_TEAM__787__BELLINZONA.png"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2026-10-30" id="11714" name="Day 6" to="2026-11-01">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-31" id="367579" locationCity="Winterthur" locationId="1222" locationName="Neuhegi" locationShortName="Neuhegi" matchDayName="Day 6" round="1" time="14:30">
+              <guestTeam clubId="105" gender="F" id="406" name="Citroën Muraltese" pathToLogo="uploadedImages/65925__LOGO_FOR_TEAM__406__Muraltese-1000x1000.png"/>
+              <homeTeam clubId="69" gender="F" id="4112" name="BC Winterthur" pathToLogo="uploadedImages/23301__LOGO_FOR_TEAM__4112__Winterthur1.svg"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-31" id="367586" locationCity="Grand-Saconnex" locationId="601" locationName="Salle polyvalente Pommier" locationShortName="Salle polyvalente Pommier" matchDayName="Day 6" round="1" time="14:30">
+              <guestTeam clubId="296" gender="F" id="787" name="Bellinzona" pathToLogo="uploadedImages/58566__LOGO_FOR_TEAM__787__BELLINZONA.png"/>
+              <homeTeam clubId="120" gender="F" id="5645" name="Lionnes de Genève pwd by Grand-Saconnex" pathToLogo="uploadedImages/54331__LOGO_FOR_TEAM__5645__logoLions22typorouge--2-.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-31" id="367583" locationCity="Lausanne" locationId="467" locationName="Vallée de la Jeunesse" locationShortName="Vallée Jeunesse" matchDayName="Day 6" round="1" time="16:00">
+              <guestTeam clubId="45" gender="F" id="692" name="Blonay Basket" pathToLogo="uploadedImages/10055__LOGO_FOR_TEAM__692__Logo_BB_2007_simplified.png"/>
+              <homeTeam clubId="23" gender="F" id="407" name="Lausanne Prilly Basket" pathToLogo="uploadedImages/89596__LOGO_FOR_TEAM__407__Lausanne_Prilly_Basketball_Logo.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-10-31" id="367585" locationCity="Martigny" locationId="521" locationName="Salle du Midi" locationShortName="Salle du Midi" matchDayName="Day 6" round="1" time="19:00">
+              <guestTeam clubId="43" gender="F" id="4658" name="BC Fémina Bern" pathToLogo="uploadedImages/32178__LOGO_FOR_TEAM__4658__FeminaBern.png"/>
+              <homeTeam clubId="44" gender="F" id="4110" name="Martigny Basket" pathToLogo="uploadedImages/46904__LOGO_FOR_TEAM__4110__MartignyNew.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-11-01" id="367580" locationCity="Villars-sur-Glâne" locationId="311" locationName="CS Platy " locationShortName="CS Platy " matchDayName="Day 6" round="1" time="13:00">
+              <guestTeam clubId="481" gender="F" id="7485" name="BC Zürich 93 Lions" pathToLogo="uploadedImages/81532__LOGO_FOR_CLUB__481__BZ93-LOGO-01.png"/>
+              <homeTeam clubId="13" gender="F" id="5527" name="Villars Basket" pathToLogo="uploadedImages/70820__LOGO_FOR_TEAM__5527__LOGO-NEW.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-11-01" id="367581" locationCity="Fribourg" locationId="764" locationName="Site Sportif St. Léonard" locationShortName="St-Léonard" matchDayName="Day 6" round="1" time="14:00">
+              <guestTeam clubId="7" gender="F" id="398" name="Riva Basket" pathToLogo="uploadedImages/58565__LOGO_FOR_TEAM__398__RIVA.png"/>
+              <homeTeam clubId="199" gender="F" id="1269" name="Elfic Fribourg Génération" pathToLogo="uploadedImages/10059__LOGO_FOR_TEAM__1269__Elfic.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-11-01" id="367582" locationCity="Nyon" locationId="604" locationName="Rocher" locationShortName="Rocher" matchDayName="Day 6" round="1" time="14:00">
+              <guestTeam clubId="70" gender="F" id="681" name="Sion Basket" pathToLogo="uploadedImages/70262__LOGO_FOR_TEAM__681__logo_contour.png"/>
+              <homeTeam clubId="195" gender="F" id="5646" name="Nyon Basket Féminin Espoirs" pathToLogo="uploadedImages/31736__LOGO_FOR_TEAM__5646__NyonFeminin.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-11-01" id="367584" locationCity="Grandson" locationId="1569" locationName="Collège de Grandson, site de Borné-Nau" locationShortName="Collège de Grandson" matchDayName="Day 6" round="1" time="14:00">
+              <guestTeam clubId="111" gender="F" id="515" name="BC Arlesheim" pathToLogo="uploadedImages/67045__LOGO_FOR_TEAM__515__bca-logo-neu.png"/>
+              <homeTeam clubId="107" gender="F" id="6524" name="USY Bisonnes" pathToLogo="uploadedImages/53639__LOGO_FOR_TEAM__6524__43968_LOGO_FOR_TEAM_6133_USY-Bisons-1.png"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2026-11-06" id="11715" name="Day 7" to="2026-11-08">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2026-11-07" id="367589" locationCity="Zürich" locationId="1483" locationName="Schul- und Sportanlage Freilager" locationShortName="Freilager" matchDayName="Day 7" round="1" time="14:00">
+              <guestTeam clubId="7" gender="F" id="398" name="Riva Basket" pathToLogo="uploadedImages/58565__LOGO_FOR_TEAM__398__RIVA.png"/>
+              <homeTeam clubId="481" gender="F" id="7485" name="BC Zürich 93 Lions" pathToLogo="uploadedImages/81532__LOGO_FOR_CLUB__481__BZ93-LOGO-01.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-11-07" id="367593" locationCity="Blonay" locationId="660" locationName="Bahyse IV A&amp;B" locationShortName="Bahyse IV" matchDayName="Day 7" round="1" time="14:00">
+              <guestTeam clubId="296" gender="F" id="787" name="Bellinzona" pathToLogo="uploadedImages/58566__LOGO_FOR_TEAM__787__BELLINZONA.png"/>
+              <homeTeam clubId="45" gender="F" id="692" name="Blonay Basket" pathToLogo="uploadedImages/10055__LOGO_FOR_TEAM__692__Logo_BB_2007_simplified.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-11-07" id="367588" locationCity="Arlesheim" locationId="675" locationName="Hagenbuchen" locationShortName="Hagenbuchen" matchDayName="Day 7" round="1" time="16:00">
+              <guestTeam clubId="23" gender="F" id="407" name="Lausanne Prilly Basket" pathToLogo="uploadedImages/89596__LOGO_FOR_TEAM__407__Lausanne_Prilly_Basketball_Logo.png"/>
+              <homeTeam clubId="111" gender="F" id="515" name="BC Arlesheim" pathToLogo="uploadedImages/67045__LOGO_FOR_TEAM__515__bca-logo-neu.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-11-07" id="367587" locationCity="Minusio" locationId="429" locationName="Scuole Medie Vignascia" locationShortName="Scuole Medie" matchDayName="Day 7" round="1" time="17:00">
+              <guestTeam clubId="44" gender="F" id="4110" name="Martigny Basket" pathToLogo="uploadedImages/46904__LOGO_FOR_TEAM__4110__MartignyNew.png"/>
+              <homeTeam clubId="105" gender="F" id="406" name="Citroën Muraltese" pathToLogo="uploadedImages/65925__LOGO_FOR_TEAM__406__Muraltese-1000x1000.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-11-07" id="367591" locationCity="Bern" locationId="1085" locationName="Turnhalle Brünnen 1+2" locationShortName="Turnhalle Brünnen 1+2" matchDayName="Day 7" round="1" time="17:30">
+              <guestTeam clubId="13" gender="F" id="5527" name="Villars Basket" pathToLogo="uploadedImages/70820__LOGO_FOR_TEAM__5527__LOGO-NEW.png"/>
+              <homeTeam clubId="43" gender="F" id="4658" name="BC Fémina Bern" pathToLogo="uploadedImages/32178__LOGO_FOR_TEAM__4658__FeminaBern.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-11-07" id="367592" locationCity="Nyon" locationId="604" locationName="Rocher" locationShortName="Rocher" matchDayName="Day 7" round="1" time="18:00">
+              <guestTeam clubId="107" gender="F" id="6524" name="USY Bisonnes" pathToLogo="uploadedImages/53639__LOGO_FOR_TEAM__6524__43968_LOGO_FOR_TEAM_6133_USY-Bisons-1.png"/>
+              <homeTeam clubId="195" gender="F" id="5646" name="Nyon Basket Féminin Espoirs" pathToLogo="uploadedImages/31736__LOGO_FOR_TEAM__5646__NyonFeminin.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-11-08" id="367590" locationCity="Winterthur" locationId="1222" locationName="Neuhegi" locationShortName="Neuhegi" matchDayName="Day 7" round="1" time="13:00">
+              <guestTeam clubId="199" gender="F" id="1269" name="Elfic Fribourg Génération" pathToLogo="uploadedImages/10059__LOGO_FOR_TEAM__1269__Elfic.png"/>
+              <homeTeam clubId="69" gender="F" id="4112" name="BC Winterthur" pathToLogo="uploadedImages/23301__LOGO_FOR_TEAM__4112__Winterthur1.svg"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-11-08" id="367594" locationCity="Sion" locationId="532" locationName="Creusets" locationShortName="Creusets" matchDayName="Day 7" round="1" time="16:00">
+              <guestTeam clubId="120" gender="F" id="5645" name="Lionnes de Genève pwd by Grand-Saconnex" pathToLogo="uploadedImages/54331__LOGO_FOR_TEAM__5645__logoLions22typorouge--2-.png"/>
+              <homeTeam clubId="70" gender="F" id="681" name="Sion Basket" pathToLogo="uploadedImages/70262__LOGO_FOR_TEAM__681__logo_contour.png"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2026-11-13" id="11716" name="Day 8" to="2026-11-15">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2026-11-13" id="367602" locationCity="Grand-Saconnex" locationId="601" locationName="Salle polyvalente Pommier" locationShortName="Salle polyvalente Pommier" matchDayName="Day 8" round="1" time="20:30">
+              <guestTeam clubId="45" gender="F" id="692" name="Blonay Basket" pathToLogo="uploadedImages/10055__LOGO_FOR_TEAM__692__Logo_BB_2007_simplified.png"/>
+              <homeTeam clubId="120" gender="F" id="5645" name="Lionnes de Genève pwd by Grand-Saconnex" pathToLogo="uploadedImages/54331__LOGO_FOR_TEAM__5645__logoLions22typorouge--2-.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-11-14" id="367600" locationCity="Grandson" locationId="1569" locationName="Collège de Grandson, site de Borné-Nau" locationShortName="Collège de Grandson" matchDayName="Day 8" round="1" time="14:00">
+              <guestTeam clubId="70" gender="F" id="681" name="Sion Basket" pathToLogo="uploadedImages/70262__LOGO_FOR_TEAM__681__logo_contour.png"/>
+              <homeTeam clubId="107" gender="F" id="6524" name="USY Bisonnes" pathToLogo="uploadedImages/53639__LOGO_FOR_TEAM__6524__43968_LOGO_FOR_TEAM_6133_USY-Bisons-1.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-11-14" id="367598" locationCity="Villars-sur-Glâne" locationId="311" locationName="CS Platy " locationShortName="CS Platy " matchDayName="Day 8" round="1" time="14:30">
+              <guestTeam clubId="199" gender="F" id="1269" name="Elfic Fribourg Génération" pathToLogo="uploadedImages/10059__LOGO_FOR_TEAM__1269__Elfic.png"/>
+              <homeTeam clubId="13" gender="F" id="5527" name="Villars Basket" pathToLogo="uploadedImages/70820__LOGO_FOR_TEAM__5527__LOGO-NEW.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-11-14" id="367595" locationCity="Bellinzona" locationId="409" locationName="Palasport" locationShortName="Palasport" matchDayName="Day 8" round="1" time="16:00">
+              <guestTeam clubId="195" gender="F" id="5646" name="Nyon Basket Féminin Espoirs" pathToLogo="uploadedImages/31736__LOGO_FOR_TEAM__5646__NyonFeminin.png"/>
+              <homeTeam clubId="296" gender="F" id="787" name="Bellinzona" pathToLogo="uploadedImages/58566__LOGO_FOR_TEAM__787__BELLINZONA.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-11-14" id="367596" locationCity="Riva San Vitale" locationId="721" locationName="Pala San Giorgio" locationShortName="Pala San Giorgio" matchDayName="Day 8" round="1" time="16:00">
+              <guestTeam clubId="43" gender="F" id="4658" name="BC Fémina Bern" pathToLogo="uploadedImages/32178__LOGO_FOR_TEAM__4658__FeminaBern.png"/>
+              <homeTeam clubId="7" gender="F" id="398" name="Riva Basket" pathToLogo="uploadedImages/58565__LOGO_FOR_TEAM__398__RIVA.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-11-15" id="367597" locationCity="Arlesheim" locationId="675" locationName="Hagenbuchen" locationShortName="Hagenbuchen" matchDayName="Day 8" round="1" time="15:00">
+              <guestTeam clubId="105" gender="F" id="406" name="Citroën Muraltese" pathToLogo="uploadedImages/65925__LOGO_FOR_TEAM__406__Muraltese-1000x1000.png"/>
+              <homeTeam clubId="111" gender="F" id="515" name="BC Arlesheim" pathToLogo="uploadedImages/67045__LOGO_FOR_TEAM__515__bca-logo-neu.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-11-15" id="367599" locationCity="Lausanne" locationId="467" locationName="Vallée de la Jeunesse" locationShortName="Vallée Jeunesse" matchDayName="Day 8" round="1" time="15:00">
+              <guestTeam clubId="481" gender="F" id="7485" name="BC Zürich 93 Lions" pathToLogo="uploadedImages/81532__LOGO_FOR_CLUB__481__BZ93-LOGO-01.png"/>
+              <homeTeam clubId="23" gender="F" id="407" name="Lausanne Prilly Basket" pathToLogo="uploadedImages/89596__LOGO_FOR_TEAM__407__Lausanne_Prilly_Basketball_Logo.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-11-15" id="367601" locationCity="Martigny" locationId="521" locationName="Salle du Midi" locationShortName="Salle du Midi" matchDayName="Day 8" round="1" time="16:00">
+              <guestTeam clubId="69" gender="F" id="4112" name="BC Winterthur" pathToLogo="uploadedImages/23301__LOGO_FOR_TEAM__4112__Winterthur1.svg"/>
+              <homeTeam clubId="44" gender="F" id="4110" name="Martigny Basket" pathToLogo="uploadedImages/46904__LOGO_FOR_TEAM__4110__MartignyNew.png"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2026-11-27" id="11717" name="Day 9" to="2026-11-29">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2026-11-28" id="367608" locationCity="Nyon" locationId="604" locationName="Rocher" locationShortName="Rocher" matchDayName="Day 9" round="1" time="14:30">
+              <guestTeam clubId="7" gender="F" id="398" name="Riva Basket" pathToLogo="uploadedImages/58565__LOGO_FOR_TEAM__398__RIVA.png"/>
+              <homeTeam clubId="195" gender="F" id="5646" name="Nyon Basket Féminin Espoirs" pathToLogo="uploadedImages/31736__LOGO_FOR_TEAM__5646__NyonFeminin.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-11-28" id="367609" locationCity="Lausanne" locationId="467" locationName="Vallée de la Jeunesse" locationShortName="Vallée Jeunesse" matchDayName="Day 9" round="1" time="16:00">
+              <guestTeam clubId="44" gender="F" id="4110" name="Martigny Basket" pathToLogo="uploadedImages/46904__LOGO_FOR_TEAM__4110__MartignyNew.png"/>
+              <homeTeam clubId="23" gender="F" id="407" name="Lausanne Prilly Basket" pathToLogo="uploadedImages/89596__LOGO_FOR_TEAM__407__Lausanne_Prilly_Basketball_Logo.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-11-28" id="367604" locationCity="Minusio" locationId="429" locationName="Scuole Medie Vignascia" locationShortName="Scuole Medie" matchDayName="Day 9" round="1" time="17:00">
+              <guestTeam clubId="13" gender="F" id="5527" name="Villars Basket" pathToLogo="uploadedImages/70820__LOGO_FOR_TEAM__5527__LOGO-NEW.png"/>
+              <homeTeam clubId="105" gender="F" id="406" name="Citroën Muraltese" pathToLogo="uploadedImages/65925__LOGO_FOR_TEAM__406__Muraltese-1000x1000.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-11-28" id="367606" locationCity="Bern" locationId="1085" locationName="Turnhalle Brünnen 1+2" locationShortName="Turnhalle Brünnen 1+2" matchDayName="Day 9" round="1" time="17:30">
+              <guestTeam clubId="120" gender="F" id="5645" name="Lionnes de Genève pwd by Grand-Saconnex" pathToLogo="uploadedImages/54331__LOGO_FOR_TEAM__5645__logoLions22typorouge--2-.png"/>
+              <homeTeam clubId="43" gender="F" id="4658" name="BC Fémina Bern" pathToLogo="uploadedImages/32178__LOGO_FOR_TEAM__4658__FeminaBern.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-11-29" id="367607" locationCity="Fribourg" locationId="764" locationName="Site Sportif St. Léonard" locationShortName="St-Léonard" matchDayName="Day 9" round="1" time="13:00">
+              <guestTeam clubId="107" gender="F" id="6524" name="USY Bisonnes" pathToLogo="uploadedImages/53639__LOGO_FOR_TEAM__6524__43968_LOGO_FOR_TEAM_6133_USY-Bisons-1.png"/>
+              <homeTeam clubId="199" gender="F" id="1269" name="Elfic Fribourg Génération" pathToLogo="uploadedImages/10059__LOGO_FOR_TEAM__1269__Elfic.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-11-29" id="367605" locationCity="Zürich" locationId="1483" locationName="Schul- und Sportanlage Freilager" locationShortName="Freilager" matchDayName="Day 9" round="1" time="15:30">
+              <guestTeam clubId="45" gender="F" id="692" name="Blonay Basket" pathToLogo="uploadedImages/10055__LOGO_FOR_TEAM__692__Logo_BB_2007_simplified.png"/>
+              <homeTeam clubId="481" gender="F" id="7485" name="BC Zürich 93 Lions" pathToLogo="uploadedImages/81532__LOGO_FOR_CLUB__481__BZ93-LOGO-01.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-11-29" id="367603" locationCity="Bellinzona" locationId="409" locationName="Palasport" locationShortName="Palasport" matchDayName="Day 9" round="1" time="16:00">
+              <guestTeam clubId="69" gender="F" id="4112" name="BC Winterthur" pathToLogo="uploadedImages/23301__LOGO_FOR_TEAM__4112__Winterthur1.svg"/>
+              <homeTeam clubId="296" gender="F" id="787" name="Bellinzona" pathToLogo="uploadedImages/58566__LOGO_FOR_TEAM__787__BELLINZONA.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-11-29" id="367610" locationCity="Sion" locationId="532" locationName="Creusets" locationShortName="Creusets" matchDayName="Day 9" round="1" time="16:00">
+              <guestTeam clubId="111" gender="F" id="515" name="BC Arlesheim" pathToLogo="uploadedImages/67045__LOGO_FOR_TEAM__515__bca-logo-neu.png"/>
+              <homeTeam clubId="70" gender="F" id="681" name="Sion Basket" pathToLogo="uploadedImages/70262__LOGO_FOR_TEAM__681__logo_contour.png"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2026-12-04" id="11718" name="Day 10" to="2026-12-06">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2026-12-04" id="367616" locationCity="Villars-sur-Glâne" locationId="311" locationName="CS Platy " locationShortName="CS Platy " matchDayName="Day 10" round="1" time="20:30">
+              <guestTeam clubId="23" gender="F" id="407" name="Lausanne Prilly Basket" pathToLogo="uploadedImages/89596__LOGO_FOR_TEAM__407__Lausanne_Prilly_Basketball_Logo.png"/>
+              <homeTeam clubId="13" gender="F" id="5527" name="Villars Basket" pathToLogo="uploadedImages/70820__LOGO_FOR_TEAM__5527__LOGO-NEW.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-12-05" id="367617" locationCity="Blonay" locationId="660" locationName="Bahyse IV A&amp;B" locationShortName="Bahyse IV" matchDayName="Day 10" round="1" time="14:00">
+              <guestTeam clubId="195" gender="F" id="5646" name="Nyon Basket Féminin Espoirs" pathToLogo="uploadedImages/31736__LOGO_FOR_TEAM__5646__NyonFeminin.png"/>
+              <homeTeam clubId="45" gender="F" id="692" name="Blonay Basket" pathToLogo="uploadedImages/10055__LOGO_FOR_TEAM__692__Logo_BB_2007_simplified.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-12-05" id="367613" locationCity="Arlesheim" locationId="675" locationName="Hagenbuchen" locationShortName="Hagenbuchen" matchDayName="Day 10" round="1" time="14:30">
+              <guestTeam clubId="120" gender="F" id="5645" name="Lionnes de Genève pwd by Grand-Saconnex" pathToLogo="uploadedImages/54331__LOGO_FOR_TEAM__5645__logoLions22typorouge--2-.png"/>
+              <homeTeam clubId="111" gender="F" id="515" name="BC Arlesheim" pathToLogo="uploadedImages/67045__LOGO_FOR_TEAM__515__bca-logo-neu.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-12-05" id="367618" locationCity="Martigny" locationId="521" locationName="Salle du Midi" locationShortName="Salle du Midi" matchDayName="Day 10" round="1" time="16:00">
+              <guestTeam clubId="199" gender="F" id="1269" name="Elfic Fribourg Génération" pathToLogo="uploadedImages/10059__LOGO_FOR_TEAM__1269__Elfic.png"/>
+              <homeTeam clubId="44" gender="F" id="4110" name="Martigny Basket" pathToLogo="uploadedImages/46904__LOGO_FOR_TEAM__4110__MartignyNew.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-12-05" id="367612" locationCity="Riva San Vitale" locationId="721" locationName="Pala San Giorgio" locationShortName="Pala San Giorgio" matchDayName="Day 10" round="1" time="16:00">
+              <guestTeam clubId="107" gender="F" id="6524" name="USY Bisonnes" pathToLogo="uploadedImages/53639__LOGO_FOR_TEAM__6524__43968_LOGO_FOR_TEAM_6133_USY-Bisons-1.png"/>
+              <homeTeam clubId="7" gender="F" id="398" name="Riva Basket" pathToLogo="uploadedImages/58565__LOGO_FOR_TEAM__398__RIVA.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-12-05" id="367611" locationCity="Minusio" locationId="429" locationName="Scuole Medie Vignascia" locationShortName="Scuole Medie" matchDayName="Day 10" round="1" time="17:00">
+              <guestTeam clubId="481" gender="F" id="7485" name="BC Zürich 93 Lions" pathToLogo="uploadedImages/81532__LOGO_FOR_CLUB__481__BZ93-LOGO-01.png"/>
+              <homeTeam clubId="105" gender="F" id="406" name="Citroën Muraltese" pathToLogo="uploadedImages/65925__LOGO_FOR_TEAM__406__Muraltese-1000x1000.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-12-05" id="367615" locationCity="Bern" locationId="1085" locationName="Turnhalle Brünnen 1+2" locationShortName="Turnhalle Brünnen 1+2" matchDayName="Day 10" round="1" time="17:30">
+              <guestTeam clubId="296" gender="F" id="787" name="Bellinzona" pathToLogo="uploadedImages/58566__LOGO_FOR_TEAM__787__BELLINZONA.png"/>
+              <homeTeam clubId="43" gender="F" id="4658" name="BC Fémina Bern" pathToLogo="uploadedImages/32178__LOGO_FOR_TEAM__4658__FeminaBern.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-12-06" id="367614" locationCity="Winterthur" locationId="1222" locationName="Neuhegi" locationShortName="Neuhegi" matchDayName="Day 10" round="1" time="13:00">
+              <guestTeam clubId="70" gender="F" id="681" name="Sion Basket" pathToLogo="uploadedImages/70262__LOGO_FOR_TEAM__681__logo_contour.png"/>
+              <homeTeam clubId="69" gender="F" id="4112" name="BC Winterthur" pathToLogo="uploadedImages/23301__LOGO_FOR_TEAM__4112__Winterthur1.svg"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2026-12-11" id="11719" name="Day 11" to="2026-12-13">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2026-12-12" id="367623" locationCity="Blonay" locationId="660" locationName="Bahyse IV A&amp;B" locationShortName="Bahyse IV" matchDayName="Day 11" round="1" time="14:00">
+              <guestTeam clubId="13" gender="F" id="5527" name="Villars Basket" pathToLogo="uploadedImages/70820__LOGO_FOR_TEAM__5527__LOGO-NEW.png"/>
+              <homeTeam clubId="45" gender="F" id="692" name="Blonay Basket" pathToLogo="uploadedImages/10055__LOGO_FOR_TEAM__692__Logo_BB_2007_simplified.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-12-12" id="367625" locationCity="Grand-Saconnex" locationId="601" locationName="Salle polyvalente Pommier" locationShortName="Salle polyvalente Pommier" matchDayName="Day 11" round="1" time="14:30">
+              <guestTeam clubId="105" gender="F" id="406" name="Citroën Muraltese" pathToLogo="uploadedImages/65925__LOGO_FOR_TEAM__406__Muraltese-1000x1000.png"/>
+              <homeTeam clubId="120" gender="F" id="5645" name="Lionnes de Genève pwd by Grand-Saconnex" pathToLogo="uploadedImages/54331__LOGO_FOR_TEAM__5645__logoLions22typorouge--2-.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-12-12" id="367621" locationCity="Nyon" locationId="604" locationName="Rocher" locationShortName="Rocher" matchDayName="Day 11" round="1" time="14:30">
+              <guestTeam clubId="111" gender="F" id="515" name="BC Arlesheim" pathToLogo="uploadedImages/67045__LOGO_FOR_TEAM__515__bca-logo-neu.png"/>
+              <homeTeam clubId="195" gender="F" id="5646" name="Nyon Basket Féminin Espoirs" pathToLogo="uploadedImages/31736__LOGO_FOR_TEAM__5646__NyonFeminin.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-12-12" id="367624" locationCity="Martigny" locationId="521" locationName="Salle du Midi" locationShortName="Salle du Midi" matchDayName="Day 11" round="1" time="16:00">
+              <guestTeam clubId="7" gender="F" id="398" name="Riva Basket" pathToLogo="uploadedImages/58565__LOGO_FOR_TEAM__398__RIVA.png"/>
+              <homeTeam clubId="44" gender="F" id="4110" name="Martigny Basket" pathToLogo="uploadedImages/46904__LOGO_FOR_TEAM__4110__MartignyNew.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-12-12" id="367619" locationCity="Bellinzona" locationId="409" locationName="Palasport" locationShortName="Palasport" matchDayName="Day 11" round="1" time="16:30">
+              <guestTeam clubId="70" gender="F" id="681" name="Sion Basket" pathToLogo="uploadedImages/70262__LOGO_FOR_TEAM__681__logo_contour.png"/>
+              <homeTeam clubId="296" gender="F" id="787" name="Bellinzona" pathToLogo="uploadedImages/58566__LOGO_FOR_TEAM__787__BELLINZONA.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-12-13" id="367620" locationCity="Zürich" locationId="1483" locationName="Schul- und Sportanlage Freilager" locationShortName="Freilager" matchDayName="Day 11" round="1" time="12:30">
+              <guestTeam clubId="69" gender="F" id="4112" name="BC Winterthur" pathToLogo="uploadedImages/23301__LOGO_FOR_TEAM__4112__Winterthur1.svg"/>
+              <homeTeam clubId="481" gender="F" id="7485" name="BC Zürich 93 Lions" pathToLogo="uploadedImages/81532__LOGO_FOR_CLUB__481__BZ93-LOGO-01.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-12-13" id="367659" locationCity="Fribourg" locationId="764" locationName="Site Sportif St. Léonard" locationShortName="St-Léonard" matchDayName="Day 11" round="1" time="13:00">
+              <guestTeam clubId="43" gender="F" id="4658" name="BC Fémina Bern" pathToLogo="uploadedImages/32178__LOGO_FOR_TEAM__4658__FeminaBern.png"/>
+              <homeTeam clubId="199" gender="F" id="1269" name="Elfic Fribourg Génération" pathToLogo="uploadedImages/10059__LOGO_FOR_TEAM__1269__Elfic.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-12-13" id="367622" locationCity="Yverdon-les-Bains" locationId="1307" locationName="Collège Les Rives" locationShortName="Collège Les Rives" matchDayName="Day 11" round="1" time="17:30">
+              <guestTeam clubId="23" gender="F" id="407" name="Lausanne Prilly Basket" pathToLogo="uploadedImages/89596__LOGO_FOR_TEAM__407__Lausanne_Prilly_Basketball_Logo.png"/>
+              <homeTeam clubId="107" gender="F" id="6524" name="USY Bisonnes" pathToLogo="uploadedImages/53639__LOGO_FOR_TEAM__6524__43968_LOGO_FOR_TEAM_6133_USY-Bisons-1.png"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2026-12-18" id="11720" name="Day 12" to="2026-12-20">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2026-12-19" id="367628" locationCity="Arlesheim" locationId="675" locationName="Hagenbuchen" locationShortName="Hagenbuchen" matchDayName="Day 12" round="1" time="15:00">
+              <guestTeam clubId="44" gender="F" id="4110" name="Martigny Basket" pathToLogo="uploadedImages/46904__LOGO_FOR_TEAM__4110__MartignyNew.png"/>
+              <homeTeam clubId="111" gender="F" id="515" name="BC Arlesheim" pathToLogo="uploadedImages/67045__LOGO_FOR_TEAM__515__bca-logo-neu.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-12-19" id="367627" locationCity="Riva San Vitale" locationId="721" locationName="Pala San Giorgio" locationShortName="Pala San Giorgio" matchDayName="Day 12" round="1" time="16:00">
+              <guestTeam clubId="296" gender="F" id="787" name="Bellinzona" pathToLogo="uploadedImages/58566__LOGO_FOR_TEAM__787__BELLINZONA.png"/>
+              <homeTeam clubId="7" gender="F" id="398" name="Riva Basket" pathToLogo="uploadedImages/58565__LOGO_FOR_TEAM__398__RIVA.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-12-19" id="367626" locationCity="Minusio" locationId="429" locationName="Scuole Medie Vignascia" locationShortName="Scuole Medie" matchDayName="Day 12" round="1" time="17:00">
+              <guestTeam clubId="45" gender="F" id="692" name="Blonay Basket" pathToLogo="uploadedImages/10055__LOGO_FOR_TEAM__692__Logo_BB_2007_simplified.png"/>
+              <homeTeam clubId="105" gender="F" id="406" name="Citroën Muraltese" pathToLogo="uploadedImages/65925__LOGO_FOR_TEAM__406__Muraltese-1000x1000.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-12-19" id="367632" locationCity="Sion" locationId="532" locationName="Creusets" locationShortName="Creusets" matchDayName="Day 12" round="1" time="17:30">
+              <guestTeam clubId="481" gender="F" id="7485" name="BC Zürich 93 Lions" pathToLogo="uploadedImages/81532__LOGO_FOR_CLUB__481__BZ93-LOGO-01.png"/>
+              <homeTeam clubId="70" gender="F" id="681" name="Sion Basket" pathToLogo="uploadedImages/70262__LOGO_FOR_TEAM__681__logo_contour.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-12-20" id="367629" locationCity="Winterthur" locationId="1222" locationName="Neuhegi" locationShortName="Neuhegi" matchDayName="Day 12" round="1" time="13:00">
+              <guestTeam clubId="195" gender="F" id="5646" name="Nyon Basket Féminin Espoirs" pathToLogo="uploadedImages/31736__LOGO_FOR_TEAM__5646__NyonFeminin.png"/>
+              <homeTeam clubId="69" gender="F" id="4112" name="BC Winterthur" pathToLogo="uploadedImages/23301__LOGO_FOR_TEAM__4112__Winterthur1.svg"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-12-20" id="367633" locationCity="Grand-Saconnex" locationId="601" locationName="Salle polyvalente Pommier" locationShortName="Salle polyvalente Pommier" matchDayName="Day 12" round="1" time="13:00">
+              <guestTeam clubId="13" gender="F" id="5527" name="Villars Basket" pathToLogo="uploadedImages/70820__LOGO_FOR_TEAM__5527__LOGO-NEW.png"/>
+              <homeTeam clubId="120" gender="F" id="5645" name="Lionnes de Genève pwd by Grand-Saconnex" pathToLogo="uploadedImages/54331__LOGO_FOR_TEAM__5645__logoLions22typorouge--2-.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2026-12-20" id="367631" locationCity="Grandson" locationId="1569" locationName="Collège de Grandson, site de Borné-Nau" locationShortName="Collège de Grandson" matchDayName="Day 12" round="1" time="14:00">
+              <guestTeam clubId="43" gender="F" id="4658" name="BC Fémina Bern" pathToLogo="uploadedImages/32178__LOGO_FOR_TEAM__4658__FeminaBern.png"/>
+              <homeTeam clubId="107" gender="F" id="6524" name="USY Bisonnes" pathToLogo="uploadedImages/53639__LOGO_FOR_TEAM__6524__43968_LOGO_FOR_TEAM_6133_USY-Bisons-1.png"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2027-01-08" id="11721" name="Day 13" to="2027-01-22">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2027-01-09" id="367637" locationCity="Villars-sur-Glâne" locationId="311" locationName="CS Platy " locationShortName="CS Platy " matchDayName="Day 13" round="1" time="14:30">
+              <guestTeam clubId="7" gender="F" id="398" name="Riva Basket" pathToLogo="uploadedImages/58565__LOGO_FOR_TEAM__398__RIVA.png"/>
+              <homeTeam clubId="13" gender="F" id="5527" name="Villars Basket" pathToLogo="uploadedImages/70820__LOGO_FOR_TEAM__5527__LOGO-NEW.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2027-01-09" id="367634" locationCity="Bellinzona" locationId="409" locationName="Palasport" locationShortName="Palasport" matchDayName="Day 13" round="1" time="17:30">
+              <guestTeam clubId="105" gender="F" id="406" name="Citroën Muraltese" pathToLogo="uploadedImages/65925__LOGO_FOR_TEAM__406__Muraltese-1000x1000.png"/>
+              <homeTeam clubId="296" gender="F" id="787" name="Bellinzona" pathToLogo="uploadedImages/58566__LOGO_FOR_TEAM__787__BELLINZONA.png"/>
+            </GameRSS>
+            <GameRSS categoryName="Phase préliminaire" date="2027-01-10" id="367638" locationCity="Fribourg" locationId="764" locationName="Site Sportif St. Léonard" locationShortName="St-Léonard" matchDayName="Day 13" round="1" time="13:00">
+              <guestTeam clubId="481" gender="F" id="7485" name="BC Zürich 93 Lions" pathToLogo="uploadedImages/81532__LOGO_FOR_CLUB__481__BZ93-LOGO-01.png"/>
+              <homeTeam clubId="199" gender="F" id="1269" name="Elfic Fribourg Génération" pathToLogo="uploadedImages/10059__LOGO_FOR_TEAM__1269__Elfic.png"/>
+            </GameRSS>
+          </games>
+        </matchday>
+        <matchday from="2027-01-15" id="11722" name="Day 14" to="2027-01-17">
+          <games>
+            <GameRSS categoryName="Phase préliminaire" date="2027-01-15" id="367643" locationCity="Arlesheim" locationId="675" locationName="Hagenbuchen" locationShortName="Hagenbuchen" matchDayName="Day 14" round="1" time="20:30">
+              <guestTeam clubId="43" gender="F" id="4658" name="BC Fémina Bern" pathToLogo="uploadedImages/32178__LOGO_FOR_TEAM__4658__FeminaBern.png"/>
+              <homeTeam clubId="111" gender="F" id="515" name="BC Arlesheim" pathToLogo="uploadedImages/67045__LOGO_FOR_TEAM__515__bca-logo-neu.png"/>
+            </GameRSS>
+          </games>
+        </matchday>
+      </matchdays>
+      <teams/>
+    </LeagueHoldingRSS>
+  </ArrayList>
+</leagueHoldingList>
+</basketplan>

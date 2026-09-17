@@ -438,7 +438,8 @@ export type VereinsQuelle =
   | 'fvnws'
   | 'swissvolley'
   | 'handball'
-  | 'basketplan'
+  | 'basketball'
+  | 'swissunihockey'
 
 /** Whether a club carries regional reach or speaks for the village. */
 export type VereinsBedeutung = 'aushaengeschild' | 'breitensport'
@@ -458,6 +459,12 @@ export interface Verein {
    */
   notiz: string | null
   quelle: VereinsQuelle
+  /**
+   * The club's id at the source. Mandatory for `basketball`: that connector
+   * reads one XML per GROUP and a group carries several of our clubs, so the
+   * team id (`showLeagueSchedule.do`'s `homeTeam/@id`) is what says which match
+   * is whose. The other connectors read one address per club and leave it null.
+   */
   externe_id: string | null
   ergebnis_url: string | null
   /**

@@ -1,3 +1,5 @@
+import { istErlaubteQuelle } from '../shared/basketplan/parse'
+
 // What the workspace may write into the master data — municipalities and clubs.
 //
 // Both used to be Directus-admin work. That was defensible while the list never
@@ -137,18 +139,46 @@ export const QUELLEN = [
   'fvnws',
   'swissvolley',
   'handball',
+  'basketball',
   'swissunihockey'
 ] as const
 
-/** The three that actually have a reader — the rest are recorded, not fetched. */
+/** The four that actually have a reader — the rest are recorded, not fetched. */
 export const QUELLEN_MIT_KONNEKTOR = new Set([
   'fvnws',
   'swissvolley',
-  'handball'
+  'handball',
+  'basketball'
 ])
 
-/** Sources that ask the source once per TEAM, so the address is the team. */
-const BRAUCHT_URL = new Set(['swissvolley', 'handball'])
+/**
+ * Sources whose address is asked for per registered unit, and what it looks
+ * like.
+ *
+ * Volleyball and handball read one page per TEAM. Basketball reads one XML per
+ * GROUP — a group carries several of our clubs, so two clubs of one group share
+ * the same address. Either way: no address, no results, and the morning run
+ * would say so only in a log line nobody reads.
+ */
+const BRAUCHT_URL: Readonly<Record<string, string>> = {
+  swissvolley: 'sie wird pro Mannschaft abgefragt',
+  handball: 'sie wird pro Mannschaft abgefragt',
+  basketball:
+    'sie wird pro Gruppe abgefragt und sieht so aus: ' +
+    'https://swiss.basketball/basketplan/showLeagueSchedule.do' +
+    '?lang=de&xmlView=rss&leagueId=7&seasonId=31&daysBack=30&daysFuture=120' +
+    '&totalGames=500&resultType=big&leagueHoldingId=11329'
+}
+
+/**
+ * Sources that need the club's id AT THE SOURCE to be usable at all.
+ *
+ * Basketball is read per group, and a group holds up to a dozen clubs. Without
+ * `externe_id` — the team id `showLeagueSchedule.do` prints — nothing says
+ * which match belongs to which of our clubs, and the run would store none of
+ * them. The other connectors read one address per club and do not need it.
+ */
+const BRAUCHT_KENNUNG = new Set(['basketball'])
 
 export interface VereinEingabe {
   name: string
@@ -156,6 +186,8 @@ export interface VereinEingabe {
   bedeutung: string
   quelle: string
   ergebnis_url: string | null
+  /** The club's (team's) id at the source. Only basketball needs one today. */
+  externe_id: string | null
   liga: string | null
   spielort: string | null
   notiz: string | null
@@ -199,16 +231,46 @@ export function pruefeVerein(
   }
 
   const url = text(eingabe['ergebnis_url'])
-  if (BRAUCHT_URL.has(quelle) && url === '') {
+  const wozu = BRAUCHT_URL[quelle]
+  if (wozu !== undefined && url === '') {
     return {
       ok: false,
-      grund: `Fuer die Quelle "${quelle}" wird eine Ergebnis-Adresse gebraucht: sie wird pro Mannschaft abgefragt.`
+      grund: `Fuer die Quelle "${quelle}" wird eine Ergebnis-Adresse gebraucht: ${wozu}.`
     }
   }
   if (url !== '' && !/^https?:\/\//i.test(url)) {
     return {
       ok: false,
       grund: 'Die Ergebnis-Adresse muss mit http:// oder https:// beginnen.'
+    }
+  }
+  // Checked here rather than only in the connector, so a wrong address fails
+  // the form instead of failing silently every morning. The original host bars
+  // us by robots.txt and `findTeamById.do` carries private contact details —
+  // neither is ever fetched.
+  if (quelle === 'basketball' && url !== '' && !istErlaubteQuelle(url)) {
+    return {
+      ok: false,
+      grund:
+        'Fuer Basketball wird nur der Spielplan von swiss.basketball gelesen ' +
+        '(…/basketplan/showLeagueSchedule.do).'
+    }
+  }
+
+  const kennung = text(eingabe['externe_id'])
+  if (BRAUCHT_KENNUNG.has(quelle) && kennung === '') {
+    return {
+      ok: false,
+      grund:
+        `Fuer die Quelle "${quelle}" wird die Mannschaftskennung an der Quelle ` +
+        'gebraucht (teamId im Spielplan, zum Beispiel 515): eine Gruppe traegt ' +
+        'mehrere Vereine.'
+    }
+  }
+  if (kennung.length > 60) {
+    return {
+      ok: false,
+      grund: 'Die Mannschaftskennung ist zu lang (hoechstens 60 Zeichen).'
     }
   }
 
@@ -220,6 +282,7 @@ export function pruefeVerein(
       bedeutung,
       quelle,
       ergebnis_url: url === '' ? null : url,
+      externe_id: kennung === '' ? null : kennung,
       liga: text(eingabe['liga']) || null,
       spielort: text(eingabe['spielort']) || null,
       notiz: text(eingabe['notiz']) || null,

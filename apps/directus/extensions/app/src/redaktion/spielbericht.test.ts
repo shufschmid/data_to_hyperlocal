@@ -358,6 +358,42 @@ describe('verbandsQuelle', () => {
       verbandsQuelle({ quelle: 'handball', ergebnis_url: null }, null)
     ).toBeNull()
   })
+
+  // Basketball dreht die Reihenfolge um, und zwar aus einem gemessenen Grund:
+  // `ergebnis_url` ist dort eine Maschinentuer — showLeagueSchedule.do
+  // antwortet immer text/xml, auch ohne xmlView=rss. Was beim Spiel steht, ist
+  // die Ligaseite des Verbands, und die kann eine Leserin oeffnen.
+  it('nimmt fuer Basketball die Ligaseite statt der XML-Adresse', () => {
+    expect(
+      verbandsQuelle(
+        {
+          quelle: 'basketball',
+          ergebnis_url:
+            'https://swiss.basketball/basketplan/showLeagueSchedule.do?xmlView=rss'
+        },
+        'https://swiss.basketball/de/national-competitions/nlb/women'
+      )
+    ).toEqual({
+      name: 'Swiss Basketball',
+      url: 'https://swiss.basketball/de/national-competitions/nlb/women'
+    })
+  })
+
+  it('nimmt fuer Basketball notfalls die XML-Adresse, statt zu schweigen', () => {
+    expect(
+      verbandsQuelle(
+        {
+          quelle: 'basketball',
+          ergebnis_url:
+            'https://swiss.basketball/basketplan/showLeagueSchedule.do?xmlView=rss'
+        },
+        null
+      )
+    ).toEqual({
+      name: 'Swiss Basketball',
+      url: 'https://swiss.basketball/basketplan/showLeagueSchedule.do?xmlView=rss'
+    })
+  })
 })
 
 describe('quelleZeile / mitQuelle', () => {
