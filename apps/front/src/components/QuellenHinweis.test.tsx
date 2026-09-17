@@ -9,6 +9,7 @@ function quelle(ueber: Partial<QuelleFelder>): QuelleFelder {
     name: 'Publikationsagenda Statistik BL',
     typ: 'agenda',
     basis_url: 'https://www.baselland.ch/agenda-2026/',
+    konfiguration: null,
     letzte_pruefung: '2026-08-12T06:00:00Z',
     letzter_fehler: null,
     ...ueber

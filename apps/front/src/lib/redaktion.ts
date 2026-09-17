@@ -413,12 +413,20 @@ export function reinerText(html: string | null): string | null {
  */
 export function datensatzLink(
   quelleTyp: string | null | undefined,
-  externeId: string | null | undefined
+  externeId: string | null | undefined,
+  portalUrl?: string | null
 ): string | null {
   const id = (externeId ?? '').trim()
   if (id === '') return null
-  if (quelleTyp === 'ods') return `https://data.bl.ch/explore/dataset/${encodeURIComponent(id)}/`
-  if (quelleTyp === 'statbl') return `https://statistik.bl.ch/web_portal/${encodeURIComponent(id)}`
+
+  // Ohne mitgereichtes Portal bleibt Baselland die Vorgabe — dieselbe Regel
+  // wie im Bundle, damit eine leere Konfiguration keinen Link kostet.
+  const portal = (portalUrl ?? '').trim().replace(/\/+$/, '')
+
+  if (quelleTyp === 'ods')
+    return `${portal === '' ? 'https://data.bl.ch' : portal}/explore/dataset/${encodeURIComponent(id)}/`
+  if (quelleTyp === 'statbl')
+    return `${portal === '' ? 'https://statistik.bl.ch/web_portal' : portal}/${encodeURIComponent(id)}`
   return null
 }
 
@@ -460,7 +468,7 @@ export interface ZeitleistenQuellen {
       id: string
       hat_gemeinde: boolean
       externe_id?: string | null
-      quelle?: { typ: string } | null
+      quelle?: { typ: string; basis_url?: string | null } | null
     } | null
   }[]
   bereiche: readonly {
@@ -473,7 +481,7 @@ export interface ZeitleistenQuellen {
   datensaetze: readonly {
     id: string
     externe_id?: string | null
-    quelle?: { typ: string } | null
+    quelle?: { typ: string; basis_url?: string | null } | null
     titel: string
     status: string
     hat_gemeinde: boolean
@@ -556,7 +564,10 @@ export function zeitleiste(quellen: ZeitleistenQuellen, hoechstens = 40): Zeitle
       pfad: null,
       // Der Artikel des Amts, wenn die Agenda einen nennt, sonst die Daten —
       // dieselbe Rangfolge wie der Quellenlink der Artikel.
-      link: a.link ?? datensatzLink(a.datensatz?.quelle?.typ, a.datensatz?.externe_id) ?? null,
+      link:
+        a.link ??
+        datensatzLink(a.datensatz?.quelle?.typ, a.datensatz?.externe_id, a.datensatz?.quelle?.basis_url) ??
+        null,
       quartal: a.quartal,
       beschreibung: null,
       rhythmus: null,
@@ -601,7 +612,7 @@ export function zeitleiste(quellen: ZeitleistenQuellen, hoechstens = 40): Zeitle
       datensatzId: d.id,
       laufId: laufZu.get(d.id) ?? null,
       pfad: null,
-      link: datensatzLink(d.quelle?.typ, d.externe_id),
+      link: datensatzLink(d.quelle?.typ, d.externe_id, d.quelle?.basis_url),
       quartal: null,
       beschreibung: reinerText(d.beschreibung ?? null),
       rhythmus: d.rhythmus ?? null,
@@ -890,20 +901,42 @@ export function berichtenswerteSpiele<
 // vier Abfragen, die die Ansicht ohnehin schon laedt — hier werden sie zu je
 // einer Map je Gemeinde, damit die Karte nichts mehr suchen muss.
 
-/** Die fuenf Baselbieter Bezirke. Alles andere ist ausserkantonal. */
-const BL_BEZIRKE = new Set(['Arlesheim', 'Laufen', 'Liestal', 'Sissach', 'Waldenburg'])
+/** Die Statistik-Adapter. Amtsblatt, Sport und die uebrigen sind nicht kantonal. */
+const STATISTIK_TYPEN = new Set(['ods', 'statbl'])
+
+export interface StatistikPortal {
+  id: string
+  name: string
+  typ: string
+  /** `quellen.konfiguration` — hier steht, welche Bezirke das Portal fuehrt. */
+  konfiguration?: unknown
+}
 
 /**
- * Ob die Statistik-Quellen ueber diese Gemeinde ueberhaupt etwas sagen koennen.
+ * Welche registrierten Statistik-Portale ueber diese Gemeinde etwas sagen
+ * koennen — je Bezirk, weil die Portale kantonal sind.
  *
- * Keine Formalie: beide Portale sind kantonal, eine Gemeinde ausserhalb
- * Basel-Landschaft kommt in ihren Zeilen schlicht nicht vor. Sport,
- * Abfuhrkalender und Presseschau laufen normal — die Statistik bleibt still.
- * Riehen lebt seit je so; das auf der Karte zu sagen ist besser, als den
- * Redaktor auf Meldungen warten zu lassen, die nicht kommen koennen.
+ * Loest `istBaselbiet` auf der Karte ab: die Aussage „kein Statistikportal
+ * fuer diese Gemeinde" war bis zum 17. September 2026 eine Konstante im Code
+ * („die fuenf Baselbieter Bezirke"). Sie kommt jetzt aus den Quellen-Zeilen,
+ * damit ein zweites Portal (Basel-Stadt fuer Riehen und Bettingen, Bern fuer
+ * ein zweites Medium) eine Registrierung ist und kein Commit.
+ *
+ * Leer ist eine ehrliche Antwort: ein Portal, das nicht erklaert hat, welche
+ * Bezirke es fuehrt, wird der Redaktorin nicht als zustaendig angezeigt.
  */
-export function istBaselbiet(bezirk: string): boolean {
-  return BL_BEZIRKE.has(bezirk.trim())
+export function statistikPortaleFuer<T extends StatistikPortal>(bezirk: string, quellen: readonly T[]): T[] {
+  const gesucht = bezirk.trim().toLowerCase()
+  if (gesucht === '') return []
+
+  return quellen.filter((quelle) => {
+    if (!STATISTIK_TYPEN.has(quelle.typ)) return false
+    const k = quelle.konfiguration
+    if (typeof k !== 'object' || k === null || Array.isArray(k)) return false
+    const bezirke = (k as { bezirke?: unknown }).bezirke
+    if (!Array.isArray(bezirke)) return false
+    return bezirke.some((eintrag) => typeof eintrag === 'string' && eintrag.trim().toLowerCase() === gesucht)
+  })
 }
 
 /** Das Blatt, das eine Gemeinde abdeckt — Haupt- wie Nebengemeinde. */

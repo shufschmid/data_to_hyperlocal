@@ -68,6 +68,20 @@ function kalender(ueber: Partial<EntsorgungskalenderFelder>): Entsorgungskalende
   }
 }
 
+const portalBl = {
+  id: 'q-bl',
+  name: 'Statistik Basel-Landschaft (data.bl.ch)',
+  typ: 'ods',
+  konfiguration: { bezirke: ['Arlesheim', 'Laufen', 'Liestal', 'Sissach', 'Waldenburg'] }
+}
+
+const portalBs = {
+  id: 'q-bs',
+  name: 'Statistik Basel-Stadt (data.bs.ch)',
+  typ: 'ods',
+  konfiguration: { bezirke: ['Basel-Stadt'] }
+}
+
 const drei = [
   gemeinde({ id: 'a', name: 'Aesch', bezirk: 'Arlesheim', bfs_nummer: 2761, aktiv: true }),
   gemeinde({ id: 'b', name: 'Therwil', bezirk: 'Arlesheim', bfs_nummer: 2775, aktiv: false }),
@@ -116,13 +130,35 @@ describe('GemeindenAuswahl', () => {
     expect(screen.queryByRole('heading', { name: 'Aesch' })).not.toBeInTheDocument()
   })
 
-  // Die Statistik-Quellen sind kantonal. Riehen bekommt seit je keine
-  // Statistik-Meldung — das gehoert auf die Karte, nicht ins Warten.
-  it('sagt bei ausserkantonalen Gemeinden, dass die Statistik still bleibt', () => {
+  // Die Statistik-Quellen sind kantonal, und welcher Bezirk zu welchem Portal
+  // gehoert, steht in den Quellen-Zeilen. Riehen bekommt ohne ein Portal fuer
+  // Basel-Stadt keine Statistik-Meldung — das gehoert auf die Karte, nicht
+  // ins Warten.
+  it('nennt das Portal, das den Bezirk der Gemeinde fuehrt', () => {
+    render(<GemeindenAuswahl gemeinden={drei} portale={[portalBl]} onUmschalten={jest.fn()} />)
+
+    expect(
+      screen.getByText(/Kein registriertes Statistikportal führt den Bezirk Basel-Stadt/)
+    ).toBeInTheDocument()
+    expect(screen.getAllByText(/Läuft automatisch über Statistik Basel-Landschaft/)).toHaveLength(1)
+  })
+
+  // Der zweite Nutzen von M2: Riehen bekommt Statistik, sobald ein Portal
+  // fuer Basel-Stadt registriert ist — eine Zeile, kein Commit.
+  it('nennt auch ein zweites Portal, sobald es den Bezirk fuehrt', () => {
+    render(<GemeindenAuswahl gemeinden={drei} portale={[portalBl, portalBs]} onUmschalten={jest.fn()} />)
+
+    expect(screen.queryByText(/Kein registriertes Statistikportal/)).not.toBeInTheDocument()
+    expect(screen.getByText(/Läuft automatisch über Statistik Basel-Stadt/)).toBeInTheDocument()
+  })
+
+  // Ohne konfigurierte Portale verspricht die Karte nichts: Schweigen einer
+  // Quelle ist keine Zusage.
+  it('verspricht ohne konfigurierte Portale keine Statistik', () => {
     render(<GemeindenAuswahl gemeinden={drei} onUmschalten={jest.fn()} />)
 
-    expect(screen.getByText(/Ausserhalb Basel-Landschaft/)).toBeInTheDocument()
-    expect(screen.getAllByText(/Läuft automatisch über data\.bl\.ch/)).toHaveLength(1)
+    expect(screen.queryByText(/Läuft automatisch über/)).not.toBeInTheDocument()
+    expect(screen.getAllByText(/Kein registriertes Statistikportal/)).toHaveLength(2)
   })
 
   it('zeigt die Vereine, Aushaengeschild zuerst', () => {

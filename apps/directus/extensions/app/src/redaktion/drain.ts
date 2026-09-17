@@ -65,6 +65,7 @@ import {
   repariereQuellenlink,
   type Quellenlink
 } from './quelle'
+import { lesePortalKonfiguration } from './portale'
 import { attributionsKorrektur, fehlendeAttribution } from './attribution'
 import { ladeRegeln as ladeRegelnAus } from './gedaechtnis'
 import { fetchWebartikel, istWebartikel } from '../shared/agenda'
@@ -733,10 +734,27 @@ async function ladeLaufMaterial(
   // which answered the same request with the bare host of the office.
   const datensatz = (await new ItemsService('datensaetze', { schema }).readOne(
     lauf.datensatz,
-    { fields: ['externe_id', 'quelle.id', 'quelle.typ', 'ankuendigung.link'] }
+    {
+      fields: [
+        'externe_id',
+        'quelle.id',
+        'quelle.typ',
+        // The portal and the office it speaks for — both belong to the RUN
+        // (one dataset, one period), never to the municipality, so they may
+        // ride in the cached system prefix without breaking its byte-identity.
+        'quelle.basis_url',
+        'quelle.konfiguration',
+        'ankuendigung.link'
+      ]
+    }
   )) as {
     externe_id: string | null
-    quelle: { id: string; typ: string } | null
+    quelle: {
+      id: string
+      typ: string
+      basis_url: string | null
+      konfiguration: unknown
+    } | null
     ankuendigung: { link: string | null } | null
   }
 
@@ -752,7 +770,9 @@ async function ladeLaufMaterial(
   const quelle = quellenlink({
     ankuendigungLink: datensatz.ankuendigung?.link ?? null,
     quelleTyp: datensatz.quelle?.typ ?? null,
-    externeId: datensatz.externe_id
+    externeId: datensatz.externe_id,
+    portalUrl: datensatz.quelle?.basis_url ?? null,
+    amt: lesePortalKonfiguration(datensatz.quelle?.konfiguration).amt
   })
 
   return {

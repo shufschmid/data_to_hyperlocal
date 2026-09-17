@@ -4,7 +4,6 @@ import {
   anzahlBeschaeftigt,
   berichtenswerteSpiele,
   blattJeGemeinde,
-  istBaselbiet,
   kalenderJeGemeinde,
   bleibtAufDemTisch,
   formatiereDatum,
@@ -21,6 +20,7 @@ import {
   resultat,
   seitenLink,
   datensatzLink,
+  statistikPortaleFuer,
   ordneSpiele,
   reinerText,
   vereineNachGemeinde,
@@ -381,10 +381,56 @@ describe('datensatzLink', () => {
     expect(datensatzLink('statbl', '10_3')).toBe('https://statistik.bl.ch/web_portal/10_3')
   })
 
+  it('nimmt das Portal der Quelle, wo eines mitkommt', () => {
+    expect(datensatzLink('ods', '100059', 'https://data.bs.ch')).toBe(
+      'https://data.bs.ch/explore/dataset/100059/'
+    )
+    expect(datensatzLink('statbl', '10_3', 'https://statistik.bl.ch/web_portal/')).toBe(
+      'https://statistik.bl.ch/web_portal/10_3'
+    )
+  })
+
   it('erfindet keine Adresse', () => {
     expect(datensatzLink('ods', '')).toBeNull()
     expect(datensatzLink(null, '12410')).toBeNull()
     expect(datensatzLink('agenda', '12410')).toBeNull()
+  })
+})
+
+describe('statistikPortaleFuer', () => {
+  const portale = [
+    {
+      id: 'q-bl',
+      name: 'Statistik Basel-Landschaft (data.bl.ch)',
+      typ: 'ods',
+      konfiguration: { bezirke: ['Arlesheim', 'Liestal'] }
+    },
+    {
+      id: 'q-bs',
+      name: 'Statistik Basel-Stadt (data.bs.ch)',
+      typ: 'ods',
+      konfiguration: { bezirke: ['Basel-Stadt'] }
+    },
+    { id: 'q-agenda', name: 'Publikationsagenda', typ: 'agenda', konfiguration: null }
+  ]
+
+  it('nennt das Portal, das den Bezirk der Gemeinde fuehrt', () => {
+    expect(statistikPortaleFuer('Arlesheim', portale).map((p) => p.id)).toEqual(['q-bl'])
+    expect(statistikPortaleFuer('Basel-Stadt', portale).map((p) => p.id)).toEqual(['q-bs'])
+  })
+
+  // Ehrlicher als Schweigen: sagt kein Portal etwas ueber diesen Bezirk,
+  // wartet die Redaktion sonst auf Meldungen, die nicht kommen koennen.
+  it('antwortet leer, wo kein Portal den Bezirk fuehrt', () => {
+    expect(statistikPortaleFuer('Dorneck', portale)).toEqual([])
+    expect(statistikPortaleFuer('Arlesheim', [])).toEqual([])
+  })
+
+  it('nimmt nur Statistikquellen, nicht die Agenda', () => {
+    const nurAgenda = [
+      { id: 'q-a', name: 'Agenda', typ: 'agenda', konfiguration: { bezirke: ['Arlesheim'] } }
+    ]
+    expect(statistikPortaleFuer('Arlesheim', nurAgenda)).toEqual([])
   })
 })
 
@@ -857,13 +903,7 @@ describe('berichtenswerteSpiele', () => {
   })
 })
 
-describe('istBaselbiet / blattJeGemeinde / kalenderJeGemeinde', () => {
-  it('trennt Baselbiet von ausserkantonal', () => {
-    expect(istBaselbiet('Sissach')).toBe(true)
-    expect(istBaselbiet('Basel-Stadt')).toBe(false)
-    expect(istBaselbiet('Dorneck (SO)')).toBe(false)
-  })
-
+describe('blattJeGemeinde / kalenderJeGemeinde', () => {
   // Ein Blatt deckt mehrere Gemeinden ab; gesucht wird von der Gemeinde aus.
   it('findet das Blatt fuer Haupt- und Nebengemeinde', () => {
     const blatt = {
