@@ -19,6 +19,13 @@ jobs:
 
   publish_backend:
     needs: date_sha_tag
+    # Same grant as the two main workflows, for the same reason — see
+    # publish-docker-image.yml. No `v*` tag has been pushed yet, so this
+    # workflow has never run; it would have failed at startup exactly as its
+    # siblings did.
+    permissions:
+      contents: read
+      packages: write
     uses: ./.github/workflows/publish-docker-image.yml
     with:
       context: apps/directus
@@ -29,6 +36,9 @@ jobs:
 
   publish_front:
     needs: date_sha_tag
+    permissions:
+      contents: read
+      packages: write
     uses: ./.github/workflows/publish-docker-image.yml
     with:
       context: apps/front

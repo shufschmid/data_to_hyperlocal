@@ -1456,10 +1456,19 @@ proxy in front for TLS.
 file builds both apps from source (`build:` contexts), and Dokploy rebuilds and
 redeploys the stack from the repository on every push to `main`. A push IS the
 deploy — which is also why the GHCR publish workflows failing does not stop a
-deploy (measured 2026-09-01: they had been failing at startup since 30.08 —
-`GITHUB_TOKEN` capped at `packages: read` by the repo's Actions settings — while
-the server kept deploying normally). The images remain the documented path for
-any host that pulls instead of builds.
+deploy: the server kept deploying normally throughout. **What they were failing
+on was measured on 17 September 2026 and it was not the repository's Actions
+settings.** All 36 runs of `build-backend-main.yml` since the very first on 4
+August 2026 ended in `startup_failure` after 0 to 1 second, with no job created
+and no log to read — the workflow never published an image at all. The cause is
+structural: the two callers declared no `permissions`, and a called workflow can
+only REDUCE the caller's `GITHUB_TOKEN`, never elevate it, so the reusable
+builder's `packages: write` could not be granted and the run was refused before
+it began. A capped token was the wrong suspect: `code-review.yml` elevates to
+`pull-requests: write` in the same repository and runs green. Both callers (and
+`build-production.yml`, which no `v*` tag has yet reached) now grant
+`contents: read` + `packages: write` on the calling job. The images remain the
+documented path for any host that pulls instead of builds.
 
 ## Things to know before editing
 
