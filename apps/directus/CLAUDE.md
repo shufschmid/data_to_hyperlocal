@@ -189,6 +189,38 @@ export default defineEndpoint((router, { services, getSchema, logger }) => {
   than what has already gone out. A monitor that only needs to know whether the
   service carries asks `/api/v1/gesundheit`, which answers either way.
   Contract for consumers: [SCHNITTSTELLE.md](SCHNITTSTELLE.md).
+- **The one endpoint that trades a foreign token for a session:**
+  `POST /redaktion/editor-zugang` (`src/endpoints/redaktion/editorzugang.ts`,
+  one line of wiring in `index.ts`; the rules in
+  `src/redaktion/editorzugang.ts`, pure and tested). Deliberately public like
+  `/freigabe` — the journalist coming out of the We.Publish editor is not
+  signed in yet, that is the point — and it carries three gates of its own.
+  **One.** The `aud` of the token must be `EDITOR_HERKUNFT`, the origin THIS
+  instance is registered under as an External App. Not decoration: the editor's
+  own `/external-apps/userinfo` accepts any token whose `aud` matches ANY
+  registered app of that house, so without this check a token for another tool
+  in the same editor would buy a newsroom session (read in the editor's repo on
+  17 September 2026). **Two.** `EDITOR_API_URL/external-apps/userinfo` must
+  confirm it (6-second timeout) and answer with an e-mail and the account's
+  permissions; `CAN_PUBLISH_ARTICLE` gets in, `CAN_GET_ARTICLES` alone is
+  refused with its own sentence (there is no Directus reader role, and creating
+  one is a rights decision, not a code change), anything else is refused.
+  **Three.** That e-mail must already be an ACTIVE `directus_users` row. **No
+  user is ever created here** — who may work in the newsroom is decided by a
+  person in the admin UI, and a missing account gets a German sentence saying
+  so. Missing or suspended are told the same thing, so a caller cannot probe
+  which e-mails exist.
+  The session itself is **not** signed by hand and **not** taken from
+  `AuthenticationService.login` — that one ends in `LocalAuthDriver.login`,
+  which verifies a password this door does not have. Instead the door writes one
+  row into `directus_sessions`, exactly the row `login` writes, and calls
+  `AuthenticationService.refresh` on it: the role tree, the claims, the
+  signature, the rotation and the expiry are then Directus' own code, which is
+  what keeps this working across minor versions. The seed row expires in a
+  minute, so a failure in between leaves nothing behind.
+  Both variables empty → 503 and the door says so (the `CRAWLER_KEY` bargain).
+  The front half of this — why the session travels as a marker and not as a
+  cookie — is in [apps/front/CLAUDE.md](../front/CLAUDE.md).
 - **The one endpoint gated by a key instead of a login:** `src/endpoints/sokrates/`
   (`GET /sokrates/sendungen`) serves the day's Regionaljournal editions —
   Abschnitte plus whole transcript — to Sokrates, the „Frage des Tages" AI.
@@ -360,6 +392,13 @@ municipality.
 
 Read them through `shared/env.ts` (`requireEnv` names the missing variable in the
 error) — never `process.env` scattered across handlers.
+
+`EDITOR_API_URL` and `EDITOR_HERKUNFT` are the newest two (17 September 2026) and
+both are read with `optionalEnv`: empty means the editor door answers 503 and
+names itself, never a silent yes. `EDITOR_HERKUNFT` must be the NAKED origin —
+the editor mints the token with `audience: app.url` and its own `userinfo`
+compares that against `new URL(app.url).origin`, so an External App registered
+with a path (or a trailing slash) can never authenticate at all.
 
 ## Types
 

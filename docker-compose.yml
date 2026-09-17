@@ -116,6 +116,16 @@ services:
       # Kopfzeile "X-Sokrates-Key"; leer heisst abgeschaltet (503).
       SOKRATES_API_KEY: ${SOKRATES_API_KEY:-}
 
+      # Der Editor-Zugang (POST /redaktion/editor-zugang). EDITOR_API_URL ist
+      # die Editor-API, an der /external-apps/userinfo das kurzlebige Token
+      # bestaetigt; EDITOR_HERKUNFT die nackte Herkunft, unter der DIESE
+      # Instanz im Editor als External App eingetragen ist — das Token traegt
+      # sie als "aud". Ohne diese Pruefung kaufte ein Token fuer eine andere
+      # External App desselben Hauses hier eine Sitzung. Leer heisst
+      # abgeschaltet (503), und die Tuer sagt es.
+      EDITOR_API_URL: ${EDITOR_API_URL:-}
+      EDITOR_HERKUNFT: ${EDITOR_HERKUNFT:-}
+
       # Die REST-Tuer des Zettelkastens, der belegpflichtigen Wissensschicht
       # von We.Publish: die amtlichen Publikationen beider Basel seit 2018, je
       # mit Rohablage und Pruefsumme. Gelesen wird sie nur fuer die
@@ -177,6 +187,11 @@ services:
       NODE_ENV: production
       # Leer heisst: keine Einbettung, genau wie bisher. Siehe .env.example.
       EDITOR_EINBETTUNG: ${EDITOR_EINBETTUNG:-}
+      # Der Schluessel der Sitzungsmarke (32 Byte, base64). Im Rahmen des
+      # Editors reist die Sitzung als verschluesselte Marke in einer Kopfzeile
+      # statt im Cookie, weil Safari Drittanbieter-Cookies vollstaendig
+      # blockiert. Leer heisst: kein Rahmen-Login, und die Seite sagt es.
+      SITZUNGSMARKE_SCHLUESSEL: ${SITZUNGSMARKE_SCHLUESSEL:-}
     healthcheck:
       test:
         [

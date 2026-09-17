@@ -3,6 +3,11 @@ import {
   fetchMitZweiterTuer,
   holeUeberCrawler
 } from '../../shared/crawler/fallback'
+import {
+  verdrahteEditorzugang,
+  type EditorzugangUmgebung,
+  type RouterLike as EditorzugangRouter
+} from './editorzugang'
 import { createError } from '@directus/errors'
 import { defineEndpoint } from '@directus/extensions-sdk'
 import type { NextFunction, Response } from 'express'
@@ -455,6 +460,18 @@ const GemeindeseiteNichtLesbar = createError<{ grund: string }>(
 export default defineEndpoint(
   (router, { services, database, getSchema, logger }) => {
     const { ItemsService } = services
+
+    // The door from the We.Publish editor — public by design, every rule and
+    // every branch in `editorzugang.ts` next door.
+    verdrahteEditorzugang(
+      router as unknown as EditorzugangRouter,
+      {
+        database,
+        services,
+        getSchema,
+        logger
+      } as unknown as EditorzugangUmgebung
+    )
 
     async function kontext(): Promise<DrainKontext> {
       return {

@@ -30,6 +30,7 @@ apps/front/src/
 │   ├── robots.ts            robots.txt — lets crawlers IN so they can read the noindex
 │   └── api/                 route handlers — proxies, nothing else
 │       ├── auth/{login,logout,session}/
+│       ├── auth/editor/       PUBLIC — the way in from the We.Publish editor
 │       ├── graphql/         the browser's only data endpoint
 │       ├── redaktion/[...pfad]/  calls the extension endpoint (allowlisted)
 │       ├── freigabe/             PUBLIC — the counter-check link
@@ -42,7 +43,10 @@ apps/front/src/
     ├── redaktion.ts         pure presentation helpers (tested)
     ├── public.server.ts     server-only: the few unauthenticated paths (approval, public blog)
     ├── directus.server.ts   server-only: login/refresh/logout/fetch
-    ├── session.server.ts    server-only: the two httpOnly cookies
+    ├── session.server.ts    server-only: the two httpOnly cookies, or the marker in the frame
+    ├── marke.server.ts      server-only: seals/opens the session marker (tested)
+    ├── marke.client.ts      the marker in the page's memory + `sitzungsFetch` (tested)
+    ├── rahmen.ts            pure: frame session? whose Origin may write? (tested)
     ├── auth.ts              pure: which refusal from Directus means "renew" (tested)
     └── proxy.server.ts      server-only: browser request → Directus request
 ```
@@ -105,6 +109,42 @@ SAMEORIGIN`, no frame, cookies `SameSite=Lax`. Set, two things change together
   Dorfkönig, and it deserves one answer for both — see
   `_wepublish/oekosystem/2026-09-16_konzept_dorfkoenig_im_editor.md`, section 8,
   point 1.
+- **The fallback is built, and it is the SITZUNGSMARKE.** Since 17 September
+  2026 a session inside the frame travels as a marker in a header instead of a
+  cookie: the very same token pair, sealed with AES-256-GCM under
+  `SITZUNGSMARKE_SCHLUESSEL` (`lib/marke.server.ts`, `versiegle`/`oeffne`, Web
+  Crypto, no new package). It is opaque — the key never leaves this server, so
+  the browser gains nothing it did not have. `readSession` reads the marker
+  BEFORE the cookies and never both, so a stale cookie from an earlier
+  same-site visit cannot win over the session the editor just handed over;
+  `writeSession` answers a frame session with the header `X-Sitzungsmarke` and
+  writes no cookie at all. Whether a request IS a frame session hangs on the
+  request — a marker, or `X-Rahmen: editor` from the login form
+  (`istRahmenSitzung` in `lib/rahmen.ts`, pure and tested) — never on a module
+  variable: one process serves both kinds of visitor at once.
+  **Where it lives and what it costs:** in the page's memory
+  (`lib/marke.client.ts`), never in `localStorage`, never in a cookie, never in
+  the address after the entry. A reload inside the frame therefore loses it and
+  the editor hands out a fresh token — 240 minutes' worth. That is the deal.
+  Every call the workspace makes goes through `sitzungsFetch`, which carries the
+  marker, picks up a renewed one out of the answer and drops it on a 401; Apollo
+  gets it as its `HttpLink` `fetch`. Outside the frame it adds nothing at all.
+  **The CSRF protection the cookie gave up comes back as an Origin check:** a
+  writing `/api/*` request in a frame session must carry an `Origin` that is
+  this workspace's own or one from `EDITOR_EINBETTUNG` (`ursprungErlaubt`, the
+  same allow-list that builds `frame-ancestors`, so the two cannot disagree
+  about who is inside). A request without an `Origin` is refused, not trusted.
+  **The way in** is `GET /?token=<jwt>` — the address the editor opens. The
+  middleware recognises it and redirects to `/api/auth/editor`, which trades the
+  token at `POST /redaktion/editor-zugang` in the bundle, seals the answer and
+  sends the browser to `/?rahmen=editor#m=<marke>`. A FRAGMENT: it reaches no
+  server, no access log and no `Referer`, and `history.replaceState` takes it
+  out of the address bar at once. With `EDITOR_EINBETTUNG` set the middleware
+  also sends `Referrer-Policy: no-referrer`. `SITZUNGSMARKE_SCHLUESSEL` empty
+  means no frame login at all, and the page says so instead of failing quietly.
+  **Still open on 17 September 2026:** the editor does not yet hand the token to
+  the iframe address — its own PR is not there — so the measured path today is
+  the login form inside the frame, which the marker already makes work.
 - There is deliberately **no service/admin token in this app**. If a feature seems to
   need one, it needs a Directus extension endpoint instead — that is the whole point
   of constraint 7 in the root CLAUDE.md.
@@ -216,6 +256,13 @@ come from the root `.env` via `docker-compose.yml`.
   a committed example file: `.gitignore` excludes `.env.*`, so the front app has
   no checked-in example; the root `.env.example` and `docker-compose.yml` carry
   it.
+- `SITZUNGSMARKE_SCHLUESSEL` — 32 bytes, base64 (`openssl rand -base64 32`),
+  server-side. The key the session marker is sealed with, for the editor's
+  frame. Empty — the default — means no frame login: the login form inside the
+  frame answers 503 with a German sentence naming the variable, and everything
+  outside the frame is untouched. Like `EDITOR_EINBETTUNG` it has no
+  checked-in example here (`.gitignore` excludes `.env.*`); the root
+  `.env.example` and `docker-compose.yml` carry it.
 - `DIRECTUS_URL` — where Directus is reachable **from this server process**
   (`http://redaktion-directus:8055` in Docker — the service name; on a shared
   deploy host a bare `directus` alias can belong to another stack). The browser
