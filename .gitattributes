@@ -23,8 +23,3 @@
 # Aufgezeichnete Portalseiten sind Belege: byte-identisch lassen, sonst
 # normalisiert Git ihnen die Zeilenenden weg, die der Server geschickt hat.
 apps/directus/extensions/app/src/shared/statbl/fixtures/*.html -text
-
-# Dasselbe fuer die Abfuhrkalender: das iCal einer Gemeinde faltet lange Zeilen
-# nach RFC 5545 mit CRLF, und eine Fixture, der Git die Zeilenenden umschreibt,
-# ist nicht mehr die Antwort, die der Server geschickt hat.
-apps/directus/extensions/app/src/redaktion/entsorgung/__fixtures__/* -text

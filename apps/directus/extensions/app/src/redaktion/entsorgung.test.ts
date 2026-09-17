@@ -14,7 +14,6 @@ import {
   beruehrtInhalt,
   ruecksetzungTermin,
   wochentagName,
-  routineWarnungen,
   wochentagWarnung,
   type ExtrahierterTermin,
   type GespeicherterTermin
@@ -833,63 +832,5 @@ describe('parseExtraktion mit Sammel-Etiketten (Allschwil-Fall)', () => {
 
     expect(extraktion.termine).toHaveLength(4)
     expect(extraktion.hinweise).toHaveLength(1)
-  })
-})
-
-describe('routineWarnungen', () => {
-  function termin(kategorie: string, tag: number): ExtrahierterTermin {
-    return {
-      kategorie,
-      zone: null,
-      datum: `2026-01-${String(tag).padStart(2, '0')}`,
-      wochentag_laut_pdf: null,
-      bereitstellung: null,
-      anmeldung: null,
-      anmeldeschluss: null,
-      anmeldeschluss_zeit: null
-    }
-  }
-
-  it('meldet eine woechentliche Routine, die als Einzeltermine dasteht', () => {
-    // Der Prompt bittet darum, eine woechentliche Abfuhr nach `regelmaessig`
-    // zu legen. Zaehlt das Modell die Markierungen doch ab, fuellt sich das
-    // Jahr mit 52 Erinnerungen fuer etwas, das jeder Einwohner kennt.
-    const viele = Array.from({ length: 52 }, (_, i) =>
-      termin('Hauskehricht', (i % 28) + 1)
-    )
-
-    expect(routineWarnungen(viele)).toEqual([
-      '"Hauskehricht" steht 52 Mal als Einzeltermin. In diesem Rhythmus ist ' +
-        'das ueblicherweise eine regelmaessige Abfuhr, und die gehoert nicht ' +
-        'als Termin auf den Tisch. Bitte pruefen.'
-    ])
-  })
-
-  it('schweigt bei einer Gruenabfuhr im Zweiwochentakt', () => {
-    // 26 Termine im Jahr sind in mancher Gemeinde genau richtig. Gemeldet wird
-    // erst, was kein Rhythmus mehr erklaert.
-    const zweiwoechentlich = Array.from({ length: 26 }, (_, i) =>
-      termin('Gruenabfuhr', (i % 28) + 1)
-    )
-
-    expect(routineWarnungen(zweiwoechentlich)).toEqual([])
-  })
-
-  it('schweigt bei Abfuhren, die keine Routine sind', () => {
-    const viele = Array.from({ length: 52 }, (_, i) =>
-      termin('Papier- und Kartonsammlung', (i % 28) + 1)
-    )
-
-    expect(routineWarnungen(viele)).toEqual([])
-  })
-
-  it('meldet nur, streicht nie', () => {
-    // Eine Fehllesung hinter einem richtig aussehenden Ergebnis zu verstecken
-    // waere schlimmer als die Fehllesung.
-    const viele = Array.from({ length: 52 }, (_, i) =>
-      termin('Hauskehricht', (i % 28) + 1)
-    )
-
-    expect(viele).toHaveLength(52)
   })
 })

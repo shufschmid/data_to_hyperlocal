@@ -174,12 +174,6 @@ import {
   ergaenzeVorgeschichte,
   type VorgeschichteRohzeile
 } from '../../redaktion/vorgeschichte'
-import {
-  alsExtraktion,
-  istDeterministisch,
-  liesQuelle
-} from '../../redaktion/entsorgung/deterministisch'
-import { holeQuelle } from '../../redaktion/entsorgung/quelle'
 import { konfiguration as zettelkastenKonfiguration } from '../../shared/zettelkasten'
 import { agendaSchluessel } from '../../shared/agenda'
 import { ladeTabelle, StatblFehler, tabellenId } from '../../shared/statbl'
@@ -294,11 +288,6 @@ const NochNichtGeprueft = createError(
 const KeinPdfAmKalender = createError(
   'NO_PDF_STORED',
   'Zu diesem Kalender ist kein PDF hinterlegt.',
-  400
-)
-const KeineQuelladresse = createError(
-  'NO_SOURCE_URL',
-  'Dieser Kalender wird maschinenlesbar gelesen, aber es ist keine Quelladresse hinterlegt.',
   400
 )
 const ErinnerungenLaufenBereits = createError(
@@ -4596,13 +4585,7 @@ export default defineEndpoint(
           return next(uebersetze(error))
         }
 
-        let kalender: {
-          id: string
-          jahr: number
-          lesart: string | null
-          quelladresse: string | null
-          gemeinde: { name: string }
-        }
+        let kalender: { id: string; jahr: number; gemeinde: { name: string } }
         let dokumente: Array<{
           id: string
           zone: string | null
@@ -4610,7 +4593,7 @@ export default defineEndpoint(
         }>
         try {
           kalender = (await kalenderService.readOne(id, {
-            fields: ['id', 'jahr', 'lesart', 'quelladresse', 'gemeinde.name']
+            fields: ['id', 'jahr', 'gemeinde.name']
           })) as typeof kalender
 
           dokumente = (await dokumenteService.readByQuery({
@@ -4620,153 +4603,14 @@ export default defineEndpoint(
             limit: -1
           })) as typeof dokumente
 
-          // A machine-readable calendar has no PDF, and demanding one would
-          // make the cheap path impossible. The check stays for the model path,
-          // where a calendar without a document is nothing to read.
           if (
-            !istDeterministisch(kalender.lesart) &&
-            (dokumente.length === 0 || dokumente.every((d) => d.pdf === null))
+            dokumente.length === 0 ||
+            dokumente.every((d) => d.pdf === null)
           ) {
             throw new KeinPdfAmKalender()
           }
         } catch (error) {
           return next(uebersetze(error))
-        }
-
-        // --- The cheap path: read the source, no model call at all.
-        //
-        // Same contract as the model path — 202 and detached, the statuses on
-        // the rows are what the desk polls — although this takes a second
-        // rather than minutes. One way in, one way to watch it.
-        if (istDeterministisch(kalender.lesart)) {
-          const adresse = (kalender.quelladresse ?? '').trim()
-          if (adresse === '') return next(new KeineQuelladresse())
-          if (laufendeExtraktionen.has(id)) {
-            return next(new ExtraktionLaeuftBereits())
-          }
-          laufendeExtraktionen.add(id)
-
-          const lesart = kalender.lesart
-          const jahr = kalender.jahr
-          try {
-            await kalenderService.updateOne(id, {
-              status: 'liest',
-              fehler: null
-            })
-          } catch (error) {
-            laufendeExtraktionen.delete(id)
-            return next(uebersetze(error))
-          }
-
-          const lesen = async (): Promise<void> => {
-            const text = await holeQuelle(adresse, {
-              kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch')
-            })
-            const gelesen = liesQuelle(lesart, text)
-            const extraktion = alsExtraktion(gelesen, { jahr, zone: null })
-
-            // Scoped to the whole calendar, not to this path's own rows. A
-            // calendar has ONE Lesart, so once it is read from the source, the
-            // Termine an earlier PDF produced are stale by definition — and
-            // leaving them would mean two reminders for the same collection.
-            // Switching the Lesart therefore converges in one run, and
-            // `diffTermine` invalidates the reminders of what it removes.
-            const bestehende = (await termineService.readByQuery({
-              filter: { kalender: { _eq: id } },
-              fields: [
-                'id',
-                'kategorie',
-                'zone',
-                'datum',
-                'bereitstellung',
-                'anmeldung',
-                'anmeldeschluss',
-                'anmeldeschluss_zeit',
-                'geprueft',
-                'meldung'
-              ],
-              limit: -1
-            })) as GespeicherterTermin[]
-
-            const diff = diffTermine(bestehende, extraktion.termine)
-            for (const termin of diff.anlegen) {
-              await termineService.createOne({
-                kalender: id,
-                dokument: null,
-                ...terminFelder(termin),
-                geprueft: false
-              })
-            }
-            for (const eintrag of diff.aktualisieren) {
-              await termineService.updateOne(eintrag.id, {
-                ...terminFelder(eintrag.termin),
-                geprueft: false,
-                meldung: null
-              })
-            }
-            for (const termin of diff.loeschen) {
-              await termineService.deleteOne(termin.id)
-            }
-            for (const meldungId of diff.invalidiereMeldungen) {
-              await invalidiereErinnerung(schema, meldungId)
-            }
-
-            await kalenderService.updateOne(id, {
-              status: 'extrahiert',
-              merkblatt: merkblattGesamt([{ zone: null, extraktion }]),
-              fehler: null
-            })
-
-            const befund = {
-              lesart,
-              quelle: adresse,
-              gelesen: gelesen.length,
-              termine: extraktion.termine.length,
-              routine: extraktion.regelmaessig.length,
-              neu: diff.anlegen.length,
-              aktualisiert: diff.aktualisieren.length,
-              geloescht: diff.loeschen.length,
-              invalidiert: diff.invalidiereMeldungen.length
-            }
-            // A run that finds nothing says so. The lesson from the Redaktion
-            // bridge: a silent run looked exactly like a day without news, and
-            // the stock would have stayed a day behind for ever.
-            if (gelesen.length === 0) {
-              logger.warn(
-                befund,
-                'redaktion: Abfuhrkalender gelesen, die Quelle nannte keinen Termin'
-              )
-            } else {
-              logger.info(
-                befund,
-                'redaktion: Abfuhrkalender ohne Modell gelesen'
-              )
-            }
-          }
-
-          void lesen()
-            .catch(async (fehler) => {
-              logger.error(
-                fehler,
-                'redaktion: Abfuhrkalender ohne Modell lesen fehlgeschlagen'
-              )
-              try {
-                await kalenderService.updateOne(id, {
-                  status: 'fehler',
-                  fehler: fehlerText(fehler)
-                })
-              } catch (schreibfehler) {
-                logger.warn(
-                  schreibfehler,
-                  'redaktion: Fehler am Kalender nicht notiert'
-                )
-              }
-            })
-            .finally(() => {
-              laufendeExtraktionen.delete(id)
-            })
-
-          return res.status(202).json({ data: { gestartet: 1, lesart } })
         }
 
         if (laufendeExtraktionen.has(id)) {
@@ -4792,23 +4636,6 @@ export default defineEndpoint(
         }
 
         const auslesen = async (): Promise<void> => {
-          // The same switch, the other way round: this calendar was read from
-          // a machine-readable source before and is read from its PDF now, so
-          // the rows of that source are stale. Their reminders are invalidated
-          // first, because a reminder whose Termin is gone is a reminder about
-          // nothing.
-          const ausDerQuelle = (await termineService.readByQuery({
-            filter: { kalender: { _eq: id }, dokument: { _null: true } },
-            fields: ['id', 'meldung'],
-            limit: -1
-          })) as Array<{ id: string; meldung: string | null }>
-          for (const termin of ausDerQuelle) {
-            if (termin.meldung !== null) {
-              await invalidiereErinnerung(schema, termin.meldung)
-            }
-            await termineService.deleteOne(termin.id)
-          }
-
           // One Opus call per document. Per-document try/catch, so a broken
           // Zone-1 PDF never costs Zone 2 its year — municipalities like
           // Riehen print one calendar per zone, and each stands on its own.

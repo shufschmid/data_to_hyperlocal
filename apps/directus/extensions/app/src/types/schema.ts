@@ -534,34 +534,9 @@ export interface Entsorgungskalender {
   status: KalenderStatus
   /** The regular collections, kept as a note — they deliberately produce no reminders. */
   merkblatt: string | null
-  /**
-   * How this calendar is read.
-   *
-   * `pdf` is the model path and the default: the printed calendar read by Opus
-   * with the weekday as a cross-check. `ics` and `icms` read the machine-
-   * readable source at `quelladresse` with no model call at all — three of the
-   * five municipalities measured publish the same dates that way. What differs
-   * is the price and the checkability, not the trust: the Freigabe is the same
-   * in all three cases.
-   */
-  lesart: Lesart
-  /** The address of the machine-readable source, typed by a person. */
-  quelladresse: string | null
-  /**
-   * Why reading the machine-readable source failed.
-   *
-   * The model path keeps its reason on the document — there is one per zone.
-   * The deterministic path has no document, so without this field a failed run
-   * would show a red status and no reason, which is the kind of silence this
-   * project refuses.
-   */
-  fehler: string | null
   date_created: string | null
   date_updated: string | null
 }
-
-/** How a waste calendar is read. `pdf` is the model path. */
-export type Lesart = 'pdf' | 'ics' | 'icms'
 
 export type DokumentStatus = 'hochgeladen' | 'extrahiert' | 'fehler'
 
