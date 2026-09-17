@@ -230,6 +230,7 @@ describe('ohnePlz', () => {
       news_url: null,
       news_letzte_pruefung: null,
       news_letzter_fehler: null,
+      suedanflug: false,
       aktiv: true,
       ...ueber
     }
@@ -249,6 +250,7 @@ describe('ohnePlz', () => {
         news_url: null,
         news_letzte_pruefung: null,
         news_letzter_fehler: null,
+        suedanflug: false,
         aktiv: false
       })
     ])

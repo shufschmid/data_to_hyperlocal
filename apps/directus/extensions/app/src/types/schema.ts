@@ -258,6 +258,12 @@ export interface Meldung {
    */
   sendungskandidat: string | null
   /**
+   * Set for articles written from a month of the EuroAirport's ILS-33
+   * statistics. Null otherwise — the seventh kind, and the second that is a
+   * statistics article without a `lauf`.
+   */
+  suedanflugquote: string | null
+  /**
    * Mirror of the candidate's Perle verdict, for downstream readers of
    * published press reviews. The Chefredaktion decides on the CANDIDATE
    * (`wochenblattkandidaten.perle`) — independent of whether a Meldung ever
@@ -427,6 +433,7 @@ export type WissenBereich =
   | 'amtsblatt'
   | 'gemeinde'
   | 'sendung'
+  | 'suedanflug'
 /** A Sichtung rule steers what is proposed; a text rule, how a Meldung is written. */
 export type WissenStufe = 'sichtung' | 'text'
 /** `weiterreichen` lets a Sichtung hand a matching proposal to the Chefredaktion by itself. */

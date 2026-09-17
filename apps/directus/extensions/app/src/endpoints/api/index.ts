@@ -44,6 +44,9 @@ const FELDER = [
   'lauf.datensatz.ankuendigung.link',
   'kandidat',
   'sendungskandidat',
+  // The second kind of statistics article; its address lives in
+  // `datengrundlage`, not behind a run.
+  'suedanflugquote',
   'amtsblattmeldung.quelle_typ',
   'gemeindemitteilung',
   'spiel.sportart',
@@ -209,6 +212,7 @@ export default defineEndpoint(
             'amtsblattmeldung',
             'gemeindemitteilung',
             'sendungskandidat',
+            'suedanflugquote',
             'erscheint_am',
             'date_created',
             'freigegeben_am',

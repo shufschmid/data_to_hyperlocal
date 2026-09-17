@@ -29,6 +29,7 @@ function zeile(ueber: Partial<Rohzeile> = {}): Rohzeile {
     lauf: null,
     kandidat: null,
     sendungskandidat: null,
+    suedanflugquote: null,
     amtsblattmeldung: null,
     gemeindemitteilung: null,
     spiel: null,
@@ -98,6 +99,30 @@ describe('rubrikVon', () => {
     expect(rubrikVon(zeile({ erscheint_am: '2026-09-04' }))).toBe('entsorgung')
     expect(rubrikVon(zeile({ kandidat: 'k-1' }))).toBe('presseschau')
     expect(rubrikVon(zeile({ sendungskandidat: 's-1' }))).toBe('sendung')
+  })
+
+  // Die Suedanflug-Quote ist bewusst KEINE eigene Rubrik: ein Abnehmer, der
+  // die sieben Werte kennt, muesste sonst einen achten lernen. Was sie
+  // unterscheidet, ist `quelle_name`.
+  it('liefert die Suedanflug-Quote als statistik, nicht als eigene Rubrik', () => {
+    expect(rubrikVon(zeile({ suedanflugquote: 'q-1' }))).toBe('statistik')
+  })
+
+  it('nennt beim Suedanflug den Flughafen und das Monatsblatt', () => {
+    const quelle = quelleVon(
+      zeile({
+        suedanflugquote: 'q-1',
+        datengrundlage: {
+          quelle: 'euroairport',
+          quelle_name: 'EuroAirport',
+          url: 'https://www.euroairport.com/sites/default/files/medias/file/2026/08/Utilisation_ILS33_pour_2026_WEBv0_07.pdf'
+        }
+      }),
+      'statistik'
+    )
+
+    expect(quelle.name).toBe('EuroAirport')
+    expect(quelle.url).toContain('Utilisation_ILS33_pour_2026_WEBv0_07.pdf')
   })
 
   // Die Unterscheidung amtsblatt/beschaffung kommt aus der RELATION: der

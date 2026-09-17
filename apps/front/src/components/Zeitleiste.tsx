@@ -16,7 +16,7 @@ import {
   type ZeitleistenErgebnis
 } from '@/lib/redaktion'
 import { LaufBerichte } from './LaufBerichte'
-import type { MeldungAktion, MeldungAktionKoerper } from './MeldungKarte'
+import { MeldungKarte, type MeldungAktion, type MeldungAktionKoerper } from './MeldungKarte'
 
 // Woher unser Material kommt — in einer Liste, nach Datum.
 //
@@ -36,7 +36,8 @@ const HERKUNFT: Record<
 > = {
   agenda: { label: 'Agenda', farbe: 'info' },
   portal: { label: 'Portal', farbe: 'default' },
-  datensatz: { label: 'data.bl.ch', farbe: 'success' }
+  datensatz: { label: 'data.bl.ch', farbe: 'success' },
+  suedanflug: { label: 'EuroAirport', farbe: 'default' }
 }
 
 export interface ZeitleisteProps {
@@ -54,6 +55,15 @@ export interface ZeitleisteProps {
   /** „Vergiss es" — dauerhaft, die tägliche Prüfung holt es nicht zurück. */
   onVerwerfen: (eintrag: ZeitleistenEintrag) => void
   onMehr: () => void
+  /**
+   * Die Gemeinden unter der Anflugschneise — redaktionelles Wissen, kein Feld
+   * der Quelle. Leer heisst: die Quote steht da, aber niemand ist erfasst, und
+   * die Zeile sagt das statt einen Knopf ins Leere zu zeigen.
+   */
+  suedanflugGemeinden?: readonly { id: string; name: string }[]
+  /** Die Meldungen je Monatsblatt, eine je Gemeinde. */
+  berichteZuSuedanflug?: Map<string, AlleMeldungFelder[]>
+  onSuedanflugMeldung?: (quoteId: string, gemeindeId: string) => Promise<void>
 }
 
 export function Zeitleiste({
@@ -67,7 +77,10 @@ export function Zeitleiste({
   onAktion,
   onAuftrag,
   onVerwerfen,
-  onMehr
+  onMehr,
+  suedanflugGemeinden,
+  berichteZuSuedanflug,
+  onSuedanflugMeldung
 }: ZeitleisteProps) {
   // Einmal gebuendelt statt in jeder Zeile: `Zeile` bekommt nur, was sie
   // betrifft, und die Signatur bleibt lesbar.
@@ -77,7 +90,10 @@ export function Zeitleiste({
     onStapelChat,
     onStapelAktion,
     onChat,
-    onAktion
+    onAktion,
+    suedanflugGemeinden,
+    zuSuedanflug: berichteZuSuedanflug,
+    onSuedanflugMeldung
   }
   const quartale = nachQuartal(ergebnis.ohneDatum)
 
@@ -145,6 +161,9 @@ interface BerichteBuendel {
   onStapelAktion?: (laufId: string, aktion: 'pruefung' | 'publizieren') => Promise<void>
   onChat?: (id: string, anweisung: string) => Promise<void>
   onAktion?: (id: string, aktion: MeldungAktion, koerper?: MeldungAktionKoerper) => Promise<void>
+  suedanflugGemeinden?: readonly { id: string; name: string }[]
+  zuSuedanflug?: Map<string, AlleMeldungFelder[]>
+  onSuedanflugMeldung?: (quoteId: string, gemeindeId: string) => Promise<void>
 }
 
 interface ZeileProps {
@@ -237,6 +256,20 @@ function Zeile({ eintrag, laeuft, berichte, onAuftrag, onVerwerfen }: ZeileProps
         </Box>
       )}
 
+      {eintrag.herkunft === 'suedanflug' && (
+        <Box sx={{ gridColumn: '1 / -1', minWidth: 0 }}>
+          <Suedanflug
+            eintrag={eintrag}
+            laeuft={laeuft}
+            gemeinden={berichte.suedanflugGemeinden ?? []}
+            meldungen={eintrag.quoteId === null ? [] : (berichte.zuSuedanflug?.get(eintrag.quoteId) ?? [])}
+            onMeldung={berichte.onSuedanflugMeldung}
+            onChat={berichte.onChat}
+            onAktion={berichte.onAktion}
+          />
+        </Box>
+      )}
+
       {/* Was der Katalog über den Datensatz sagt — damit sich das „vergiss es"
           auf etwas stützt und nicht auf den Titel allein. */}
       {eintrag.herkunft === 'datensatz' && (
@@ -254,6 +287,80 @@ function Zeile({ eintrag, laeuft, berichte, onAuftrag, onVerwerfen }: ZeileProps
         </Box>
       )}
     </Box>
+  )
+}
+
+interface SuedanflugProps {
+  eintrag: ZeitleistenEintrag
+  laeuft: boolean
+  gemeinden: readonly { id: string; name: string }[]
+  meldungen: readonly AlleMeldungFelder[]
+  onMeldung?: (quoteId: string, gemeindeId: string) => Promise<void>
+  onChat?: (id: string, anweisung: string) => Promise<void>
+  onAktion?: (id: string, aktion: MeldungAktion, koerper?: MeldungAktionKoerper) => Promise<void>
+}
+
+/**
+ * Was unter einer Monatszeile steht.
+ *
+ * Ein Knopf je betroffener Gemeinde, und sobald eine Meldung existiert, ihre
+ * Karte an derselben Stelle — das Muster der Presseschau. Die Gemeinden kommen
+ * aus `gemeinden.suedanflug` und nicht aus der Quelle: der Flughafen erhebt
+ * eine Quote fuer sich, nicht je Gemeinde. Ist keine erfasst, sagt die Zeile
+ * das, statt einen Knopf ins Leere zu zeigen.
+ */
+function Suedanflug({ eintrag, laeuft, gemeinden, meldungen, onMeldung, onChat, onAktion }: SuedanflugProps) {
+  const quoteId = eintrag.quoteId
+  if (quoteId === null) return null
+
+  return (
+    <Stack spacing={1} sx={{ pt: 0.5 }}>
+      {eintrag.befunde.length > 0 && (
+        <Typography variant="body2" color="warning.main">
+          {eintrag.befunde.join(' · ')}
+        </Typography>
+      )}
+
+      {gemeinden.length === 0 ? (
+        <Typography variant="body2" color="text.secondary">
+          Keine Gemeinde ist als Südanflug-Gemeinde erfasst. Trage sie in der Gemeinden-Karte ein.
+        </Typography>
+      ) : (
+        <Stack spacing={1}>
+          {gemeinden.map((gemeinde) => {
+            const meldung = meldungen.find((m) => m.gemeinde?.id === gemeinde.id)
+            if (meldung !== undefined) {
+              return (
+                <MeldungKarte
+                  key={gemeinde.id}
+                  meldung={meldung}
+                  laeuft={laeuft}
+                  kompakt
+                  onChat={async (id, anweisung) => {
+                    await onChat?.(id, anweisung)
+                  }}
+                  onAktion={async (id, was, koerper) => {
+                    await onAktion?.(id, was, koerper)
+                  }}
+                />
+              )
+            }
+            return (
+              <Box key={gemeinde.id}>
+                <Button
+                  size="small"
+                  variant={eintrag.vorschlag ? 'contained' : 'outlined'}
+                  disabled={laeuft}
+                  onClick={() => void onMeldung?.(quoteId, gemeinde.id)}
+                >
+                  Meldung erzeugen · {gemeinde.name}
+                </Button>
+              </Box>
+            )
+          })}
+        </Stack>
+      )}
+    </Stack>
   )
 }
 
@@ -290,6 +397,18 @@ function Aktion({ eintrag, laeuft, onAuftrag }: Pick<ZeileProps, 'eintrag' | 'la
       <Typography variant="body2" color="text.disabled">
         geändert
       </Typography>
+    )
+  }
+
+  // Die Suedanflug-Zeile traegt ihre Knoepfe darunter, einen je betroffener
+  // Gemeinde. Hier oben steht nur, ob eine Schwelle gerissen wurde — das ist
+  // der Vorschlag, und er ist eine Markierung, keine Meldung.
+  if (eintrag.herkunft === 'suedanflug') {
+    if (!eintrag.vorschlag) return null
+    return (
+      <Tooltip title={eintrag.hinweis ?? ''}>
+        <Chip size="small" color="warning" label="Schwelle überschritten" />
+      </Tooltip>
     )
   }
 

@@ -75,6 +75,7 @@ const ZEILE: Rohzeile = {
   lauf: null,
   kandidat: null,
   sendungskandidat: 's-1',
+  suedanflugquote: null,
   amtsblattmeldung: null,
   gemeindemitteilung: null,
   spiel: null,

@@ -69,6 +69,8 @@ export interface Rohzeile {
     | null
   kandidat: string | null
   sendungskandidat: string | null
+  /** Set for an article written from a month of the EuroAirport's ILS-33 sheet. */
+  suedanflugquote: string | null
   amtsblattmeldung: { quelle_typ: string | null } | string | null
   /** Set for articles written from a municipality's own news page. */
   gemeindemitteilung: string | null
@@ -224,9 +226,16 @@ function quelleTypVon(zeile: Rohzeile): string | null {
  * `beschaffung` comes from the RELATION, not from `datengrundlage`: the gazette
  * desk stores `quelle: 'amtsblatt'` for simap rows too, so only
  * `amtsblattmeldungen.quelle_typ` tells the two apart.
+ *
+ * The south-approach quota is `statistik` and deliberately not a rubrik of its
+ * own. A consumer that already knows the seven values would have to learn an
+ * eighth for one municipality's aircraft, and a new rubrik is a decision for
+ * the consumer's side of this contract, not a side effect of building the
+ * feed. What tells it apart is `quelle_name: 'EuroAirport'`.
  */
 export function rubrikVon(zeile: Rohzeile): Rubrik | null {
   if (zeile.lauf !== null) return 'statistik'
+  if (zeile.suedanflugquote !== null) return 'statistik'
   if (zeile.spiel !== null) return 'sport'
   if (zeile.erscheint_am !== null) return 'entsorgung'
   if (zeile.kandidat !== null) return 'presseschau'
@@ -293,6 +302,18 @@ export function quelleVon(zeile: Rohzeile, rubrik: Rubrik | null): Quelle {
 
   switch (rubrik) {
     case 'statistik': {
+      // Two kinds of statistics article share this rubrik, and they have
+      // nothing in common but the word. The south-approach one names the
+      // airport and carries the month's own PDF, written into
+      // `datengrundlage` by the desk for exactly this reader; the portal one
+      // derives its address from the dataset behind its run.
+      if (zeile.suedanflugquote !== null) {
+        return {
+          name: text(daten['quelle_name']) ?? 'EuroAirport',
+          url: text(daten['url'])
+        }
+      }
+
       // Name and address from the same call: a second portal that delivered
       // its own address under the first portal's office would be worse than
       // either error alone.

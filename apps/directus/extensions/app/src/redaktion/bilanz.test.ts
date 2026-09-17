@@ -12,6 +12,7 @@ function zeile(teil: Partial<BilanzZeile> = {}): BilanzZeile {
     amtsblattmeldung: null,
     gemeindemitteilung: null,
     sendungskandidat: null,
+    suedanflugquote: null,
     erscheint_am: null,
     date_created: '2026-09-15T08:00:00.000Z',
     freigegeben_am: null,
