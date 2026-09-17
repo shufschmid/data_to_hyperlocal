@@ -37,9 +37,10 @@ const ERLAUBT: RegExp[] = [
   /^amtsblatt\/[0-9a-f-]{36}\/(meldung|ablehnen|weiterreichen|unterlagen)$/i
 ]
 
-// The one read this proxy carries: the state of a hand-started scrape run.
-// Everything else the workspace reads goes through GraphQL.
-const LESBAR: RegExp[] = [/^quellen\/lauf$/i, /^gemeindeseiten\/lauf$/i]
+// Die zwei Laeufe und die Bilanz: der Zustand eines von Hand gestarteten Laufs
+// lebt im Prozess der Erweiterung, und die Bilanz ist eine Rechnung ueber alle
+// Tische. Alles andere, was der Arbeitsplatz liest, geht ueber GraphQL.
+const LESBAR: RegExp[] = [/^quellen\/lauf$/i, /^gemeindeseiten\/lauf$/i, /^bilanz$/i]
 
 export async function GET(_request: Request, { params }: { params: Promise<{ pfad: string[] }> }) {
   const { pfad } = await params

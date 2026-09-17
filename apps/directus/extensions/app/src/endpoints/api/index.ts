@@ -4,6 +4,7 @@ import { envFlag, optionalEnv } from '../../shared/env'
 import { verdrahte, type Deps, type RouterLike } from './routen'
 import type { Abfrage } from './routen'
 import type { GemeindeZeile, Korrekturzeile, Rohzeile } from './projektion'
+import type { BilanzZeile } from '../../redaktion/bilanz'
 
 // The public read-only API for the published articles, mounted at `/api/v1/…`.
 //
@@ -104,6 +105,30 @@ export default defineEndpoint(
       return filter
     }
 
+    /**
+     * Everything the balance has to look at: what waits, plus what carries a
+     * stamp inside the window.
+     *
+     * A day of slack on the window, and deliberately: this filter uses the
+     * database's clock, the counting uses `deps.jetzt()`, and a row exactly on
+     * the edge must not fall between the two. The pure function filters by the
+     * stamps again, so a row too many costs nothing and a row too few would be a
+     * wrong number.
+     */
+    function bilanzFilterVon(fensterTage: number): Filter {
+      const ab = new Date(
+        Date.now() - (fensterTage + 1) * 86_400_000
+      ).toISOString()
+      return {
+        _or: [
+          { status: { _in: ['entwurf', 'in_pruefung', 'freigegeben'] } },
+          { publiziert_am: { _gte: ab } },
+          { freigegeben_am: { _gte: ab } },
+          { zurueckgezogen_am: { _gte: ab } }
+        ]
+      }
+    }
+
     async function meldungen(): Promise<InstanceType<typeof ItemsService>> {
       return new ItemsService('meldungen', { schema: await getSchema() })
     }
@@ -162,6 +187,32 @@ export default defineEndpoint(
         const roh = zaehlung[0]?.count?.id
         const zahl = Number(roh)
         return Number.isFinite(zahl) ? zahl : 0
+      },
+
+      async ladeBilanzZeilen(fensterTage) {
+        const dienst = await meldungen()
+        // No limit, on purpose: a capped read would quietly produce a wrong
+        // number instead of a missing one, and there is no way for a reader to
+        // tell. The window is bounded at a year and the field list is twelve
+        // scalar columns, which is what keeps this affordable.
+        return (await dienst.readByQuery({
+          filter: bilanzFilterVon(fensterTage),
+          fields: [
+            'status',
+            'lauf',
+            'spiel',
+            'kandidat',
+            'amtsblattmeldung',
+            'gemeindemitteilung',
+            'sendungskandidat',
+            'erscheint_am',
+            'date_created',
+            'freigegeben_am',
+            'publiziert_am',
+            'zurueckgezogen_am'
+          ],
+          limit: -1
+        })) as unknown as BilanzZeile[]
       },
 
       async ladeGemeinden() {

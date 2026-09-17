@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   fehler,
   istKennung,
+  leseFenster,
   leseGrenze,
   leseSeit,
   leseVersatz
@@ -14,6 +15,32 @@ describe('fehler', () => {
     expect(fehler('nicht_gefunden', 'Gibt es nicht.')).toEqual({
       fehler: { code: 'nicht_gefunden', meldung: 'Gibt es nicht.' }
     })
+  })
+})
+
+describe('leseFenster', () => {
+  it('nimmt die Woche, wenn nichts dasteht', () => {
+    expect(leseFenster(undefined)).toEqual({ ok: true, wert: 7 })
+    expect(leseFenster('')).toEqual({ ok: true, wert: 7 })
+  })
+
+  it('nimmt eine Zahl im erlaubten Bereich', () => {
+    expect(leseFenster('1')).toEqual({ ok: true, wert: 1 })
+    expect(leseFenster('365')).toEqual({ ok: true, wert: 365 })
+  })
+
+  it('weist ab, was kein brauchbares Fenster ist', () => {
+    // Die Obergrenze ist keine Zierde: die Bilanz liest jede wartende Zeile,
+    // und ein unbegrenztes Fenster machte aus einer Auskunft einen Tabellenlauf.
+    for (const roh of ['0', '-1', '366', 'viele', '1e3', '1.5']) {
+      const gelesen = leseFenster(roh)
+      expect(gelesen.ok, `fenster=${roh}`).toBe(false)
+      if (!gelesen.ok) expect(gelesen.meldung).toContain('fenster')
+    }
+  })
+
+  it('weist zwei Antworten auf eine Frage ab', () => {
+    expect(leseFenster(['7', '30']).ok).toBe(false)
   })
 })
 

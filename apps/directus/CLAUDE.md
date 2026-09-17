@@ -182,7 +182,12 @@ export default defineEndpoint((router, { services, getSchema, logger }) => {
   the route REGISTER drives both the router and `/beschreibung`+`/openapi.json`
   (a route cannot be undocumented, and the tests compare both directions), and
   every outside thing is injected, so the whole API is unit-tested without a
-  database. The switch `BLOG_API_OFFEN` is explicit and never a fallback.
+  database. The switch `BLOG_API_OFFEN` is explicit and never a fallback — and
+  it gates `inhalt: true`, which is not the same as «carries an article»:
+  `/api/v1/bilanz` serves nothing but counters and sits behind the switch all
+  the same, because how much unpublished work lies inside is not less private
+  than what has already gone out. A monitor that only needs to know whether the
+  service carries asks `/api/v1/gesundheit`, which answers either way.
   Contract for consumers: [SCHNITTSTELLE.md](SCHNITTSTELLE.md).
 - **The one endpoint gated by a key instead of a login:** `src/endpoints/sokrates/`
   (`GET /sokrates/sendungen`) serves the day's Regionaljournal editions —

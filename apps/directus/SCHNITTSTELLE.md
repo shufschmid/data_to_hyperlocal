@@ -46,6 +46,7 @@ Byte für Byte dieselbe Antwort wie ohne. **Empfehlung für Abnehmer: keinen
 | `GET /api/v1/artikel`      | Die publizierten Beiträge, neueste zuerst     | ja      |
 | `GET /api/v1/artikel/{id}` | Ein Beitrag, gleiche Form wie in der Liste    | ja      |
 | `GET /api/v1/korrekturen`  | Beiträge, die zurückgezogen wurden            | ja      |
+| `GET /api/v1/bilanz`       | Wie viel auf welchem Tisch liegt, in Zahlen   | ja      |
 | `GET /api/v1/gemeinden`    | Die bespielten Gemeinden mit ihren Kennungen  | ja      |
 
 Die drei ersten antworten auch bei abgeschalteter Schnittstelle — ein Wächter
@@ -192,6 +193,49 @@ schlimmer als die Lücke.
 `quelle_url: null` ist eine echte Antwort, keine Lücke: besser keine Adresse als
 eine erfundene.
 
+## Bilanz
+
+`GET /api/v1/bilanz` sagt, wie viel auf welchem Tisch liegt und wie lange schon.
+**Nur Mengen und Tage** — kein Titel, kein Lead, kein Text, kein Name. Der Weg
+ist für einen Wächter gedacht, der die Frage beantworten soll, die kein Beitrag
+beantwortet: staut es sich, und wo.
+
+Gezählt werden die Beiträge, nicht die Vorschläge auf den Sichtungstischen. Jeder
+Tisch entscheidet selbst, was dort «offen» heisst, und diese Regeln hier
+nachzubauen hiesse, eine zweite Wahrheit zu führen. Was alle Tische teilen, ist
+der Beitrag, den sie hervorbringen.
+
+| Feld           | Typ     | Bedeutung                                                     |
+| -------------- | ------- | ------------------------------------------------------------- |
+| `stand`        | string  | ISO 8601 in UTC, der Zeitpunkt der Messung                    |
+| `fenster_tage` | integer | wie weit die Wochenzahlen zurückreichen (Parameter `fenster`) |
+| `medium`       | string  | wie beim Beitrag                                              |
+| `gesamt`       | Objekt  | dieselben Felder wie eine Tischzeile, über alle Tische        |
+| `tische[]`     | Liste   | je Tisch eine Zeile, immer alle acht                          |
+
+Je Tisch:
+
+| Feld                        | Typ             | Bedeutung                                                                                          |
+| --------------------------- | --------------- | -------------------------------------------------------------------------------------------------- |
+| `tisch`                     | enum            | `statistik`, `sport`, `presseschau`, `amtsblatt`, `gemeindeseite`, `sendung`, `entsorgung`, `ohne` |
+| `offen`                     | integer         | wartet auf einen Menschen (`entwurf`, `in_pruefung`)                                               |
+| `freigegeben`               | integer         | unterschrieben, wartet auf den Zeitlauf                                                            |
+| `aeltester_tage`            | integer \| null | Alter des ältesten wartenden Beitrags in ganzen Tagen; `null`, wenn keiner wartet                  |
+| `publiziert_im_fenster`     | integer         | im Fenster publiziert                                                                              |
+| `freigegeben_im_fenster`    | integer         | im Fenster unterschrieben                                                                          |
+| `zurueckgezogen_im_fenster` | integer         | im Fenster zurückgezogen                                                                           |
+
+**Ein Tisch ohne Arbeit fällt nicht heraus**, er steht mit Nullen da: «kommt
+nicht vor» liest sich wie «gibt es nicht» und nicht wie «hat nichts zu tun».
+
+**Verworfene Beiträge kommen nicht vor.** `verworfen` trägt keinen eigenen
+Zeitstempel, und ein Fenster über `date_updated` nennte jedes spätere Speichern
+einen Entscheid. Lieber keine Zahl als eine, die etwas anderes misst als ihr Name.
+
+`bilanz` hängt hinter demselben Schalter wie die Beiträge. Unveröffentlichte
+Arbeit ist nicht weniger privat als veröffentlichte; wer nur wissen will, ob der
+Dienst trägt, fragt `/api/v1/gesundheit`.
+
 ## Fehler
 
 Jede Antwort ausser 2xx ist:
@@ -272,4 +316,5 @@ Ein Rückzug ist kein Feld, sondern ein eigener Weg: `/api/v1/korrekturen`.
 
 _Angelegt am 3. September 2026. Rubrik `gemeinde` ergänzt am 14. September 2026.
 Version 1.1.0 am 15. September 2026: `medium` und `pruefsiegel` je Beitrag, der
-Weg `/korrekturen`. Neue Felder, kein Bruch — wer sie nicht liest, merkt nichts._
+Weg `/korrekturen`. Version 1.2.0 am 17. September 2026: der Weg `/bilanz`. Neue
+Felder und neue Wege, kein Bruch — wer sie nicht liest, merkt nichts._
