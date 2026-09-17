@@ -230,6 +230,20 @@ them is wrong even if it works.
    of them would otherwise sort above the journalism. Its unit of work is one
    calendar — pick it, read it, confirm its dates, write its year — so the tab
    shows one at a time rather than a directory of eighty-seven.
+   **How a calendar is read is a field on it** (`lesart`, default `pdf`).
+   Measured across five municipalities, three of them publish the same dates
+   machine-readably — Riehen an official iCal per zone, Aesch and Pratteln the
+   collection table of their website — and for those a model call buys nothing
+   but a bill and a chance to be wrong. `ics` and `icms` therefore read
+   `quelladresse` with no model call at all (`redaktion/entsorgung/`), `pdf`
+   keeps the Opus pass over the printed grid. What does NOT change is the
+   Freigabe: the cheap path is cheaper and checkable, not more trustworthy, and
+   a person confirms its dates exactly as before. A calendar has one Lesart, so
+   switching it replaces the Termine of the other path in one run — two
+   readings of the same year would be two reminders for the same collection.
+   The weekly routines stay out of the Termine on both paths, and both say
+   which categories they classified that way: a whole collection that vanished
+   by mistake has to be visible, not absent.
    „Wochenblätter" (the press review, `presseschau` in code) is the fourth
    feed and deliberately a DESK, not an archive: every municipality's weekly
    paper, watched daily at 09:00 through its public PDF archive. A new issue
