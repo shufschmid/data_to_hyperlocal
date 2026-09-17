@@ -7,6 +7,7 @@ import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
+import { setzeMarke, sitzungsFetch } from '@/lib/marke.client'
 
 export interface LoginFormProps {
   onSuccess: () => void | Promise<void>
@@ -26,18 +27,25 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     setProblem(null)
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await sitzungsFetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       })
 
+      const payload = (await response.json().catch(() => null)) as {
+        errors?: { message?: string }[]
+        data?: { marke?: string }
+      } | null
+
       if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as {
-          errors?: { message?: string }[]
-        } | null
         throw new Error(payload?.errors?.[0]?.message ?? 'Anmeldung fehlgeschlagen.')
       }
+
+      // In the editor's frame the answer carries the sealed session instead of
+      // a cookie the browser would refuse to keep. Into the page's memory, and
+      // nowhere else — see lib/marke.client.ts.
+      if (typeof payload?.data?.marke === 'string') setzeMarke(payload.data.marke)
 
       await onSuccess()
     } catch (cause) {

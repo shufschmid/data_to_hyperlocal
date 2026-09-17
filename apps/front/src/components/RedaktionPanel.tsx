@@ -13,6 +13,7 @@ import Tab from '@mui/material/Tab'
 import Tabs from '@mui/material/Tabs'
 import Typography from '@mui/material/Typography'
 import { LIVE_FETCH_POLICY } from '@/lib/apollo'
+import { sitzungsFetch } from '@/lib/marke.client'
 import {
   ANKUENDIGUNG_DATENSATZ_MUTATION,
   ANKUENDIGUNGEN_QUERY,
@@ -146,7 +147,7 @@ const EINSTELLUNGEN: { wert: Reiter; text: string }[] = [
 ]
 
 async function aktion(pfad: string, body?: unknown): Promise<AktionErgebnis> {
-  const antwort = await fetch(`/api/redaktion/${pfad}`, {
+  const antwort = await sitzungsFetch(`/api/redaktion/${pfad}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     ...(body === undefined ? {} : { body: JSON.stringify(body) })
@@ -435,7 +436,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
   const [bilanz, setBilanz] = useState<WochenzahlBilanz | null>(null)
   const ladeBilanz = useCallback(async () => {
     try {
-      const antwort = await fetch('/api/redaktion/bilanz')
+      const antwort = await sitzungsFetch('/api/redaktion/bilanz')
       if (!antwort.ok) return
       const inhalt = (await antwort.json()) as { data?: WochenzahlBilanz }
       setBilanz(inhalt.data ?? null)
@@ -453,7 +454,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
   const [quellenLaufStatus, setQuellenLaufStatus] = useState<QuellenLaufStatus | null>(null)
   const ladeQuellenLauf = useCallback(async () => {
     try {
-      const antwort = await fetch('/api/redaktion/quellen/lauf')
+      const antwort = await sitzungsFetch('/api/redaktion/quellen/lauf')
       if (!antwort.ok) return
       const inhalt = (await antwort.json()) as { data?: QuellenLaufStatus }
       setQuellenLaufStatus(inhalt.data ?? null)
@@ -495,7 +496,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
   )
   const ladeGemeindeseitenLauf = useCallback(async () => {
     try {
-      const antwort = await fetch('/api/redaktion/gemeindeseiten/lauf')
+      const antwort = await sitzungsFetch('/api/redaktion/gemeindeseiten/lauf')
       if (!antwort.ok) return
       const inhalt = (await antwort.json()) as { data?: GemeindeseitenLaufStatus }
       setGemeindeseitenLaufStatus(inhalt.data ?? null)
@@ -975,7 +976,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             laeuft={sendet}
             onSchliessen={() => setAuftragFuer(null)}
             onTabelle={async (url, vorgabe) => {
-              const antwort = await fetch('/api/redaktion/tabellen', {
+              const antwort = await sitzungsFetch('/api/redaktion/tabellen', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ url, ...(vorgabe === '' ? {} : { vorgabe }) })
@@ -1261,7 +1262,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             // wie viele Dossiers kamen, und verarbeitet sie danach einzeln.
             onPostfach={async () => {
               const pfad = reiter === 'punkt6' ? 'punkt6-dossiers' : 'dossiers'
-              const antwort = await fetch(`/api/${pfad}/ingest`, { method: 'POST' })
+              const antwort = await sitzungsFetch(`/api/${pfad}/ingest`, { method: 'POST' })
               if (!antwort.ok) return null
               const inhalt = (await antwort.json().catch(() => null)) as {
                 data?: { created?: number; dossierIds?: string[] }
@@ -1273,7 +1274,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             }}
             onVerarbeiten={async (dossierId) => {
               const pfad = reiter === 'punkt6' ? 'punkt6-dossiers' : 'dossiers'
-              const antwort = await fetch(`/api/${pfad}/${dossierId}/process`, { method: 'POST' })
+              const antwort = await sitzungsFetch(`/api/${pfad}/${dossierId}/process`, { method: 'POST' })
               if (!antwort.ok) return 'fehlgeschlagen'
               const inhalt = (await antwort.json().catch(() => null)) as {
                 data?: { status?: string }

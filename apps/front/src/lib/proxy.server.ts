@@ -1,7 +1,9 @@
 import 'server-only'
+import { headers } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { directusFetch, refresh, type DirectusSessionTokens } from './directus.server'
 import { istTokenProblem } from './auth'
+import { eigeneHerkunft, ursprungErlaubt } from './rahmen'
 import { clearSession, readSession, writeSession } from './session.server'
 
 // One place where a browser request becomes a Directus request.
@@ -76,6 +78,17 @@ export async function proxyToDirectus(path: string, request: ProxyRequest): Prom
     return problem(401, 'Nicht angemeldet.')
   }
 
+  // The CSRF check the marker needs, and only where it is needed. Outside the
+  // frame the cookie's own `SameSite=Lax` still does this job; inside it, the
+  // cookie rule is given up and this replaces it.
+  if (session.imRahmen && request.method !== 'GET') {
+    const kopfzeilen = await headers()
+    const eigen = eigeneHerkunft(kopfzeilen)
+    if (!ursprungErlaubt(kopfzeilen.get('origin'), eigen, process.env.EDITOR_EINBETTUNG ?? '')) {
+      return problem(403, 'Diese Anfrage kommt von einer fremden Seite.')
+    }
+  }
+
   let rotated: DirectusSessionTokens | null = null
   let accessToken = session.accessToken
 
@@ -117,7 +130,7 @@ export async function proxyToDirectus(path: string, request: ProxyRequest): Prom
     }
   })
 
-  if (rotated !== null) writeSession(response, rotated)
+  if (rotated !== null) await writeSession(response, rotated, session.imRahmen)
 
   return response
 }

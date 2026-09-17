@@ -8,6 +8,8 @@ import CircularProgress from '@mui/material/CircularProgress'
 import Container from '@mui/material/Container'
 import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
+import Alert from '@mui/material/Alert'
+import { loescheMarke, rahmenFehler, sitzungsFetch, uebernehmeFragment } from '@/lib/marke.client'
 import { LoginForm } from './LoginForm'
 import { RedaktionPanel } from './RedaktionPanel'
 
@@ -28,10 +30,11 @@ export function AppShell() {
   // ersten Klick auf true und ein zweiter Klick taete nichts mehr.
   const [blogRuf, setBlogRuf] = useState(0)
   const [state, setState] = useState<State>({ status: 'loading' })
+  const [eintrittsFehler, setEintrittsFehler] = useState<string | null>(null)
 
   const check = useCallback(async () => {
     try {
-      const response = await fetch('/api/auth/session', { cache: 'no-store' })
+      const response = await sitzungsFetch('/api/auth/session', { cache: 'no-store' })
 
       if (!response.ok) {
         setState({ status: 'anonymous' })
@@ -46,11 +49,19 @@ export function AppShell() {
   }, [])
 
   useEffect(() => {
+    // Before anything else: the entry from the editor leaves the sealed session
+    // in the address fragment. This takes it into memory and wipes the address,
+    // so the session check below already carries it.
+    uebernehmeFragment()
+    setEintrittsFehler(rahmenFehler())
     void check()
   }, [check])
 
   async function signOut() {
-    await fetch('/api/auth/logout', { method: 'POST' })
+    await sitzungsFetch('/api/auth/logout', { method: 'POST' })
+    // In the frame there is no cookie to clear, so dropping the marker IS the
+    // sign-out on this side.
+    loescheMarke()
     setState({ status: 'anonymous' })
   }
 
@@ -65,6 +76,11 @@ export function AppShell() {
   if (state.status === 'anonymous') {
     return (
       <Container maxWidth="sm">
+        {eintrittsFehler !== null && (
+          <Alert severity="warning" sx={{ mt: 6 }}>
+            {eintrittsFehler}
+          </Alert>
+        )}
         <LoginForm onSuccess={check} />
       </Container>
     )

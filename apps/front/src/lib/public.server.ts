@@ -14,7 +14,11 @@ import { directusUrl } from './directus.server'
 // prefixes below can be reached, and they are the two approval routes, which
 // authenticate by token themselves.
 
-const ERLAUBTE_PFADE = ['/redaktion/freigabe']
+// `/redaktion/editor-zugang` belongs here for the same reason: the person
+// coming out of the We.Publish editor is not signed in yet — that is the whole
+// point of the door — and the endpoint authenticates the editor's own token
+// itself (audience, signature via `userinfo`, an existing active Directus user).
+const ERLAUBTE_PFADE = ['/redaktion/freigabe', '/redaktion/editor-zugang']
 
 function istErlaubt(pfad: string): boolean {
   // `startsWith` alone would let "/redaktion/freigabe-etwas-anderes" through,
