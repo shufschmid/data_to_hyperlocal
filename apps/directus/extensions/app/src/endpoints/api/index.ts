@@ -37,6 +37,10 @@ const FELDER = [
   // derived from (`statistikUrl`). The article's own text often carries none.
   'lauf.datensatz.externe_id',
   'lauf.datensatz.quelle.typ',
+  // Which portal, and whose office — a second statistics portal must not be
+  // delivered under the first one's address or the first one's office name.
+  'lauf.datensatz.quelle.basis_url',
+  'lauf.datensatz.quelle.konfiguration',
   'lauf.datensatz.ankuendigung.link',
   'kandidat',
   'sendungskandidat',

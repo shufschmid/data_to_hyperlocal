@@ -154,6 +154,21 @@ describe('statistikUrl', () => {
     ).toBe('https://statistik.bl.ch/web_portal/wohnen-leerstand')
   })
 
+  // Ein zweites Portal darf nie unter der Adresse des ersten ausgeliefert
+  // werden: eine falsche Adresse ist der eine Fehler, den ein Leser weder
+  // sieht noch pruefen kann.
+  it('baut die Adresse auf dem Portal, von dem der Datensatz kam', () => {
+    expect(
+      statistikUrl({
+        datensatz: {
+          externe_id: '100059',
+          quelle: { typ: 'ods', basis_url: 'https://data.bs.ch' },
+          ankuendigung: null
+        }
+      })
+    ).toBe('https://data.bs.ch/explore/dataset/100059/')
+  })
+
   it('nimmt den Webartikel des Amtes, wo die Agenda einen verlinkt', () => {
     expect(
       statistikUrl({
@@ -212,6 +227,31 @@ describe('quelleVon', () => {
     )
     expect(q.name).toBe('Statistisches Amt Basel-Landschaft')
     expect(q.url).toBe('https://data.bl.ch/explore/dataset/12060/')
+  })
+
+  it('Statistik: das Amt des zweiten Portals, nicht das Baselbieter', () => {
+    const q = quelleVon(
+      zeile({
+        lauf: {
+          datensatz: {
+            externe_id: '100059',
+            quelle: {
+              typ: 'ods',
+              basis_url: 'https://data.bs.ch',
+              konfiguration: {
+                amt: 'Statistisches Amt des Kantons Basel-Stadt',
+                bezirke: ['Basel-Stadt']
+              }
+            },
+            ankuendigung: null
+          }
+        },
+        datengrundlage: { periode: '2024', zeilen_gesamt: 3, zeilen: [] }
+      }),
+      'statistik'
+    )
+    expect(q.name).toBe('Statistisches Amt des Kantons Basel-Stadt')
+    expect(q.url).toBe('https://data.bs.ch/explore/dataset/100059/')
   })
 
   it('Sport: benannt, aber ohne Adresse — es gibt keine stabile', () => {

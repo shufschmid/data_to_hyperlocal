@@ -11,6 +11,7 @@ import {
   fetchRecords,
   istGemeindeebene,
   istRegister,
+  katalogKappung,
   listDatasets,
   MAX_LIMIT,
   OdsRequestError,
@@ -259,6 +260,9 @@ export default defineOperationApi<Options>({
     async function pruefeQuelle(
       quelle: Pick<Quelle, 'id' | 'name' | 'basis_url'>
     ): Promise<void> {
+      let gelesen = 0
+      let gesamt = 0
+
       for (let seite = 0; seite < seiten; seite += 1) {
         const katalog = await listDatasets(quelle.basis_url, {
           limit: MAX_LIMIT,
@@ -270,9 +274,21 @@ export default defineOperationApi<Options>({
         }
 
         ergebnis.gesehen += katalog.datasets.length
+        gelesen += katalog.datasets.length
+        gesamt = katalog.totalCount
 
         // Last page reached.
         if ((seite + 1) * MAX_LIMIT >= katalog.totalCount) break
+      }
+
+      // The page option is sized for one portal (188 datasets, two pages). A
+      // second portal is bigger — data.bs.ch carries 361 — and a cap that
+      // bites has to be audible, or a run that saw 200 of 361 reads exactly
+      // like a portal with nothing new.
+      const kappung = katalogKappung(quelle.name, gelesen, gesamt)
+      if (kappung !== null) {
+        logger.warn(`quellen-pruefen: ${kappung}`)
+        ergebnis.hinweise.push(kappung)
       }
     }
 

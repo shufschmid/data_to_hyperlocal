@@ -19,7 +19,25 @@ export interface Quellenlink {
   webartikel: boolean
 }
 
+/**
+ * The office named when the source says nothing else.
+ *
+ * Kept as the fallback rather than made mandatory: an empty
+ * `quellen.konfiguration` must not cost an article its attribution, and every
+ * statistics dataset in this instance came from Baselland until 17 September
+ * 2026. A second portal names its own office there — see `redaktion/portale.ts`.
+ */
 export const AMT = 'Statistisches Amt Basel-Landschaft'
+
+/** The portal the statistics feed read from until a source carried its own. */
+export const ODS_VORGABE = 'https://data.bl.ch'
+
+/** The table portal of the same office. Cantonal by nature, like the agenda. */
+export const STATBL_VORGABE = 'https://statistik.bl.ch/web_portal'
+
+function ohneSchraegstrich(basis: string): string {
+  return basis.replace(/\/+$/, '')
+}
 
 /** The office's own article pages live under baselland.ch, not the portals. */
 function istWebartikelAdresse(link: string | null): boolean {
@@ -39,6 +57,16 @@ export interface QuellenEingabe {
   quelleTyp: string | null
   /** `datensaetze.externe_id` — the dataset id on the portal. */
   externeId: string | null
+  /**
+   * `quellen.basis_url` of the portal this dataset came from.
+   *
+   * Optional, and null falls back to Baselland: the statistics feed had one
+   * portal per type until a second medium needed a second, and a run that does
+   * not hand the address over must still produce the link it always produced.
+   */
+  portalUrl?: string | null
+  /** `konfiguration.amt` of that source — the office to name in the sentence. */
+  amt?: string | null
 }
 
 /**
@@ -59,18 +87,30 @@ export function quellenlink(eingabe: QuellenEingabe): Quellenlink | null {
   const id = (eingabe.externeId ?? '').trim()
   if (id === '') return null
 
-  // Verified against the live portals: both shapes answer 200 for a real id.
+  const portal =
+    typeof eingabe.portalUrl === 'string' && eingabe.portalUrl.trim() !== ''
+      ? ohneSchraegstrich(eingabe.portalUrl.trim())
+      : null
+  const bezeichnung =
+    typeof eingabe.amt === 'string' && eingabe.amt.trim() !== ''
+      ? eingabe.amt.trim()
+      : AMT
+
+  // Verified against the live portals: both shapes answer 200 for a real id,
+  // and `data.bs.ch/explore/dataset/100059/` answers exactly as
+  // `data.bl.ch/explore/dataset/12060/` does (302 to `/explore/assets/<id>/`),
+  // measured 17 September 2026. The path is the platform's, not the canton's.
   if (eingabe.quelleTyp === 'ods') {
     return {
-      url: `https://data.bl.ch/explore/dataset/${encodeURIComponent(id)}/`,
-      bezeichnung: AMT,
+      url: `${portal ?? ODS_VORGABE}/explore/dataset/${encodeURIComponent(id)}/`,
+      bezeichnung,
       webartikel: false
     }
   }
   if (eingabe.quelleTyp === 'statbl') {
     return {
-      url: `https://statistik.bl.ch/web_portal/${encodeURIComponent(id)}`,
-      bezeichnung: AMT,
+      url: `${portal ?? STATBL_VORGABE}/${encodeURIComponent(id)}`,
+      bezeichnung,
       webartikel: false
     }
   }

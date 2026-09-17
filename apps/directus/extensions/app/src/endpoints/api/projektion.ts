@@ -16,7 +16,8 @@
 // article it holds up to sixty raw rows of the underlying dataset — the working
 // material of the newsroom, not part of a published article.
 
-import { AMT, quellenlink } from '../../redaktion/quelle'
+import { AMT, quellenlink, type Quellenlink } from '../../redaktion/quelle'
+import { lesePortalKonfiguration } from '../../redaktion/portale'
 import { istZahlwarnung, istZeitwarnung } from '../../redaktion/warnungen'
 import { seitenLink } from '../../shared/wochenblatt/parse'
 import type { Entscheidung, Publikationsakteur } from '../../types/schema'
@@ -51,7 +52,16 @@ export interface Rohzeile {
     | {
         datensatz: {
           externe_id: string | null
-          quelle: { typ: string | null } | string | null
+          quelle:
+            | {
+                typ: string | null
+                /** The portal this dataset came from — one row per portal. */
+                basis_url?: string | null
+                /** Its adapter options, where the office's name lives. */
+                konfiguration?: unknown
+              }
+            | string
+            | null
           ankuendigung: { link: string | null } | string | null
         } | null
       }
@@ -238,24 +248,30 @@ export function rubrikVon(zeile: Rohzeile): Rubrik | null {
  * an article against, so the API and the article can never name two different
  * places.
  */
-export function statistikUrl(lauf: Rohzeile['lauf']): string | null {
+export function statistikQuelle(lauf: Rohzeile['lauf']): Quellenlink | null {
   if (lauf === null || typeof lauf === 'string') return null
   const datensatz = lauf.datensatz
   if (datensatz === null) return null
 
   const quelle = datensatz.quelle
+  const portal = quelle === null || typeof quelle === 'string' ? null : quelle
   const ankuendigung = datensatz.ankuendigung
-  return (
-    quellenlink({
-      externeId: datensatz.externe_id,
-      quelleTyp:
-        quelle === null || typeof quelle === 'string' ? null : quelle.typ,
-      ankuendigungLink:
-        ankuendigung === null || typeof ankuendigung === 'string'
-          ? null
-          : ankuendigung.link
-    })?.url ?? null
-  )
+
+  return quellenlink({
+    externeId: datensatz.externe_id,
+    quelleTyp: portal?.typ ?? null,
+    portalUrl: portal?.basis_url ?? null,
+    amt: lesePortalKonfiguration(portal?.konfiguration).amt,
+    ankuendigungLink:
+      ankuendigung === null || typeof ankuendigung === 'string'
+        ? null
+        : ankuendigung.link
+  })
+}
+
+/** Just the address — the shape the door delivered before the second portal. */
+export function statistikUrl(lauf: Rohzeile['lauf']): string | null {
+  return statistikQuelle(lauf)?.url ?? null
 }
 
 export interface Quelle {
@@ -276,8 +292,16 @@ export function quelleVon(zeile: Rohzeile, rubrik: Rubrik | null): Quelle {
   const daten = objekt(zeile.datengrundlage)
 
   switch (rubrik) {
-    case 'statistik':
-      return { name: AMT, url: statistikUrl(zeile.lauf) }
+    case 'statistik': {
+      // Name and address from the same call: a second portal that delivered
+      // its own address under the first portal's office would be worse than
+      // either error alone.
+      const statistik = statistikQuelle(zeile.lauf)
+      return {
+        name: statistik?.bezeichnung ?? AMT,
+        url: statistik?.url ?? null
+      }
+    }
 
     case 'sport':
       return { name: 'Match-Center', url: null }

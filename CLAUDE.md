@@ -90,6 +90,7 @@ them is wrong even if it works.
    | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
    | `api.anthropic.com`                         | every LLM call                                                                                                                                                                                                                                                                                                                                                                                                                   | `shared/claude.ts`                    |
    | `data.bl.ch`                                | open-data catalogue and records (no auth, documented API)                                                                                                                                                                                                                                                                                                                                                                        | `shared/ods/`                         |
+   | `data.bs.ch`                                | the same Opendatasoft platform for Basel-Stadt — registered but INACTIVE, so no request is made until a person switches it on. Measured 17.09.2026: identical paths and response shape, 361 datasets against 188, and Riehen and Bettingen are municipalities in its rows, not quarters                                                                                                                                          | `shared/ods/`                         |
    | `www.baselland.ch`                          | the publication agenda — announcements the API cannot give — and the office's own web article behind an entry, read once per announcement for the mapping and the briefing                                                                                                                                                                                                                                                       | `shared/agenda/`                      |
    | `statistik.bl.ch`                           | tables the open-data portal does not carry                                                                                                                                                                                                                                                                                                                                                                                       | `shared/statbl/`                      |
    | `crawler.wepublish.dev`                     | renders sport pages that refuse a plain request, and is the second door for any page a direct read cannot get (since 17.09.2026, see the note on refusals)                                                                                                                                                                                                                                                                       | `shared/crawler/`                     |
@@ -585,10 +586,14 @@ them is wrong even if it works.
    districts were dropped because they hid what they organised: Riehen, the
    first municipality outside the five Basel-Landschaft districts, arrived as
    its own collapsed one-item accordion and was simply overlooked. Each active
-   municipality also carries its own card: whether the statistics feed can say
-   anything at all (the portals are cantonal — an out-of-canton municipality
-   like Riehen gets sport, waste and the press review, and silence from the
-   statistics side, which the card says outright), its `vereine` with
+   municipality also carries its own card: WHICH statistics portal serves it,
+   read from the registered sources rather than from a district set in the
+   code (the portals are cantonal, and `quellen.konfiguration.bezirke` says
+   which `gemeinden.bezirk` values each one carries — an out-of-canton
+   municipality like Riehen gets sport, waste and the press review, and the
+   card names the gap on the statistics side outright instead of letting an
+   editor wait; a portal that declares no districts is shown as serving none,
+   because silence is not a promise), its `vereine` with
    Aushängeschild before Breitensport and both writable here, the paper that
    covers it, and whether this year's Abfuhrkalender exists. The list shows the
    REDAKTIONSGEBIET, not the directory: all 87 rows stay in the table, because
@@ -693,6 +698,7 @@ them is wrong even if it works.
 | which municipalities a weekly paper covers          | „Gemeinden" → die Karte → „Zuordnung ändern"; ein NEUES Blatt weiterhin im Reiter „Wochenblätter"                                                                                                                                        |
 | a change to what the Dorfkönig reads                | `endpoints/api/` in the bundle — the register drives the routes AND the docs; contract in [apps/directus/SCHNITTSTELLE.md](apps/directus/SCHNITTSTELLE.md)                                                                               |
 | who may enter from the We.Publish editor            | `redaktion/editorzugang.ts` — `rolleFuer` (which editor permission opens the door) and `pruefeToken` (whose token is accepted); the Directus user itself is created by hand in the admin UI, never here                                  |
+| a second medium, or a second statistics portal      | [apps/directus/MEDIUM_ANLEGEN.md](apps/directus/MEDIUM_ANLEGEN.md) — a portal is a ROW in `quellen` (`basis_url` + `konfiguration`), never a constant and never an environment variable                                                  |
 | a new environment variable                          | `apps/directus/.env.example` **and** root `.env.example` **and** docker-compose.yml                                                                                                                                                      |
 
 A change that spans both apps starts in `apps/directus` — data model first, then the
@@ -759,7 +765,11 @@ Flow "Quellen taeglich pruefen"  (0 6 * * *)
        ├─ shared/statbl/  → registered tables: is there a new year?
        │                    if so the dataset reopens and the run inherits
        │                    datensaetze.standard_vorgabe — the memory
-       ├─ shared/ods/     → data.bl.ch catalogue: what changed?
+       ├─ shared/ods/     → the catalogue of EVERY active `ods` source, one
+       │                    per portal, each with its own basis_url: what
+       │                    changed? A page cap that bites is named in the
+       │                    run's hinweise (`katalogKappung`) — the option is
+       │                    sized for 188 datasets, data.bs.ch carries 361
        ├─ shared/agenda/  → the office's agenda: what is coming?
        │                    writes datensaetze + ankuendigungen
        └─ agenda/zuordnung  1× Sonnet per published agenda entry:
@@ -1166,10 +1176,16 @@ joining the two on `Spielnummer`. Read results from there, or not at all.
    given one, the model produced `<a href="https://www.statistik.bl.ch">` — the
    bare host, the source of nothing. `redaktion/quelle.ts` derives the address
    (the office's web article when the agenda links one, otherwise
-   `data.bl.ch/explore/dataset/<id>/` or `statistik.bl.ch/web_portal/<id>`),
-   the prompt dictates it, a check reports any other URL, and
+   `<portal>/explore/dataset/<id>/` or `<portal>/<id>`), the prompt dictates
+   it, a check reports any other URL, and
    `repariereQuellenlink` forces every anchor onto it before the article is
    stored. A wrong address is the one error a reader can neither see nor check.
+   **The portal and the office it speaks for come from the dataset's own
+   source row**, not from a constant: `quellen.basis_url` and
+   `quellen.konfiguration` (`{amt, bezirke}`, read by `redaktion/portale.ts`).
+   Both belong to the RUN — one dataset, one period — so they may ride in the
+   cached system prefix without breaking rule 1. Unset falls back to Baselland,
+   so an empty configuration costs no article its link.
    The frontend renders that one anchor through `textStuecke`/`Artikeltext` —
    parsed, never `dangerouslySetInnerHTML`, so nothing else can become markup.
 

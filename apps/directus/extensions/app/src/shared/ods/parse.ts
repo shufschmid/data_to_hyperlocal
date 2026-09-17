@@ -373,3 +373,34 @@ export function istRegister(rhythmus: string | null | undefined): boolean {
   if (rhythmus === null || rhythmus === undefined) return false
   return REGISTER_RHYTHMEN.has(rhythmus.trim().toLowerCase())
 }
+
+/**
+ * The page cap of the catalogue check, said out loud — or null when it did not
+ * bite.
+ *
+ * "Complete, or declared." The daily check reads a fixed number of pages per
+ * source, 100 datasets each, and the option's own note says why two is enough:
+ * "Zwei Seiten decken data.bl.ch heute vollstaendig ab" — 188 datasets,
+ * measured. That note is a statement about ONE portal. `data.bs.ch` carries
+ * 361 (measured 17 September 2026), so the same two pages would read 200 of
+ * them and stop without a word, and 161 datasets would simply never be seen —
+ * indistinguishable from a portal that publishes nothing new.
+ *
+ * The cap is not raised here on purpose: the number of pages is the editor's
+ * option on the Flow, and a cap that bites has to be audible, not absent.
+ */
+export function katalogKappung(
+  quellenName: string,
+  gelesen: number,
+  totalCount: number
+): string | null {
+  // A portal that did not say how many it has cannot be reported as truncated.
+  if (totalCount <= 0) return null
+  if (gelesen >= totalCount) return null
+
+  return (
+    `${quellenName}: ${gelesen} von ${totalCount} Datensaetzen gelesen, ` +
+    `${totalCount - gelesen} weitere blieben ungelesen. ` +
+    'Die Option "Katalogseiten je Quelle" im Flow deckt diesen Katalog nicht ab.'
+  )
+}

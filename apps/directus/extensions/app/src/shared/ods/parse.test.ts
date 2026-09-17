@@ -6,7 +6,8 @@ import {
   type OdsField,
   detectPeriodField,
   istGemeindeebene,
-  istRegister
+  istRegister,
+  katalogKappung
 } from './parse'
 
 // Fixtures trimmed from real data.bl.ch responses. The field shapes are
@@ -378,5 +379,26 @@ describe('istRegister', () => {
     expect(istRegister(null)).toBe(false)
     expect(istRegister(undefined)).toBe(false)
     expect(istRegister('  Daily ')).toBe(true)
+  })
+})
+
+describe('katalogKappung', () => {
+  it('schweigt, wenn der Katalog vollstaendig gelesen wurde', () => {
+    expect(katalogKappung('Statistik BL', 188, 188)).toBeNull()
+    expect(katalogKappung('Statistik BL', 200, 188)).toBeNull()
+  })
+
+  // data.bs.ch fuehrt 361 Datensaetze (gemessen am 17. September 2026), die
+  // Vorgabe liest zwei Seiten zu je 100. Ohne diese Zeile blieben 161 still.
+  it('sagt, was ungelesen blieb, wenn die Seitenzahl zuerst endet', () => {
+    const hinweis = katalogKappung('Statistik Basel-Stadt', 200, 361)
+    expect(hinweis).toContain('Statistik Basel-Stadt')
+    expect(hinweis).toContain('200')
+    expect(hinweis).toContain('361')
+    expect(hinweis).toContain('161 weitere')
+  })
+
+  it('haelt eine unbekannte Gesamtzahl nicht fuer eine Kappung', () => {
+    expect(katalogKappung('Statistik BL', 200, 0)).toBeNull()
   })
 })

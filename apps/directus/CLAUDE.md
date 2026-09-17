@@ -22,6 +22,7 @@ apps/directus/
 │       ├── operations/      steps a Flow can call (this is how cron works)
 │       └── types/schema.ts  typed view of the collections
 ├── extensions/.registry/    marketplace extension: TypeScript type generator
+├── MEDIUM_ANLEGEN.md        how a second house sets this up: variables, rows, registrations
 ├── migrations/*.mts         row data and unmanaged indexes only — never the model
 ├── schema/                  directus-sync dump — the data model, single source of truth
 ├── templates/*.liquid       invite/reset emails; name and logo come from project settings
@@ -399,6 +400,15 @@ names itself, never a silent yes. `EDITOR_HERKUNFT` must be the NAKED origin —
 the editor mints the token with `audience: app.url` and its own `userinfo`
 compares that against `new URL(app.url).origin`, so an External App registered
 with a path (or a trailing slash) can never authenticate at all.
+
+**Not everything configurable is a variable.** Which statistics portals are read
+lives in `quellen` — one row per portal, `basis_url` for the address and
+`konfiguration` (`{amt, bezirke}`) for the office it speaks for and the
+`gemeinden.bezirk` values it carries figures about. A dataset already knows its
+portal through `datensaetze.quelle`, and the daily catalogue check already walks
+the sources one by one, so a list of hosts in the environment would be a second
+truth about the same thing. The rule is a pure function, `redaktion/portale.ts`.
+The whole picture for a second house is in [MEDIUM_ANLEGEN.md](MEDIUM_ANLEGEN.md).
 
 ## Types
 
