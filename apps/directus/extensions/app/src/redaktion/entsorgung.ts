@@ -20,7 +20,6 @@
 
 import type Anthropic from '@anthropic-ai/sdk'
 import { verschiebe } from './feiertage'
-import { istStumm, normalisiereArt } from './entsorgung/arten'
 
 export interface ExtrahierterTermin {
   kategorie: string
@@ -489,7 +488,7 @@ export function parseExtraktion(
         a.datum.localeCompare(b.datum) || a.kategorie.localeCompare(b.kategorie)
     ),
     regelmaessig,
-    hinweise: [...hinweise, ...routineWarnungen(zusammengefasst)]
+    hinweise
   }
 }
 
@@ -728,40 +727,6 @@ export function letzterWochentagVor(
  * calendar got right is not ours to decide, and an editor with the PDF open
  * settles it in seconds.
  */
-/**
- * More Termine of one kind than a collection of that kind ever has.
- *
- * A prompt is a request, a check is a rule. The prompt asks the model to put
- * weekly collections into `regelmaessig` and not to count the markings — and
- * when it counts them anyway, the year fills with 52 reminders for something
- * every resident already knows. Which kinds are a weekly routine is named in
- * `entsorgung/arten.ts`, the same list the deterministic path uses, so both
- * paths mean the same thing by "Kehricht".
- *
- * This only REPORTS. Deleting the dates would hide a misreading behind a
- * correct-looking result, and a Gruenabfuhr really does run fortnightly in some
- * municipalities; the editor sees the count and decides.
- */
-const ROUTINE_SCHWELLE = 30
-
-export function routineWarnungen(
-  termine: readonly ExtrahierterTermin[]
-): string[] {
-  const gezaehlt = new Map<string, number>()
-  for (const termin of termine) {
-    if (!istStumm(normalisiereArt(termin.kategorie))) continue
-    gezaehlt.set(termin.kategorie, (gezaehlt.get(termin.kategorie) ?? 0) + 1)
-  }
-  return [...gezaehlt.entries()]
-    .filter(([, anzahl]) => anzahl > ROUTINE_SCHWELLE)
-    .map(
-      ([kategorie, anzahl]) =>
-        `"${kategorie}" steht ${anzahl} Mal als Einzeltermin. In diesem ` +
-        `Rhythmus ist das ueblicherweise eine regelmaessige Abfuhr, und die ` +
-        `gehoert nicht als Termin auf den Tisch. Bitte pruefen.`
-    )
-}
-
 export function wochentagWarnung(termin: ExtrahierterTermin): string | null {
   const laut = termin.wochentag_laut_pdf
   if (laut === null) return null
