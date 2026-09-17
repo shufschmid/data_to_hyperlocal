@@ -176,3 +176,39 @@ export function zeitpunktText(iso: string | null): string {
     minute: '2-digit'
   })
 }
+
+/** The hand-started run, mirrored from the extension's process — the twin of `QuellenLaufStatus`. */
+export interface GemeindeseitenLaufStatus {
+  laeuft: boolean
+  gestartet_um: string | null
+  beendet_um: string | null
+  ergebnis: Record<string, unknown> | null
+  fehler: string | null
+}
+
+function anzahl(wert: unknown): number {
+  return typeof wert === 'number' && Number.isFinite(wert) ? wert : 0
+}
+
+/** What the desk says about the run: under way, or what the last one brought. */
+export function laufText(status: GemeindeseitenLaufStatus): string | null {
+  if (status.laeuft) {
+    return 'Der Lauf ist unterwegs — jede Gemeindeseite wird gelesen, das dauert einige Minuten; die Ansicht aktualisiert sich von selbst.'
+  }
+  if (status.beendet_um === null) return null
+  if (status.ergebnis === null) return 'Der letzte Lauf hat nichts zurückgemeldet.'
+  const e = status.ergebnis
+  const teile = [
+    `${anzahl(e['gemeinden'])} Gemeinden gelesen`,
+    `${anzahl(e['neu'])} neue Mitteilungen`,
+    `${anzahl(e['vorschlaege'])} Vorschläge`
+  ]
+  const fehler = Array.isArray(e['fehler']) ? e['fehler'].length : 0
+  if (fehler > 0) teile.push(`${fehler} Fehler`)
+  const uhrzeit = new Date(status.beendet_um).toLocaleTimeString('de-CH', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Europe/Zurich'
+  })
+  return `Letzter Lauf um ${uhrzeit} Uhr — ${teile.join(', ')}.`
+}

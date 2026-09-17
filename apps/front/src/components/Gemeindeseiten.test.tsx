@@ -240,3 +240,39 @@ describe('Gemeindeseiten', () => {
     expect(screen.getByText(/Nichts auf dem Tisch/)).toBeInTheDocument()
   })
 })
+
+describe('Gemeindeseiten: der Lauf', () => {
+  const leer = { laeuft: false, gestartet_um: null, beendet_um: null, ergebnis: null, fehler: null }
+
+  it('zeigt an, dass der Lauf unterwegs ist, und sperrt den Knopf solange', () => {
+    render(
+      <Gemeindeseiten
+        eintraege={[]}
+        gemeinden={[gemeinde()]}
+        heute={HEUTE}
+        lauf={{ ...leer, laeuft: true }}
+      />
+    )
+    expect(screen.getByRole('button', { name: /Lauf ist unterwegs/ })).toBeDisabled()
+    expect(screen.getByText(/dauert einige Minuten/)).toBeInTheDocument()
+  })
+
+  it('fasst den letzten Lauf zusammen und nennt einen Absturz', () => {
+    render(
+      <Gemeindeseiten
+        eintraege={[]}
+        gemeinden={[gemeinde()]}
+        heute={HEUTE}
+        lauf={{
+          ...leer,
+          beendet_um: '2026-09-17T11:02:00Z',
+          ergebnis: { gemeinden: 10, neu: 3, vorschlaege: 1, fehler: [] }
+        }}
+      />
+    )
+    expect(
+      screen.getByText(/Letzter Lauf um .* — 10 Gemeinden gelesen, 3 neue Mitteilungen, 1 Vorschläge\./)
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Jetzt prüfen' })).toBeEnabled()
+  })
+})

@@ -323,7 +323,9 @@ Endpoints of the learning layer, all in `src/endpoints/redaktion/`:
   `…/weiterreichen`, `…/kandidaten/:id/perle` and `…/meldungen/:id/verwerfen` all
   store first and then call `lerne(signal)`; the optional `kommentar` in their
   bodies is what makes the lesson immediate.
-- `POST /redaktion/gemeindeseiten/pruefen` (202, single-flight) and
+- `POST /redaktion/gemeindeseiten/pruefen` (202, single-flight; `GET
+/redaktion/gemeindeseiten/lauf` mirrors its state for the button, like
+  `quellen/lauf`) and
   `POST /redaktion/gemeindeseiten/:id/{meldung,ablehnen,weiterreichen}` — the
   municipal-news desk, same shape as the gazette's; `/meldung` refuses (422) a
   row whose reader stored no text, because a Meldung from a title alone reads

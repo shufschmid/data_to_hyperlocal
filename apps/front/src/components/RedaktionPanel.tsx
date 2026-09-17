@@ -85,7 +85,7 @@ import SettingsOutlined from '@mui/icons-material/SettingsOutlined'
 import MenuItem from '@mui/material/MenuItem'
 import { anzahlOffen as anzahlSendungskandidaten } from '@/lib/sendungen'
 import { anzahlOffen, liestUnterlagen } from '@/lib/amtsblatt'
-import { anzahlOffen as anzahlMitteilungen } from '@/lib/gemeindeseiten'
+import { anzahlOffen as anzahlMitteilungen, type GemeindeseitenLaufStatus } from '@/lib/gemeindeseiten'
 import { Chefredaktion } from './Chefredaktion'
 import { Gelerntes } from './Gelerntes'
 import { Zeitleiste } from './Zeitleiste'
@@ -467,6 +467,45 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
     datensaetzeRefetch,
     ankuendigungenRefetch,
     spieleRefetch
+  ])
+
+  // The municipal-news run, mirrored the same way: polled while under way,
+  // the desk refetched once when it is over.
+  const [gemeindeseitenLaufStatus, setGemeindeseitenLaufStatus] = useState<GemeindeseitenLaufStatus | null>(
+    null
+  )
+  const ladeGemeindeseitenLauf = useCallback(async () => {
+    try {
+      const antwort = await fetch('/api/redaktion/gemeindeseiten/lauf')
+      if (!antwort.ok) return
+      const inhalt = (await antwort.json()) as { data?: GemeindeseitenLaufStatus }
+      setGemeindeseitenLaufStatus(inhalt.data ?? null)
+    } catch {
+      // Komfortanzeige; ein verpasster Abruf wird beim naechsten Poll nachgeholt.
+    }
+  }, [])
+  useEffect(() => {
+    void ladeGemeindeseitenLauf()
+  }, [ladeGemeindeseitenLauf])
+  const gemeindeseitenRefetch = gemeindeseiten.refetch
+  const gemeindenRefetch = gemeinden.refetch
+  const alleMeldungenRefetch = alleMeldungen.refetch
+  const gemeindeseitenWarUnterwegs = useRef(false)
+  useEffect(() => {
+    const unterwegs = gemeindeseitenLaufStatus?.laeuft === true
+    if (gemeindeseitenWarUnterwegs.current && !unterwegs) {
+      void Promise.all([gemeindeseitenRefetch(), gemeindenRefetch(), alleMeldungenRefetch()])
+    }
+    gemeindeseitenWarUnterwegs.current = unterwegs
+    if (!unterwegs) return
+    const intervall = setInterval(() => void ladeGemeindeseitenLauf(), 10_000)
+    return () => clearInterval(intervall)
+  }, [
+    gemeindeseitenLaufStatus?.laeuft,
+    ladeGemeindeseitenLauf,
+    gemeindeseitenRefetch,
+    gemeindenRefetch,
+    alleMeldungenRefetch
   ])
 
   async function fuehreAus(pfad: string, body?: unknown) {
@@ -1137,6 +1176,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
           </Typography>
           <Gemeindeseiten
             eintraege={gemeindeseiten.data?.gemeindemitteilungen ?? []}
+            lauf={gemeindeseitenLaufStatus}
             gemeinden={gemeinden.data?.gemeinden ?? []}
             meldungen={meldungenAlle}
             onChat={async (id, anweisung) => {
@@ -1149,6 +1189,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             laeuft={sendet}
             onLauf={async () => {
               await fuehreAus('gemeindeseiten/pruefen')
+              await ladeGemeindeseitenLauf()
             }}
             onUebernehmen={async (id) => {
               await fuehreAus(`gemeindeseiten/${id}/meldung`)

@@ -64,11 +64,13 @@ describe('kandidaten', () => {
 
   it('nennt Undatierte auf der Statuszeile beim Titel, hoechstens drei, den Rest gezaehlt', () => {
     expect(ohneDatumHinweis([eintrag('Geschwindigkeitsmessungen', null)])).toBe(
-      'Ohne erkennbares Datum nicht gelesen: «Geschwindigkeitsmessungen»'
+      'Kein Eintrag trägt ein erkennbares Datum — nichts gelesen: «Geschwindigkeitsmessungen»'
     )
     expect(
       ohneDatumHinweis(['a', 'b', 'c', 'd', 'e'].map((t) => eintrag(t, null)))
-    ).toBe('Ohne erkennbares Datum nicht gelesen: «a», «b», «c» (+2 weitere)')
+    ).toBe(
+      'Kein Eintrag trägt ein erkennbares Datum — nichts gelesen: «a», «b», «c» (+2 weitere)'
+    )
   })
 })
 

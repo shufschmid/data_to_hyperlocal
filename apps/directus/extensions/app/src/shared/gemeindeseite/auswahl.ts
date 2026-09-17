@@ -58,9 +58,11 @@ export function kandidaten(
 const GENANNTE_UNDATIERTE = 3
 
 /**
- * The status line for undated entries names them, so an editor can tell a
- * standing notice (Reinach lists its permanent speed-check page among the
- * news, undated) from a parser that misses a date format.
+ * The status line for a page whose entries carry no date at all — the run
+ * names the first few, so an editor can tell a page of standing notices from
+ * a parser that misses a date format. A single undated entry among dated
+ * news (Reinach lists its permanent speed-check page there) never reaches
+ * the status line; it is named in the run's result instead.
  */
 export function ohneDatumHinweis(undatiert: readonly ListenEintrag[]): string {
   const titel = undatiert
@@ -68,7 +70,7 @@ export function ohneDatumHinweis(undatiert: readonly ListenEintrag[]): string {
     .map((e) => `«${e.titel}»`)
     .join(', ')
   const rest = undatiert.length - GENANNTE_UNDATIERTE
-  return `Ohne erkennbares Datum nicht gelesen: ${titel}${rest > 0 ? ` (+${rest} weitere)` : ''}`
+  return `Kein Eintrag trägt ein erkennbares Datum — nichts gelesen: ${titel}${rest > 0 ? ` (+${rest} weitere)` : ''}`
 }
 
 /** Newest first, undated last, at most `deckel` — the rest is counted, not forgotten. */

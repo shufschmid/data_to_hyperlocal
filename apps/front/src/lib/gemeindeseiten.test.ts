@@ -4,6 +4,7 @@ import {
   anhangHinweis,
   anzahlOffen,
   bleibtAufDemTisch,
+  laufText,
   lesefehler,
   meldungJeMitteilung,
   ohneNewsseite,
@@ -163,5 +164,25 @@ describe('Helfer', () => {
     expect(anhangHinweis('fremde_site')).toBe('nicht gelesen — fremde Website')
     expect(anhangHinweis(null)).toBeNull()
     expect(anhangHinweis('neu')).toBe('neu')
+  })
+})
+
+describe('laufText', () => {
+  it('sagt, dass der Lauf unterwegs ist, und fasst den letzten zusammen', () => {
+    const leer = { laeuft: false, gestartet_um: null, beendet_um: null, ergebnis: null, fehler: null }
+    expect(laufText(leer)).toBeNull()
+    expect(laufText({ ...leer, laeuft: true })).toMatch(/unterwegs/)
+    expect(laufText({ ...leer, beendet_um: '2026-09-17T11:02:00Z' })).toBe(
+      'Der letzte Lauf hat nichts zurückgemeldet.'
+    )
+    expect(
+      laufText({
+        ...leer,
+        beendet_um: '2026-09-17T11:02:00Z',
+        ergebnis: { gemeinden: 10, neu: 3, vorschlaege: 1, fehler: ['Pratteln: robots.txt nicht erreichbar'] }
+      })
+    ).toMatch(
+      /^Letzter Lauf um \d\d:\d\d Uhr — 10 Gemeinden gelesen, 3 neue Mitteilungen, 1 Vorschläge, 1 Fehler\.$/
+    )
   })
 })

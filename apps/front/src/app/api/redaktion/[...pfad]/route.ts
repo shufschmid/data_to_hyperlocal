@@ -39,7 +39,7 @@ const ERLAUBT: RegExp[] = [
 
 // The one read this proxy carries: the state of a hand-started scrape run.
 // Everything else the workspace reads goes through GraphQL.
-const LESBAR: RegExp[] = [/^quellen\/lauf$/i]
+const LESBAR: RegExp[] = [/^quellen\/lauf$/i, /^gemeindeseiten\/lauf$/i]
 
 export async function GET(_request: Request, { params }: { params: Promise<{ pfad: string[] }> }) {
   const { pfad } = await params

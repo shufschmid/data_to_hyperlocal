@@ -438,9 +438,9 @@ them is wrong even if it works.
    calendar day no later than next year or it is null — but an OLD date is
    old, not null: an i-web list carries its whole archive, and treating a
    2022 row as undated put 2020 minutes on the desk as news. Undated entries
-   are never opened, only counted and named on the municipality's status
-   line — and the DETAIL page's full date beats a badge whose year was
-   inferred. One Sonnet Sichtung per municipality
+   are never opened, only named by title in the run's result; a page with
+   no dated entry at all reaches the municipality's status line — and the
+   DETAIL page's full date beats a badge whose year was inferred. One Sonnet Sichtung per municipality
    and run sorts the new items (titles AND an excerpt — „Aus dem Gemeinderat"
    says nothing), steered by the desk's rules, this municipality's decisions
    and — where an item talks about collections — its Abfuhrkalender: a

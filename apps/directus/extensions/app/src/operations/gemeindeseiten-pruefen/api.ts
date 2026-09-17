@@ -72,8 +72,10 @@ interface Ergebnis {
   weitergereicht: number
   /** The declared cap: municipalities whose new entries outnumbered the detail budget. */
   nichtGelesen: { gemeinde: string; anzahl: number }[]
-  /** Undated on a first run, or dated outside the window once the detail page named the day. */
+  /** Undated list entries — never opened; `ohneDatum` names them. */
   uebersprungen: number
+  /** Per municipality: how many entries carried no readable date, with the first titles. */
+  ohneDatum: { gemeinde: string; anzahl: number; beispiele: string[] }[]
   aufgeraeumt: { geloescht: number; verfallen: number }
   anfragen: number
   /** Hosts that asked for spacing (429/503) — the reader slowed down, the run says where. */
@@ -133,6 +135,7 @@ export default defineOperationApi<Optionen>({
       weitergereicht: 0,
       nichtGelesen: [],
       uebersprungen: 0,
+      ohneDatum: [],
       aufgeraeumt: { geloescht: 0, verfallen: 0 },
       anfragen: 0,
       gebremst: [],
@@ -194,7 +197,20 @@ export default defineOperationApi<Optionen>({
 
         const { drin, undatiert } = kandidaten(uebersicht.eintraege, seit)
         ergebnis.uebersprungen += undatiert.length
-        if (undatiert.length > 0) eigeneFehler.push(ohneDatumHinweis(undatiert))
+        if (undatiert.length > 0) {
+          // Declared in the result by title — and on the municipality's status
+          // line only when NO entry of the page carries a date: that is a
+          // parser gap or a page we cannot follow. One standing notice among
+          // dated news (Reinach lists its permanent speed-check page there) is
+          // not worth an alert on the desk every day.
+          ergebnis.ohneDatum.push({
+            gemeinde: gemeinde.name,
+            anzahl: undatiert.length,
+            beispiele: undatiert.slice(0, 5).map((e) => e.titel)
+          })
+          if (undatiert.length === uebersicht.eintraege.length)
+            eigeneFehler.push(ohneDatumHinweis(undatiert))
+        }
 
         const bekannt =
           drin.length === 0

@@ -2282,27 +2282,64 @@ export default defineEndpoint(
     // Gemeindeseiten — the municipalities' own news pages
     // -----------------------------------------------------------------------
 
-    let gemeindeseitenLaufAktiv = false
+    // The hand-started run's state lives in this process, like the sources
+    // run's: the workspace polls it, so a click has something to show for
+    // minutes (a run with two unreachable hosts takes several) and refetches
+    // once it is over. Before, the button answered 202 and the desk sat still
+    // until someone reloaded — which read as "nothing happens".
+    interface GemeindeseitenLaufStatus {
+      laeuft: boolean
+      gestartet_um: string | null
+      beendet_um: string | null
+      ergebnis: Record<string, unknown> | null
+      fehler: string | null
+    }
+    const gemeindeseitenLauf: GemeindeseitenLaufStatus = {
+      laeuft: false,
+      gestartet_um: null,
+      beendet_um: null,
+      ergebnis: null,
+      fehler: null
+    }
 
     function starteGemeindeseitenLauf(): boolean {
-      if (gemeindeseitenLaufAktiv) return false
-      gemeindeseitenLaufAktiv = true
+      if (gemeindeseitenLauf.laeuft) return false
+      gemeindeseitenLauf.laeuft = true
+      gemeindeseitenLauf.gestartet_um = new Date().toISOString()
+      gemeindeseitenLauf.beendet_um = null
+      gemeindeseitenLauf.ergebnis = null
+      gemeindeseitenLauf.fehler = null
 
       const kontext = { services, getSchema, logger, database } as Parameters<
         typeof gemeindeseitenPruefen.handler
       >[1]
       void Promise.resolve(gemeindeseitenPruefen.handler({}, kontext))
-        .then((ergebnis: unknown) =>
+        .then((ergebnis: unknown) => {
           logger.info(ergebnis, 'redaktion: Gemeindeseiten-Lauf beendet')
-        )
-        .catch((fehler: unknown) =>
+          gemeindeseitenLauf.ergebnis =
+            typeof ergebnis === 'object' && ergebnis !== null
+              ? (ergebnis as Record<string, unknown>)
+              : null
+        })
+        .catch((fehler: unknown) => {
           logger.error(fehler, 'redaktion: Gemeindeseiten-Lauf fehlgeschlagen')
-        )
+          gemeindeseitenLauf.fehler =
+            fehler instanceof Error ? fehler.message : String(fehler)
+        })
         .finally(() => {
-          gemeindeseitenLaufAktiv = false
+          gemeindeseitenLauf.laeuft = false
+          gemeindeseitenLauf.beendet_um = new Date().toISOString()
         })
       return true
     }
+
+    router.get(
+      '/gemeindeseiten/lauf',
+      (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        return res.json({ data: gemeindeseitenLauf })
+      }
+    )
 
     router.post(
       '/gemeindeseiten/pruefen',

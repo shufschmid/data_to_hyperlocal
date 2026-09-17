@@ -5,6 +5,7 @@ import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
+import CircularProgress from '@mui/material/CircularProgress'
 import Collapse from '@mui/material/Collapse'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
@@ -26,13 +27,15 @@ import {
   ABLEHNUNGSGRUENDE,
   anhangHinweis,
   datumText,
+  laufText,
   lesefehler,
   meldungJeMitteilung,
   ohneNewsseite,
   seitenLink,
   tisch,
   zeitpunktText,
-  type Filter
+  type Filter,
+  type GemeindeseitenLaufStatus
 } from '@/lib/gemeindeseiten'
 
 export interface GemeindeseitenProps {
@@ -42,6 +45,8 @@ export interface GemeindeseitenProps {
   meldungen?: readonly AlleMeldungFelder[]
   heute: string
   laeuft?: boolean
+  /** Der von Hand gestartete Lauf, solange der Server ihn kennt: unterwegs, oder was der letzte brachte. */
+  lauf?: GemeindeseitenLaufStatus | null
   onChat?: (id: string, anweisung: string) => Promise<void>
   onAktion?: (id: string, aktion: MeldungAktion, koerper?: MeldungAktionKoerper) => Promise<void>
   onLauf?: () => Promise<void> | void
@@ -66,6 +71,7 @@ export function Gemeindeseiten({
   meldungen = [],
   heute,
   laeuft = false,
+  lauf = null,
   onChat,
   onAktion,
   onLauf,
@@ -95,6 +101,8 @@ export function Gemeindeseiten({
   const fehlende = useMemo(() => ohneNewsseite(gemeinden), [gemeinden])
   const gestoerte = useMemo(() => lesefehler(gemeinden), [gemeinden])
   const aktive = useMemo(() => gemeinden.filter((g) => g.aktiv), [gemeinden])
+  const unterwegs = lauf?.laeuft === true
+  const laufHinweis = lauf === null ? null : laufText(lauf)
 
   async function fuehreAus(id: string, tun: () => Promise<void> | void) {
     setBeschaeftigt(id)
@@ -240,8 +248,13 @@ export function Gemeindeseiten({
         <Typography variant="h6" sx={{ flexGrow: 1 }}>
           Mitteilungen der Gemeinden
         </Typography>
-        <Button variant="outlined" disabled={laeuft} onClick={() => onLauf?.()}>
-          {laeuft ? 'Läuft …' : 'Jetzt prüfen'}
+        <Button
+          variant="outlined"
+          disabled={laeuft || unterwegs}
+          onClick={() => onLauf?.()}
+          startIcon={unterwegs ? <CircularProgress size={16} /> : undefined}
+        >
+          {unterwegs ? 'Lauf ist unterwegs …' : laeuft ? 'Läuft …' : 'Jetzt prüfen'}
         </Button>
       </Stack>
 
@@ -249,6 +262,17 @@ export function Gemeindeseiten({
         Der Tisch räumt sich selbst: was die Sichtung nicht vorgeschlagen hat, verschwindet nach sieben Tagen,
         ein unentschiedener Vorschlag nach vierzehn — der Zähler im Reiter zählt die Vorschläge.
       </Typography>
+
+      {/* The run's own voice: a click has to show something for the minutes it
+          takes, and the desk has to say what the last run brought. */}
+      {lauf?.fehler != null && (
+        <Alert severity="error">Der letzte Lauf ist fehlgeschlagen: {lauf.fehler}</Alert>
+      )}
+      {laufHinweis !== null && (
+        <Typography variant="body2" color="text.secondary">
+          {laufHinweis}
+        </Typography>
+      )}
 
       {/* A page that could not be read is said, per municipality — an
           absence is otherwise indistinguishable from "nothing was published". */}
