@@ -48,6 +48,17 @@ export interface Gemeinde {
   news_letzte_pruefung: string | null
   /** Why the last read failed — shown on the desk and the Gemeinden card, so absence is never silence. */
   news_letzter_fehler: string | null
+  /**
+   * Whether the municipality lies under the approach to the EuroAirport's
+   * runway 33.
+   *
+   * Editorial knowledge, not a column of the source: the airport publishes one
+   * quota for the whole airport and no breakdown by place, so who is affected
+   * is a judgement the newsroom makes and maintains by hand, like `plz`. The
+   * migration sets it for NO municipality — after the Binninger Wochenblatt it
+   * is Binningen and Allschwil, but that is a person's entry, not a deploy's.
+   */
+  suedanflug: boolean
   date_created: string | null
   date_updated: string | null
 }
@@ -1172,6 +1183,14 @@ export interface Suedanflugquote {
   quelle_url: string | null
   /** sha256 of the text layer — what says whether a re-upload changed anything. */
   pruefsumme: string | null
+  /**
+   * Whether a threshold was CROSSED this month. A proposal, never an article:
+   * no Meldung is written without a person's click, and that holds for a
+   * figure that speaks for itself too.
+   */
+  vorschlag: boolean
+  /** Which threshold, with the figures — written by code, no model call. */
+  vorschlag_begruendung: string | null
   date_created: string | null
   date_updated: string | null
 }

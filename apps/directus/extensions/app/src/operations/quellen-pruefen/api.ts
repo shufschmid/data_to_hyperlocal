@@ -51,6 +51,7 @@ import {
   tabellenId
 } from '../../shared/statbl'
 import { liesMonatsblatt, liesUebersicht } from '../../shared/euroairport'
+import { bewerteMonat, leseSchwellen } from '../../redaktion/suedanflug'
 import {
   aenderungsSatz,
   monatDeutsch,
@@ -187,9 +188,13 @@ export default defineOperationApi<Options>({
 
     const quellen = (await quellenService.readByQuery({
       filter: { aktiv: { _eq: true } },
-      fields: ['id', 'name', 'typ', 'basis_url'],
+      // `konfiguration` carries what a source needs beyond its address: the
+      // portal's office and districts, and the south-approach thresholds.
+      fields: ['id', 'name', 'typ', 'basis_url', 'konfiguration'],
       limit: 50
-    })) as Array<Pick<Quelle, 'id' | 'name' | 'typ' | 'basis_url'>>
+    })) as Array<
+      Pick<Quelle, 'id' | 'name' | 'typ' | 'basis_url' | 'konfiguration'>
+    >
 
     for (const quelle of quellen) {
       if (
@@ -419,10 +424,12 @@ export default defineOperationApi<Options>({
      * figure that just moved.
      */
     async function pruefeSuedanflug(
-      quelle: Pick<Quelle, 'id' | 'name' | 'basis_url'>
+      quelle: Pick<Quelle, 'id' | 'name' | 'basis_url' | 'konfiguration'>
     ): Promise<void> {
       const quotenService = new ItemsService('suedanflugquoten', { schema })
       const kontakt = optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch')
+      // The thresholds belong to the row, not to the code and not to a prompt.
+      const schwellen = leseSchwellen(quelle.konfiguration)
 
       const ausgaben = await liesUebersicht(quelle.basis_url, {
         kontakt,
@@ -464,6 +471,11 @@ export default defineOperationApi<Options>({
             erwartet: { jahr: ausgabe.jahr, monat: ausgabe.monat }
           })
 
+          // Judged against the stored months, with no model anywhere near it:
+          // an exceeded threshold is a MARK on the row that the desk
+          // highlights, never an article.
+          const bewertung = bewerteMonat(blatt, bestand, schwellen)
+
           const felder = {
             jahr: blatt.jahr,
             monat: blatt.monat,
@@ -475,7 +487,9 @@ export default defineOperationApi<Options>({
             tage: blatt.tage,
             befunde: blatt.befunde,
             quelle_url: ausgabe.url,
-            pruefsumme
+            pruefsumme,
+            vorschlag: bewertung.vorschlag,
+            vorschlag_begruendung: bewertung.begruendung
           }
 
           const alt = bekannt.get(`${ausgabe.jahr}-${ausgabe.monat}`) ?? null
@@ -493,6 +507,10 @@ export default defineOperationApi<Options>({
               ergebnis.geaendert += 1
               ergebnis.hinweise.push(satz)
             }
+          }
+
+          if (bewertung.begruendung !== null) {
+            ergebnis.hinweise.push(bewertung.begruendung)
           }
 
           // Where the sheet contradicts itself, the run says so — the row
