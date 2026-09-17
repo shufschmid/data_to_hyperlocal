@@ -21,29 +21,40 @@ import { markeMoeglich, versiegle } from '@/lib/marke.server'
 
 const ZEITGRENZE_MS = 8000
 
-function weiter(request: NextRequest, fragment: string): NextResponse {
-  const ziel = new URL('/', request.nextUrl)
-  ziel.searchParams.set('rahmen', 'editor')
-  ziel.hash = fragment
-  return NextResponse.redirect(ziel, {
-    headers: { 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' }
+/**
+ * A RELATIVE `Location`, built by hand.
+ *
+ * `NextResponse.redirect` needs an absolute address, and inside the container
+ * `request.nextUrl` carries the address the server is BOUND to: measured here,
+ * a redirect built that way answered `http://0.0.0.0:3000/?rahmen=editor…`,
+ * which no browser can follow back. A relative location is what a browser
+ * resolves against the address it actually asked for, and it needs no guess
+ * about the reverse proxy in front.
+ */
+function weiter(fragment: string): NextResponse {
+  return new NextResponse(null, {
+    status: 303,
+    headers: {
+      Location: `/?rahmen=editor#${fragment}`,
+      'Cache-Control': 'no-store',
+      'Referrer-Policy': 'no-referrer'
+    }
   })
 }
 
-function abgelehnt(request: NextRequest, meldung: string): NextResponse {
-  return weiter(request, `fehler=${encodeURIComponent(meldung)}`)
+function abgelehnt(meldung: string): NextResponse {
+  return weiter(`fehler=${encodeURIComponent(meldung)}`)
 }
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get('token')
 
   if (token === null || token.trim() === '') {
-    return abgelehnt(request, 'Es kam kein Token aus dem Editor an.')
+    return abgelehnt('Es kam kein Token aus dem Editor an.')
   }
 
   if (!markeMoeglich()) {
     return abgelehnt(
-      request,
       'Der Editor-Zugang ist auf dieser Instanz nicht eingerichtet (SITZUNGSMARKE_SCHLUESSEL fehlt).'
     )
   }
@@ -58,7 +69,7 @@ export async function GET(request: NextRequest) {
       signal: AbortSignal.timeout(ZEITGRENZE_MS)
     })
   } catch {
-    return abgelehnt(request, 'Die Redaktion war nicht erreichbar. Bitte noch einmal versuchen.')
+    return abgelehnt('Die Redaktion war nicht erreichbar. Bitte noch einmal versuchen.')
   }
 
   const inhalt = (await antwort.json().catch(() => null)) as {
@@ -69,15 +80,12 @@ export async function GET(request: NextRequest) {
   if (!antwort.ok) {
     // The backend's German message, passed through unchanged: it is the only
     // place that knows WHICH of the refusals this was.
-    return abgelehnt(
-      request,
-      inhalt?.errors?.[0]?.message ?? 'Die Anmeldung über den Editor hat nicht geklappt.'
-    )
+    return abgelehnt(inhalt?.errors?.[0]?.message ?? 'Die Anmeldung über den Editor hat nicht geklappt.')
   }
 
   const { access_token: accessToken, refresh_token: refreshToken, expires } = inhalt?.data ?? {}
   if (typeof accessToken !== 'string' || typeof refreshToken !== 'string') {
-    return abgelehnt(request, 'Die Anmeldung über den Editor hat nicht geklappt.')
+    return abgelehnt('Die Anmeldung über den Editor hat nicht geklappt.')
   }
 
   const tokens: DirectusSessionTokens = {
@@ -88,8 +96,8 @@ export async function GET(request: NextRequest) {
 
   const marke = await versiegle(tokens, Date.now())
   if (marke === null) {
-    return abgelehnt(request, 'Die Sitzung konnte nicht versiegelt werden.')
+    return abgelehnt('Die Sitzung konnte nicht versiegelt werden.')
   }
 
-  return weiter(request, `m=${marke}`)
+  return weiter(`m=${marke}`)
 }
