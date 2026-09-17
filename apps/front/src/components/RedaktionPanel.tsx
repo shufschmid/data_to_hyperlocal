@@ -73,7 +73,7 @@ import {
   zeitleiste,
   type QuellenLaufStatus
 } from '@/lib/redaktion'
-import { revisionZaehler } from '@/lib/revision'
+import { revisionZaehlerSport, revisionZaehlerStatistik } from '@/lib/revision'
 import { QuellenLauf } from './QuellenLauf'
 import { Presseschau } from './Presseschau'
 import { Amtsblatt } from './Amtsblatt'
@@ -759,7 +759,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             value="statistik"
             label={
               <Badge
-                badgeContent={revisionZaehler(meldungenAlle)}
+                badgeContent={revisionZaehlerStatistik(meldungenAlle)}
                 // Rot statt der ueblichen Farbe: dieser Zaehler meint nicht
                 // „hier liegt Arbeit", sondern „hier steht etwas Falsches
                 // draussen".
@@ -770,7 +770,21 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
               </Badge>
             }
           />
-          <Tab value="sport" label="Sportresultate" />
+          <Tab
+            value="sport"
+            label={
+              <Badge
+                // Derselbe rote Zaehler wie bei statistik.bl, aus demselben
+                // Feld: seit dem 17. September schaut der Waechter auch auf
+                // korrigierte Verbandsresultate zurueck.
+                badgeContent={revisionZaehlerSport(meldungenAlle)}
+                color="error"
+                sx={ZAEHLER_IM_REITER}
+              >
+                Sportresultate
+              </Badge>
+            }
+          />
           <Tab value="entsorgung" label="Entsorgung" />
           <Tab
             value="wochenblaetter"

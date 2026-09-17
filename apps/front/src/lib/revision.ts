@@ -33,3 +33,31 @@ export function nachRevision<T extends MitRevision>(zeilen: readonly T[]): T[] {
 export function revisionZaehler(zeilen: readonly MitRevision[]): number {
   return zeilen.filter(hatRevision).length
 }
+
+/**
+ * A Meldung as the two counters tell them apart.
+ *
+ * Two watchdogs write into the one `revision_hinweis` field since 17 September
+ * 2026: the statistics one when a dataset's figures move under a published
+ * article, the sport one when an association corrects a result under a
+ * published match report. A match report is the one that carries `spiel`.
+ */
+export interface MitSpiel extends MitRevision {
+  spiel: { id: string } | null
+}
+
+/**
+ * The red counter on the Sportresultate tab.
+ *
+ * A finding belongs on the desk where the editor works on it. Left in the
+ * statistik.bl badge alone, a corrected football result would light up a tab
+ * that does not show the report and cannot open it.
+ */
+export function revisionZaehlerSport(zeilen: readonly MitSpiel[]): number {
+  return revisionZaehler(zeilen.filter((z) => z.spiel !== null))
+}
+
+/** The red counter on the statistik.bl tab — everything that is no match report. */
+export function revisionZaehlerStatistik(zeilen: readonly MitSpiel[]): number {
+  return revisionZaehler(zeilen.filter((z) => z.spiel === null))
+}
