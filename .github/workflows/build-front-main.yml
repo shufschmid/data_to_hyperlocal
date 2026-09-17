@@ -23,6 +23,13 @@ jobs:
 
   publish_main_docker:
     needs: date_sha_tag
+    # Required by the reusable builder, which pushes to GHCR: a called workflow
+    # can only reduce the caller's token, so without this the run is refused
+    # before it starts. It was — 36 times, from 04.08.2026 on. The full
+    # measurement is in publish-docker-image.yml.
+    permissions:
+      contents: read
+      packages: write
     uses: ./.github/workflows/publish-docker-image.yml
     with:
       context: apps/front

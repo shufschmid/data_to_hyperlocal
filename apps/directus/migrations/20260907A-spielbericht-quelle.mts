@@ -79,7 +79,16 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 export async function down(): Promise<void> {
-  // Nothing to undo. The line names the page the result stands on; taking it
-  // back out would leave a published report pointing at nothing, which is the
-  // state this migration exists to end.
+  // Deliberately irreversible, and audible rather than silent. The line names
+  // the page the result stands on; taking it back out would leave a published
+  // report pointing at nothing, which is the state this migration exists to
+  // end, and `pruefeUebergang` would then refuse to publish those reports at
+  // all. An empty `down` reported a rollback that never happened; refusing out
+  // loud is the form `migrations-reversible-mts` accepts for a change that
+  // cannot be undone.
+  throw new Error(
+    'Nicht umkehrbar: die Quellenzeile bleibt unter den Spielberichten stehen. ' +
+      'Sie wieder zu entfernen liesse publizierte Berichte auf nichts zeigen, ' +
+      'und pruefeUebergang laesst einen Bericht ohne Quellenlink gar nicht erst publizieren.'
+  )
 }

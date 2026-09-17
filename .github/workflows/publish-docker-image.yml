@@ -3,6 +3,24 @@ name: Publish docker image
 # Reusable builder: builds the Docker image from a given app subfolder and
 # pushes it to GHCR under the supplied tags. Called by the per-app main
 # workflows and the shared production workflow.
+#
+# EVERY CALLER MUST GRANT `contents: read` + `packages: write` ON THE CALLING
+# JOB. A called workflow can only REDUCE the caller's GITHUB_TOKEN, never
+# elevate it, so the `packages: write` below is not a request GitHub can
+# fulfil on its own: if the caller passes the repository default, the run is
+# refused before any job is created. Measured 17.09.2026 with `gh run list`:
+# all 36 runs of `build-backend-main.yml` since the very first on 04.08.2026
+# ended in `startup_failure` after 0 to 1 second, with no job and no log —
+# none of them ever published an image. The repository's Actions setting is
+# not the cause it was taken for: `code-review.yml` elevates to
+# `pull-requests: write` in the same repository and runs green.
+#
+# The other way out, had the setting been the cause, was to drop the `push:`
+# trigger from the two callers and keep `workflow_dispatch`, so that a failure
+# nobody can fix stops marking every merge red. Granting the permission is
+# cheaper and gives the images back. Neither touches the deploy: Dokploy
+# builds from the repository, and these images are the documented path for a
+# host that pulls instead of builds.
 
 on:
   workflow_call:

@@ -1169,10 +1169,10 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
             Was die Gemeinden amtlich publizieren — kantonal und im SHAB, über das Amtsblattportal des Bundes.
-            Als einzige Quelle deckt es das ganze Gebiet ab, auch Riehen und Dornach. Eine Sichtung sortiert,
-            was einen Blick lohnt; weggeworfen wird nichts. Zu den Vorschlägen sieht sich der Lauf die
-            aufgelegten Baupläne an — bei allen anderen steht der Link da, und ein Klick holt die Unterlagen
-            nach.
+            Als einzige Quelle deckt es das ganze Gebiet ab, über die Kantonsgrenze hinweg auch Riehen. Eine
+            Sichtung sortiert, was einen Blick lohnt; weggeworfen wird nichts. Zu den Vorschlägen sieht sich
+            der Lauf die aufgelegten Baupläne an — bei allen anderen steht der Link da, und ein Klick holt die
+            Unterlagen nach.
           </Typography>
           <Amtsblatt
             eintraege={amtsblatt.data?.amtsblattmeldungen ?? []}

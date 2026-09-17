@@ -100,7 +100,7 @@ them is wrong even if it works.
    | `issuu.com`                                 | where that Wochenblatt's issues actually live — the reader page yields the `publicationId`, the anonymous `public.reader.download` API (the same call the reader's download button makes, answering only where the publisher enabled downloads) yields a signed S3 address for the original PDF; if the publisher turns it off, the run fails visibly                                                                                                                                                      | `shared/wochenblatt/`                 |
    | `bibo.ch`                                   | the BiBo (Birsigtal-Bote), on Localpoint's CMS — the listing page embeds its issues as JSON, the reader page names the coordinates the PDF address is derived from                                                                                                                                                                                                                                                                                                                                         | `shared/wochenblatt/`                 |
    | `files.localpoint.ch`                       | the BiBo's original PDFs — the same public address the reader's download button opens, no login                                                                                                                                                                                                                                                                                                                                                                                                            | `shared/wochenblatt/`                 |
-   | `amtsblattportal.ch`                        | every canton's official gazette plus the federal SHAB, in one documented API — published items need no credentials. The only source that covers the whole newsroom area, Riehen (BS) and Dornach (SO) included                                                                                                                                                                                                                                                                                             | `shared/amtsblatt/`                   |
+   | `amtsblattportal.ch`                        | every canton's official gazette plus the federal SHAB, in one documented API — published items need no credentials. The only source that covers the whole newsroom area whatever the canton — Riehen (BS) today, a Solothurn or Aargau municipality the day one is registered                                                                                                                                                                                                                              | `shared/amtsblatt/`                   |
    | `bgauflage.bl.ch`                           | the building plans behind a Baselland permit, as plain images — the same public door the objection period opens, read only for a publication the newsroom acted on                                                                                                                                                                                                                                                                                                                                         | `shared/amtsblatt/`                   |
    | `www.simap.ch`                              | the joint public-procurement platform of the Confederation and the cantons — open search and detail endpoints, no key, a documented OpenAPI spec. Read once a day, anchored on registered procurement-office uuids and our own postcodes, never on municipality names (`simap.ch` without `www` answers 301)                                                                                                                                                                                               | `shared/simap/`                       |
    | `zettelkasten-tuer.raumschiffenterprise.ch` | the REST door of the Zettelkasten, We.Publish's evidence-bound knowledge layer: both Basel gazettes since 2018, every row with the raw fetch it came from and a checksum, plus the canton's own PDF address per publication. Read with a bearer token, one request per gazette row an editor opens, organisations only — the `personen` rubrics never leave this adapter. Off without `ZETTELKASTEN_TOKEN`, and the desk says so                                                                           | `shared/zettelkasten/`                |
@@ -306,10 +306,14 @@ them is wrong even if it works.
    candidates: open ones the new run no longer proposes are deleted, verdicts
    are never re-asked.
    „Amtsblatt" is the fifth feed and the newsroom's THIRD desk. It is the
-   only source that reaches every covered municipality: the cantonal gazettes
-   and the federal SHAB sit on one portal, so Riehen (BS) and Dornach (SO)
-   arrive through the same door as the Baselland ones — where the statistics
-   portals are cantonal and silent about them. Read daily at 07:00, two
+   only source that reaches every covered municipality WHATEVER ITS CANTON:
+   the cantonal gazettes and the federal SHAB sit on one portal, so Riehen
+   (BS) arrives through the same door as the nine Baselland ones — where the
+   statistics portals are cantonal and silent about it. Nothing about that
+   stops at the cantonal border: a Solothurn municipality such as Dornach
+   would arrive the same way the day an editor registers one, and the
+   newsroom covers none today (measured 17.09.2026 against
+   `/api/v1/gemeinden`: ten municipalities, nine BL plus Riehen). Read daily at 07:00, two
    requests per municipality (see above), filed into six groups — Bauen,
    Handelsregister, Behörden, Grundbuch, Personen, Öffentliche Beschaffung.
    `personen` is not a topic but a property: those rubrics name private
@@ -1346,7 +1350,7 @@ two watchdogs, and a finding belongs on the desk that can open the article.
 - `amtsblattmeldungen.entscheid` + `ablehnungsgrund`/`ablehnungskommentar` —
   the gazette feed's memory is its decision rows too, and scoped PER
   MUNICIPALITY rather than per source: what counts as local news in Riehen says
-  little about Dornach. `lernDigest` renders the last ~20 into the next
+  little about Pratteln. `lernDigest` renders the last ~20 into the next
   triage's user turn — reasons in words, the comment (stored since day one,
   read since September 2026), hand-ups by the Chefredaktion's verdict, a
   30-day Bilanz and the `verfallen` titles — never into the cached prefix.
@@ -1456,10 +1460,19 @@ proxy in front for TLS.
 file builds both apps from source (`build:` contexts), and Dokploy rebuilds and
 redeploys the stack from the repository on every push to `main`. A push IS the
 deploy — which is also why the GHCR publish workflows failing does not stop a
-deploy (measured 2026-09-01: they had been failing at startup since 30.08 —
-`GITHUB_TOKEN` capped at `packages: read` by the repo's Actions settings — while
-the server kept deploying normally). The images remain the documented path for
-any host that pulls instead of builds.
+deploy: the server kept deploying normally throughout. **What they were failing
+on was measured on 17 September 2026 and it was not the repository's Actions
+settings.** All 36 runs of `build-backend-main.yml` since the very first on 4
+August 2026 ended in `startup_failure` after 0 to 1 second, with no job created
+and no log to read — the workflow never published an image at all. The cause is
+structural: the two callers declared no `permissions`, and a called workflow can
+only REDUCE the caller's `GITHUB_TOKEN`, never elevate it, so the reusable
+builder's `packages: write` could not be granted and the run was refused before
+it began. A capped token was the wrong suspect: `code-review.yml` elevates to
+`pull-requests: write` in the same repository and runs green. Both callers (and
+`build-production.yml`, which no `v*` tag has yet reached) now grant
+`contents: read` + `packages: write` on the calling job. The images remain the
+documented path for any host that pulls instead of builds.
 
 ## Things to know before editing
 
