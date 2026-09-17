@@ -13,6 +13,13 @@ import {
 } from '../../shared/matchcenter/parse'
 import { parseGameCenter } from '../../shared/swissvolley/parse'
 import { parseHandball } from '../../shared/handball/parse'
+import {
+  BasketplanFehler,
+  holeSpielplan,
+  oeffentlicheLigaseite,
+  ordneBasketballZu
+} from '../../shared/basketplan'
+import { optionalEnv } from '../../shared/env'
 import { ersteMannschaftAbgleich } from '../../redaktion/mannschaft'
 import { schreibeSpielberichte } from '../../redaktion/spielberichte'
 import { ladeRegeln } from '../../redaktion/gedaechtnis'
@@ -253,6 +260,80 @@ export default defineOperationApi<Optionen>({
       }
     }
 
+    // Basketball: one request per GROUP, not per team.
+    //
+    // A group carries several of our clubs at once — BC Allschwil-Algon and
+    // Liestal Basket 44 play in the same NL1 Men group as BC Arlesheim's men —
+    // so two clubs of one group share one address and it is fetched once. The
+    // football pattern, not the volleyball one.
+    //
+    // Which match belongs to whom is decided locally on the team id at the
+    // source (`vereine.externe_id`), without a model; a match of a club we do
+    // not cover is counted, never stored.
+    const basketball = vereine.filter((v) => v.quelle === 'basketball')
+    if (basketball.length > 0) {
+      const kontakt = optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch')
+      const gruppen = new Map<string, VereinZeile[]>()
+      for (const verein of basketball) {
+        if (verein.ergebnis_url === null) {
+          logger.warn(
+            `sportresultate: ${verein.name} hat keine ergebnis_url — uebersprungen.`
+          )
+          continue
+        }
+        const bisher = gruppen.get(verein.ergebnis_url)
+        if (bisher === undefined) gruppen.set(verein.ergebnis_url, [verein])
+        else bisher.push(verein)
+      }
+
+      for (const [adresse, gruppenvereine] of gruppen) {
+        try {
+          const plan = await holeSpielplan(adresse, { kontakt })
+          // The cap lives in the address the editor stored. One that bites
+          // silently reads as «no more matches» — said out loud instead.
+          if (plan.abgeschnitten) {
+            fehler.push(
+              `Basketball: Spielplan ${plan.liga ?? adresse} am Deckel totalGames abgeschnitten.`
+            )
+          }
+          // The league page a reader can open, not the XML door we read.
+          const quelleUrl = oeffentlicheLigaseite(plan.liga) ?? adresse
+          const { zugeordnet, ohneVerein } = ordneBasketballZu(
+            plan.spiele,
+            gruppenvereine
+          )
+          for (const { spiel, verein } of zugeordnet) {
+            zeilen.push({
+              spielnummer: spiel.spielnummer,
+              verein: verein.id,
+              gemeinde: verein.gemeinde,
+              sportart: verein.sportart,
+              datum: spiel.datum,
+              heim: spiel.heim,
+              gast: spiel.gast,
+              tore_heim: spiel.toreHeim,
+              tore_gast: spiel.toreGast,
+              wettbewerb: plan.liga ?? verein.liga ?? 'Meisterschaft',
+              ort: spiel.ort,
+              status: null,
+              quelle_url: quelleUrl
+            })
+          }
+          logger.info(
+            `sportresultate: Basketball ${plan.liga ?? adresse} — ${plan.spiele.length} gelesen, ` +
+              `${zugeordnet.length} betreffen unsere Vereine, ${ohneVerein} andere.`
+          )
+        } catch (ausnahme) {
+          const grund =
+            ausnahme instanceof BasketplanFehler
+              ? ausnahme.message
+              : String(ausnahme)
+          logger.warn(`sportresultate: Basketball nicht lesbar — ${grund}`)
+          fehler.push(`Basketball (${adresse}): ${grund}`)
+        }
+      }
+    }
+
     let nachgetragen = 0
 
     // Nachtrag: the score for football, from each club's own page.
@@ -390,7 +471,12 @@ export default defineOperationApi<Optionen>({
       )
     }
 
-    const MIT_KONNEKTOR = new Set(['fvnws', 'swissvolley', 'handball'])
+    const MIT_KONNEKTOR = new Set([
+      'fvnws',
+      'swissvolley',
+      'handball',
+      'basketball'
+    ])
     const ohneKonnektor = [
       ...new Set(
         vereine

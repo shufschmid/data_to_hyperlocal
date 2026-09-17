@@ -117,4 +117,55 @@ describe('pruefeVerein', () => {
     const p = pruefeVerein({ ...gut, ergebnis_url: 'https://example.ch/team' })
     expect(p.ok && p.wert.ergebnis_url).toBe('https://example.ch/team')
   })
+
+  // Basketball wird je GRUPPE gelesen, und eine Gruppe traegt mehrere unserer
+  // Vereine. Ohne die Kennung der Mannschaft an der Quelle waere nicht zu
+  // sagen, welches Spiel welchem Verein gehoert.
+  it('verlangt fuer Basketball Gruppenadresse und Mannschaftskennung', () => {
+    const basketball = {
+      ...gut,
+      sportart: 'Basketball',
+      quelle: 'basketball'
+    }
+
+    const ohneAdresse = pruefeVerein(basketball)
+    expect(ohneAdresse.ok).toBe(false)
+    expect(!ohneAdresse.ok && ohneAdresse.grund).toMatch(
+      /showLeagueSchedule\.do/
+    )
+
+    const ohneKennung = pruefeVerein({
+      ...basketball,
+      ergebnis_url:
+        'https://swiss.basketball/basketplan/showLeagueSchedule.do?leagueHoldingId=11329'
+    })
+    expect(ohneKennung.ok).toBe(false)
+    expect(!ohneKennung.ok && ohneKennung.grund).toMatch(/Mannschaftskennung/)
+
+    const vollstaendig = pruefeVerein({
+      ...basketball,
+      ergebnis_url:
+        'https://swiss.basketball/basketplan/showLeagueSchedule.do?leagueHoldingId=11329',
+      externe_id: ' 515 '
+    })
+    expect(vollstaendig.ok).toBe(true)
+    expect(vollstaendig.ok && vollstaendig.wert.externe_id).toBe('515')
+  })
+
+  it('nimmt fuer Basketball keine Adresse ausserhalb des Verbands', () => {
+    const p = pruefeVerein({
+      ...gut,
+      sportart: 'Basketball',
+      quelle: 'basketball',
+      ergebnis_url: 'https://www.basketplan.ch/showLeagueSchedule.do',
+      externe_id: '515'
+    })
+    expect(p.ok).toBe(false)
+    expect(!p.ok && p.grund).toMatch(/swiss\.basketball/)
+  })
+
+  it('laesst externe_id sonst leer, statt sie zu erfinden', () => {
+    const p = pruefeVerein(gut)
+    expect(p.ok && p.wert.externe_id).toBeNull()
+  })
 })

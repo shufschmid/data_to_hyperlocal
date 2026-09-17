@@ -11,7 +11,7 @@
     "group": null,
     "hidden": false,
     "interface": "input",
-    "note": "Kennung des Vereins bei der Quelle. Leer, solange nichts zugeordnet ist.",
+    "note": "Kennung des Vereins bei der Quelle. Bei Swiss Basketball zwingend: die teamId aus dem Spielplan (zum Beispiel 515), weil eine Gruppe mehrere Vereine traegt. Leer, solange nichts zugeordnet ist.",
     "options": null,
     "readonly": false,
     "required": false,

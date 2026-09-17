@@ -16,12 +16,18 @@ import type { VereinFelder } from '@/graphql/redaktion'
 
 // Erfassen und Bearbeiten eines Vereins — ein Formular fuer beides.
 //
-// Die Quellenwahl ist der Teil, der Aufmerksamkeit verdient: drei der fuenf
-// Quellen haben einen Leser, und zwei davon fragen PRO MANNSCHAFT genau die
-// hinterlegte Adresse ab. Fehlt sie dort, ueberspringt der Morgenlauf den
-// Verein mit einer Logzeile, die niemand liest — der Verein sieht erfasst aus
-// und bleibt fuer immer still. Deshalb sagt das Formular es hier, und der
-// Endpoint prueft es noch einmal.
+// Die Quellenwahl ist der Teil, der Aufmerksamkeit verdient: vier der sechs
+// Quellen haben einen Leser, und drei davon fragen genau die hinterlegte
+// Adresse ab. Fehlt sie dort, ueberspringt der Morgenlauf den Verein mit einer
+// Logzeile, die niemand liest — der Verein sieht erfasst aus und bleibt fuer
+// immer still. Deshalb sagt das Formular es hier, und der Endpoint prueft es
+// noch einmal.
+//
+// Basketball ist der Sonderfall unter ihnen: dort steht pro GRUPPE eine
+// Adresse, nicht pro Mannschaft, und eine Gruppe traegt mehrere unserer
+// Vereine. Darum braucht sie zusaetzlich die Mannschaftskennung an der Quelle,
+// und die Gruppen-Ids wechseln je Saison — ein jaehrlicher Handgriff hier ist
+// ehrlicher als eine Automatik, die sich im falschen Jahr selber verstellt.
 
 const SPORTARTEN = [
   'Fussball',
@@ -43,10 +49,19 @@ const QUELLEN: { wert: string; text: string }[] = [
   { wert: 'fvnws', text: 'fvnws (Fussball) — eine Seite für alle Vereine' },
   { wert: 'swissvolley', text: 'swissvolley — Adresse pro Mannschaft nötig' },
   { wert: 'handball', text: 'handball — Adresse pro Mannschaft nötig' },
+  { wert: 'basketball', text: 'Swiss Basketball — Adresse pro Gruppe nötig' },
   { wert: 'swissunihockey', text: 'swissunihockey — noch kein Leser' }
 ]
 
-const BRAUCHT_URL = new Set(['swissvolley', 'handball'])
+const BRAUCHT_URL = new Set(['swissvolley', 'handball', 'basketball'])
+
+/** Quellen, die zusätzlich die Kennung der Mannschaft an der Quelle brauchen. */
+const BRAUCHT_KENNUNG = new Set(['basketball'])
+
+const BASKETBALL_BEISPIEL =
+  'https://swiss.basketball/basketplan/showLeagueSchedule.do' +
+  '?lang=de&xmlView=rss&leagueId=7&seasonId=31&daysBack=30&daysFuture=120' +
+  '&totalGames=500&resultType=big&leagueHoldingId=11329'
 
 export interface VereinFormular {
   name: string
@@ -54,6 +69,7 @@ export interface VereinFormular {
   bedeutung: string
   quelle: string
   ergebnis_url: string
+  externe_id: string
   liga: string
   spielort: string
   notiz: string
@@ -66,6 +82,7 @@ const LEER: VereinFormular = {
   bedeutung: 'breitensport',
   quelle: 'manuell',
   ergebnis_url: '',
+  externe_id: '',
   liga: '',
   spielort: '',
   notiz: '',
@@ -103,6 +120,7 @@ export function VereinDialog({
             bedeutung: verein.bedeutung,
             quelle: verein.quelle ?? 'manuell',
             ergebnis_url: verein.ergebnis_url ?? '',
+            externe_id: verein.externe_id ?? '',
             liga: verein.liga ?? '',
             spielort: verein.spielort ?? '',
             notiz: verein.notiz ?? '',
@@ -116,7 +134,8 @@ export function VereinDialog({
   }
 
   const urlFehlt = BRAUCHT_URL.has(werte.quelle) && werte.ergebnis_url.trim() === ''
-  const bereit = werte.name.trim() !== '' && !urlFehlt
+  const kennungFehlt = BRAUCHT_KENNUNG.has(werte.quelle) && werte.externe_id.trim() === ''
+  const bereit = werte.name.trim() !== '' && !urlFehlt && !kennungFehlt
 
   return (
     <Dialog open={offen} onClose={onSchliessen} fullWidth maxWidth="sm">
@@ -180,14 +199,28 @@ export function VereinDialog({
             size="small"
             value={werte.ergebnis_url}
             onChange={(e) => setze('ergebnis_url', e.target.value)}
-            placeholder="https://…"
+            placeholder={werte.quelle === 'basketball' ? BASKETBALL_BEISPIEL : 'https://…'}
             error={urlFehlt}
             helperText={
-              urlFehlt
-                ? 'Diese Quelle wird pro Mannschaft abgefragt — ohne Adresse bleibt der Verein still.'
-                : 'Bei fvnws optional: nur nötig, um ein fehlendes Resultat nachzutragen.'
+              werte.quelle === 'basketball'
+                ? 'Der Spielplan der Gruppe auf swiss.basketball (showLeagueSchedule.do). Die Gruppen-Ids wechseln jede Saison.'
+                : urlFehlt
+                  ? 'Diese Quelle wird pro Mannschaft abgefragt — ohne Adresse bleibt der Verein still.'
+                  : 'Bei fvnws optional: nur nötig, um ein fehlendes Resultat nachzutragen.'
             }
           />
+
+          {BRAUCHT_KENNUNG.has(werte.quelle) && (
+            <TextField
+              label="Mannschaftskennung an der Quelle"
+              size="small"
+              value={werte.externe_id}
+              onChange={(e) => setze('externe_id', e.target.value)}
+              placeholder="515"
+              error={kennungFehlt}
+              helperText="Die teamId aus dem Spielplan. Eine Gruppe trägt mehrere Vereine — ohne sie lässt sich kein Spiel zuordnen."
+            />
+          )}
 
           <Stack direction="row" spacing={2}>
             <TextField

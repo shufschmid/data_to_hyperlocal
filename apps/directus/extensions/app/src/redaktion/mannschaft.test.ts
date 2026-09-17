@@ -177,3 +177,34 @@ describe('ersteMannschaftAbgleich', () => {
     expect(abgleich.entfernen).toEqual([])
   })
 })
+
+// Basketball, seit dem 17. September 2026. Dort wird pro GRUPPE gelesen, und
+// eine Gruppe ist genau eine Liga: alle Spiele eines Vereins tragen denselben
+// `wettbewerb`, die Regel hat also nichts zu entscheiden. Was sie trotzdem
+// koennen muss, ist die Damenmannschaft von BC Arlesheim stehen zu lassen —
+// sie spielt eine Stufe hoeher als die Herren, und das ist der Fall
+// Sm'Aesch Pfeffingen ein zweites Mal.
+describe('Basketball', () => {
+  const partie = (wettbewerb: string) => ({ wettbewerb })
+
+  it('haelt die Damenmannschaft, wenn die Liga des Vereins sie nennt', () => {
+    const arlesheim = 'Damen 1: Nationalliga B — Herren 1: 1. Liga National'
+    expect(ersteMannschaft([partie('NLB Women')], arlesheim)).toHaveLength(1)
+  })
+
+  it('haelt sie auch, wenn nur die Quelle sie englisch benennt', () => {
+    // `istFrauenwettbewerb` kennt «Women» nicht, und das ist hier richtig: die
+    // Regel wirft nur weg, was sie als Frauenwettbewerb ERKENNT. Ein
+    // «women» im Muster wuerde das Aushaengeschild von Arlesheim
+    // stummschalten, sobald die Liga des Vereins nicht «Damen» sagt.
+    expect(istFrauenwettbewerb('NLB Women')).toBe(false)
+    expect(ersteMannschaft([partie('NLB Women')], null)).toHaveLength(1)
+  })
+
+  it('stellt die NLB der Frauen ueber die NL1 der Maenner', () => {
+    expect(ligaRang('NLB Women')).toBe(1)
+    // «NL1 Men» steht in der Rangfolge nicht — ein unbekannter Name ordnet
+    // sich nicht ein, statt sich nach oben zu sortieren.
+    expect(ligaRang('NL1 Men')).toBeNull()
+  })
+})

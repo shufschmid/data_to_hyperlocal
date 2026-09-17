@@ -510,10 +510,16 @@ export interface VereinFelder {
   /** A snapshot: placements change every season. Never authoritative on its own. */
   liga: string | null
   spielort: string | null
-  /** `manuell`, `fvnws`, `swissvolley`, `handball`, `swissunihockey`. */
+  /** `manuell`, `fvnws`, `swissvolley`, `handball`, `basketball`, `swissunihockey`. */
   quelle: string | null
-  /** Bei swissvolley und handball zwingend: dort wird pro Mannschaft gelesen. */
+  /**
+   * Bei swissvolley und handball zwingend: dort wird pro Mannschaft gelesen.
+   * Bei basketball ebenso — dort aber pro GRUPPE, und eine Gruppe traegt
+   * mehrere Vereine.
+   */
   ergebnis_url: string | null
+  /** Kennung der Mannschaft an der Quelle; bei basketball zwingend (teamId). */
+  externe_id: string | null
   /** Warum der Verein fuer die Gemeinde zaehlt — geht in den Spielbericht. */
   notiz: string | null
   /** False while the club is only a proposal from a source. */
@@ -540,6 +546,7 @@ export const VEREINE_QUERY = gql`
       spielort
       quelle
       ergebnis_url
+      externe_id
       notiz
       zuordnung_geprueft
       aktiv

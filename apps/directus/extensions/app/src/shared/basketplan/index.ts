@@ -27,9 +27,14 @@
 // too — a refusal here is a refusal, and the run says so.
 
 import { buildUserAgent } from '../agenda'
-import { parseSpielplan, type Basketballspielplan } from './parse'
+import {
+  istErlaubteQuelle,
+  parseSpielplan,
+  type Basketballspielplan
+} from './parse'
 
 export {
+  istErlaubteQuelle,
   oeffentlicheLigaseite,
   ordneBasketballZu,
   parseSpielplan,
@@ -47,19 +52,6 @@ export class BasketplanFehler extends Error {
     super(message)
     this.name = 'BasketplanFehler'
   }
-}
-
-/** The one host, and the one endpoint on it, this connector may read. */
-export function istErlaubteQuelle(url: string): boolean {
-  let adresse: URL
-  try {
-    adresse = new URL(url)
-  } catch {
-    return false
-  }
-  const host = adresse.hostname.toLowerCase().replace(/^www\./, '')
-  if (host !== 'swiss.basketball') return false
-  return adresse.pathname.endsWith('/showLeagueSchedule.do')
 }
 
 export interface AbrufOptionen {

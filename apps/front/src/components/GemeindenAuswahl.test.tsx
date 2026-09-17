@@ -33,6 +33,7 @@ function verein(ueber: Partial<VereinFelder>): VereinFelder {
     spielort: null,
     quelle: 'manuell',
     ergebnis_url: null,
+    externe_id: null,
     notiz: null,
     zuordnung_geprueft: true,
     aktiv: true,
@@ -170,6 +171,44 @@ describe('GemeindenAuswahl', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Erfassen' }))
 
     expect(onVerein).toHaveBeenCalledWith('a', expect.objectContaining({ name: 'FC Neu' }), null)
+  })
+
+  // Basketball wird pro GRUPPE gelesen, und eine Gruppe traegt mehrere unserer
+  // Vereine. Ohne Adresse und Mannschaftskennung waere der Verein erfasst und
+  // fuer immer still — das Formular laesst ihn darum gar nicht erst speichern.
+  it('verlangt fuer Basketball Gruppenadresse und Mannschaftskennung', async () => {
+    const onVerein = jest.fn().mockResolvedValue(undefined)
+    render(<GemeindenAuswahl gemeinden={drei} onUmschalten={jest.fn()} onVerein={onVerein} />)
+
+    await userEvent.click(screen.getAllByRole('button', { name: 'Verein erfassen' })[0]!)
+    await userEvent.type(screen.getByLabelText('Name'), 'BC Neu')
+    await userEvent.click(screen.getByRole('combobox', { name: 'Resultat-Quelle' }))
+    await userEvent.click(screen.getByRole('option', { name: /Swiss Basketball/ }))
+
+    expect(screen.getByRole('button', { name: 'Erfassen' })).toBeDisabled()
+
+    await userEvent.type(
+      screen.getByLabelText('Ergebnis-Adresse'),
+      'https://swiss.basketball/basketplan/showLeagueSchedule.do?leagueHoldingId=11329'
+    )
+    expect(screen.getByRole('button', { name: 'Erfassen' })).toBeDisabled()
+
+    await userEvent.type(screen.getByLabelText('Mannschaftskennung an der Quelle'), '515')
+    await userEvent.click(screen.getByRole('button', { name: 'Erfassen' }))
+
+    expect(onVerein).toHaveBeenCalledWith(
+      'a',
+      expect.objectContaining({ quelle: 'basketball', externe_id: '515' }),
+      null
+    )
+  })
+
+  it('fragt die Mannschaftskennung nur, wo sie gebraucht wird', async () => {
+    render(<GemeindenAuswahl gemeinden={drei} onUmschalten={jest.fn()} onVerein={jest.fn()} />)
+
+    await userEvent.click(screen.getAllByRole('button', { name: 'Verein erfassen' })[0]!)
+
+    expect(screen.queryByLabelText('Mannschaftskennung an der Quelle')).not.toBeInTheDocument()
   })
 
   it('zeigt das abdeckende Blatt und markiert die Hauptgemeinde', () => {

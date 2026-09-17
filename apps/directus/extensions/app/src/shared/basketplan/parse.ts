@@ -280,3 +280,28 @@ export function oeffentlicheLigaseite(liga: string | null): string | null {
   if (!LIGASEITEN.has(stufe)) return null
   return `https://swiss.basketball/de/national-competitions/${stufe}/${geschlecht}`
 }
+
+// ---------------------------------------------------------------------------
+// The one address this connector may read
+// ---------------------------------------------------------------------------
+
+/**
+ * True only for the association's own schedule endpoint.
+ *
+ * Pure and here rather than next to the fetch, because the club form checks it
+ * too: a wrong address then fails while an editor is looking at it, instead of
+ * failing silently at 06:30 tomorrow. Two things it keeps out for good —
+ * `basketplan.ch`, which bars us by robots.txt, and `findTeamById.do`, whose
+ * answer carries a club official's private address and mobile numbers.
+ */
+export function istErlaubteQuelle(url: string): boolean {
+  let adresse: URL
+  try {
+    adresse = new URL(url)
+  } catch {
+    return false
+  }
+  const host = adresse.hostname.toLowerCase().replace(/^www\./, '')
+  if (host !== 'swiss.basketball') return false
+  return adresse.pathname.endsWith('/showLeagueSchedule.do')
+}
