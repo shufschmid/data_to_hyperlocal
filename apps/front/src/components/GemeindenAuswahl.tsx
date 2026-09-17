@@ -28,9 +28,10 @@ import {
   blattJeGemeinde,
   filterGemeinden,
   gemeindeSlug,
-  istBaselbiet,
   kalenderJeGemeinde,
-  vereineNachGemeinde
+  statistikPortaleFuer,
+  vereineNachGemeinde,
+  type StatistikPortal
 } from '@/lib/redaktion'
 import { kalenderStatusText } from '@/lib/entsorgung'
 import { zeitpunktText } from '@/lib/gemeindeseiten'
@@ -55,6 +56,8 @@ export interface GemeindenAuswahlProps {
   vereine?: readonly VereinFelder[]
   blaetter?: readonly WochenblattFelder[]
   kalender?: readonly EntsorgungskalenderFelder[]
+  /** Die registrierten Quellen — daraus sagt die Karte, welches Portal eine Gemeinde bedient. */
+  portale?: readonly StatistikPortal[]
   onUmschalten: (id: string, aktiv: boolean) => Promise<void>
   onGemeindeErfassen?: (eingabe: { name: string; bfs_nummer: number; bezirk: string }) => Promise<void>
   onVerein?: (gemeindeId: string, eingabe: VereinFormular, vereinId: string | null) => Promise<void>
@@ -73,6 +76,7 @@ export function GemeindenAuswahl({
   vereine = [],
   blaetter = [],
   kalender = [],
+  portale = [],
   onUmschalten,
   onGemeindeErfassen,
   onVerein,
@@ -142,6 +146,7 @@ export function GemeindenAuswahl({
           vereine={nachGemeinde.get(gemeinde.id) ?? []}
           blatt={blattVon.get(gemeinde.id) ?? null}
           kalender={kalenderVon.get(gemeinde.id) ?? null}
+          portale={portale}
           jahr={aktiveJahr}
           laeuft={laeuft}
           onEntfernen={() => void onUmschalten(gemeinde.id, false)}
@@ -214,6 +219,7 @@ interface KarteProps {
   vereine: readonly VereinFelder[]
   blatt: WochenblattFelder | null
   kalender: EntsorgungskalenderFelder | null
+  portale: readonly StatistikPortal[]
   jahr: number
   laeuft: boolean
   onEntfernen: () => void
@@ -230,6 +236,7 @@ function GemeindeKarte({
   vereine,
   blatt,
   kalender,
+  portale,
   jahr,
   laeuft,
   onEntfernen,
@@ -239,7 +246,7 @@ function GemeindeKarte({
   onPlz,
   onNewsUrl
 }: KarteProps) {
-  const imKanton = istBaselbiet(gemeinde.bezirk)
+  const statistikPortale = statistikPortaleFuer(gemeinde.bezirk, portale)
   const [plzEingabe, setPlzEingabe] = useState((gemeinde.plz ?? []).join(', '))
   const [urlEingabe, setUrlEingabe] = useState(gemeinde.news_url ?? '')
 
@@ -267,18 +274,21 @@ function GemeindeKarte({
         <Divider />
 
         <Abschnitt titel="Statistik">
-          {imKanton ? (
+          {statistikPortale.length > 0 ? (
             <Typography variant="body2" color="text.secondary">
-              Läuft automatisch über data.bl.ch und statistik.bl.ch.
+              Läuft automatisch über {statistikPortale.map((p) => p.name).join(' und ')}.
             </Typography>
           ) : (
-            // Ehrlicher als Schweigen: die Portale sind kantonal, diese
-            // Gemeinde kommt in ihren Zeilen nicht vor. Sonst wartet die
-            // Redaktion auf Meldungen, die nicht kommen koennen.
+            // Ehrlicher als Schweigen: die Statistik-Portale sind kantonal,
+            // und keines der registrierten fuehrt den Bezirk dieser Gemeinde.
+            // Sonst wartet die Redaktion auf Meldungen, die nicht kommen
+            // koennen. Welche Bezirke ein Portal fuehrt, steht seit dem
+            // 17. September 2026 in `quellen.konfiguration` und nicht mehr
+            // als Bezirksliste im Code.
             <Alert severity="info" sx={{ py: 0 }}>
-              Ausserhalb Basel-Landschaft — die kantonalen Statistik-Quellen führen diese Gemeinde nicht.
-              Amtsblatt, Sport, Abfuhrkalender und Presseschau laufen normal — das Amtsblattportal ist
-              national.
+              Kein registriertes Statistikportal führt den Bezirk {gemeinde.bezirk} — die Portale sind
+              kantonal. Amtsblatt, Sport, Abfuhrkalender und Presseschau laufen normal — das Amtsblattportal
+              ist national.
             </Alert>
           )}
         </Abschnitt>

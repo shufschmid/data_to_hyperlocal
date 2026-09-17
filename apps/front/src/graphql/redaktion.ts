@@ -747,6 +747,8 @@ export interface QuelleFelder {
   name: string
   typ: string
   basis_url: string
+  /** Adapterspezifische Optionen; bei den Statistik-Portalen `amt` und `bezirke`. */
+  konfiguration: Record<string, unknown> | null
   letzte_pruefung: string | null
   letzter_fehler: string | null
 }
@@ -771,6 +773,7 @@ export const QUELLEN_QUERY = gql`
       name
       typ
       basis_url
+      konfiguration
       letzte_pruefung
       letzter_fehler
     }

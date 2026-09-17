@@ -1411,6 +1411,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             vereine={vereine.data?.vereine ?? []}
             blaetter={wochenblaetter.data?.wochenblaetter ?? []}
             kalender={kalender.data?.entsorgungskalender ?? []}
+            portale={quellen.data?.quellen ?? []}
             laeuft={sendet}
             onUmschalten={(id, aktiv) => schalteGemeinden([id], aktiv)}
             onGemeindeErfassen={async (eingabe) => {

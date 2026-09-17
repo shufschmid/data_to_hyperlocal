@@ -51,6 +51,48 @@ describe('quellenlink', () => {
     ).toBe('https://data.bl.ch/explore/dataset/10230/')
   })
 
+  // Das zweite Medium: Portal und Amt kommen aus der Quelle, nicht aus dem Code.
+  it('baut die Adresse auf dem Portal der Quelle', () => {
+    expect(
+      quellenlink({
+        ankuendigungLink: null,
+        quelleTyp: 'ods',
+        externeId: '100059',
+        portalUrl: 'https://data.bs.ch',
+        amt: 'Statistisches Amt des Kantons Basel-Stadt'
+      })
+    ).toEqual({
+      url: 'https://data.bs.ch/explore/dataset/100059/',
+      bezeichnung: 'Statistisches Amt des Kantons Basel-Stadt',
+      webartikel: false
+    })
+  })
+
+  it('vertraegt einen abschliessenden Schraegstrich in der Portaladresse', () => {
+    expect(
+      quellenlink({
+        ankuendigungLink: null,
+        quelleTyp: 'statbl',
+        externeId: '9_1',
+        portalUrl: 'https://statistik.bl.ch/web_portal/'
+      })?.url
+    ).toBe('https://statistik.bl.ch/web_portal/9_1')
+  })
+
+  // Ohne Angabe bleibt alles, wie es war: Baselland ist die Vorgabe, damit
+  // eine leere Konfiguration keinen Artikel um seinen Quellenlink bringt.
+  it('faellt ohne Angabe auf Baselland zurueck', () => {
+    const link = quellenlink({
+      ankuendigungLink: null,
+      quelleTyp: 'ods',
+      externeId: '10230',
+      portalUrl: null,
+      amt: null
+    })
+    expect(link?.url).toBe('https://data.bl.ch/explore/dataset/10230/')
+    expect(link?.bezeichnung).toBe(AMT)
+  })
+
   // Lieber gar kein Link als ein erfundener.
   it('sagt nichts, wenn nichts belegt ist', () => {
     expect(
