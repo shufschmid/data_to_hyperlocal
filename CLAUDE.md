@@ -1195,6 +1195,23 @@ the source is re-read. The desk shows it as a red «Zahlen revidiert» chip on t
 above every other warning and as the red counter on the statistik.bl tab
 (`lib/revision.ts`).
 
+**Since 17 September 2026 the SPORT desk has the same watchdog**, and it hangs
+on the same field. An association revises too — a forfait, an upheld protest, a
+typo in the score sheet — and `sportresultate-holen` reads the results afresh
+every morning and writes the corrected figures onto the `spiele` row a published
+report points at (`meldungen.spiel`). So the row as it stood is held BEFORE the
+update and `redaktion/revisionsport.ts` measures the published reports against
+both sides. Two nets, and the second one is the measured part: the digit check
+is imported from `spielbericht.ts` whole, exactly as the statistics watchdog
+imports `zahlen.ts` — but a correction routinely shares a digit with what it
+replaced, and after 1:1 became 2:1 no single digit of «1:1» is unsupported while
+the pair is plainly wrong, so the SCORELINE is compared as a pair as well. A
+report that never named what moved gets nothing; a finding that no longer holds
+is cleared. It states and never acts, like its neighbour. The desk shows it on
+the report's own card, and the red counter now splits: `revisionZaehlerSport`
+on „Sportresultate", `revisionZaehlerStatistik` on „statistik.bl" — one field,
+two watchdogs, and a finding belongs on the desk that can open the article.
+
 ## Where the memory lives
 
 - `laeufe` + `meldungen` of earlier periods — what was published about this

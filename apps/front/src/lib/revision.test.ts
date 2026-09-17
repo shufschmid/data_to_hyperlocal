@@ -1,4 +1,10 @@
-import { hatRevision, nachRevision, revisionZaehler } from './revision'
+import {
+  hatRevision,
+  nachRevision,
+  revisionZaehler,
+  revisionZaehlerSport,
+  revisionZaehlerStatistik
+} from './revision'
 
 interface Zeile {
   id: string
@@ -37,5 +43,28 @@ describe('nachRevision', () => {
 describe('revisionZaehler', () => {
   it('zaehlt nur die Beitraege mit Befund', () => {
     expect(revisionZaehler([m('a', null), m('b', 'Befund'), m('c', 'Befund')])).toBe(2)
+  })
+})
+
+describe('revisionZaehlerSport und revisionZaehlerStatistik', () => {
+  // Zwei Waechter schreiben in dasselbe Feld: der Statistik-Waechter auf
+  // Beitraege mit `lauf`, der Sport-Waechter auf Spielberichte. Ein Befund
+  // gehoert auf den Reiter, an dem die Redaktorin ihn bearbeitet.
+  const s = (id: string, hinweis: string | null, spiel: string | null) => ({
+    id,
+    revision_hinweis: hinweis,
+    spiel: spiel === null ? null : { id: spiel }
+  })
+
+  it('zaehlt im Sport nur die Spielberichte mit Befund', () => {
+    expect(revisionZaehlerSport([s('a', 'Befund', 'sp1'), s('b', null, 'sp2'), s('c', 'Befund', null)])).toBe(
+      1
+    )
+  })
+
+  it('laesst den Sportbefund vom Statistik-Zaehler in Ruhe', () => {
+    expect(
+      revisionZaehlerStatistik([s('a', 'Befund', 'sp1'), s('b', 'Befund', null), s('c', null, null)])
+    ).toBe(1)
   })
 })
