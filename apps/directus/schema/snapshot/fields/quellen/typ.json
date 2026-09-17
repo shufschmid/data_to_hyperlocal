@@ -33,6 +33,10 @@
         {
           "text": "simap.ch (Beschaffungen)",
           "value": "simap"
+        },
+        {
+          "text": "EuroAirport ILS-33 (Suedanfluege)",
+          "value": "euroairport"
         }
       ]
     },

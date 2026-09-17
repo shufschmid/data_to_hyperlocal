@@ -22,6 +22,7 @@ import {
   DATENSATZ_WAHL_QUERY,
   GEMEINDE_AKTIV_MUTATION,
   GEMEINDEN_QUERY,
+  SUEDANFLUG_QUERY,
   VEREINE_QUERY,
   SPIELE_QUERY,
   ALLE_MELDUNGEN_QUERY,
@@ -50,6 +51,7 @@ import {
   type DatensatzWahlErgebnis,
   type GemeindeAktivErgebnis,
   type GemeindenErgebnis,
+  type SuedanflugErgebnis,
   type VereineErgebnis,
   type SpieleErgebnis,
   type AlleMeldungenErgebnis,
@@ -71,6 +73,7 @@ import {
   blogNachGemeinde,
   istBeschaeftigt,
   meldungenNachLauf,
+  meldungenNachSuedanflug,
   zeitleiste,
   type QuellenLaufStatus
 } from '@/lib/redaktion'
@@ -255,6 +258,9 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
   const gemeinden = useQuery<GemeindenErgebnis>(GEMEINDEN_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY
   })
+  const suedanflug = useQuery<SuedanflugErgebnis>(SUEDANFLUG_QUERY, {
+    fetchPolicy: LIVE_FETCH_POLICY
+  })
   const vereine = useQuery<VereineErgebnis>(VEREINE_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY
   })
@@ -380,6 +386,13 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
     return () => meldungPollingStop()
   }, [wirdGeschrieben, meldungPollingStart, meldungPollingStop, laeufeNeuLaden])
   const berichteZuLauf = meldungenNachLauf(meldungenAlle)
+  const berichteZuSuedanflug = meldungenNachSuedanflug(meldungenAlle)
+  // Wer unter der Anflugschneise liegt, sagt die Redaktion (`gemeinden.suedanflug`)
+  // und nicht die Quelle: der Flughafen erhebt eine Quote fuer sich, nicht je
+  // Gemeinde.
+  const suedanflugGemeinden = (gemeinden.data?.gemeinden ?? [])
+    .filter((g) => g.aktiv && g.suedanflug)
+    .map((g) => ({ id: g.id, name: g.name }))
   const laufStatus = new Map((laeufe.data?.laeufe ?? []).map((l) => [l.id, l.status]))
   const blogs = blogNachGemeinde(meldungenAlle)
   const spielBerichte = meldungenAlle.filter((m) => m.spiel !== null)
@@ -426,9 +439,10 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
       datensaetze.refetch(),
       sendungskandidaten.refetch(),
       amtsblatt.refetch(),
-      gemeindeseiten.refetch()
+      gemeindeseiten.refetch(),
+      suedanflug.refetch()
     ])
-  }, [laeufe, alleMeldungen, datensaetze, sendungskandidaten, amtsblatt, gemeindeseiten])
+  }, [laeufe, alleMeldungen, datensaetze, sendungskandidaten, amtsblatt, gemeindeseiten, suedanflug])
 
   // Die Wochenzahl: einmal beim Aufbau geholt und nach jeder Aktion neu. Sie ist
   // Auskunft und kein Arbeitsmittel, darum kein Poll und kein Ladebalken --
@@ -920,7 +934,8 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
                 ankuendigungen: ankuendigungen.data?.ankuendigungen ?? [],
                 bereiche: portal.data?.portal_bereiche ?? [],
                 datensaetze: datensaetze.data?.datensaetze ?? [],
-                laeufe: laeufe.data?.laeufe ?? []
+                laeufe: laeufe.data?.laeufe ?? [],
+                suedanflug: suedanflug.data?.suedanflugquoten ?? []
               },
               zeilen
             )}
@@ -951,6 +966,11 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
               void verwirfDatensatz(eintrag.datensatzId, eintrag.titel)
             }}
             onMehr={() => setZeilen((bisher) => bisher + 40)}
+            suedanflugGemeinden={suedanflugGemeinden}
+            berichteZuSuedanflug={berichteZuSuedanflug}
+            onSuedanflugMeldung={async (quoteId, gemeindeId) => {
+              await fuehreAus(`suedanflug/${quoteId}/meldung`, { gemeinde: gemeindeId })
+            }}
           />
 
           <Accordion disableGutters>

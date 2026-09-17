@@ -48,6 +48,17 @@ export interface Gemeinde {
   news_letzte_pruefung: string | null
   /** Why the last read failed — shown on the desk and the Gemeinden card, so absence is never silence. */
   news_letzter_fehler: string | null
+  /**
+   * Whether the municipality lies under the approach to the EuroAirport's
+   * runway 33.
+   *
+   * Editorial knowledge, not a column of the source: the airport publishes one
+   * quota for the whole airport and no breakdown by place, so who is affected
+   * is a judgement the newsroom makes and maintains by hand, like `plz`. The
+   * migration sets it for NO municipality — after the Binninger Wochenblatt it
+   * is Binningen and Allschwil, but that is a person's entry, not a deploy's.
+   */
+  suedanflug: boolean
   date_created: string | null
   date_updated: string | null
 }
@@ -61,7 +72,13 @@ export interface SimapVergabestelle {
 }
 
 /** Picks the adapter in `shared/` that knows how to read a source. */
-export type QuellenTyp = 'ods' | 'agenda' | 'statbl' | 'amtsblatt' | 'simap'
+export type QuellenTyp =
+  | 'ods'
+  | 'agenda'
+  | 'statbl'
+  | 'amtsblatt'
+  | 'simap'
+  | 'euroairport'
 
 export interface Quelle {
   id: string
@@ -241,6 +258,12 @@ export interface Meldung {
    */
   sendungskandidat: string | null
   /**
+   * Set for articles written from a month of the EuroAirport's ILS-33
+   * statistics. Null otherwise — the seventh kind, and the second that is a
+   * statistics article without a `lauf`.
+   */
+  suedanflugquote: string | null
+  /**
    * Mirror of the candidate's Perle verdict, for downstream readers of
    * published press reviews. The Chefredaktion decides on the CANDIDATE
    * (`wochenblattkandidaten.perle`) — independent of whether a Meldung ever
@@ -410,6 +433,7 @@ export type WissenBereich =
   | 'amtsblatt'
   | 'gemeinde'
   | 'sendung'
+  | 'suedanflug'
 /** A Sichtung rule steers what is proposed; a text rule, how a Meldung is written. */
 export type WissenStufe = 'sichtung' | 'text'
 /** `weiterreichen` lets a Sichtung hand a matching proposal to the Chefredaktion by itself. */
@@ -790,6 +814,7 @@ export interface Schema {
   wochenblattgemeinden: Wochenblattgemeinde[]
   recherchehinweise: Recherchehinweis[]
   gemeindemitteilungen: Gemeindemitteilung[]
+  suedanflugquoten: Suedanflugquote[]
 }
 
 export type MitteilungsPlattform =
@@ -1118,6 +1143,61 @@ export interface Punkt6Edition {
   episode_url: string | null
   /** Set when no telebasel.ch episode was found; the edition still gets created. */
   resolution_error: string | null
+  date_created: string | null
+  date_updated: string | null
+}
+
+/**
+ * One day of the EuroAirport's ILS-33 sheet, as the sheet prints it.
+ *
+ * Structurally identical to `Tag` in `shared/euroairport/parse.ts` on purpose:
+ * the parser's output is stored verbatim, so the two must stay assignable in
+ * both directions. Optional properties here would break that quietly.
+ */
+export interface Suedanflugtag {
+  datum: string
+  anfluege: number
+  /** A dash on the sheet means no south landing, so it means zero. */
+  suedlandungen: number
+  quote: number | null
+  zeitfenster: string[]
+}
+
+/**
+ * One month of the EuroAirport's ILS-33 usage statistics.
+ *
+ * The identity is `(jahr, monat)` — a composite unique in
+ * `migrations/20260917B-suedanflug.mts`, because the airport re-uploads a
+ * month whenever it revises it, and two rows would split one month's history
+ * in two. Everything here is the sheet's own arithmetic; nothing is computed,
+ * and where the sheet disagrees with itself that stands in `befunde`.
+ */
+export interface Suedanflugquote {
+  id: string
+  jahr: number
+  monat: number
+  anfluege: number | null
+  suedlandungen: number | null
+  /** As PRINTED, in percent. The airport's figure, never a municipality's. */
+  quote: number | null
+  aktualisiert_am: string | null
+  /** Measured: the sheet says so months later too, so this is effectively always true. */
+  provisorisch: boolean
+  /** `cast-json`: one entry per day of the month. */
+  tage: Suedanflugtag[] | null
+  /** `cast-json`: German sentences where the sheet contradicts itself. */
+  befunde: string[] | null
+  quelle_url: string | null
+  /** sha256 of the text layer — what says whether a re-upload changed anything. */
+  pruefsumme: string | null
+  /**
+   * Whether a threshold was CROSSED this month. A proposal, never an article:
+   * no Meldung is written without a person's click, and that holds for a
+   * figure that speaks for itself too.
+   */
+  vorschlag: boolean
+  /** Which threshold, with the figures — written by code, no model call. */
+  vorschlag_begruendung: string | null
   date_created: string | null
   date_updated: string | null
 }

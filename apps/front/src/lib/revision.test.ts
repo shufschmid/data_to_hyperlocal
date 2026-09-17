@@ -67,4 +67,14 @@ describe('revisionZaehlerSport und revisionZaehlerStatistik', () => {
       revisionZaehlerStatistik([s('a', 'Befund', 'sp1'), s('b', 'Befund', null), s('c', null, null)])
     ).toBe(1)
   })
+
+  // Seit dem 17. September 2026 schreibt ein dritter Waechter in dasselbe
+  // Feld: der EuroAirport revidiert seine dauerhaft provisorischen Zahlen.
+  // Eine Suedanflug-Meldung traegt kein `spiel`, also zaehlt sie am Reiter
+  // „statistik.bl" — genau dort, wo die Redaktorin sie oeffnen kann, und ohne
+  // dass der Zaehler dafuer angefasst werden musste.
+  it('zaehlt einen Suedanflug-Befund am Statistik-Reiter', () => {
+    expect(revisionZaehlerStatistik([s('a', 'Zahlen revidiert', null)])).toBe(1)
+    expect(revisionZaehlerSport([s('a', 'Zahlen revidiert', null)])).toBe(0)
+  })
 })

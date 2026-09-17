@@ -50,6 +50,18 @@ import {
   ladeTabelle,
   tabellenId
 } from '../../shared/statbl'
+import { liesMonatsblatt, liesUebersicht } from '../../shared/euroairport'
+import { bewerteMonat, leseSchwellen } from '../../redaktion/suedanflug'
+import {
+  revisionsSchreibungenSuedanflug,
+  type RevisionsQuotenMeldung
+} from '../../redaktion/revisionsuedanflug'
+import {
+  aenderungsSatz,
+  monatDeutsch,
+  zuHolen,
+  type GespeicherterMonat
+} from '../../redaktion/suedanfluglauf'
 import { tabellenBesitzer, tabellenFelder } from '../../shared/statbl/parse'
 import { ordneSeiteEin } from '../../shared/statbl/inventur'
 import { ladeFrischeZeilen, type ZeilenKontext } from '../../redaktion/drain'
@@ -180,15 +192,20 @@ export default defineOperationApi<Options>({
 
     const quellen = (await quellenService.readByQuery({
       filter: { aktiv: { _eq: true } },
-      fields: ['id', 'name', 'typ', 'basis_url'],
+      // `konfiguration` carries what a source needs beyond its address: the
+      // portal's office and districts, and the south-approach thresholds.
+      fields: ['id', 'name', 'typ', 'basis_url', 'konfiguration'],
       limit: 50
-    })) as Array<Pick<Quelle, 'id' | 'name' | 'typ' | 'basis_url'>>
+    })) as Array<
+      Pick<Quelle, 'id' | 'name' | 'typ' | 'basis_url' | 'konfiguration'>
+    >
 
     for (const quelle of quellen) {
       if (
         quelle.typ !== 'ods' &&
         quelle.typ !== 'agenda' &&
-        quelle.typ !== 'statbl'
+        quelle.typ !== 'statbl' &&
+        quelle.typ !== 'euroairport'
       ) {
         logger.warn(
           `quellen-pruefen: Quellentyp "${quelle.typ}" hat keinen Adapter`
@@ -201,6 +218,7 @@ export default defineOperationApi<Options>({
       try {
         if (quelle.typ === 'ods') await pruefeQuelle(quelle)
         else if (quelle.typ === 'statbl') await pruefeTabellen(quelle)
+        else if (quelle.typ === 'euroairport') await pruefeSuedanflug(quelle)
         else await pruefeAgenda(quelle)
 
         await quellenService.updateOne(quelle.id, {
@@ -391,6 +409,198 @@ export default defineOperationApi<Options>({
           )
           ergebnis.fehler.push(`${tabelle.titel}: ${text}`)
         }
+      }
+    }
+
+    /**
+     * The south-approach quota: one look at the overview, one PDF per month
+     * that is new or has moved.
+     *
+     * The cheapest feed in the house and deliberately so. The EuroAirport
+     * publishes one sheet per month with a text layer, so the figure the
+     * newsroom argues about — 43,7 percent in July 2026 — is read without a
+     * model. Nothing here writes an article: a month lands as a row, and a
+     * person decides whether it is worth one.
+     *
+     * A month we already hold is carried forward rather than overwritten
+     * silently: its previous state is named in the run's result
+     * (`aenderungsSatz`), because a published article may be standing on the
+     * figure that just moved.
+     */
+    async function pruefeSuedanflug(
+      quelle: Pick<Quelle, 'id' | 'name' | 'basis_url' | 'konfiguration'>
+    ): Promise<void> {
+      const quotenService = new ItemsService('suedanflugquoten', { schema })
+      const kontakt = optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch')
+      // The thresholds belong to the row, not to the code and not to a prompt.
+      const schwellen = leseSchwellen(quelle.konfiguration)
+
+      const ausgaben = await liesUebersicht(quelle.basis_url, {
+        kontakt,
+        // The overview is a page and may take the second door; a `.pdf`
+        // address never does (`fuerZweiteTuer`), which is exactly right — the
+        // crawler hands a document back as escaped text.
+        fetchImpl: tuer
+      })
+      ergebnis.gesehen += ausgaben.length
+
+      const bestand = (await quotenService.readByQuery({
+        fields: [
+          'id',
+          'jahr',
+          'monat',
+          'anfluege',
+          'suedlandungen',
+          'quote',
+          'quelle_url',
+          'pruefsumme'
+        ],
+        limit: -1
+      })) as GespeicherterMonat[]
+
+      const plan = zuHolen(ausgaben, bestand)
+      ergebnis.hinweise.push(...plan.hinweise)
+
+      const bekannt = new Map(
+        bestand.map((monat) => [`${monat.jahr}-${monat.monat}`, monat])
+      )
+
+      for (const ausgabe of plan.holen) {
+        try {
+          const { blatt, pruefsumme } = await liesMonatsblatt(ausgabe.url, {
+            kontakt,
+            fetchImpl: tuer,
+            // The table cell is the authority on which month this is; the day
+            // lines are compared against it rather than trusted blindly.
+            erwartet: { jahr: ausgabe.jahr, monat: ausgabe.monat }
+          })
+
+          // Judged against the stored months, with no model anywhere near it:
+          // an exceeded threshold is a MARK on the row that the desk
+          // highlights, never an article.
+          const bewertung = bewerteMonat(blatt, bestand, schwellen)
+
+          const felder = {
+            jahr: blatt.jahr,
+            monat: blatt.monat,
+            anfluege: blatt.anfluege,
+            suedlandungen: blatt.suedlandungen,
+            quote: blatt.quote,
+            aktualisiert_am: blatt.aktualisiert_am,
+            provisorisch: blatt.provisorisch,
+            tage: blatt.tage,
+            befunde: blatt.befunde,
+            quelle_url: ausgabe.url,
+            pruefsumme,
+            vorschlag: bewertung.vorschlag,
+            vorschlag_begruendung: bewertung.begruendung
+          }
+
+          const alt = bekannt.get(`${ausgabe.jahr}-${ausgabe.monat}`) ?? null
+
+          if (alt === null) {
+            await quotenService.createOne(felder)
+            ergebnis.neu += 1
+            ergebnis.hinweise.push(
+              `${monatDeutsch(blatt.jahr, blatt.monat)}: ${blatt.suedlandungen} von ${blatt.anfluege} Landungen ueber den Sueden.`
+            )
+          } else {
+            await quotenService.updateOne(alt.id, felder)
+            const satz = aenderungsSatz(alt, blatt)
+            if (satz !== null) {
+              ergebnis.geaendert += 1
+              ergebnis.hinweise.push(satz)
+              // A changed figure is an event: the already published articles
+              // of THIS month are measured against the new state. It states
+              // and never acts — nothing is republished, rewritten or pulled
+              // back. The airport's figures are provisional for ever, which is
+              // the case the watchdog was built for.
+              await pruefeQuotenRevision(alt, blatt)
+            }
+          }
+
+          if (bewertung.begruendung !== null) {
+            ergebnis.hinweise.push(bewertung.begruendung)
+          }
+
+          // Where the sheet contradicts itself, the run says so — the row
+          // keeps the findings, but nobody reads a row they were not sent to.
+          for (const befund of blatt.befunde) {
+            ergebnis.hinweise.push(
+              `${monatDeutsch(blatt.jahr, blatt.monat)} — ${befund}`
+            )
+          }
+        } catch (error) {
+          // One unreadable month must not cost the others theirs.
+          const text = error instanceof Error ? error.message : String(error)
+          logger.warn(
+            `quellen-pruefen: Monatsblatt ${ausgabe.jahr}/${ausgabe.monat} — ${text}`
+          )
+          ergebnis.fehler.push(
+            `${monatDeutsch(ausgabe.jahr, ausgabe.monat)}: ${text}`
+          )
+        }
+      }
+    }
+
+    /**
+     * The third revision watchdog, and the case the whole idea was built for.
+     *
+     * The airport's figures stay provisional and a month is re-uploaded when
+     * it is revised, so a published article can quietly stop being correct
+     * months after it went out. Only the articles of THIS month are measured,
+     * and only what they actually wrote down counts
+     * (`revisionsSchreibungenSuedanflug`).
+     *
+     * Fail-open per month, like its two neighbours: a finding that cannot be
+     * written is a warning in the log, never a lost run.
+     */
+    async function pruefeQuotenRevision(
+      alt: GespeicherterMonat,
+      neu: { anfluege: number; suedlandungen: number; quote: number | null }
+    ): Promise<void> {
+      const meldungenService = new ItemsService('meldungen', { schema })
+
+      try {
+        const meldungen = (await meldungenService.readByQuery({
+          filter: {
+            status: { _eq: 'publiziert' },
+            suedanflugquote: { _eq: alt.id }
+          },
+          fields: ['id', 'titel', 'lead', 'text', 'revision_hinweis'],
+          sort: ['-publiziert_am'],
+          limit: MAX_REVISIONEN
+        })) as RevisionsQuotenMeldung[]
+        if (meldungen.length === 0) return
+
+        const schreibungen = revisionsSchreibungenSuedanflug(
+          meldungen,
+          alt,
+          { jahr: alt.jahr, monat: alt.monat, ...neu },
+          new Date().toISOString()
+        )
+
+        for (const schreibung of schreibungen) {
+          try {
+            await meldungenService.updateOne(schreibung.id, {
+              revision_hinweis: schreibung.revision_hinweis,
+              revision_geprueft_am: schreibung.revision_geprueft_am
+            })
+            ergebnis.revidiert += 1
+          } catch (error) {
+            // One article that will not take the finding must not cost the
+            // others theirs.
+            logger.warn(
+              error,
+              `quellen-pruefen: Revisionsbefund fuer Meldung ${schreibung.id} nicht schreibbar`
+            )
+          }
+        }
+      } catch (error) {
+        logger.warn(
+          error,
+          `quellen-pruefen: Revision ${monatDeutsch(alt.jahr, alt.monat)} fehlgeschlagen`
+        )
       }
     }
 

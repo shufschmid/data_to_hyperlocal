@@ -60,6 +60,7 @@ const GEMEINDEN: GemeindeFelder[] = [
     news_url: null,
     news_letzte_pruefung: null,
     news_letzter_fehler: null,
+    suedanflug: false,
     aktiv: true
   }
 ]
@@ -88,6 +89,7 @@ function meldung(ueber: Partial<AlleMeldungFelder> = {}): AlleMeldungFelder {
     amtsblattmeldung: { id: 'a' },
     gemeindemitteilung: null,
     sendungskandidat: null,
+    suedanflugquote: null,
     perle: null,
     ...ueber
   }

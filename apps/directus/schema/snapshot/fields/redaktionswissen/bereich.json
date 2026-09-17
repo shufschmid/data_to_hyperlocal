@@ -41,6 +41,10 @@
         {
           "text": "Gemeindeseiten",
           "value": "gemeinde"
+        },
+        {
+          "text": "Suedanflug (EuroAirport)",
+          "value": "suedanflug"
         }
       ]
     },

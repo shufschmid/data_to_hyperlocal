@@ -430,7 +430,64 @@ export function datensatzLink(
   return null
 }
 
-export type ZeitleistenHerkunft = 'agenda' | 'portal' | 'datensatz'
+export type ZeitleistenHerkunft = 'agenda' | 'portal' | 'datensatz' | 'suedanflug'
+
+const MONATSNAMEN = [
+  'Januar',
+  'Februar',
+  'März',
+  'April',
+  'Mai',
+  'Juni',
+  'Juli',
+  'August',
+  'September',
+  'Oktober',
+  'November',
+  'Dezember'
+] as const
+
+/** "Juli 2026". */
+export function monatsname(jahr: number, monat: number): string {
+  return `${MONATSNAMEN[monat - 1] ?? monat} ${jahr}`
+}
+
+/**
+ * Der letzte Tag des Monats als ISO-Datum.
+ *
+ * Nur als Notnagel: ein Monatsblatt ohne eigenen Stand soll am Ende seines
+ * Monats stehen und nicht datumslos unter die Ankuendigungen rutschen, wo es
+ * niemand sucht.
+ */
+export function monatsende(jahr: number, monat: number): string {
+  const tag = new Date(Date.UTC(jahr, monat, 0)).getUTCDate()
+  return `${jahr}-${String(monat).padStart(2, '0')}-${String(tag).padStart(2, '0')}`
+}
+
+/** "Suedanflug-Quote Juli 2026: 43,7 Prozent" — der Titel der Zeile. */
+export function suedanflugTitel(quote: { jahr: number; monat: number; quote: number | null }): string {
+  const zahl = quote.quote === null ? 'ohne Quote' : `${String(quote.quote).replace('.', ',')} Prozent`
+  return `Südanflug-Quote ${monatsname(quote.jahr, quote.monat)}: ${zahl}`
+}
+
+/**
+ * Die Meldungen je Monatsblatt.
+ *
+ * Ein Blatt traegt eine Meldung je betroffener Gemeinde, also mehrere — anders
+ * als beim Wochenblatt-Kandidaten, wo es genau eine ist.
+ */
+export function meldungenNachSuedanflug<T extends { suedanflugquote: { id: string } | null }>(
+  meldungen: readonly T[]
+): Map<string, T[]> {
+  const nach = new Map<string, T[]>()
+  for (const meldung of meldungen) {
+    if (meldung.suedanflugquote === null) continue
+    const bisher = nach.get(meldung.suedanflugquote.id)
+    if (bisher === undefined) nach.set(meldung.suedanflugquote.id, [meldung])
+    else bisher.push(meldung)
+  }
+  return nach
+}
 
 export interface ZeitleistenEintrag {
   id: string
@@ -454,6 +511,17 @@ export interface ZeitleistenEintrag {
   beschreibung: string | null
   rhythmus: string | null
   zeilen: number | null
+  /** Nur bei Suedanflug-Zeilen: das Monatsblatt dahinter. */
+  quoteId: string | null
+  /**
+   * Nur bei Suedanflug-Zeilen: hat dieser Monat eine Schwelle gerissen?
+   *
+   * Ein Vorschlag, keine Meldung — die Zeile wird hervorgehoben, geschrieben
+   * wird erst auf Knopfdruck einer Redaktorin.
+   */
+  vorschlag: boolean
+  /** Nur bei Suedanflug-Zeilen: was das Blatt an sich selbst bemaengelt. */
+  befunde: string[]
 }
 
 export interface ZeitleistenQuellen {
@@ -496,6 +564,26 @@ export interface ZeitleistenQuellen {
     ankuendigung?: { id: string } | null
   }[]
   laeufe: readonly { id: string; datensatz: { id: string } | null }[]
+  /**
+   * Die Monatsblaetter des EuroAirport — der vierte Zufluss dieser Liste.
+   *
+   * Optional, weil die Quelle inaktiv sein kann: dann kommt hier nichts an,
+   * und die Liste sieht aus wie zuvor.
+   */
+  suedanflug?: readonly {
+    id: string
+    jahr: number
+    monat: number
+    quote: number | null
+    anfluege: number | null
+    suedlandungen: number | null
+    aktualisiert_am: string | null
+    provisorisch: boolean
+    vorschlag: boolean
+    vorschlag_begruendung: string | null
+    befunde?: string[] | null
+    quelle_url: string | null
+  }[]
 }
 
 export interface ZeitleistenErgebnis {
@@ -571,7 +659,10 @@ export function zeitleiste(quellen: ZeitleistenQuellen, hoechstens = 40): Zeitle
       quartal: a.quartal,
       beschreibung: null,
       rhythmus: null,
-      zeilen: null
+      zeilen: null,
+      quoteId: null,
+      vorschlag: false,
+      befunde: []
     })
   }
 
@@ -593,7 +684,10 @@ export function zeitleiste(quellen: ZeitleistenQuellen, hoechstens = 40): Zeitle
       quartal: null,
       beschreibung: null,
       rhythmus: null,
-      zeilen: null
+      zeilen: null,
+      quoteId: null,
+      vorschlag: false,
+      befunde: []
     })
   }
 
@@ -616,7 +710,37 @@ export function zeitleiste(quellen: ZeitleistenQuellen, hoechstens = 40): Zeitle
       quartal: null,
       beschreibung: reinerText(d.beschreibung ?? null),
       rhythmus: d.rhythmus ?? null,
-      zeilen: d.zeilen ?? null
+      zeilen: d.zeilen ?? null,
+      quoteId: null,
+      vorschlag: false,
+      befunde: []
+    })
+  }
+
+  // Die Suedanflug-Quote, der vierte Zufluss.
+  //
+  // Sie steht in derselben Liste wie alles andere und bekommt keinen zehnten
+  // Reiter: es ist eine Statistik unter anderen, nur von einem anderen Amt.
+  // Datiert wird sie nach dem Stand, den das Blatt selbst nennt — das ist der
+  // Tag, an dem sie eine Nachricht wurde. Fehlt er, steht sie am Monatsende.
+  for (const q of quellen.suedanflug ?? []) {
+    eintraege.push({
+      id: `suedanflug-${q.id}`,
+      herkunft: 'suedanflug',
+      datum: q.aktualisiert_am ?? monatsende(q.jahr, q.monat),
+      titel: suedanflugTitel(q),
+      hinweis: q.vorschlag_begruendung,
+      datensatzId: null,
+      laufId: null,
+      pfad: null,
+      link: q.quelle_url,
+      quartal: null,
+      beschreibung: null,
+      rhythmus: null,
+      zeilen: null,
+      quoteId: q.id,
+      vorschlag: q.vorschlag,
+      befunde: q.befunde ?? []
     })
   }
 

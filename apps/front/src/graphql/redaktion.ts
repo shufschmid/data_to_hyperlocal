@@ -250,6 +250,8 @@ export interface AlleMeldungFelder {
   gemeindemitteilung: { id: string } | null
   /** Set for articles written from a broadcast contribution. */
   sendungskandidat: { id: string } | null
+  /** Set for articles written from a month of the EuroAirport's ILS-33 sheet. */
+  suedanflugquote: { id: string } | null
   /** Decided at publish time on press reviews: interesting for the city too. */
   perle: boolean | null
 }
@@ -300,6 +302,9 @@ export const ALLE_MELDUNGEN_QUERY = gql`
         id
       }
       sendungskandidat {
+        id
+      }
+      suedanflugquote {
         id
       }
       perle
@@ -472,6 +477,12 @@ export interface GemeindeFelder {
   news_letzte_pruefung: string | null
   /** Why the last read failed, in words — shown on the desk and the card. */
   news_letzter_fehler: string | null
+  /**
+   * Whether the municipality lies under the approach to the EuroAirport's
+   * runway 33. Editorial knowledge, not a field of the source: the airport
+   * publishes ONE quota for the whole airport and no breakdown by place.
+   */
+  suedanflug: boolean
 }
 
 export interface GemeindenErgebnis {
@@ -490,6 +501,7 @@ export const GEMEINDEN_QUERY = gql`
       news_url
       news_letzte_pruefung
       news_letzter_fehler
+      suedanflug
     }
   }
 `
@@ -1435,6 +1447,53 @@ export const SENDUNGSKANDIDATEN_QUERY = gql`
       punkt6_edition {
         id
       }
+    }
+  }
+`
+
+// Die Südanflug-Quote des EuroAirport — ein Monatsblatt je Zeile.
+//
+// Steht in derselben chronologischen Liste wie alles andere im Reiter
+// „statistik.bl": es ist eine Statistik unter anderen, nur von einem anderen
+// Amt. `vorschlag` markiert einen Monat, der eine Schwelle gerissen hat — eine
+// Markierung, keine Meldung.
+export interface SuedanflugFelder {
+  id: string
+  jahr: number
+  monat: number
+  anfluege: number | null
+  suedlandungen: number | null
+  /** Wie das Blatt sie druckt. Sie gilt für den Flughafen, nicht für eine Gemeinde. */
+  quote: number | null
+  aktualisiert_am: string | null
+  /** Gemessen: das Blatt nennt seine Zahlen auch Monate später noch provisorisch. */
+  provisorisch: boolean
+  vorschlag: boolean
+  vorschlag_begruendung: string | null
+  /** Wo das Blatt sich selbst widerspricht — gemeldet, nie geglättet. */
+  befunde: string[] | null
+  quelle_url: string | null
+}
+
+export interface SuedanflugErgebnis {
+  suedanflugquoten: SuedanflugFelder[]
+}
+
+export const SUEDANFLUG_QUERY = gql`
+  query Suedanflugquoten {
+    suedanflugquoten(sort: ["-jahr", "-monat"], limit: 60) {
+      id
+      jahr
+      monat
+      anfluege
+      suedlandungen
+      quote
+      aktualisiert_am
+      provisorisch
+      vorschlag
+      vorschlag_begruendung
+      befunde
+      quelle_url
     }
   }
 `

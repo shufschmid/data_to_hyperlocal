@@ -8,6 +8,19 @@ import {
   type EditorzugangUmgebung,
   type RouterLike as EditorzugangRouter
 } from './editorzugang'
+import {
+  buildSuedanflugPrompt,
+  buildSuedanflugRevision,
+  datengrundlageSuedanflug,
+  faktenFuer,
+  MeldungSchonDa,
+  meldungsfelder,
+  ohneQuelle as ohneSuedanflugQuelle,
+  schreibeSuedanflugmeldung,
+  type Quotenzeile
+} from './suedanflug'
+import type { SuedanflugFakten } from '../../redaktion/suedanflug'
+import type { GespeicherterMonat } from '../../redaktion/suedanfluglauf'
 import { createError } from '@directus/errors'
 import { defineEndpoint } from '@directus/extensions-sdk'
 import type { NextFunction, Response } from 'express'
@@ -183,8 +196,10 @@ import { optionalEnv } from '../../shared/env'
 import type {
   AmtsblattQuelleTyp,
   Datensatz,
+  Gemeinde,
   Lauf,
-  Meldung
+  Meldung,
+  Quelle
 } from '../../types/schema'
 import { ergaenzeSimapZeile } from '../../redaktion/simaplauf'
 import { projektIdAusLink } from '../../shared/simap'
@@ -2819,6 +2834,192 @@ export default defineEndpoint(
       }
     )
 
+    // --- the south-approach quota: one article per affected municipality ------
+    //
+    // The desk is the statistik.bl tab and the unit of work is one month. The
+    // editor presses the button once per municipality she covers; the rules,
+    // the prompt and every check live in `redaktion/suedanflug.ts` and
+    // `./suedanflug.ts`, and nothing below is a rule.
+
+    /** The month's row, the municipality, and the whole stored series. */
+    async function ladeSuedanflugMaterial(
+      quoteId: string,
+      gemeindeId: string,
+      accountability: ApiRequest['accountability']
+    ): Promise<SuedanflugFakten> {
+      const schema = await getSchema()
+      const quoten = new ItemsService('suedanflugquoten', {
+        schema,
+        accountability
+      })
+      const gemeinden = new ItemsService('gemeinden', {
+        schema,
+        accountability
+      })
+      const quellen = new ItemsService('quellen', { schema })
+
+      const zeile = (await quoten.readOne(quoteId, {
+        fields: [
+          'id',
+          'jahr',
+          'monat',
+          'anfluege',
+          'suedlandungen',
+          'quote',
+          'aktualisiert_am',
+          'provisorisch',
+          'tage',
+          'befunde',
+          'quelle_url'
+        ]
+      })) as Quotenzeile
+
+      const gemeinde = (await gemeinden.readOne(gemeindeId, {
+        fields: ['id', 'name', 'suedanflug']
+      })) as Pick<Gemeinde, 'id' | 'name' | 'suedanflug'>
+
+      // Everything we hold: the year figure, the previous month and last
+      // year's same month all come from here, never from a fresh fetch.
+      const bestand = (await quoten.readByQuery({
+        fields: [
+          'id',
+          'jahr',
+          'monat',
+          'anfluege',
+          'suedlandungen',
+          'quote',
+          'quelle_url',
+          'pruefsumme'
+        ],
+        limit: -1
+      })) as GespeicherterMonat[]
+
+      const quellenzeilen = (await quellen.readByQuery({
+        filter: { typ: { _eq: 'euroairport' } },
+        fields: ['konfiguration'],
+        limit: 1
+      })) as Array<Pick<Quelle, 'konfiguration'>>
+
+      return faktenFuer({
+        zeile,
+        gemeinde,
+        bestand,
+        quelle: quellenzeilen[0] ?? null
+      })
+    }
+
+    async function ueberarbeiteSuedanflug(
+      meldung: {
+        id: string
+        titel: string | null
+        lead: string | null
+        text: string | null
+      },
+      quoteId: string,
+      gemeindeId: string,
+      anweisung: string
+    ): Promise<string[]> {
+      const meldungen = new ItemsService('meldungen', {
+        schema: await getSchema()
+      })
+
+      const fakten = await ladeSuedanflugMaterial(
+        quoteId,
+        gemeindeId,
+        undefined
+      )
+      // The source line comes off before the prompt is built and goes back on
+      // after — or the model copies it and `linkWarnungen` flags its own.
+      const entwurf = await schreibeSuedanflugmeldung(
+        fakten,
+        buildSuedanflugRevision(
+          fakten,
+          { ...meldung, text: ohneSuedanflugQuelle(meldung.text) },
+          anweisung,
+          await regelnFuer('suedanflug', 'text')
+        )
+      )
+
+      await meldungen.updateOne(meldung.id, meldungsfelder(entwurf, fakten))
+      return entwurf.warnungen
+    }
+
+    router.post(
+      '/suedanflug/:id/meldung',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        const koerper = (req.body ?? {}) as { gemeinde?: unknown }
+        let quoteId: string
+        let gemeindeId: string
+        try {
+          quoteId = pruefeId(req.params['id'])
+          gemeindeId = pruefeId(koerper.gemeinde)
+        } catch (fehler) {
+          return next(fehler)
+        }
+
+        try {
+          const schema = await getSchema()
+          const meldungenService = new ItemsService('meldungen', {
+            schema,
+            accountability: req.accountability
+          })
+
+          // One article per municipality and month. A second click, or two
+          // tabs racing, must not produce two pieces about the same figure.
+          const vorhandene = (await meldungenService.readByQuery({
+            filter: {
+              suedanflugquote: { _eq: quoteId },
+              gemeinde: { _eq: gemeindeId },
+              status: { _neq: 'verworfen' }
+            },
+            fields: ['id'],
+            limit: 1
+          })) as { id: string }[]
+          if (vorhandene.length > 0) return next(new MeldungSchonDa())
+
+          const fakten = await ladeSuedanflugMaterial(
+            quoteId,
+            gemeindeId,
+            req.accountability
+          )
+          const entwurf = await schreibeSuedanflugmeldung(
+            fakten,
+            buildSuedanflugPrompt(
+              fakten,
+              await regelnFuer('suedanflug', 'text')
+            )
+          )
+
+          const meldungId = (await meldungenService.createOne({
+            suedanflugquote: quoteId,
+            gemeinde: gemeindeId,
+            status: 'entwurf',
+            ...meldungsfelder(entwurf, fakten),
+            datengrundlage: datengrundlageSuedanflug(fakten)
+          })) as string
+
+          return res.json({
+            data: { meldung: meldungId, warnungen: entwurf.warnungen }
+          })
+        } catch (error) {
+          const status = (error as { status?: unknown }).status
+          if (
+            status === 403 ||
+            status === 404 ||
+            status === 400 ||
+            status === 409 ||
+            status === 422
+          ) {
+            return next(uebersetze(error))
+          }
+          logger.error(error, 'redaktion: Suedanflug-Meldung fehlgeschlagen')
+          return next(new UeberarbeitungFehlgeschlagen())
+        }
+      }
+    )
+
     router.post(
       '/wissen',
       async (req: ApiRequest, res: Response, next: NextFunction) => {
@@ -3731,6 +3932,10 @@ export default defineEndpoint(
               'amtsblattmeldung',
               'gemeindemitteilung',
               'sendungskandidat',
+              'suedanflugquote',
+              // The south-approach revision needs it: the article is written
+              // for ONE municipality, and the facts carry its name.
+              'gemeinde',
               'lauf.datensatz',
               'titel',
               'lead',
@@ -3744,6 +3949,8 @@ export default defineEndpoint(
             amtsblattmeldung: string | null
             gemeindemitteilung: string | null
             sendungskandidat: string | null
+            suedanflugquote: string | null
+            gemeinde: string
             lauf: { datensatz: string | null } | null
             titel: string | null
             lead: string | null
@@ -3978,6 +4185,49 @@ export default defineEndpoint(
               logger.error(
                 fehler,
                 'redaktion: Sendungs-Ueberarbeitung fehlgeschlagen'
+              )
+              throw new UeberarbeitungFehlgeschlagen()
+            }
+          }
+
+          // The south-approach article is the SEVENTH kind without a `lauf`,
+          // and the reason this list keeps growing is worth stating once more:
+          // the queue below belongs to the statistics drain, which loads
+          // per-run material this article does not have. Without a branch here
+          // it would sit at `verarbeitung: 'geplant'` for ever — the measured
+          // failure of the gazette desk.
+          if (meldung.suedanflugquote !== null) {
+            await meldungen.updateOne(id, { verarbeitung: 'laeuft', anweisung })
+            try {
+              const warnungen = await ueberarbeiteSuedanflug(
+                meldung,
+                meldung.suedanflugquote,
+                meldung.gemeinde,
+                anweisung
+              )
+              merkeAnweisung(
+                anweisung,
+                'suedanflug',
+                'Suedanflug-Meldung (EuroAirport)'
+              )
+              await chat.createOne({
+                meldung: id,
+                rolle: 'assistant',
+                inhalt:
+                  warnungen.length === 0
+                    ? 'Neu formuliert.'
+                    : `Neu formuliert — mit Hinweisen: ${warnungen.join(' · ')}`,
+                position: position + 1
+              })
+              return res.json({ data: { meldung: id, warnungen } })
+            } catch (fehler) {
+              await meldungen.updateOne(id, {
+                verarbeitung: 'idle',
+                fehler: fehlerText(fehler)
+              })
+              logger.error(
+                fehler,
+                'redaktion: Suedanflug-Ueberarbeitung fehlgeschlagen'
               )
               throw new UeberarbeitungFehlgeschlagen()
             }

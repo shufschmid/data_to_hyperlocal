@@ -13,6 +13,7 @@ const GEMEINDEN: GemeindeFelder[] = [
     news_url: null,
     news_letzte_pruefung: null,
     news_letzter_fehler: null,
+    suedanflug: false,
     aktiv: true
   },
   {
@@ -24,6 +25,7 @@ const GEMEINDEN: GemeindeFelder[] = [
     news_url: null,
     news_letzte_pruefung: null,
     news_letzter_fehler: null,
+    suedanflug: false,
     aktiv: false
   }
 ]

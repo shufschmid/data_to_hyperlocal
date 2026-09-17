@@ -51,6 +51,7 @@ function gemeinde(ueber: Partial<GemeindeFelder> = {}): GemeindeFelder {
     news_url: 'https://www.aesch.bl.ch/aktuellesinformationen',
     news_letzte_pruefung: null,
     news_letzter_fehler: null,
+    suedanflug: false,
     ...ueber
   }
 }

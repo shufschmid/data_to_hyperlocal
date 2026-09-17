@@ -181,6 +181,7 @@ schlimmer als die Lücke.
 | `rubrik`      | Woher der Beitrag kommt                                    | `quelle_name`                        | `quelle_url`                                                                                           |
 | ------------- | ---------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------ |
 | `statistik`   | Datensatz von data.bl.ch / statistik.bl.ch                 | „Statistisches Amt Basel-Landschaft" | der Webartikel des Amtes, sonst die Datensatzseite                                                     |
+| `statistik`   | Südanflug-Quote des EuroAirport (ILS-33-Nutzungsstatistik) | „EuroAirport"                        | das Monats-PDF der Statistik                                                                           |
 | `sport`       | Spielresultat eines Vereins                                | „Match-Center"                       | **null** — es gibt keine stabile Adresse für ein einzelnes Spiel (die Tagesseite des Verbands rotiert) |
 | `entsorgung`  | Abfuhrkalender der Gemeinde                                | „Abfuhrkalender ‹Gemeinde› ‹Jahr›"   | die PDF-Adresse der Registrierung, sonst null                                                          |
 | `amtsblatt`   | Amtsblattportal (kantonal / SHAB)                          | das publizierende Amt                | das amtliche PDF                                                                                       |
@@ -192,6 +193,23 @@ schlimmer als die Lücke.
 
 `quelle_url: null` ist eine echte Antwort, keine Lücke: besser keine Adresse als
 eine erfundene.
+
+**`statistik` steht zweimal in der Tabelle, und das ist Absicht.** Seit dem 17. September 2026 kommt eine zweite Art Statistik-Beitrag dazu: die
+Südanflug-Quote des EuroAirport, wie viele Landungen in einem Monat über die
+Piste 33 und damit über den Süden gingen. Sie bekommt **keine eigene Rubrik** —
+ein Abnehmer, der die acht Werte kennt, müsste sonst einen neunten lernen, und
+eine neue Rubrik ist ein Entscheid seiner Seite, nicht ein Nebeneffekt unseres
+Baus. Wer die beiden auseinanderhalten will, liest `quelle_name`: „EuroAirport"
+gegen „Statistisches Amt Basel-Landschaft".
+
+Zwei Dinge, die ein Abnehmer dieser Beiträge wissen sollte. **Die Quote gilt
+für den Flughafen, nicht für die Gemeinde** — der EuroAirport erhebt sie nicht
+je Gemeinde, es gibt keine Zahl für eine einzelne, und der Text sagt darum „X
+Prozent aller Landungen erfolgten über den Süden, also über ‹Gemeinde›". Und
+**die Zahlen bleiben dauerhaft provisorisch**: der Flughafen korrigiert
+einzelne Monate nachträglich, der Text sagt das, und wenn eine Zahl sich später
+bewegt, erscheint der Beitrag im Zweifel unter `/api/v1/korrekturen` — sobald
+eine Redaktorin ihn zurückzieht. Automatisch zurückgezogen wird nichts.
 
 ## Bilanz
 

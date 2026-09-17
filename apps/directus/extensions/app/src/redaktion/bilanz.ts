@@ -55,6 +55,7 @@ export interface BilanzZeile {
   amtsblattmeldung: string | null
   gemeindemitteilung: string | null
   sendungskandidat: string | null
+  suedanflugquote: string | null
   erscheint_am: string | null
   date_created: string | null
   freigegeben_am: string | null
@@ -90,14 +91,20 @@ export const FENSTER_TAGE = 7
 /**
  * Which desk an article came from.
  *
- * **The order is the logic.** The six foreign keys are mutually exclusive by
+ * **The order is the logic.** The seven foreign keys are mutually exclusive by
  * construction, but `erscheint_am` is not one of them: it is a plain date, and
  * the schema only promises that waste reminders carry it. It therefore decides
  * last — a row that owns an origin row belongs to that desk, whatever date it
  * also carries.
+ *
+ * The south-approach quota is the second kind of statistics article, and it
+ * counts on the same desk: it is read, judged and written in the statistik.bl
+ * tab, and a second counter for one municipality's aircraft would tell the
+ * newsroom nothing it does not see there.
  */
 export function tischVon(zeile: BilanzZeile): Tisch {
   if (zeile.lauf !== null) return 'statistik'
+  if (zeile.suedanflugquote !== null) return 'statistik'
   if (zeile.spiel !== null) return 'sport'
   if (zeile.kandidat !== null) return 'presseschau'
   if (zeile.amtsblattmeldung !== null) return 'amtsblatt'

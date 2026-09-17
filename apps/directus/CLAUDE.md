@@ -97,10 +97,12 @@ deleted, their net state lives in `schema/`, and `directus_migrations` still lis
 them on old databases — that is harmless.)
 
 What a migration is still for — `20260824A-stammdaten.mts` (seeds and indexes),
-`20260824B-entsorgung-indizes.mts` (indexes only) and
+`20260824B-entsorgung-indizes.mts` (indexes only),
 `20260914A-gemeindeseiten.mts` (one partial unique index whose predicate matches
 the endpoint's own guard, plus nine seeded addresses written only where the
-field is still empty):
+field is still empty) and `20260917B-suedanflug.mts` (the composite unique
+`(jahr, monat)` on `suedanflugquoten`, plus the EuroAirport source row seeded
+**inactive**):
 
 - **Row data a fresh install needs without a human clicking**: the 87 municipalities,
   the three watched sources, the newsroom's registered clubs. Insert-only and
@@ -375,12 +377,36 @@ Endpoints of the learning layer, all in `src/endpoints/redaktion/`:
   municipal-news desk, same shape as the gazette's; `/meldung` refuses (422) a
   row whose reader stored no text, because a Meldung from a title alone reads
   complete and is not.
+- `POST /redaktion/suedanflug/:id/meldung` — the south-approach article, ONE
+  model call per municipality: the month's row in the path, the municipality in
+  the body (`{gemeinde}`), because one sheet yields one article per affected
+  place. The wiring is in `index.ts`, the rest in
+  `src/endpoints/redaktion/suedanflug.ts` and `src/redaktion/suedanflug.ts`.
+  Three things it refuses rather than fudges: a municipality that is not
+  `gemeinden.suedanflug` (422 — who is affected is the newsroom's judgement,
+  and the article's whole point is „also über dieser Gemeinde"), a row without
+  figures or without the month's PDF address (422 — the source line is built by
+  code and carries exactly one address), and a second article for the same
+  month and municipality (409). The figures come out of the STORED row, never
+  from a fresh fetch: the article has to stand on what the editor saw when she
+  pressed the button, and the revision watchdog is what notices when they move
+  afterwards.
 - `POST /redaktion/gemeinden/:id/news-url` — the one address the feed reads
   per municipality. Validated by READING the page first (`leseUebersicht`:
   template recognised, list non-empty), so a mistyped address fails the form
   with a German reason instead of becoming a row that errors every day at one;
   a successful save starts a run so the editor sees the page's items within a
   minute. Empty clears the field.
+
+`src/shared/euroairport/` is the newest reader and the smallest: `parse.ts`
+pure (the overview table, the monthly sheet's text layer, and three checks that
+report and never correct), `index.ts` for the two requests. **Its one departure
+from the house style is measured:** the text layer comes from `extrahiereText`
+(`shared/wochenblatt`) and NOT from `shared/pdf-text.ts`, whose column splitter
+cuts this 841.8-pt landscape table in half at 420.9 pt and lost the quota and
+the time window from all 31 day lines. Both take pdfjs from the same single
+`unpdf` copy, which is the one thing `pdf-text.ts` exists to guarantee. There
+is a test against the real August 2026 PDF.
 
 The reader behind that feed, `src/shared/gemeindeseite/`, is the pattern for
 any further HTML source: pure parsers per template family (`erkennung`,
@@ -411,7 +437,13 @@ with a path (or a trailing slash) can never authenticate at all.
 **Not everything configurable is a variable.** Which statistics portals are read
 lives in `quellen` — one row per portal, `basis_url` for the address and
 `konfiguration` (`{amt, bezirke}`) for the office it speaks for and the
-`gemeinden.bezirk` values it carries figures about. A dataset already knows its
+`gemeinden.bezirk` values it carries figures about. The EuroAirport's
+south-approach feed is a `quellen` row for the same reason (`typ:
+'euroairport'`), and its `konfiguration` carries the thresholds
+(`{monatsschwelle: 40, jahresschwellen: [8, 10]}`) rather than the code or the
+prompt — the newsroom moves its own threshold without a deploy. The migration
+seeds that row **inactive**: whether this source is read at all is a person's
+decision, not a deploy's, and the daily check only walks `aktiv = true`. A dataset already knows its
 portal through `datensaetze.quelle`, and the daily catalogue check already walks
 the sources one by one, so a list of hosts in the environment would be a second
 truth about the same thing. The rule is a pure function, `redaktion/portale.ts`.
