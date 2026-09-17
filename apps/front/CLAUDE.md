@@ -88,6 +88,23 @@ SAMEORIGIN`, no frame, cookies `SameSite=Lax`. Set, two things change together
   the allow-list drops anything that is not a bare `https://` origin rather than
   writing it into a CSP, and `None` forces `Secure` even in development, since a
   browser silently discards a `SameSite=None` cookie that is not secure.
+- **`SameSite=None` is not enough, and Safari is where that shows.** Measured on
+  16 September 2026 against the editor's own `userinfo` controller: a frame from
+  a foreign site is a third-party context, Safari blocks third-party cookies
+  outright, Firefox partitions them, Chrome allows them until somebody turns
+  them off. So with `EDITOR_EINBETTUNG` set and everything above working as
+  designed, **the embedded workspace still looks logged out in Safari** — no
+  error, no refusal, just an empty session. Until this is addressed the
+  embedding is a Chrome feature, not a newsroom feature, and it should not be
+  announced as one.
+  The remedy is not a cookie flag: the instance has to run on a subdomain of the
+  same site as the editor of its medium. Then the cookie is first-party,
+  `SameSite=Lax` is enough, and the CSRF protection given up above comes back.
+  The fallback, if that is not available, is carrying the session marker in
+  every link and form instead of in a cookie. The same question stands for the
+  Dorfkönig, and it deserves one answer for both — see
+  `_wepublish/oekosystem/2026-09-16_konzept_dorfkoenig_im_editor.md`, section 8,
+  point 1.
 - There is deliberately **no service/admin token in this app**. If a feature seems to
   need one, it needs a Directus extension endpoint instead — that is the whole point
   of constraint 7 in the root CLAUDE.md.
