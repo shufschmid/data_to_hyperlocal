@@ -187,10 +187,11 @@ describe('GemeindenAuswahl', () => {
 
     expect(screen.getByRole('button', { name: 'Erfassen' })).toBeDisabled()
 
-    await userEvent.type(
-      screen.getByLabelText('Ergebnis-Adresse'),
-      'https://swiss.basketball/basketplan/showLeagueSchedule.do?leagueHoldingId=11329'
-    )
+    // Eingefuegt statt getippt: die Adresse ist 78 Zeichen lang, und
+    // `type` feuert je Zeichen ein Ereignis — auf dem CI-Laeufer reichte das,
+    // um den 5-Sekunden-Deckel von Jest zu reissen.
+    await userEvent.click(screen.getByLabelText('Ergebnis-Adresse'))
+    await userEvent.paste('https://swiss.basketball/basketplan/showLeagueSchedule.do?leagueHoldingId=11329')
     expect(screen.getByRole('button', { name: 'Erfassen' })).toBeDisabled()
 
     await userEvent.type(screen.getByLabelText('Mannschaftskennung an der Quelle'), '515')
