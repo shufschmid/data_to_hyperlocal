@@ -7,6 +7,7 @@ import AccordionDetails from '@mui/material/AccordionDetails'
 import AccordionSummary from '@mui/material/AccordionSummary'
 import Alert from '@mui/material/Alert'
 import Badge from '@mui/material/Badge'
+import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'
 import Stack from '@mui/material/Stack'
 import Tab from '@mui/material/Tab'
@@ -938,6 +939,23 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             die Abstimmungsresultate je Gemeinde. Angekündigtes ohne Termin steht unten und rückt nach oben,
             sobald es ein Datum hat.
           </Typography>
+          {/* Der einzige Tisch, dessen Tag sich nicht wiederholt. Sein Flow
+              laeuft nur sonntags, wenn ausgezaehlt wird — also braucht er den
+              Knopf mehr als jeder andere: einmal zum Ausprobieren vorher,
+              einmal zum Nachfassen, wenn am Abstimmungssonntag etwas
+              schiefgeht. Derselbe Lauf wie der Flow. */}
+          <Stack direction="row" sx={{ justifyContent: 'flex-end' }}>
+            <Button
+              size="small"
+              variant="outlined"
+              disabled={sendet}
+              onClick={async () => {
+                await fuehreAus('abstimmungen/pruefen')
+              }}
+            >
+              Abstimmungsresultate jetzt holen
+            </Button>
+          </Stack>
           <AgendaErfassen
             quartale={[
               ...new Set(
