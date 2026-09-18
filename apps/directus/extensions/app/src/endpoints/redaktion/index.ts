@@ -2457,6 +2457,7 @@ export default defineEndpoint(
       titel: string
       teaser: string | null
       publiziert_am: string | null
+      veranstaltung_am: string | null
       kategorie: string | null
       text: string | null
       text_abgeschnitten: boolean
@@ -2481,6 +2482,7 @@ export default defineEndpoint(
       'titel',
       'teaser',
       'publiziert_am',
+      'veranstaltung_am',
       'kategorie',
       'text',
       'text_abgeschnitten',
@@ -2497,6 +2499,7 @@ export default defineEndpoint(
         titel: zeile.titel,
         teaser: zeile.teaser,
         publiziertAm: zeile.publiziert_am,
+        veranstaltungAm: zeile.veranstaltung_am,
         kategorie: zeile.kategorie,
         text: zeile.text ?? '',
         textAbgeschnitten: zeile.text_abgeschnitten,

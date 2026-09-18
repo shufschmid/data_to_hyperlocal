@@ -15,6 +15,8 @@ import {
   parseSichtung,
   quelleZeile,
   SICHTUNG_SYSTEM_PROMPT,
+  sichtungsAuswahl,
+  terminVorbei,
   volltextVon,
   zahlWarnungen,
   type MitteilungFakten,
@@ -33,6 +35,7 @@ const zeile = (ueber: Partial<SichtungsZeile> = {}): SichtungsZeile => ({
   anhaenge: 0,
   anhaengeGelesen: 0,
   abfuhr: null,
+  veranstaltungAm: null,
   ...ueber
 })
 
@@ -252,6 +255,7 @@ describe('aufraeumAktion', () => {
     vorschlag: null,
     publiziert_am: '2026-09-01',
     date_created: '2026-09-01T10:00:00Z',
+    veranstaltung_am: null,
     ...ueber
   })
 
@@ -306,6 +310,7 @@ const fakten: MitteilungFakten = {
   titel: 'Unterstützung für die Opfer der Sturzflut in Nepal',
   teaser: "Die Gemeinde Riehen unterstützt die Hilfe mit CHF 15'000.",
   publiziertAm: '2026-09-03',
+  veranstaltungAm: null,
   kategorie: null,
   text: "Am Mittwoch, 26. Juni 2026, hat eine Sturzflut grosse Verwüstungen angerichtet.\n\nDie Gemeinde spendet 15'000 Franken an das SRK.",
   textAbgeschnitten: false,
@@ -455,5 +460,124 @@ describe('Checks', () => {
     const voll = volltextVon(fakten)
     expect(voll).toContain('Sturzflut grosse Verwüstungen')
     expect(voll).toContain('beschlossen am 2. September 2026')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Termine: das Fenster laeuft nach vorn, und das aendert beide Enden
+// ---------------------------------------------------------------------------
+
+describe('terminVorbei', () => {
+  it('ein Termin ab heute steht noch bevor, ein gestriger nicht mehr', () => {
+    expect(terminVorbei({ veranstaltung_am: '2026-09-15' }, '2026-09-14')).toBe(
+      false
+    )
+    expect(terminVorbei({ veranstaltung_am: '2026-09-14' }, '2026-09-14')).toBe(
+      false
+    )
+    expect(terminVorbei({ veranstaltung_am: '2026-09-13' }, '2026-09-14')).toBe(
+      true
+    )
+  })
+
+  it('eine Mitteilung ohne Termin ist nie vorbei', () => {
+    expect(terminVorbei({ veranstaltung_am: null }, '2026-09-14')).toBe(false)
+  })
+})
+
+describe('aufraeumAktion: Termine', () => {
+  const termin = (veranstaltung_am: string, vorschlag: boolean | null) => ({
+    id: 'm',
+    entscheid: 'offen',
+    vorschlag,
+    publiziert_am: null,
+    date_created: '2026-09-13T13:00:00Z',
+    veranstaltung_am
+  })
+
+  // Die Regel der Nachrichten misst das Alter; bei einem Termin zaehlt nicht,
+  // wie alt die Zeile ist, sondern ob der Anlass war. Ein gestern
+  // vorgeschlagener Anlass von heute frueh ist erledigt, und kein Alter der
+  // Welt macht ihn wieder zur Meldung.
+  it('laesst einen Vorschlag verfallen, sobald der Anlass stattgefunden hat', () => {
+    expect(aufraeumAktion(termin('2026-09-13', true), '2026-09-14')).toBe(
+      'verfallen'
+    )
+  })
+
+  it('loescht einen nie vorgeschlagenen Termin, sobald er vorbei ist', () => {
+    expect(aufraeumAktion(termin('2026-09-13', false), '2026-09-14')).toBe(
+      'loeschen'
+    )
+  })
+
+  it('laesst einen kommenden Termin in Ruhe, auch ausserhalb des Nachlauf-Fensters', () => {
+    expect(
+      aufraeumAktion(termin('2026-10-30', true), '2026-09-14', 4)
+    ).toBeNull()
+    expect(
+      aufraeumAktion(termin('2026-10-30', false), '2026-09-14', 4)
+    ).toBeNull()
+  })
+
+  it('raeumt einen vergangenen Termin auch innerhalb des Lauf-Fensters weg', () => {
+    // Anders als bei den Nachrichten kann das keinen Kreisel geben: das
+    // Vorwaerts-Fenster holt einen vergangenen Termin nie wieder herein.
+    expect(aufraeumAktion(termin('2026-09-13', true), '2026-09-14', 4)).toBe(
+      'verfallen'
+    )
+  })
+})
+
+describe('sichtungsAuswahl', () => {
+  it('legt vergangene Termine beiseite, statt das Modell danach zu fragen', () => {
+    const kommt = zeile({ id: 'a', veranstaltungAm: '2026-09-20' })
+    const war = zeile({ id: 'b', veranstaltungAm: '2026-09-13' })
+    const nachricht = zeile({ id: 'c' })
+    const { zuBeurteilen, vorbei } = sichtungsAuswahl(
+      [kommt, war, nachricht],
+      '2026-09-14'
+    )
+    expect(zuBeurteilen.map((z) => z.id)).toEqual(['a', 'c'])
+    expect(vorbei.map((z) => z.id)).toEqual(['b'])
+  })
+})
+
+describe('buildSichtungPrompt: Termine', () => {
+  it('sagt je Zeile, dass es ein Termin ist, und wann er stattfindet', () => {
+    const prompt = buildSichtungPrompt(
+      'Aesch',
+      [zeile({ veranstaltungAm: '2026-10-17' })],
+      ''
+    )
+    expect(prompt).toContain('Termin am 17. Oktober 2026')
+  })
+
+  it('der System-Prompt kennt die drei Termin-Regeln', () => {
+    expect(SICHTUNG_SYSTEM_PROMPT).toMatch(/wiederkehrend/i)
+    expect(SICHTUNG_SYSTEM_PROMPT).toMatch(/Datum, Zeit und Ort/i)
+  })
+})
+
+describe('zahlWarnungen: Termine', () => {
+  it('nimmt die Ziffern des Veranstaltungsdatums als gegeben hin', () => {
+    const fakten: MitteilungFakten = {
+      gemeinde: 'Aesch',
+      titel: 'Repair Kaffi',
+      teaser: null,
+      publiziertAm: null,
+      veranstaltungAm: '2026-10-17',
+      kategorie: null,
+      text: 'Reparieren statt wegwerfen.',
+      textAbgeschnitten: false,
+      anhaenge: [],
+      url: 'https://www.aesch.bl.ch/_rte/anlass/1'
+    }
+    expect(
+      zahlWarnungen(
+        'Am 17. Oktober 2026 findet das Repair Kaffi statt.',
+        fakten
+      )
+    ).toEqual([])
   })
 })

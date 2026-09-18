@@ -129,7 +129,8 @@ describe('sichteMitteilungen', () => {
       publiziert_am: '2026-09-14',
       kategorie: null,
       text_abgeschnitten: false,
-      anhaenge: []
+      anhaenge: [],
+      veranstaltung_am: null
     },
     {
       id: 'm-2',
@@ -139,7 +140,8 @@ describe('sichteMitteilungen', () => {
       publiziert_am: '2026-09-14',
       kategorie: 'politik_info',
       text_abgeschnitten: false,
-      anhaenge: [{ gelesen: true }]
+      anhaenge: [{ gelesen: true }],
+      veranstaltung_am: null
     }
   ]
   const regelzeilen: RegelZeile[] = [
@@ -304,5 +306,137 @@ describe('sichteMitteilungen', () => {
     })
     expect(dienst.updates).toEqual([])
     expect(STILL.warn).toHaveBeenCalled()
+  })
+})
+
+describe('sichteMitteilungen: Termine', () => {
+  // Der Termin von gestern kostet keinen Token: das entscheidet Code, und die
+  // Zeile sagt auf dem Tisch, warum sie kein Vorschlag ist.
+  it('urteilt ueber vergangene Termine selbst und fragt das Modell nur zum Rest', async () => {
+    const send = vi.fn<MessageSender>().mockResolvedValue(
+      nachricht(
+        JSON.stringify({
+          urteile: [
+            {
+              nummer: 1,
+              vorschlag: true,
+              begruendung: 'Einwohnerratssitzung.',
+              empfehlung: null,
+              empfehlung_regel: null
+            }
+          ]
+        })
+      )
+    )
+    const updates: Array<[string, Record<string, unknown>]> = []
+    const dienst: MitteilungenDienst = {
+      readByQuery: async () => [],
+      updateOne: async (key, payload) => {
+        updates.push([key, payload])
+        return undefined
+      },
+      updateMany: async () => undefined,
+      deleteMany: async () => undefined
+    }
+    const ergebnis = await sichteMitteilungen(
+      [
+        {
+          id: 'v-1',
+          titel: 'Einwohnerratssitzung',
+          teaser: null,
+          text: null,
+          publiziert_am: null,
+          kategorie: null,
+          text_abgeschnitten: false,
+          anhaenge: [],
+          veranstaltung_am: '2026-10-13'
+        },
+        {
+          id: 'v-2',
+          titel: 'Flohmaert',
+          teaser: null,
+          text: null,
+          publiziert_am: null,
+          kategorie: null,
+          text_abgeschnitten: false,
+          anhaenge: [],
+          veranstaltung_am: '2026-09-13'
+        }
+      ],
+      { id: 'g-1', name: 'Allschwil' },
+      {
+        mitteilungen: dienst,
+        hinweise: { readByQuery: async () => [], createOne: async () => 'h' },
+        meldungen: leer,
+        termine: leer,
+        kalender: leer,
+        regelzeilen: [],
+        sichtungsregeln: { text: '', nummern: new Map() },
+        heute: '2026-09-14',
+        logger: STILL,
+        send
+      }
+    )
+
+    const prompt = String(
+      (send.mock.calls[0]?.[0] as { messages: Array<{ content: string }> })
+        .messages[0]?.content
+    )
+    expect(prompt).toContain('Einwohnerratssitzung')
+    expect(prompt).not.toContain('Flohmaert')
+    expect(prompt).toContain('Termin am 13. Oktober 2026')
+    expect(ergebnis.vorschlaege).toBe(1)
+    expect(updates).toContainEqual([
+      'v-2',
+      {
+        vorschlag: false,
+        vorschlag_begruendung:
+          'Der Termin hat vor der Sichtung stattgefunden — kein Vorschlag.'
+      }
+    ])
+  })
+
+  it('ruft gar kein Modell, wenn alle Termine vorbei sind', async () => {
+    const send = vi.fn<MessageSender>()
+    const ergebnis = await sichteMitteilungen(
+      [
+        {
+          id: 'v-1',
+          titel: 'Gestern',
+          teaser: null,
+          text: null,
+          publiziert_am: null,
+          kategorie: null,
+          text_abgeschnitten: false,
+          anhaenge: [],
+          veranstaltung_am: '2026-09-13'
+        }
+      ],
+      { id: 'g-1', name: 'Allschwil' },
+      {
+        mitteilungen: {
+          readByQuery: async () => [],
+          updateOne: async () => undefined,
+          updateMany: async () => undefined,
+          deleteMany: async () => undefined
+        },
+        hinweise: { readByQuery: async () => [], createOne: async () => 'h' },
+        meldungen: leer,
+        termine: leer,
+        kalender: leer,
+        regelzeilen: [],
+        sichtungsregeln: { text: '', nummern: new Map() },
+        heute: '2026-09-14',
+        logger: STILL,
+        send
+      }
+    )
+
+    expect(send).not.toHaveBeenCalled()
+    expect(ergebnis).toEqual({
+      vorschlaege: 0,
+      weitergereicht: 0,
+      fehler: null
+    })
   })
 })

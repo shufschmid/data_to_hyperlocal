@@ -66,6 +66,20 @@ schreibt der Entsorgungs-Tisch. Faellt eine Abfuhr aus, wird sie verschoben,
 kommt eine neue hinzu oder aendert sich der Ablauf, ist das eine Meldung.
 Begruende mit dem Abgleich, der bei der Mitteilung steht.
 
+Veranstaltungen: Zeilen, die als "Termin am …" ausgewiesen sind, kommen von
+der Veranstaltungsseite der Gemeinde. Fuer sie gilt zusaetzlich: Ein
+WIEDERKEHRENDER Termin ist keine Nachricht — der Mittagstisch jeden Dienstag,
+der Freitagstreff, der Monatsmarkt, die woechentliche Sprechstunde. Das ist
+dieselbe Unterscheidung wie beim Abfuhrkalender zwischen Termin und Routine.
+Die AUSNAHME von der Routine ist sehr wohl eine Meldung: faellt der
+Mittagstisch aus, zieht er um, wird ein Anlass abgesagt oder verschoben,
+gehoert das auf den Tisch. Ein Termin ohne Datum, Zeit und Ort ist ein
+schlechter Vorschlag, weil die Meldung sie nennen muesste und nicht kann.
+Und was die Gemeinde als Behoerde selbst tut — Gemeindeversammlung,
+Einwohnerratssitzung, Vernehmlassungsanlass, Informationsveranstaltung zu
+einem Projekt — waegt schwerer als ein Vereinsanlass, der ueber die
+Wochenblaetter ohnehin kommt.
+
 Im Zweifel: nein. Die nicht vorgeschlagenen Mitteilungen verschwinden nicht,
 sie stehen der Redaktion weiterhin zur Verfuegung — ein falsches Ja kostet
 Aufmerksamkeit, ein falsches Nein kostet einen Klick. Die Bilanz und die
@@ -94,7 +108,48 @@ export interface SichtungsZeile {
   anhaengeGelesen: number
   /** The waste-calendar cross-check for this item, when it talks about collections. */
   abfuhr: string | null
+  /** The day the event takes place — set on an events row, null on a news row. */
+  veranstaltungAm: string | null
 }
+
+/**
+ * Whether an event has already taken place. The one thing the Sichtung must
+ * not leave to the model: a date comparison is arithmetic, and an event that
+ * happened yesterday is not a proposal today, however it reads.
+ */
+export function terminVorbei(
+  zeile: { veranstaltung_am: string | null },
+  heute: string
+): boolean {
+  // A missing value counts as "no event", not as "an event on no day": a row
+  // written before the column existed answers with the field absent, and
+  // `undefined !== null` would otherwise make it an event forever.
+  const termin = zeile.veranstaltung_am
+  return typeof termin === 'string' && termin < heute
+}
+
+/**
+ * What the one model call of the run is asked about, and what code decides by
+ * itself: a past event is never proposed, and asking would cost tokens for an
+ * answer we already have.
+ */
+export function sichtungsAuswahl(
+  zeilen: readonly SichtungsZeile[],
+  heute: string
+): { zuBeurteilen: SichtungsZeile[]; vorbei: SichtungsZeile[] } {
+  const zuBeurteilen: SichtungsZeile[] = []
+  const vorbei: SichtungsZeile[] = []
+  for (const z of zeilen) {
+    if (terminVorbei({ veranstaltung_am: z.veranstaltungAm }, heute))
+      vorbei.push(z)
+    else zuBeurteilen.push(z)
+  }
+  return { zuBeurteilen, vorbei }
+}
+
+/** What the desk shows on a row the run set aside without asking. */
+export const VORBEI_BEGRUENDUNG =
+  'Der Termin hat vor der Sichtung stattgefunden — kein Vorschlag.'
 
 export const AUSZUG_ZEICHEN = 400
 
@@ -126,7 +181,9 @@ export function buildSichtungPrompt(
 ): string {
   const eintrag = (z: SichtungsZeile, i: number): string[] => {
     const kopf = [
-      z.kategorie,
+      z.veranstaltungAm === null
+        ? z.kategorie
+        : `Termin am ${datumDeutsch(z.veranstaltungAm)}`,
       z.publiziertAm === null ? null : datumDeutsch(z.publiziertAm)
     ]
       .filter((t): t is string => t !== null && t !== '')
@@ -278,6 +335,8 @@ export interface AufraeumZeile {
   vorschlag: boolean | null
   publiziert_am: string | null
   date_created: string | null
+  /** Set on an events row; it is what retires the row instead of its age. */
+  veranstaltung_am: string | null
 }
 
 function alterInTagen(datum: string | null, heute: string): number | null {
@@ -305,6 +364,16 @@ export function aufraeumAktion(
   fensterTage = 0
 ): 'verfallen' | 'loeschen' | null {
   if (zeile.entscheid !== 'offen') return null
+
+  // A Termin retires on its own day, not by age — an event proposed yesterday
+  // for this morning is done, and no waiting period makes it news again. The
+  // run's look-back window does not protect it either, because the forward
+  // window can never fetch a past event back: the loop the floor guards
+  // against on the news side cannot happen here.
+  if (terminVorbei(zeile, heute))
+    return zeile.vorschlag === true ? 'verfallen' : 'loeschen'
+  if (typeof zeile.veranstaltung_am === 'string') return null
+
   const alter = alterInTagen(zeile.publiziert_am ?? zeile.date_created, heute)
   if (alter === null || alter < fensterTage) return null
   if (zeile.vorschlag === true)
@@ -330,6 +399,8 @@ export interface MitteilungFakten {
   titel: string
   teaser: string | null
   publiziertAm: string | null
+  /** The day the event takes place — on an events row; null on a news row. */
+  veranstaltungAm: string | null
   kategorie: string | null
   text: string
   textAbgeschnitten: boolean
@@ -402,7 +473,9 @@ function anhangZeilen(anhaenge: readonly MitteilungAnhangFakt[]): string[] {
 function faktenZeilen(fakten: MitteilungFakten): string[] {
   return [
     `Gemeinde: ${fakten.gemeinde}`,
-    `Mitteilung der Gemeinde${fakten.publiziertAm === null ? '' : ` vom ${datumDeutsch(fakten.publiziertAm)}`}${fakten.kategorie === null ? '' : ` (Kategorie: ${fakten.kategorie})`}`,
+    fakten.veranstaltungAm === null
+      ? `Mitteilung der Gemeinde${fakten.publiziertAm === null ? '' : ` vom ${datumDeutsch(fakten.publiziertAm)}`}${fakten.kategorie === null ? '' : ` (Kategorie: ${fakten.kategorie})`}`
+      : `Veranstaltung aus dem Veranstaltungskalender der Gemeinde, Termin am ${datumDeutsch(fakten.veranstaltungAm)}`,
     `Titel der Mitteilung: "${fakten.titel}"`,
     ...(fakten.teaser === null || fakten.teaser.trim() === ''
       ? []
@@ -468,7 +541,9 @@ export function quelleZeile(fakten: MitteilungFakten): string {
       ? ''
       : ` vom ${datumDeutsch(fakten.publiziertAm)}`
   const teile = [
-    `Quelle: Mitteilung der Gemeinde ${fakten.gemeinde}${datum}, ${fakten.url}`
+    fakten.veranstaltungAm === null
+      ? `Quelle: Mitteilung der Gemeinde ${fakten.gemeinde}${datum}, ${fakten.url}`
+      : `Quelle: Veranstaltungskalender der Gemeinde ${fakten.gemeinde}, ${fakten.url}`
   ]
   const gelesene = fakten.anhaenge.filter((a) => a.gelesen)
   for (const a of gelesene.slice(0, QUELLE_DOKUMENTE_MAX))
@@ -538,6 +613,7 @@ export function zahlWarnungen(
   sammle(fakten.titel)
   sammle(fakten.teaser)
   sammle(fakten.publiziertAm)
+  sammle(fakten.veranstaltungAm)
   sammle(fakten.text)
   for (const a of fakten.anhaenge) sammle(a.text)
 

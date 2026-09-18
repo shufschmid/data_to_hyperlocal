@@ -19,9 +19,12 @@ import {
   liesMitteilung,
   NACHLAUF_TAGE,
   STANDARD_PAUSE_MS,
+  terminKandidaten,
+  VERANSTALTUNGS_FENSTER_TAGE,
   waehleZuLesen,
   zeileAus,
-  type ListenEintrag
+  type ListenEintrag,
+  type Seitenart
 } from '../../shared/gemeindeseite'
 import { heuteIso } from '../../redaktion/feiertage'
 import { ladeRegeln } from '../../redaktion/gedaechtnis'
@@ -61,13 +64,19 @@ interface Optionen {
   nachlauf?: number
   erstlauf?: number
   pause?: number
+  /** How far ahead the events window reaches, in days. */
+  vorlauf?: number
   model?: string | null
 }
 
 interface Ergebnis {
   gemeinden: number
-  /** Active municipalities without a registered page — named, not logged. */
+  /** Active municipalities without a registered news page — named, not logged. */
   ohneUrl: string[]
+  /** Active municipalities without a registered events page — the same, for the second address. */
+  ohneVeranstaltungen: string[]
+  /** How many of the new rows are events rather than news. */
+  termine: number
   erstlaeufe: string[]
   neu: number
   detailsGelesen: number
@@ -93,6 +102,7 @@ interface GemeindeZeile {
   id: string
   name: string
   news_url: string | null
+  veranstaltungen_url: string | null
 }
 
 function fehlerText(error: unknown): string {
@@ -109,6 +119,10 @@ export default defineOperationApi<Optionen>({
     const nachlauf = Math.max(1, optionen.nachlauf ?? NACHLAUF_TAGE)
     const erstlaufTage = Math.max(1, optionen.erstlauf ?? ERSTLAUF_TAGE)
     const pauseMs = Math.max(0, optionen.pause ?? STANDARD_PAUSE_MS)
+    const vorlaufTage = Math.max(
+      1,
+      optionen.vorlauf ?? VERANSTALTUNGS_FENSTER_TAGE
+    )
     const kontakt = optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch')
     const heute = heuteIso()
     const heuteObj = heuteAus(heute)
@@ -133,6 +147,8 @@ export default defineOperationApi<Optionen>({
     const ergebnis: Ergebnis = {
       gemeinden: 0,
       ohneUrl: [],
+      ohneVeranstaltungen: [],
+      termine: 0,
       erstlaeufe: [],
       neu: 0,
       detailsGelesen: 0,
@@ -162,15 +178,20 @@ export default defineOperationApi<Optionen>({
 
     const alleAktiven = (await gemeindenService.readByQuery({
       filter: { aktiv: { _eq: true } },
-      fields: ['id', 'name', 'news_url'],
+      fields: ['id', 'name', 'news_url', 'veranstaltungen_url'],
       sort: ['name'],
       limit: -1
     })) as GemeindeZeile[]
+    const hatAdresse = (wert: string | null): boolean =>
+      wert !== null && wert.trim() !== ''
     ergebnis.ohneUrl = alleAktiven
-      .filter((g) => g.news_url === null || g.news_url.trim() === '')
+      .filter((g) => !hatAdresse(g.news_url))
+      .map((g) => g.name)
+    ergebnis.ohneVeranstaltungen = alleAktiven
+      .filter((g) => !hatAdresse(g.veranstaltungen_url))
       .map((g) => g.name)
     const mitUrl = alleAktiven.filter(
-      (g) => g.news_url !== null && g.news_url.trim() !== ''
+      (g) => hatAdresse(g.news_url) || hatAdresse(g.veranstaltungen_url)
     )
     const gemeinden = mitUrl.slice(0, hoechstens)
     if (mitUrl.length > hoechstens) {
@@ -192,118 +213,161 @@ export default defineOperationApi<Optionen>({
 
     for (const gemeinde of gemeinden) {
       ergebnis.gemeinden += 1
-      const newsUrl = gemeinde.news_url as string
       const eigeneFehler: string[] = []
+      // The two pages of one municipality, read one after the other by the
+      // same polite reader: same host, same spacing, same robots.txt, and one
+      // status line at the end. The events page is a second page of a source
+      // the run already reads, never a second source.
+      const seiten: Array<{ art: Seitenart; url: string }> = [
+        { art: 'nachricht', url: gemeinde.news_url ?? '' },
+        { art: 'termin', url: gemeinde.veranstaltungen_url ?? '' }
+      ].filter((s): s is { art: Seitenart; url: string } => s.url.trim() !== '')
+      const angelegt: ZeileFuerSichtung[] = []
 
-      try {
-        const site = new URL(newsUrl).hostname
-        const uebersicht = await leseUebersicht(leser, newsUrl, heuteObj)
+      for (const seite of seiten) {
+        try {
+          const site = new URL(seite.url).hostname
+          const uebersicht = await leseUebersicht(
+            leser,
+            seite.url,
+            heuteObj,
+            seite.art
+          )
 
-        const [vorhanden] = (await mitteilungen.readByQuery({
-          filter: { gemeinde: { _eq: gemeinde.id } },
-          fields: ['id'],
-          limit: 1
-        })) as Array<{ id: string }>
-        const erstlauf = vorhanden === undefined
-        if (erstlauf) ergebnis.erstlaeufe.push(gemeinde.name)
-        const seit = fensterSeit(heute, erstlauf, nachlauf, erstlaufTage)
+          const [vorhanden] = (await mitteilungen.readByQuery({
+            filter: {
+              gemeinde: { _eq: gemeinde.id },
+              quelle_seite: { _eq: seite.url }
+            },
+            fields: ['id'],
+            limit: 1
+          })) as Array<{ id: string }>
+          const erstlauf = vorhanden === undefined
+          if (erstlauf && seite.art === 'nachricht')
+            ergebnis.erstlaeufe.push(gemeinde.name)
+          const seit = fensterSeit(heute, erstlauf, nachlauf, erstlaufTage)
 
-        const { drin, undatiert } = kandidaten(uebersicht.eintraege, seit)
-        ergebnis.uebersprungen += undatiert.length
-        if (undatiert.length > 0) {
-          // Declared in the result by title — and on the municipality's status
-          // line only when NO entry of the page carries a date: that is a
-          // parser gap or a page we cannot follow. One standing notice among
-          // dated news (Reinach lists its permanent speed-check page there) is
-          // not worth an alert on the desk every day.
-          ergebnis.ohneDatum.push({
-            gemeinde: gemeinde.name,
-            anzahl: undatiert.length,
-            beispiele: undatiert.slice(0, 5).map((e) => e.titel)
-          })
-          if (undatiert.length === uebersicht.eintraege.length)
-            eigeneFehler.push(ohneDatumHinweis(undatiert))
-        }
+          // The one place the events page really thinks differently.
+          const { drin, undatiert } =
+            seite.art === 'termin'
+              ? terminKandidaten(uebersicht.eintraege, heute, vorlaufTage)
+              : kandidaten(uebersicht.eintraege, seit)
+          ergebnis.uebersprungen += undatiert.length
+          if (undatiert.length > 0) {
+            // Declared in the result by title — and on the municipality's status
+            // line only when NO entry of the page carries a date: that is a
+            // parser gap or a page we cannot follow. One standing notice among
+            // dated news (Reinach lists its permanent speed-check page there) is
+            // not worth an alert on the desk every day.
+            ergebnis.ohneDatum.push({
+              gemeinde: gemeinde.name,
+              anzahl: undatiert.length,
+              beispiele: undatiert.slice(0, 5).map((e) => e.titel)
+            })
+            if (undatiert.length === uebersicht.eintraege.length)
+              eigeneFehler.push(ohneDatumHinweis(undatiert))
+          }
 
-        const bekannt =
-          drin.length === 0
-            ? new Set<string>()
-            : new Set(
-                (
-                  (await mitteilungen.readByQuery({
-                    filter: { url: { _in: drin.map((e) => e.url) } },
-                    fields: ['url'],
-                    limit: -1
-                  })) as Array<{ url: string }>
-                ).map((z) => z.url)
+          const bekannt =
+            drin.length === 0
+              ? new Set<string>()
+              : new Set(
+                  (
+                    (await mitteilungen.readByQuery({
+                      filter: { url: { _in: drin.map((e) => e.url) } },
+                      fields: ['url'],
+                      limit: -1
+                    })) as Array<{ url: string }>
+                  ).map((z) => z.url)
+                )
+          const neue: ListenEintrag[] = drin.filter((e) => !bekannt.has(e.url))
+          const { zuLesen, nichtGelesen } = waehleZuLesen(
+            neue,
+            details,
+            seite.art
+          )
+          if (nichtGelesen > 0) {
+            ergebnis.nichtGelesen.push({
+              gemeinde: gemeinde.name,
+              anzahl: nichtGelesen
+            })
+            eigeneFehler.push(
+              `${nichtGelesen} weitere neue Eintraege nicht gelesen (Deckel ${details}) — morgen weiter`
+            )
+          }
+
+          for (const eintrag of zuLesen) {
+            try {
+              const gelesen = await liesMitteilung(
+                leser,
+                eintrag,
+                detailFamilie(uebersicht.plattform),
+                site,
+                heuteObj,
+                {
+                  anhaengeMax: ANHAENGE_MAX,
+                  anhangMaxBytes: ANHANG_MAX_BYTES
+                }
               )
-        const neue: ListenEintrag[] = drin.filter((e) => !bekannt.has(e.url))
-        const { zuLesen, nichtGelesen } = waehleZuLesen(neue, details)
-        if (nichtGelesen > 0) {
-          ergebnis.nichtGelesen.push({
-            gemeinde: gemeinde.name,
-            anzahl: nichtGelesen
-          })
+              const zeile = zeileAus({
+                eintrag,
+                detail: gelesen.detail,
+                pdf: gelesen.pdf,
+                anhaenge: gelesen.anhaenge,
+                transport: gelesen.transport,
+                gemeindeId: gemeinde.id,
+                quelleSeite: seite.url,
+                plattform: uebersicht.plattform,
+                gelesenAm: new Date().toISOString()
+              })
+              const id = (await mitteilungen.createOne(zeile)) as string
+              angelegt.push({
+                id,
+                titel: zeile.titel,
+                teaser: zeile.teaser,
+                text: zeile.text,
+                publiziert_am: zeile.publiziert_am,
+                kategorie: zeile.kategorie,
+                text_abgeschnitten: zeile.text_abgeschnitten,
+                anhaenge: zeile.anhaenge,
+                veranstaltung_am: zeile.veranstaltung_am
+              })
+              ergebnis.neu += 1
+              if (zeile.veranstaltung_am !== null) ergebnis.termine += 1
+              ergebnis.detailsGelesen += 1
+              ergebnis.anhaengeGelesen += zeile.anhaenge.filter(
+                (a) => a.gelesen
+              ).length
+            } catch (fehler) {
+              // A failed page is not stored, so tomorrow retries it; a race with
+              // a parallel run (unique url) is a warning, never the municipality's.
+              const grund = fehlerText(fehler)
+              logger.warn(
+                fehler,
+                `gemeindeseiten: ${gemeinde.name} — ${eintrag.titel} nicht gelesen.`
+              )
+              if (!/unique|duplicate|RECORD_NOT_UNIQUE/i.test(grund))
+                eigeneFehler.push(`"${eintrag.titel}": ${grund}`)
+            }
+          }
+        } catch (fehler) {
+          logger.warn(
+            fehler,
+            `gemeindeseiten: ${gemeinde.name} (${seite.art}) fehlgeschlagen.`
+          )
           eigeneFehler.push(
-            `${nichtGelesen} weitere neue Eintraege nicht gelesen (Deckel ${details}) — morgen weiter`
+            seite.art === 'termin'
+              ? `Veranstaltungen: ${fehlerText(fehler)}`
+              : fehlerText(fehler)
           )
         }
+      }
 
-        const angelegt: ZeileFuerSichtung[] = []
-        for (const eintrag of zuLesen) {
-          try {
-            const gelesen = await liesMitteilung(
-              leser,
-              eintrag,
-              detailFamilie(uebersicht.plattform),
-              site,
-              heuteObj,
-              {
-                anhaengeMax: ANHAENGE_MAX,
-                anhangMaxBytes: ANHANG_MAX_BYTES
-              }
-            )
-            const zeile = zeileAus({
-              eintrag,
-              detail: gelesen.detail,
-              pdf: gelesen.pdf,
-              anhaenge: gelesen.anhaenge,
-              transport: gelesen.transport,
-              gemeindeId: gemeinde.id,
-              quelleSeite: newsUrl,
-              plattform: uebersicht.plattform,
-              gelesenAm: new Date().toISOString()
-            })
-            const id = (await mitteilungen.createOne(zeile)) as string
-            angelegt.push({
-              id,
-              titel: zeile.titel,
-              teaser: zeile.teaser,
-              text: zeile.text,
-              publiziert_am: zeile.publiziert_am,
-              kategorie: zeile.kategorie,
-              text_abgeschnitten: zeile.text_abgeschnitten,
-              anhaenge: zeile.anhaenge
-            })
-            ergebnis.neu += 1
-            ergebnis.detailsGelesen += 1
-            ergebnis.anhaengeGelesen += zeile.anhaenge.filter(
-              (a) => a.gelesen
-            ).length
-          } catch (fehler) {
-            // A failed page is not stored, so tomorrow retries it; a race with
-            // a parallel run (unique url) is a warning, never the municipality's.
-            const grund = fehlerText(fehler)
-            logger.warn(
-              fehler,
-              `gemeindeseiten: ${gemeinde.name} — ${eintrag.titel} nicht gelesen.`
-            )
-            if (!/unique|duplicate|RECORD_NOT_UNIQUE/i.test(grund))
-              eigeneFehler.push(`"${eintrag.titel}": ${grund}`)
-          }
-        }
-
-        if (angelegt.length > 0) {
+      // ONE Sichtung per municipality and run, over both pages together —
+      // that is the rule this feed was built on, and an events page must not
+      // turn it into two calls a day.
+      if (angelegt.length > 0) {
+        try {
           const sichtung = await sichteMitteilungen(angelegt, gemeinde, {
             mitteilungen,
             hinweise: faehrten,
@@ -320,10 +384,13 @@ export default defineOperationApi<Optionen>({
           ergebnis.weitergereicht += sichtung.weitergereicht
           if (sichtung.fehler !== null)
             eigeneFehler.push(`Sichtung fehlgeschlagen: ${sichtung.fehler}`)
+        } catch (fehler) {
+          logger.warn(
+            fehler,
+            `gemeindeseiten: Sichtung fuer ${gemeinde.name} fehlgeschlagen.`
+          )
+          eigeneFehler.push(fehlerText(fehler))
         }
-      } catch (fehler) {
-        logger.warn(fehler, `gemeindeseiten: ${gemeinde.name} fehlgeschlagen.`)
-        eigeneFehler.push(fehlerText(fehler))
       }
 
       // The municipality's own status line — the desk and the Gemeinden card

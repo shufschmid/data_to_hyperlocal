@@ -1350,6 +1350,12 @@ export interface GemeindemitteilungFelder {
   titel: string
   teaser: string | null
   publiziert_am: string | null
+  /**
+   * The day the event takes place — set only on a row from the events page.
+   * Never the same thing as `publiziert_am`: the Sichtung judges the event,
+   * the cleanup the publication.
+   */
+  veranstaltung_am: string | null
   kategorie: string | null
   /** `html`, or `pdf` when the list linked a document directly. */
   inhalt_typ: string
@@ -1386,6 +1392,7 @@ export const GEMEINDEMITTEILUNGEN_QUERY = gql`
       titel
       teaser
       publiziert_am
+      veranstaltung_am
       kategorie
       inhalt_typ
       text
