@@ -427,6 +427,12 @@ const AmtsblattLaufLaeuftBereits = createError(
   409
 )
 
+const UngueltigesDatum = createError(
+  'INVALID_PAYLOAD',
+  'Das Datum muss die Form 2026-09-27 haben.',
+  400
+)
+
 const AbstimmungsLaufLaeuftBereits = createError(
   'RUN_IN_PROGRESS',
   'Die Abstimmungsresultate werden bereits geholt.',
@@ -1554,14 +1560,16 @@ export default defineEndpoint(
 
     let abstimmungsLaufAktiv = false
 
-    function starteAbstimmungsLauf(): boolean {
+    function starteAbstimmungsLauf(datum: string | null): boolean {
       if (abstimmungsLaufAktiv) return false
       abstimmungsLaufAktiv = true
 
       const kontext = { services, getSchema, logger, database } as Parameters<
         typeof abstimmungenHolen.handler
       >[1]
-      void Promise.resolve(abstimmungenHolen.handler({}, kontext))
+      void Promise.resolve(
+        abstimmungenHolen.handler(datum === null ? {} : { datum }, kontext)
+      )
         .then((ergebnis: unknown) =>
           logger.info(ergebnis, 'redaktion: Abstimmungs-Lauf beendet')
         )
@@ -1578,9 +1586,22 @@ export default defineEndpoint(
       '/abstimmungen/pruefen',
       (req: ApiRequest, res: Response, next: NextFunction) => {
         if (!isAuthenticated(req)) return next(new NichtAngemeldet())
-        if (!starteAbstimmungsLauf())
+
+        // Ohne Datum: heute, wie der Flow. MIT Datum ist der Probelauf, und er
+        // ist der Grund, warum dieser Endpunkt ueberhaupt eines annimmt: an
+        // einem gewoehnlichen Tag findet der Lauf keine Abstimmung und hoert
+        // auf, beweist also nur den Weg zum Portal. Auf einen vergangenen
+        // Abstimmungstag gestellt laeuft er durch alles hindurch, was am
+        // Sonntag zaehlt — auszaehlen, gruppieren, schreiben — an echten
+        // Zahlen, die sich nicht mehr bewegen.
+        const roh = (req.body as Record<string, unknown> | undefined)?.['datum']
+        const datum = typeof roh === 'string' ? roh.trim() : null
+        if (datum !== null && !/^\d{4}-\d{2}-\d{2}$/.test(datum))
+          return next(new UngueltigesDatum())
+
+        if (!starteAbstimmungsLauf(datum))
           return next(new AbstimmungsLaufLaeuftBereits())
-        return res.status(202).json({ data: { gestartet: true } })
+        return res.status(202).json({ data: { gestartet: true, datum } })
       }
     )
 

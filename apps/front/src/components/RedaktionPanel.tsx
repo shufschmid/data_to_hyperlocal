@@ -11,6 +11,7 @@ import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'
 import Stack from '@mui/material/Stack'
 import Tab from '@mui/material/Tab'
+import TextField from '@mui/material/TextField'
 import Tabs from '@mui/material/Tabs'
 import Typography from '@mui/material/Typography'
 import { LIVE_FETCH_POLICY } from '@/lib/apollo'
@@ -236,6 +237,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
   // Mal musste jede `reiter === N`-Stelle mitwandern. Ein Name bleibt gueltig,
   // wohin der Reiter auch rutscht.
   const [reiter, setReiter] = useState<Reiter>(blogGemeinde === null ? 'statistik' : 'blog')
+  const [abstimmungsTag, setAbstimmungsTag] = useState('')
   const [zahnradAnker, setZahnradAnker] = useState<HTMLElement | null>(null)
 
   // Von aussen aufgemacht (Kopfleiste oder ?gemeinde=…) — und wieder zu, wenn
@@ -944,13 +946,29 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
               Knopf mehr als jeder andere: einmal zum Ausprobieren vorher,
               einmal zum Nachfassen, wenn am Abstimmungssonntag etwas
               schiefgeht. Derselbe Lauf wie der Flow. */}
-          <Stack direction="row" sx={{ justifyContent: 'flex-end' }}>
+          {/* Der einzige Tisch, dessen Tag sich nicht wiederholt. Sein Flow
+              laeuft nur sonntags, wenn ausgezaehlt wird. Das Datumsfeld ist
+              darum kein Testwerkzeug: an einem gewoehnlichen Tag findet der
+              Lauf keine Abstimmung, und ein vergangener Abstimmungstag ist der
+              einzige Weg, die ganze Kette an echten Zahlen zu sehen, bevor es
+              zaehlt — und der Weg, einen Sonntag nachzuholen, an dem etwas
+              schiefging. Leer heisst heute, wie der Flow. */}
+          <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end', alignItems: 'center' }}>
+            <TextField
+              size="small"
+              label="Abstimmungstag (leer = heute)"
+              placeholder="2026-09-27"
+              value={abstimmungsTag}
+              onChange={(e) => setAbstimmungsTag(e.target.value)}
+              sx={{ width: 240 }}
+            />
             <Button
               size="small"
               variant="outlined"
               disabled={sendet}
               onClick={async () => {
-                await fuehreAus('abstimmungen/pruefen')
+                const tag = abstimmungsTag.trim()
+                await fuehreAus('abstimmungen/pruefen', tag === '' ? {} : { datum: tag })
               }}
             >
               Abstimmungsresultate jetzt holen
