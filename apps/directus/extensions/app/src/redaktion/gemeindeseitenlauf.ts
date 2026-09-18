@@ -252,7 +252,16 @@ export async function sichteMitteilungen(
           kontext.sichtungsregeln.text,
           kalender === null ? '' : abfuhrkalenderBlock(gemeinde.name, kalender)
         ),
-        maxTokens: 4096,
+        // Room, deliberately. The answer carries one verdict with a written
+        // reason per item, and a truncated answer costs the WHOLE municipality
+        // its Sichtung: `completeJson` throws on `max_tokens`, so not one of
+        // the day's items is judged and every one of them sits on the desk
+        // unsorted. That happened to Aesch on 18 September 2026 at 4096, with
+        // the Abfuhrkalender block in its prompt on top of the items. The
+        // ceiling costs nothing unless it is used, and 8000 is the house's
+        // highest budget that still goes out as a plain request (the SDK
+        // streams from 8192 up) — cheaper than a lost judgement by any measure.
+        maxTokens: 8000,
         ...(kontext.model == null ? {} : { model: kontext.model }),
         schema: SICHTUNG_SCHEMA
       },

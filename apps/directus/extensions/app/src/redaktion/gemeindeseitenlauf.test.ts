@@ -241,6 +241,9 @@ describe('sichteMitteilungen', () => {
       fehler: null
     })
     const anfrage = send.mock.calls[0]?.[0]
+    // Ein abgeschnittenes Urteil kostet die GANZE Gemeinde ihre Sichtung —
+    // darum Luft, und zwar unter der Grenze, ab der der Aufruf streamt.
+    expect(anfrage?.max_tokens).toBe(8000)
     const system = typeof anfrage?.system === 'string' ? anfrage.system : ''
     const prompt = (anfrage?.messages[0]?.content as string) ?? ''
     expect(system).not.toContain('Aesch')

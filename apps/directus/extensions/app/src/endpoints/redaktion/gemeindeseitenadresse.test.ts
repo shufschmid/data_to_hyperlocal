@@ -52,11 +52,12 @@ describe('speichereAdresse', () => {
     })
   })
 
-  it('clears the news address and its error line together', async () => {
+  it('clears the news address and both status lines together', async () => {
     const { gemeinden } = await lauf('nachricht', '')
     expect(gemeinden.updateOne).toHaveBeenCalledWith('g1', {
       news_url: null,
-      news_letzter_fehler: null
+      news_letzter_fehler: null,
+      news_letzter_hinweis: null
     })
   })
 
@@ -104,14 +105,15 @@ describe('speichereAdresse', () => {
     })
   })
 
-  it('clears the shared error line when a news address is stored', async () => {
+  it('clears both shared status lines when a news address is stored', async () => {
     const { gemeinden } = await lauf(
       'nachricht',
       'https://www.riehen.ch/aktuelles/'
     )
     expect(gemeinden.updateOne).toHaveBeenCalledWith('g1', {
       news_url: 'https://www.riehen.ch/aktuelles/',
-      news_letzter_fehler: null
+      news_letzter_fehler: null,
+      news_letzter_hinweis: null
     })
   })
 })

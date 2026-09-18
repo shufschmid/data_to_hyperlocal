@@ -12,7 +12,12 @@ import { kappe, TEXT_MAX_ZEICHEN } from './text'
 export const ERSTLAUF_TAGE = 7
 /** A daily read looks back three days: what was posted after yesterday's run, plus slack. */
 export const NACHLAUF_TAGE = 3
-/** Detail pages per host per run — a burst is worked off over mornings and declared. */
+/**
+ * Detail pages per host per run — a burst is worked off over mornings and
+ * declared. ONE budget for the host, not one per page: a municipality's news
+ * page and its events page sit on the same server, and the reader promises it
+ * a spacing that a budget per page would quietly halve.
+ */
 export const DETAILS_JE_HOST = 15
 /** Documents read per item; the rest are listed as links. */
 export const ANHAENGE_MAX = 3
@@ -112,29 +117,92 @@ export function ohneDatumHinweis(undatiert: readonly ListenEintrag[]): string {
   return `Kein Eintrag trägt ein erkennbares Datum — nichts gelesen: ${titel}${rest > 0 ? ` (+${rest} weitere)` : ''}`
 }
 
+/** One page of a host and the entries of it nobody has read yet. */
+export interface SeitenEingang {
+  art: Seitenart
+  neue: readonly ListenEintrag[]
+}
+
+/** What that page gets out of the host's budget, and what was left lying. */
+export interface SeitenAuswahl {
+  art: Seitenart
+  zuLesen: ListenEintrag[]
+  nichtGelesen: number
+}
+
+function tageZwischen(von: string, bis: string): number {
+  const ms =
+    Date.parse(`${bis.slice(0, 10)}T00:00:00Z`) -
+    Date.parse(`${von.slice(0, 10)}T00:00:00Z`)
+  return Number.isNaN(ms)
+    ? Number.MAX_SAFE_INTEGER
+    : Math.round(ms / 86_400_000)
+}
+
 /**
- * Newest first, undated last, at most `deckel` — the rest is counted, not
- * forgotten. For events the order turns round with the window: soonest first,
- * because the cap should bite on December and never on next Saturday.
+ * How urgent one entry is: its distance from today, in days.
+ *
+ * A news item is past and an event lies ahead, so the two lie on opposite
+ * sides of today — and that is exactly why the distance is their common
+ * measure. It is the desk's own rule (`dringlichkeit` in the frontend), and
+ * using it here means the budget buys what the desk would show at the top.
  */
-export function waehleZuLesen(
-  neue: readonly ListenEintrag[],
-  deckel = DETAILS_JE_HOST,
-  art: Seitenart = 'nachricht'
-): { zuLesen: ListenEintrag[]; nichtGelesen: number } {
-  const tag = (e: ListenEintrag): string | null =>
-    art === 'termin' ? e.veranstaltungAm : e.datum
-  const sortiert = [...neue].sort((a, b) => {
-    const [x, y] = [tag(a), tag(b)]
-    if (x === null && y === null) return 0
-    if (x === null) return 1
-    if (y === null) return -1
-    return art === 'termin' ? x.localeCompare(y) : y.localeCompare(x)
-  })
-  return {
-    zuLesen: sortiert.slice(0, deckel),
-    nichtGelesen: Math.max(0, sortiert.length - deckel)
+function abstandZuHeute(
+  eintrag: ListenEintrag,
+  art: Seitenart,
+  heute: string
+): number {
+  const tag = art === 'termin' ? eintrag.veranstaltungAm : eintrag.datum
+  if (tag === null) return Number.MAX_SAFE_INTEGER
+  return art === 'termin' ? tageZwischen(heute, tag) : tageZwischen(tag, heute)
+}
+
+/**
+ * ONE budget for one host and one run, shared by the two pages of a
+ * municipality — its news page and its events page sit on the same server, so
+ * fifteen detail fetches per page would be thirty requests at that server and
+ * twice the politeness the reader promises.
+ *
+ * Who gets it is decided ACROSS the pages, by distance from today, not by a
+ * fixed order of the pages. A fixed order was the other answer and it breaks
+ * on its own examples: news first loses tomorrow's event to a notice from the
+ * day before yesterday, events first loses today's news to a Christmas market
+ * in November. Both kinds are perishable, only in opposite directions, and the
+ * distance to today is what says which one perishes first.
+ *
+ * At an equal distance the event goes first: it is gone the day after it takes
+ * place, while a news item still has the rest of the look-back window to be
+ * read in. Undated entries sort last, though `kandidaten` never hands one over.
+ * Whatever the budget did not reach is counted per page, not forgotten — the
+ * run declares it, and tomorrow reads it.
+ */
+export function verteileDetailbudget(
+  seiten: readonly SeitenEingang[],
+  heute: string,
+  deckel = DETAILS_JE_HOST
+): SeitenAuswahl[] {
+  const alle = seiten.flatMap((seite, seitenNr) =>
+    seite.neue.map((eintrag) => ({
+      eintrag,
+      seitenNr,
+      abstand: abstandZuHeute(eintrag, seite.art, heute),
+      termin: seite.art === 'termin' ? 0 : 1
+    }))
+  )
+  alle.sort((a, b) => a.abstand - b.abstand || a.termin - b.termin)
+
+  const auswahl: SeitenAuswahl[] = seiten.map((seite) => ({
+    art: seite.art,
+    zuLesen: [],
+    nichtGelesen: seite.neue.length
+  }))
+  for (const kandidat of alle.slice(0, Math.max(0, deckel))) {
+    const seite = auswahl[kandidat.seitenNr]
+    if (seite === undefined) continue
+    seite.zuLesen.push(kandidat.eintrag)
+    seite.nichtGelesen -= 1
   }
+  return auswahl
 }
 
 export type DatumQuelle = 'liste' | 'kalender' | 'detail' | 'keins'

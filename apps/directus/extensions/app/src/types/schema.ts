@@ -49,6 +49,13 @@ export interface Gemeinde {
   /** Why the last read failed — shown on the desk and the Gemeinden card, so absence is never silence. */
   news_letzter_fehler: string | null
   /**
+   * What the last read DECLARED without failing — a cap that bit, for example.
+   * Its own field, because a declared cap is not a failure: the page was read
+   * and tomorrow goes on, and an orange line for it teaches an editor to read
+   * past the status line.
+   */
+  news_letzter_hinweis: string | null
+  /**
    * Whether the municipality lies under the approach to the EuroAirport's
    * runway 33.
    *

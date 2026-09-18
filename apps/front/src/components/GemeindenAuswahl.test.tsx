@@ -18,6 +18,7 @@ function gemeinde(ueber: Partial<GemeindeFelder>): GemeindeFelder {
     news_url: null,
     news_letzte_pruefung: null,
     news_letzter_fehler: null,
+    news_letzter_hinweis: null,
     veranstaltungen_url: null,
     suedanflug: false,
     aktiv: true,
@@ -318,6 +319,28 @@ describe('GemeindenAuswahl', () => {
       screen.getByRole('link', { name: 'https://www.aesch.bl.ch/anlaesseaktuelles' })
     ).toBeInTheDocument()
     expect(screen.getByText(/60 Tagen/)).toBeInTheDocument()
+  })
+
+  it('nennt einen deklarierten Deckel als Information neben der Gemeindeseite', () => {
+    render(
+      <GemeindenAuswahl
+        gemeinden={[
+          gemeinde({
+            id: 'a',
+            name: 'Aesch',
+            news_url: 'https://www.aesch.bl.ch/aktuellesinformationen',
+            news_letzter_hinweis: '96 weitere neue Mitteilungen nicht gelesen — morgen weiter'
+          })
+        ]}
+        onUmschalten={jest.fn()}
+      />
+    )
+
+    const zeile = screen.getByText(/96 weitere neue Mitteilungen nicht gelesen/)
+    const kasten = zeile.closest('.MuiAlert-root')
+    expect(kasten?.className).toMatch(/Info/)
+    expect(kasten?.className).not.toMatch(/Warning|Error/)
+    expect(screen.queryByText(/Letzter Lauf gescheitert/)).not.toBeInTheDocument()
   })
 
   it('sagt es, wenn keine Veranstaltungsadresse erfasst ist', () => {

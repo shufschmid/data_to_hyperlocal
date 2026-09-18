@@ -30,6 +30,7 @@ import {
   terminVon,
   laufText,
   lesefehler,
+  lesehinweise,
   meldungJeMitteilung,
   ohneNewsseite,
   ohneVeranstaltungsseite,
@@ -103,6 +104,7 @@ export function Gemeindeseiten({
   const fehlende = useMemo(() => ohneNewsseite(gemeinden), [gemeinden])
   const ohneTermine = useMemo(() => ohneVeranstaltungsseite(gemeinden), [gemeinden])
   const gestoerte = useMemo(() => lesefehler(gemeinden), [gemeinden])
+  const deklariert = useMemo(() => lesehinweise(gemeinden), [gemeinden])
   const aktive = useMemo(() => gemeinden.filter((g) => g.aktiv), [gemeinden])
   const unterwegs = lauf?.laeuft === true
   const laufHinweis = lauf === null ? null : laufText(lauf)
@@ -300,6 +302,17 @@ export function Gemeindeseiten({
         >
           <strong>{g.name}</strong> konnte nicht gelesen werden: {g.news_letzter_fehler}
           {g.news_letzte_pruefung !== null && ` — letzter Versuch ${zeitpunktText(g.news_letzte_pruefung)}`}
+        </Alert>
+      ))}
+
+      {/* Ein gegriffener Deckel ist kein Fehlschlag: die Seite WURDE gelesen,
+          und morgen geht es weiter. Darum steht er hier in Blau und nicht
+          oben in Orange — acht orange Zeilen, von denen sieben keine sind,
+          lehren die Redaktorin, die Statuszeile zu ueberlesen. */}
+      {deklariert.map((g) => (
+        <Alert key={`hinweis-${g.id}`} severity="info">
+          <strong>{g.name}</strong>: {g.news_letzter_hinweis}
+          {g.news_letzte_pruefung !== null && ` — Stand ${zeitpunktText(g.news_letzte_pruefung)}`}
         </Alert>
       ))}
 

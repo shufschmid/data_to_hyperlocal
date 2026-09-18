@@ -204,6 +204,20 @@ export function lesefehler(gemeinden: readonly GemeindeFelder[]): GemeindeFelder
   return gemeinden.filter((g) => g.aktiv && (g.news_letzter_fehler ?? '').trim() !== '')
 }
 
+/**
+ * Gemeinden, deren letzter Lauf etwas DEKLARIERT hat, ohne zu scheitern — ein
+ * gegriffener Deckel zum Beispiel.
+ *
+ * Eine eigene Liste, weil es eine eigene Aussage ist: die Seite wurde gelesen,
+ * ein Deckel hat gegriffen, morgen geht es weiter. Am 18. September 2026
+ * trugen neun von zehn Gemeinden eine orange Zeile, und bei acht von ihnen war
+ * nichts schiefgegangen. Wer das lange genug sieht, liest die Statuszeile gar
+ * nicht mehr.
+ */
+export function lesehinweise(gemeinden: readonly GemeindeFelder[]): GemeindeFelder[] {
+  return gemeinden.filter((g) => g.aktiv && (g.news_letzter_hinweis ?? '').trim() !== '')
+}
+
 const GRUND_TEXT: Record<string, string> = {
   deckel: 'nicht gelesen — mehr Anhänge als der Lauf liest',
   zu_gross: 'nicht gelesen — zu gross',
