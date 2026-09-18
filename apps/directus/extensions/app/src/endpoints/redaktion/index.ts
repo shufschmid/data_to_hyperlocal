@@ -10,6 +10,18 @@ import {
 } from './editorzugang'
 import { ADRESSFELDER, speichereAdresse } from './gemeindeseitenadresse'
 import {
+  buildAbstimmungsPrompt,
+  buildAbstimmungsRevision,
+  datengrundlageAbstimmung,
+  faktenFuer as abstimmungsFaktenFuer,
+  MeldungSchonDa as AbstimmungsmeldungSchonDa,
+  meldungsfelder as abstimmungsMeldungsfelder,
+  ohneQuelle as ohneAbstimmungsQuelle,
+  schreibeAbstimmungsmeldung,
+  type Abstimmungszeile
+} from './abstimmung'
+import type { AbstimmungsFakten } from '../../redaktion/abstimmung'
+import {
   buildSuedanflugPrompt,
   buildSuedanflugRevision,
   datengrundlageSuedanflug,
@@ -3026,6 +3038,175 @@ export default defineEndpoint(
       }
     )
 
+    // --- the vote result: one article per municipality and Vorlage ---------
+    //
+    // The desk is the same statistik.bl tab and the unit of work is one
+    // question (`vote_id`), which is why Initiative, Gegenvorschlag and
+    // Stichfrage produce ONE Meldung and not three. The rules, the prompt and
+    // every check live in `redaktion/abstimmung.ts` and `./abstimmung.ts`, and
+    // nothing below is a rule.
+
+    /** The stored Vorlage and the municipality, straight out of the database. */
+    async function ladeAbstimmungsMaterial(
+      abstimmungId: string,
+      gemeindeId: string,
+      accountability: ApiRequest['accountability']
+    ): Promise<AbstimmungsFakten> {
+      const schema = await getSchema()
+      const abstimmungen = new ItemsService('abstimmungen', {
+        schema,
+        accountability
+      })
+      const gemeinden = new ItemsService('gemeinden', {
+        schema,
+        accountability
+      })
+
+      // From the STORED row, never from a fresh fetch: the article has to
+      // stand on the figures the editor saw when she pressed the button, and a
+      // vote day's rows move under the run's hands for hours.
+      const zeile = (await abstimmungen.readOne(abstimmungId, {
+        fields: [
+          'id',
+          'vote_id',
+          'datum',
+          'titel',
+          'ebene',
+          'teile',
+          'gemeindezahlen',
+          'gemeinden_total',
+          'gemeinden_ausgezaehlt',
+          'ausgezaehlt',
+          'stichfrage_gilt',
+          'stichfrage_grund',
+          'vergleich',
+          'quelle_url'
+        ]
+      })) as Abstimmungszeile
+
+      const gemeinde = (await gemeinden.readOne(gemeindeId, {
+        fields: ['id', 'name', 'bfs_nummer']
+      })) as Pick<Gemeinde, 'id' | 'name' | 'bfs_nummer'>
+
+      return abstimmungsFaktenFuer({ zeile, gemeinde })
+    }
+
+    async function ueberarbeiteAbstimmung(
+      meldung: {
+        id: string
+        titel: string | null
+        lead: string | null
+        text: string | null
+      },
+      abstimmungId: string,
+      gemeindeId: string,
+      anweisung: string
+    ): Promise<string[]> {
+      const meldungen = new ItemsService('meldungen', {
+        schema: await getSchema()
+      })
+
+      const fakten = await ladeAbstimmungsMaterial(
+        abstimmungId,
+        gemeindeId,
+        undefined
+      )
+      // The source line comes off before the prompt is built and goes back on
+      // after — or the model copies it and `linkWarnungen` flags its own.
+      const entwurf = await schreibeAbstimmungsmeldung(
+        fakten,
+        buildAbstimmungsRevision(
+          fakten,
+          { ...meldung, text: ohneAbstimmungsQuelle(meldung.text) },
+          anweisung,
+          await regelnFuer('abstimmung', 'text')
+        )
+      )
+
+      await meldungen.updateOne(
+        meldung.id,
+        abstimmungsMeldungsfelder(entwurf, fakten)
+      )
+      return entwurf.warnungen
+    }
+
+    router.post(
+      '/abstimmungen/:id/meldung',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        const koerper = (req.body ?? {}) as { gemeinde?: unknown }
+        let abstimmungId: string
+        let gemeindeId: string
+        try {
+          abstimmungId = pruefeId(req.params['id'])
+          gemeindeId = pruefeId(koerper.gemeinde)
+        } catch (fehler) {
+          return next(fehler)
+        }
+
+        try {
+          const schema = await getSchema()
+          const meldungenService = new ItemsService('meldungen', {
+            schema,
+            accountability: req.accountability
+          })
+
+          // One article per municipality and Vorlage. A second click, or two
+          // tabs racing, must not produce two pieces about the same result.
+          const vorhandene = (await meldungenService.readByQuery({
+            filter: {
+              abstimmung: { _eq: abstimmungId },
+              gemeinde: { _eq: gemeindeId },
+              status: { _neq: 'verworfen' }
+            },
+            fields: ['id'],
+            limit: 1
+          })) as { id: string }[]
+          if (vorhandene.length > 0)
+            return next(new AbstimmungsmeldungSchonDa())
+
+          const fakten = await ladeAbstimmungsMaterial(
+            abstimmungId,
+            gemeindeId,
+            req.accountability
+          )
+          const entwurf = await schreibeAbstimmungsmeldung(
+            fakten,
+            buildAbstimmungsPrompt(
+              fakten,
+              await regelnFuer('abstimmung', 'text')
+            )
+          )
+
+          const meldungId = (await meldungenService.createOne({
+            abstimmung: abstimmungId,
+            gemeinde: gemeindeId,
+            status: 'entwurf',
+            ...abstimmungsMeldungsfelder(entwurf, fakten),
+            datengrundlage: datengrundlageAbstimmung(fakten)
+          })) as string
+
+          return res.json({
+            data: { meldung: meldungId, warnungen: entwurf.warnungen }
+          })
+        } catch (error) {
+          const status = (error as { status?: unknown }).status
+          if (
+            status === 403 ||
+            status === 404 ||
+            status === 400 ||
+            status === 409 ||
+            status === 422
+          ) {
+            return next(uebersetze(error))
+          }
+          logger.error(error, 'redaktion: Abstimmungs-Meldung fehlgeschlagen')
+          return next(new UeberarbeitungFehlgeschlagen())
+        }
+      }
+    )
+
     router.post(
       '/wissen',
       async (req: ApiRequest, res: Response, next: NextFunction) => {
@@ -3937,6 +4118,7 @@ export default defineEndpoint(
               'gemeindemitteilung',
               'sendungskandidat',
               'suedanflugquote',
+              'abstimmung',
               // The south-approach revision needs it: the article is written
               // for ONE municipality, and the facts carry its name.
               'gemeinde',
@@ -3954,6 +4136,7 @@ export default defineEndpoint(
             gemeindemitteilung: string | null
             sendungskandidat: string | null
             suedanflugquote: string | null
+            abstimmung: string | null
             gemeinde: string
             lauf: { datensatz: string | null } | null
             titel: string | null
@@ -4232,6 +4415,49 @@ export default defineEndpoint(
               logger.error(
                 fehler,
                 'redaktion: Suedanflug-Ueberarbeitung fehlgeschlagen'
+              )
+              throw new UeberarbeitungFehlgeschlagen()
+            }
+          }
+
+          // The vote article is the EIGHTH kind without a `lauf`, and the
+          // reason this list keeps growing is the same every time: the queue
+          // below belongs to the statistics drain, which loads per-run material
+          // this article does not have. Without a branch here it would sit at
+          // `verarbeitung: 'geplant'` for ever — the measured failure of the
+          // gazette desk.
+          if (meldung.abstimmung !== null) {
+            await meldungen.updateOne(id, { verarbeitung: 'laeuft', anweisung })
+            try {
+              const warnungen = await ueberarbeiteAbstimmung(
+                meldung,
+                meldung.abstimmung,
+                meldung.gemeinde,
+                anweisung
+              )
+              merkeAnweisung(
+                anweisung,
+                'abstimmung',
+                'Abstimmungs-Meldung (Kanton Basel-Landschaft)'
+              )
+              await chat.createOne({
+                meldung: id,
+                rolle: 'assistant',
+                inhalt:
+                  warnungen.length === 0
+                    ? 'Neu formuliert.'
+                    : `Neu formuliert — mit Hinweisen: ${warnungen.join(' · ')}`,
+                position: position + 1
+              })
+              return res.json({ data: { meldung: id, warnungen } })
+            } catch (fehler) {
+              await meldungen.updateOne(id, {
+                verarbeitung: 'idle',
+                fehler: fehlerText(fehler)
+              })
+              logger.error(
+                fehler,
+                'redaktion: Abstimmungs-Ueberarbeitung fehlgeschlagen'
               )
               throw new UeberarbeitungFehlgeschlagen()
             }

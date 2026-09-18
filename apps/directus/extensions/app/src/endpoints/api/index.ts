@@ -47,6 +47,7 @@ const FELDER = [
   // The second kind of statistics article; its address lives in
   // `datengrundlage`, not behind a run.
   'suedanflugquote',
+  'abstimmung',
   'amtsblattmeldung.quelle_typ',
   'gemeindemitteilung',
   'spiel.sportart',
@@ -213,6 +214,7 @@ export default defineEndpoint(
             'gemeindemitteilung',
             'sendungskandidat',
             'suedanflugquote',
+            'abstimmung',
             'erscheint_am',
             'date_created',
             'freigegeben_am',

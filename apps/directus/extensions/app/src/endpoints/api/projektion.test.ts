@@ -30,6 +30,7 @@ function zeile(ueber: Partial<Rohzeile> = {}): Rohzeile {
     kandidat: null,
     sendungskandidat: null,
     suedanflugquote: null,
+    abstimmung: null,
     amtsblattmeldung: null,
     gemeindemitteilung: null,
     spiel: null,
@@ -769,5 +770,24 @@ describe('pruefsiegel', () => {
     )
     expect(artikel.pruefsiegel.bestanden).toBe(true)
     expect(JSON.stringify(artikel)).not.toContain('geheim')
+  })
+})
+
+describe('eine Abstimmungsmeldung fuer den Dorfkoenig', () => {
+  it('ist statistik und nennt den Kanton als Quelle', () => {
+    const roh = zeile({
+      abstimmung: 'a-1',
+      datengrundlage: {
+        quelle: 'abstimmung',
+        quelle_name: 'Kanton Basel-Landschaft',
+        url: 'https://vework-public.bl.ch/app/publication/2026-09-27/issues/k3a'
+      }
+    })
+
+    expect(rubrikVon(roh)).toBe('statistik')
+    expect(quelleVon(roh, 'statistik')).toEqual({
+      name: 'Kanton Basel-Landschaft',
+      url: 'https://vework-public.bl.ch/app/publication/2026-09-27/issues/k3a'
+    })
   })
 })

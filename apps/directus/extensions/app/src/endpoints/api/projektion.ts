@@ -71,6 +71,8 @@ export interface Rohzeile {
   sendungskandidat: string | null
   /** Set for an article written from a month of the EuroAirport's ILS-33 sheet. */
   suedanflugquote: string | null
+  /** Set for an article written from one Vorlage of one vote day. */
+  abstimmung: string | null
   amtsblattmeldung: { quelle_typ: string | null } | string | null
   /** Set for articles written from a municipality's own news page. */
   gemeindemitteilung: string | null
@@ -231,11 +233,16 @@ function quelleTypVon(zeile: Rohzeile): string | null {
  * own. A consumer that already knows the seven values would have to learn an
  * eighth for one municipality's aircraft, and a new rubrik is a decision for
  * the consumer's side of this contract, not a side effect of building the
- * feed. What tells it apart is `quelle_name: 'EuroAirport'`.
+ * feed. What tells it apart is `quelle_name: 'EuroAirport'`. A VOTE result is
+ * the same decision a second time: it is a figure per municipality from the
+ * canton's own office, so it is `statistik`, and `quelle_name: 'Kanton
+ * Basel-Landschaft'` with the canton's publication as `quelle_url` tells it
+ * apart.
  */
 export function rubrikVon(zeile: Rohzeile): Rubrik | null {
   if (zeile.lauf !== null) return 'statistik'
   if (zeile.suedanflugquote !== null) return 'statistik'
+  if (zeile.abstimmung !== null) return 'statistik'
   if (zeile.spiel !== null) return 'sport'
   if (zeile.erscheint_am !== null) return 'entsorgung'
   if (zeile.kandidat !== null) return 'presseschau'
@@ -310,6 +317,15 @@ export function quelleVon(zeile: Rohzeile, rubrik: Rubrik | null): Quelle {
       if (zeile.suedanflugquote !== null) {
         return {
           name: text(daten['quelle_name']) ?? 'EuroAirport',
+          url: text(daten['url'])
+        }
+      }
+
+      // A vote article carries the canton's own publication of its Vorlage,
+      // written into `datengrundlage` by the desk for exactly this reader.
+      if (zeile.abstimmung !== null) {
+        return {
+          name: text(daten['quelle_name']) ?? 'Kanton Basel-Landschaft',
           url: text(daten['url'])
         }
       }
