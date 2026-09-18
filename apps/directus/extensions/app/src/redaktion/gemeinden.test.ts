@@ -23,6 +23,7 @@ function gemeinde(bfs: number, name: string): Gemeinde {
     news_url: null,
     news_letzte_pruefung: null,
     news_letzter_fehler: null,
+    veranstaltungen_url: null,
     suedanflug: false,
     date_created: null,
     date_updated: null

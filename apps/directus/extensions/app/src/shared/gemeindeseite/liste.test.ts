@@ -118,7 +118,8 @@ describe('Weblication', () => {
         datum: '2026-09-01',
         datumQuelle: 'liste',
         kategorie: null,
-        direktPdf: false
+        direktPdf: false,
+        veranstaltungAm: null
       }
     ])
   })
@@ -140,7 +141,8 @@ describe('i-web', () => {
       datum: '2024-05-23',
       datumQuelle: 'liste',
       kategorie: 'news',
-      direktPdf: false
+      direktPdf: false,
+      veranstaltungAm: null
     })
     expect(liste[336]).toMatchObject({
       titel: 'Aus der Gemeinderatssitzung vom 08. September 2026',
@@ -242,5 +244,130 @@ describe('parseListe — Nachbearbeitung', () => {
         (e) => e.datum === '2026-09-14'
       )
     ).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// The events lists — same houses, same manners, dates that lie ahead
+// ---------------------------------------------------------------------------
+
+describe('Veranstaltungen', () => {
+  // Weblication's event index prints its date in four different places across
+  // the four sites; the title sits inside the anchor on three of them and
+  // outside it on the fourth. One parser reads all four, and the iCal button
+  // of every row is dropped before the title anchor is looked for — it is the
+  // first anchor in the markup on two of the sites.
+  it('allschwil: Datum im span, Titel im <b> der Verlinkung', () => {
+    const liste = parseListe(
+      lies('allschwil-veranstaltungen.html'),
+      'weblication_termine',
+      'https://www.allschwil.ch/de/veranstaltungen/',
+      HEUTE
+    )
+    expect(liste).toHaveLength(5)
+    expect(liste[0]).toMatchObject({
+      url: 'https://www.allschwil.ch/de/veranstaltungen/detail/detail.php?i=12693987',
+      titel: 'Einwohnerratssitzung',
+      veranstaltungAm: '2026-10-13',
+      datum: null,
+      datumQuelle: null
+    })
+    expect(liste[0]?.teaser).toContain('18:00 Uhr')
+  })
+
+  it('reinach: das Datum steht blank im Listeneintrag, ohne eigenes Element', () => {
+    const liste = parseListe(
+      lies('reinach-veranstaltungen.html'),
+      'weblication_termine',
+      'https://www.reinach-bl.ch/de/veranstaltungen/',
+      HEUTE
+    )
+    expect(liste.length).toBeGreaterThan(50)
+    expect(liste[0]).toMatchObject({
+      url: 'https://www.reinach-bl.ch/de/veranstaltungen/detail/detail.php?i=10970',
+      titel: 'Frischwarenmarkt',
+      veranstaltungAm: '2026-09-18'
+    })
+    expect(liste.every((e) => e.veranstaltungAm !== null)).toBe(true)
+    expect(liste.every((e) => e.datum === null)).toBe(true)
+  })
+
+  it('bottmingen: Titel ausserhalb der Verlinkung, Datum in fullDate — das Kalender-Kaestchen ohne Jahr bleibt aussen vor', () => {
+    const liste = parseListe(
+      lies('bottmingen-veranstaltungen.html'),
+      'weblication_termine',
+      'https://www.bottmingen.ch/de/veranstaltungen/',
+      HEUTE
+    )
+    expect(liste.length).toBeGreaterThan(20)
+    expect(liste[0]).toMatchObject({
+      url: 'https://www.bottmingen.ch/de/veranstaltungen/13013_freitags-treff',
+      titel: 'Freitags Treff',
+      veranstaltungAm: '2026-09-18'
+    })
+  })
+
+  it('arlesheim: Datum im span INNERHALB des Titel-Ankers, Lokalitaet als Anriss', () => {
+    const liste = parseListe(
+      lies('arlesheim-veranstaltungen.html'),
+      'weblication_termine',
+      'https://www.arlesheim.ch/de/veranstaltungen/',
+      HEUTE
+    )
+    expect(liste).toHaveLength(2)
+    expect(liste[0]).toMatchObject({
+      titel: 'Blaulichttag der Feuerwehr Birs',
+      veranstaltungAm: '2026-09-19'
+    })
+    expect(liste[0]?.titel).not.toMatch(/\d{2}\.\d{2}\.\d{4}/)
+    expect(liste[0]?.teaser).toContain('Lokalität')
+  })
+
+  it('aesch: i-web haengt den ganzen Anlasskalender als JSON an die Tabelle', () => {
+    const liste = parseListe(
+      lies('aesch-veranstaltungen.html'),
+      'iweb_termine',
+      'https://www.aesch.bl.ch/anlaesseaktuelles',
+      HEUTE
+    )
+    expect(liste).toHaveLength(21)
+    expect(liste[0]).toMatchObject({
+      url: 'https://www.aesch.bl.ch/_rte/anlass/7522045',
+      titel: 'Repair Kaffi',
+      veranstaltungAm: '2026-10-17',
+      datum: null
+    })
+    expect(liste[0]?.teaser).toContain('Früschmärt-Platz')
+    // The municipality's own collection dates ride in this list too — which is
+    // exactly what the waste cross-check the Sichtung already runs is for.
+    expect(liste.some((e) => /Grünabfuhr|Häckseldienst/.test(e.titel))).toBe(
+      true
+    )
+  })
+
+  it('binningen: Backslash druckt hCalendar, dtstart ist der Termin', () => {
+    const liste = parseListe(
+      lies('binningen-veranstaltungen.html'),
+      'backslash_termine',
+      'https://www.binningen.ch/de/gemeinde/news-und-medien/veranstaltungen.html/51',
+      HEUTE
+    )
+    expect(liste.length).toBeGreaterThan(100)
+    expect(liste[0]).toMatchObject({
+      titel: 'Kiki die Kinderkirche 2026',
+      veranstaltungAm: '2026-02-08',
+      datum: null
+    })
+    expect(liste.every((e) => e.veranstaltungAm !== null)).toBe(true)
+  })
+
+  it('traegt auf Nachrichtenlisten kein Veranstaltungsdatum ein', () => {
+    const liste = parseListe(
+      lies('binningen-uebersicht.html'),
+      'backslash',
+      'https://www.binningen.ch/de/gemeinde/news-und-medien/news.html/106',
+      HEUTE
+    )
+    expect(liste.every((e) => e.veranstaltungAm === null)).toBe(true)
   })
 })

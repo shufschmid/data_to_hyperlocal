@@ -8,6 +8,7 @@ import {
   type EditorzugangUmgebung,
   type RouterLike as EditorzugangRouter
 } from './editorzugang'
+import { ADRESSFELDER, speichereAdresse } from './gemeindeseitenadresse'
 import {
   buildSuedanflugPrompt,
   buildSuedanflugRevision,
@@ -168,7 +169,6 @@ import {
 } from '../../redaktion/gemeindeseite'
 import {
   erstelleLeser,
-  GemeindeseiteFehler,
   heuteAus,
   leseUebersicht
 } from '../../shared/gemeindeseite'
@@ -457,7 +457,7 @@ const MitteilungOhneText = createError(
 
 const GemeindeseiteNichtLesbar = createError<{ grund: string }>(
   'PAGE_UNREADABLE',
-  ({ grund }) => `Newsseite nicht lesbar: ${grund}`,
+  ({ grund }) => `Seite nicht lesbar: ${grund}`,
   400
 )
 
@@ -3144,82 +3144,80 @@ export default defineEndpoint(
     )
 
     /**
-     * The news page of a municipality's own website — the one address the
-     * Gemeindeseiten feed reads. Read BEFORE writing anything, exactly like a
-     * weekly paper's archive: a mistyped address should fail the form, not
-     * become a row that errors every day at one. Empty clears the field.
+     * The two pages of a municipality's own website the Gemeindeseiten feed
+     * reads: the news overview and, since 18.09.2026, the events overview.
+     *
+     * Both are read BEFORE anything is written, exactly like a weekly paper's
+     * archive: a mistyped address should fail the form, not become a row that
+     * errors every day at one. And because both sit on the same host, the read
+     * also checks WHICH of the two lists the page is — the templates say so —
+     * so a swapped address is caught here instead of looking for months like a
+     * page that never has anything recent. The rules are in
+     * `gemeindeseitenadresse.ts`; this is the wiring.
      */
-    router.post(
-      '/gemeinden/:id/news-url',
-      async (req: ApiRequest, res: Response, next: NextFunction) => {
-        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+    for (const art of ['nachricht', 'termin'] as const) {
+      const feld = ADRESSFELDER[art]
+      router.post(
+        `/gemeinden/:id/${art === 'nachricht' ? 'news-url' : 'veranstaltungen-url'}`,
+        async (req: ApiRequest, res: Response, next: NextFunction) => {
+          if (!isAuthenticated(req)) return next(new NichtAngemeldet())
 
-        const koerper = (req.body ?? {}) as { news_url?: unknown }
-        const adresse =
-          typeof koerper.news_url === 'string' ? koerper.news_url.trim() : ''
-
-        try {
-          const id = pruefeId(req.params['id'])
-          const gemeinden = new ItemsService('gemeinden', {
-            schema: await getSchema(),
-            accountability: req.accountability
-          })
-
-          if (adresse === '') {
-            await gemeinden.updateOne(id, {
-              news_url: null,
-              news_letzter_fehler: null
-            })
-            return res.json({ data: { gemeinde: id, news_url: null } })
-          }
-          if (!/^https?:\/\/\S+$/i.test(adresse)) {
-            return next(
-              new UngueltigeStammdaten({
-                grund: 'Das ist keine Web-Adresse (https://…).'
-              })
-            )
-          }
-
-          let gefunden = 0
+          const koerper = (req.body ?? {}) as Record<string, unknown>
           try {
-            const leser = erstelleLeser({
-              kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch'),
-              crawler: crawlerKonfiguriert() ? holeUeberCrawler : null
+            const id = pruefeId(req.params['id'])
+            const gemeinden = new ItemsService('gemeinden', {
+              schema: await getSchema(),
+              accountability: req.accountability
             })
-            const heute = heuteAus(
-              new Date().toLocaleDateString('sv-SE', {
-                timeZone: 'Europe/Zurich'
-              })
-            )
-            gefunden = (await leseUebersicht(leser, adresse, heute)).eintraege
-              .length
-          } catch (fehler) {
-            logger.warn(fehler, 'redaktion: Newsseite nicht lesbar')
-            return next(
-              new GemeindeseiteNichtLesbar({
-                grund:
-                  fehler instanceof GemeindeseiteFehler
-                    ? fehler.message
-                    : 'Die Seite konnte nicht gelesen werden.'
-              })
-            )
+
+            const ergebnis = await speichereAdresse({
+              art,
+              roh: koerper[feld.spalte],
+              id,
+              gemeinden,
+              liesSeite: async (adresse, erwartet) => {
+                const leser = erstelleLeser({
+                  kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch'),
+                  crawler: crawlerKonfiguriert() ? holeUeberCrawler : null
+                })
+                const heute = heuteAus(
+                  new Date().toLocaleDateString('sv-SE', {
+                    timeZone: 'Europe/Zurich'
+                  })
+                )
+                return (await leseUebersicht(leser, adresse, heute, erwartet))
+                  .eintraege.length
+              }
+            })
+
+            if (ergebnis.status === 'ungueltig')
+              return next(new UngueltigeStammdaten({ grund: ergebnis.grund }))
+            if (ergebnis.status === 'nicht_lesbar') {
+              logger.warn(
+                `redaktion: ${feld.bezeichnung} nicht lesbar — ${ergebnis.grund}`
+              )
+              return next(
+                new GemeindeseiteNichtLesbar({ grund: ergebnis.grund })
+              )
+            }
+            if (ergebnis.status === 'geleert')
+              return res.json({ data: { gemeinde: id, [feld.spalte]: null } })
+
+            // So the editor sees the page's items within a minute, not tomorrow.
+            starteGemeindeseitenLauf()
+            return res.status(202).json({
+              data: {
+                gemeinde: id,
+                [feld.spalte]: ergebnis.adresse,
+                gefunden: ergebnis.gefunden
+              }
+            })
+          } catch (error) {
+            return next(uebersetze(error))
           }
-
-          await gemeinden.updateOne(id, {
-            news_url: adresse,
-            news_letzter_fehler: null
-          })
-          // So the editor sees the page's items within a minute, not tomorrow.
-          starteGemeindeseitenLauf()
-
-          return res
-            .status(202)
-            .json({ data: { gemeinde: id, news_url: adresse, gefunden } })
-        } catch (error) {
-          return next(uebersetze(error))
         }
-      }
-    )
+      )
+    }
 
     router.post(
       '/vereine',

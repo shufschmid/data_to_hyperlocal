@@ -4,6 +4,8 @@ import {
   fensterSeit,
   kandidaten,
   ohneDatumHinweis,
+  terminKandidaten,
+  VERANSTALTUNGS_FENSTER_TAGE,
   waehleZuLesen,
   zeileAus,
   type Anhang
@@ -22,7 +24,16 @@ const eintrag = (
   datum,
   datumQuelle,
   kategorie: null,
-  direktPdf: false
+  direktPdf: false,
+  veranstaltungAm: null
+})
+
+const termin = (
+  url: string,
+  veranstaltungAm: string | null
+): ListenEintrag => ({
+  ...eintrag(url, null),
+  veranstaltungAm
 })
 
 const detail = (ueber: Partial<DetailInhalt> = {}): DetailInhalt => ({
@@ -234,5 +245,73 @@ describe('zeileAus: die zweite Tuer', () => {
       transport: 'crawler'
     })
     expect(zeile.hinweise).toContain('Über den Crawler gelesen')
+  })
+})
+
+describe('terminKandidaten', () => {
+  // The one place the events page really thinks differently: a news item is
+  // past, an event lies ahead, so the window runs forward instead of back.
+  it('nimmt, was zwischen heute und der Obergrenze stattfindet', () => {
+    const { drin } = terminKandidaten(
+      [
+        termin('gestern', '2026-09-17'),
+        termin('heute', '2026-09-18'),
+        termin('bald', '2026-10-20'),
+        termin('grenze', '2026-11-17'),
+        termin('danach', '2026-11-18')
+      ],
+      '2026-09-18',
+      60
+    )
+    expect(drin.map((e) => e.titel)).toEqual(['heute', 'bald', 'grenze'])
+  })
+
+  it('zaehlt Termine ohne Datum, statt sie zu oeffnen', () => {
+    const { drin, undatiert } = terminKandidaten(
+      [termin('ohne', null), termin('mit', '2026-10-01')],
+      '2026-09-18',
+      60
+    )
+    expect(drin).toHaveLength(1)
+    expect(undatiert.map((e) => e.titel)).toEqual(['ohne'])
+  })
+
+  it('haelt die Obergrenze als benannte Konstante', () => {
+    expect(VERANSTALTUNGS_FENSTER_TAGE).toBe(60)
+  })
+})
+
+describe('waehleZuLesen: Termine', () => {
+  it('sortiert Termine nach dem, was als Naechstes dran ist', () => {
+    const { zuLesen } = waehleZuLesen(
+      [termin('spaet', '2026-11-01'), termin('frueh', '2026-09-20')],
+      10,
+      'termin'
+    )
+    expect(zuLesen.map((e) => e.titel)).toEqual(['frueh', 'spaet'])
+  })
+})
+
+describe('zeileAus: ein Termin', () => {
+  it('traegt das Veranstaltungsdatum und KEIN Publikationsdatum', () => {
+    const zeile = zeileAus({
+      eintrag: termin('anlass', '2026-10-13'),
+      // Measured on all six events pages: none of them prints when the entry
+      // was published, and the detail page prints the event's own day. Reading
+      // that as a publication date would fuse the two dates the desk has to
+      // keep apart.
+      detail: detail({ datum: '2026-10-13' }),
+      pdf: null,
+      anhaenge: [],
+      gemeindeId: 'g1',
+      quelleSeite: 'https://www.example.ch/de/veranstaltungen/',
+      plattform: 'weblication_termine',
+      gelesenAm: '2026-09-18T13:00:00.000Z'
+    })
+    expect(zeile.veranstaltung_am).toBe('2026-10-13')
+    expect(zeile.publiziert_am).toBeNull()
+    expect(zeile.hinweise).toContain(
+      'Veranstaltung — die Seite nennt kein Publikationsdatum'
+    )
   })
 })
