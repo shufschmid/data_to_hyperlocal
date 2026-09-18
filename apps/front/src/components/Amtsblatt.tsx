@@ -53,6 +53,7 @@ export interface AmtsblattProps {
   onAblehnen?: (id: string, grund: string, kommentar: string | null) => Promise<void> | void
   onWeiterreichen?: (id: string, begruendung: string | null) => Promise<void> | void
   onUnterlagen?: (id: string) => Promise<void> | void
+  onVorgeschichte?: (id: string) => Promise<void> | void
 }
 
 /**
@@ -77,7 +78,8 @@ export function Amtsblatt({
   onUebernehmen,
   onAblehnen,
   onWeiterreichen,
-  onUnterlagen
+  onUnterlagen,
+  onVorgeschichte
 }: AmtsblattProps) {
   const [filter, setFilter] = useState<Filter>({
     gemeinde: null,
@@ -323,6 +325,23 @@ export function Amtsblatt({
                   onClick={() => fuehreAus(eintrag.id, () => onUnterlagen?.(eintrag.id))}
                 >
                   Unterlagen lesen und einbeziehen
+                </Button>
+              )}
+              {/* Only where nobody has asked yet. The run asks by itself for
+                  what it proposed, and it is capped at twenty a municipality —
+                  everything else stayed silent, which is not the same as empty.
+                  What the answer may be is the adapter's judgement and not
+                  this component's: an address or a company is asked for, a
+                  private name never, and «nothing was asked» is one of the
+                  four states the box below already tells apart. */}
+              {eintrag.vorgeschichte === null && onVorgeschichte !== undefined && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  disabled={beschaeftigt === eintrag.id}
+                  onClick={() => fuehreAus(eintrag.id, () => onVorgeschichte(eintrag.id))}
+                >
+                  Im Zettelkasten nachsehen
                 </Button>
               )}
               <Button
