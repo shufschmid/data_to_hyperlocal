@@ -194,6 +194,7 @@ import {
 import quellenPruefen from '../../operations/quellen-pruefen/api'
 import sportresultateHolen from '../../operations/sportresultate-holen/api'
 import wochenblattPruefen from '../../operations/wochenblatt-pruefen/api'
+import abstimmungenHolen from '../../operations/abstimmungen-holen/api'
 import amtsblattPruefen from '../../operations/amtsblatt-pruefen/api'
 import {
   ergaenzeVorgeschichte,
@@ -423,6 +424,12 @@ const KandidatSchonEntschieden = createError(
 const AmtsblattLaufLaeuftBereits = createError(
   'RUN_IN_PROGRESS',
   'Die Amtsblatt-Pruefung laeuft bereits.',
+  409
+)
+
+const AbstimmungsLaufLaeuftBereits = createError(
+  'RUN_IN_PROGRESS',
+  'Die Abstimmungsresultate werden bereits geholt.',
   409
 )
 
@@ -1530,6 +1537,52 @@ export default defineEndpoint(
         })
       return true
     }
+
+    // --- the vote results: the one desk whose day cannot be repeated ---------
+    //
+    // Its Flow runs `*/30 12-20 * * 0`, Sundays only, because that is when a
+    // count happens. Every other desk also has a button that starts the same
+    // handler by hand, and this one had none — which meant the feature would
+    // have run for the first time at noon on counting day, with no way to try
+    // it beforehand and no way to force a retry if something went wrong at
+    // 12:00. For a source that fills once every three months, that is the one
+    // desk where a button is not a convenience.
+    //
+    // The same handler with the same options as the Flow: a press and a
+    // scheduled run are indistinguishable, exactly as the Gemeinden button
+    // already promises for the two daily scrapes.
+
+    let abstimmungsLaufAktiv = false
+
+    function starteAbstimmungsLauf(): boolean {
+      if (abstimmungsLaufAktiv) return false
+      abstimmungsLaufAktiv = true
+
+      const kontext = { services, getSchema, logger, database } as Parameters<
+        typeof abstimmungenHolen.handler
+      >[1]
+      void Promise.resolve(abstimmungenHolen.handler({}, kontext))
+        .then((ergebnis: unknown) =>
+          logger.info(ergebnis, 'redaktion: Abstimmungs-Lauf beendet')
+        )
+        .catch((fehler: unknown) =>
+          logger.error(fehler, 'redaktion: Abstimmungs-Lauf fehlgeschlagen')
+        )
+        .finally(() => {
+          abstimmungsLaufAktiv = false
+        })
+      return true
+    }
+
+    router.post(
+      '/abstimmungen/pruefen',
+      (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        if (!starteAbstimmungsLauf())
+          return next(new AbstimmungsLaufLaeuftBereits())
+        return res.status(202).json({ data: { gestartet: true } })
+      }
+    )
 
     router.post(
       '/amtsblatt/pruefen',

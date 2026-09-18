@@ -22,8 +22,11 @@ function gerufenePfade(): string[] {
   for (const datei of readdirSync(KOMPONENTEN)) {
     if (!datei.endsWith('.tsx') || datei.includes('.test.')) continue
     const quelle = readFileSync(join(KOMPONENTEN, datei), 'utf8')
-    for (const treffer of quelle.matchAll(/fuehreAus\(\s*`([^`]+)`/g)) {
-      const roh = treffer[1]
+    // Backticks UND Anfuehrungszeichen: ein Pfad ohne Platzhalter wird gern
+    // als gewoehnliche Zeichenkette geschrieben, und genau so einer waere
+    // sonst ungeprueft durchgerutscht.
+    for (const treffer of quelle.matchAll(/fuehreAus\(\s*(?:`([^`]+)`|'([^']+)'|"([^"]+)")/g)) {
+      const roh = treffer[1] ?? treffer[2] ?? treffer[3]
       if (roh === undefined) continue
       pfade.add(roh.replace(/\$\{[^}]*[Ii]d\}/g, BEISPIEL_ID))
     }
