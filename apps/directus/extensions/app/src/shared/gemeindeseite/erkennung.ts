@@ -1,11 +1,14 @@
 // Which content-management system built a page — read off the HTML, never off
 // the host.
 //
-// The nine registered municipal sites run four templates, and the newsroom's
-// rule is that a rule holds for a KIND of page, never for one municipality.
-// So there is no host table: a page is fingerprinted on every read, and a
-// page matching none of the four is a loud error on its source row, not an
-// empty read. Measured on all nine: the fingerprints never co-occur.
+// The registered municipal sites run seven templates — four for news pages,
+// three for event pages — and the newsroom's rule is that a rule holds for a
+// KIND of page, never for one municipality. So there is no host table: a page
+// is fingerprinted on every read, and a page matching none of the seven is a
+// loud error on its source row, not an empty read. Measured on all of them:
+// the fingerprints never co-occur. Measured too, and the reason the three
+// event templates exist at all: not one municipality's event page carries the
+// template of its own news page, though both run on the same CMS.
 
 export type Plattform =
   | 'weblication'
