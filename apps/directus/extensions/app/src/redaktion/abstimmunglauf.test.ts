@@ -9,7 +9,8 @@ import {
   kantonsSumme,
   laufBilanz,
   stichfrageGilt,
-  vergleichAus
+  vergleichAus,
+  zeilenfelder
 } from './abstimmunglauf'
 
 const FIXTURES = join(__dirname, '..', 'shared', 'abstimmung', 'fixtures')
@@ -239,5 +240,46 @@ describe('vergleichAus', () => {
 
   it('antwortet null, wenn es keinen frueheren Tag gibt', () => {
     expect(vergleichAus(null, [], ['2761'])).toBeNull()
+  })
+})
+
+describe('zeilenfelder', () => {
+  it('baut die Zeile einer Vorlage, wie sie gespeichert wird', () => {
+    const [vorlage] = gruppiereNachVorlage(KANTON)
+    const felder = zeilenfelder({
+      vorlage: vorlage!,
+      alleZeilen: KANTON,
+      gemeinden: [{ bfs: '2761', name: 'Aesch' }],
+      stand: '2026-06-14T18:00:00.000Z',
+      hinweise: []
+    })
+
+    expect(felder['vote_id']).toBe('20260614_E1')
+    expect(felder['datum']).toBe('2026-06-14')
+    expect(felder['ebene']).toBe('bund')
+    expect(felder['gemeinden_total']).toBe(86)
+    expect(felder['gemeinden_ausgezaehlt']).toBe(86)
+    expect(felder['ausgezaehlt']).toBe(true)
+    expect(felder['quelle_url']).toBe(
+      'https://abstimmungen.bl.ch/app/archive/de/vote/6860.html'
+    )
+    // Ohne Gegenvorschlag entscheidet keine Stichfrage — und die Zeile sagt es.
+    expect(felder['stichfrage_gilt']).toBe(false)
+    expect(String(felder['stichfrage_grund'])).toContain('Gegenvorschlag')
+  })
+
+  it('haelt fest, wie weit gezaehlt ist, ohne etwas zu beschoenigen', () => {
+    const [vorlage] = gruppiereNachVorlage(OFFEN)
+    const felder = zeilenfelder({
+      vorlage: vorlage!,
+      alleZeilen: OFFEN,
+      gemeinden: [{ bfs: '2761', name: 'Aesch' }],
+      stand: '2026-09-27T12:00:00.000Z',
+      hinweise: ['Eine Zeile war unlesbar.']
+    })
+
+    expect(felder['gemeinden_ausgezaehlt']).toBe(0)
+    expect(felder['ausgezaehlt']).toBe(false)
+    expect(felder['hinweise']).toEqual(['Eine Zeile war unlesbar.'])
   })
 })

@@ -193,5 +193,19 @@
     "reject": null,
     "flow": "bf4a6544-b373-4a65-9bb3-d925b8b84462",
     "_syncId": "98cc0e60-d212-449d-b6b7-83dc5eba20e9"
+  },
+  {
+    "name": "Holen",
+    "key": "holen",
+    "type": "abstimmungen-holen",
+    "position_x": 19,
+    "position_y": 1,
+    "options": {
+      "hoechstens": 20
+    },
+    "resolve": null,
+    "reject": null,
+    "flow": "1fc01521-ee78-4705-a7f9-847b70a7acb4",
+    "_syncId": "d4b2e48c-a6c4-409d-8b38-79cd64b42ec7"
   }
 ]

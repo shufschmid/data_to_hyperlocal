@@ -274,6 +274,12 @@ export interface Meldung {
    */
   suedanflugquote: string | null
   /**
+   * Set for articles written from one Vorlage of one vote day. Null
+   * otherwise — the eighth kind, and the third statistics article without a
+   * `lauf`.
+   */
+  abstimmung: string | null
+  /**
    * Mirror of the candidate's Perle verdict, for downstream readers of
    * published press reviews. The Chefredaktion decides on the CANDIDATE
    * (`wochenblattkandidaten.perle`) — independent of whether a Meldung ever
@@ -444,6 +450,7 @@ export type WissenBereich =
   | 'gemeinde'
   | 'sendung'
   | 'suedanflug'
+  | 'abstimmung'
 /** A Sichtung rule steers what is proposed; a text rule, how a Meldung is written. */
 export type WissenStufe = 'sichtung' | 'text'
 /** `weiterreichen` lets a Sichtung hand a matching proposal to the Chefredaktion by itself. */
@@ -825,6 +832,7 @@ export interface Schema {
   recherchehinweise: Recherchehinweis[]
   gemeindemitteilungen: Gemeindemitteilung[]
   suedanflugquoten: Suedanflugquote[]
+  abstimmungen: Abstimmung[]
 }
 
 export type MitteilungsPlattform =
@@ -1210,4 +1218,85 @@ export interface Suedanflugquote {
   vorschlag_begruendung: string | null
   date_created: string | null
   date_updated: string | null
+}
+
+/**
+ * One Vorlage of one vote day, as data.bl.ch's dataset 11990 carries it.
+ *
+ * Identity is `vote_id` — it contains the date, so it is unique across all
+ * years and needs no composite key. Initiative, Gegenvorschlag and Stichfrage
+ * of one question share it, which is why they share a row here and produce ONE
+ * article per municipality rather than three.
+ */
+export interface Abstimmung {
+  id: string
+  /** `20260927_K3`. Unique at the source and here. */
+  vote_id: string
+  datum: string
+  /** The title of the Vorlage itself, never the Gegenvorschlag's. */
+  titel: string | null
+  ebene: Abstimmungsebene | null
+  /** `cast-json`: the parts of the question, each with its own address and the canton's figures. */
+  teile: Abstimmungsteil[] | null
+  /** `cast-json`: one entry per municipality the newsroom covers. */
+  gemeindezahlen: Abstimmungsgemeinde[] | null
+  gemeinden_total: number | null
+  gemeinden_ausgezaehlt: number | null
+  /** Every municipality of the canton is counted — the condition for a canton figure. */
+  ausgezaehlt: boolean
+  /** The Stichfrage decides only when the canton accepted both Vorlagen. */
+  stichfrage_gilt: boolean
+  stichfrage_grund: string | null
+  /** `cast-json`: the previous vote day's turnout per covered municipality. */
+  vergleich: Abstimmungsvergleich | null
+  quelle_url: string | null
+  stand: string | null
+  /** `cast-json`: what the run could not read. A gap is never silent. */
+  hinweise: string[] | null
+  date_created: string | null
+  date_updated: string | null
+}
+
+export type Abstimmungsebene = 'bund' | 'kanton'
+export type Abstimmungsart = 'vorlage' | 'gegenvorschlag' | 'stichfrage'
+
+export interface Abstimmungsteil {
+  art: Abstimmungsart
+  titel: string
+  url: string | null
+  /** Null while one of the 86 municipalities is still counting. */
+  kanton: {
+    ja: number
+    nein: number
+    prozentJa: number
+    beteiligung: number | null
+    stimmberechtigte: number
+    leer: number
+    ungueltig: number
+    antwort: string | null
+    gemeinden: number
+  } | null
+}
+
+export interface Abstimmungsgemeinde {
+  bfs: string
+  gemeinde: string
+  /** Every row of THIS municipality on THIS day is counted. The publishing gate. */
+  ausgezaehlt: boolean
+  ergebnisse: Array<{
+    art: Abstimmungsart
+    antwort: string | null
+    ja: number | null
+    nein: number | null
+    prozentJa: number | null
+    beteiligung: number | null
+    stimmberechtigte: number | null
+    leer: number | null
+    ungueltig: number | null
+  }>
+}
+
+export interface Abstimmungsvergleich {
+  datum: string
+  gemeinden: Array<{ bfs: string; beteiligung: number }>
 }

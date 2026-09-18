@@ -1,0 +1,46 @@
+{
+  "collection": "abstimmungen",
+  "field": "stichfrage_gilt",
+  "type": "boolean",
+  "meta": {
+    "collection": "abstimmungen",
+    "conditions": null,
+    "display": "boolean",
+    "display_options": null,
+    "field": "stichfrage_gilt",
+    "group": null,
+    "hidden": false,
+    "interface": "boolean",
+    "note": "Die Stichfrage sagt nur etwas, wenn der Kanton Initiative UND Gegenvorschlag angenommen hat. Sonst gehoeren ihre Zahlen in keinen Text.",
+    "options": {
+      "label": "Stichfrage entscheidet"
+    },
+    "readonly": true,
+    "required": false,
+    "searchable": true,
+    "sort": 11,
+    "special": null,
+    "translations": null,
+    "validation": null,
+    "validation_message": null,
+    "width": "half"
+  },
+  "schema": {
+    "name": "stichfrage_gilt",
+    "table": "abstimmungen",
+    "data_type": "boolean",
+    "default_value": false,
+    "max_length": null,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "is_nullable": false,
+    "is_unique": false,
+    "is_indexed": false,
+    "is_primary_key": false,
+    "is_generated": false,
+    "generation_expression": null,
+    "has_auto_increment": false,
+    "foreign_key_table": null,
+    "foreign_key_column": null
+  }
+}

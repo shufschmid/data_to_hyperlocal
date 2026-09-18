@@ -1,0 +1,25 @@
+{
+  "collection": "meldungen",
+  "field": "abstimmung",
+  "related_collection": "abstimmungen",
+  "meta": {
+    "junction_field": null,
+    "many_collection": "meldungen",
+    "many_field": "abstimmung",
+    "one_allowed_collections": null,
+    "one_collection": "abstimmungen",
+    "one_collection_field": null,
+    "one_deselect_action": "nullify",
+    "one_field": "meldungen",
+    "sort_field": null
+  },
+  "schema": {
+    "table": "meldungen",
+    "column": "abstimmung",
+    "foreign_key_table": "abstimmungen",
+    "foreign_key_column": "id",
+    "constraint_name": "meldungen_abstimmung_foreign",
+    "on_update": "NO ACTION",
+    "on_delete": "SET NULL"
+  }
+}

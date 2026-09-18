@@ -433,3 +433,52 @@ export function vergleichAus(
 
   return gemeinden.length === 0 ? null : { datum, gemeinden }
 }
+
+/** Everything the row of one Vorlage carries, built in one place. */
+export interface Zeilenbau {
+  vorlage: Vorlage
+  /** Every row of the vote DAY — the counting state is a property of the day. */
+  alleZeilen: readonly Abstimmungszeile[]
+  gemeinden: readonly { bfs: string; name: string }[]
+  stand: string
+  hinweise: readonly string[]
+  vergleich?: Vergleich | null
+}
+
+/**
+ * One pure mapping from the read rows to the stored row.
+ *
+ * The run is wiring around this: what a row says about counting, about the
+ * canton and about the Stichfrage is decided here, once, and the same function
+ * answers for a Sunday at one o'clock and for the Monday after.
+ */
+export function zeilenfelder(bau: Zeilenbau): Record<string, unknown> {
+  const stand = gemeindeStand(bau.alleZeilen)
+  const urteil = stichfrageGilt(bau.vorlage.teile)
+
+  const felder: Record<string, unknown> = {
+    vote_id: bau.vorlage.voteId,
+    datum: bau.vorlage.datum,
+    titel: bau.vorlage.titel,
+    ebene: bau.vorlage.ebene,
+    teile: bau.vorlage.teile,
+    gemeindezahlen: gemeindezahlen(bau.vorlage, bau.alleZeilen, bau.gemeinden),
+    gemeinden_total: stand.length,
+    gemeinden_ausgezaehlt: stand.filter((g) => g.ausgezaehlt).length,
+    ausgezaehlt: stand.length > 0 && stand.every((g) => g.ausgezaehlt),
+    stichfrage_gilt: urteil.gilt,
+    stichfrage_grund: urteil.grund,
+    quelle_url: bau.vorlage.url,
+    stand: bau.stand,
+    hinweise: [...bau.hinweise]
+  }
+
+  // The comparison is fetched once per vote day and never re-asked: an earlier
+  // ballot's turnout cannot change. Left out means "not asked yet", never
+  // "none" — so it is only written when there is something to write.
+  if (bau.vergleich !== undefined && bau.vergleich !== null) {
+    felder['vergleich'] = bau.vergleich
+  }
+
+  return felder
+}

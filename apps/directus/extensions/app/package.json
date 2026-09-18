@@ -85,6 +85,14 @@
         }
       },
       {
+        "type": "operation",
+        "name": "abstimmungen-holen",
+        "source": {
+          "app": "src/operations/abstimmungen-holen/app.ts",
+          "api": "src/operations/abstimmungen-holen/api.ts"
+        }
+      },
+      {
         "type": "endpoint",
         "name": "redaktion",
         "source": "src/endpoints/redaktion/index.ts"
