@@ -3102,6 +3102,12 @@ export default defineEndpoint(
       gemeindeId: string,
       anweisung: string
     ): Promise<string[]> {
+      // Deliberately without `accountability`, like every other inline
+      // revision here: the caller has already read this Meldung with the
+      // editor's own permissions, and what follows writes the model's answer
+      // back onto the very row she asked about. Passing her accountability a
+      // second time would change nothing but add a second permission read per
+      // revision.
       const meldungen = new ItemsService('meldungen', {
         schema: await getSchema()
       })

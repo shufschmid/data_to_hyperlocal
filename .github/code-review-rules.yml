@@ -273,6 +273,15 @@ rules:
       Not a violation: a one-shot `setTimeout` for a retry or debounce, test
       timers, and an operation handler that is itself invoked by a Flow.
 
+      **The Flow itself is not visible to this review and must not be asked
+      for.** `apps/directus/schema/**` is excluded from the diff this review
+      reads (see the "Collect the change" step) — deliberately, because a
+      dumped tree is nobody's architecture. So a change that ADDS scheduled
+      work shows up here as an operation folder plus a line of documentation,
+      and the absence of a Flow file in the diff is a property of the harness,
+      never a finding. Whether the Flow was committed is checked by
+      `schema:diff` against a running instance, not by reading a diff.
+
   - id: bounded-scheduled-operations
     title: Flow operations are bounded and idempotent
     severity: warning
