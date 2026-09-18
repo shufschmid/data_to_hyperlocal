@@ -62,6 +62,37 @@ function parseField(raw: unknown): OdsField | null {
   }
 }
 
+/**
+ * How much of a portal's description is stored.
+ *
+ * Measured on 18 September 2026, the day data.bs.ch was switched on: 74 of its
+ * first 100 descriptions run past 255 characters, the longest to 3846, and they
+ * carry HTML. The import stopped with «Value … for field "beschreibung" in
+ * collection "datensaetze" is too long» and left the catalogue half-read — so a
+ * new portal could take the whole daily run down with a paragraph of prose.
+ *
+ * The cap is deliberately conservative, and the reason is honest: the snapshot
+ * declares this column `text` without a length, so a fresh install has no limit
+ * at all, and what Bajour's own database actually carries cannot be read from
+ * here. 255 is the width that column most likely still has. A description is
+ * metadata whose full text is one click away in the portal, so losing the tail
+ * of a long one costs little — and a cap that bites says so in the text, which
+ * is this house's rule.
+ *
+ * This is a guard, not the repair. The repair is the column.
+ */
+export const BESCHREIBUNG_MAX_ZEICHEN = 255
+
+const GEKUERZT = ' […]'
+
+export function kappeBeschreibung(
+  roh: string | null,
+  max = BESCHREIBUNG_MAX_ZEICHEN
+): string | null {
+  if (roh === null || roh.length <= max) return roh
+  return roh.slice(0, Math.max(0, max - GEKUERZT.length)).trimEnd() + GEKUERZT
+}
+
 function parseDataset(raw: unknown): OdsDataset | null {
   const entry = asRecord(raw)
   if (entry === null) return null
@@ -82,7 +113,9 @@ function parseDataset(raw: unknown): OdsDataset | null {
   return {
     datasetId,
     titel,
-    beschreibung: meta === null ? null : asString(meta['description']),
+    beschreibung: kappeBeschreibung(
+      meta === null ? null : asString(meta['description'])
+    ),
     modified: meta === null ? null : asString(meta['modified']),
     dataProcessed: meta === null ? null : asString(meta['data_processed']),
     recordsCount: typeof recordsCountRaw === 'number' ? recordsCountRaw : null,
