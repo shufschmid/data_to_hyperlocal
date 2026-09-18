@@ -127,6 +127,7 @@ describe('Zeitleiste — Südanflug', () => {
               gemeindemitteilung: null,
               sendungskandidat: null,
               suedanflugquote: { id: 'q-juli' },
+              abstimmung: null,
               perle: null
             }
           ]

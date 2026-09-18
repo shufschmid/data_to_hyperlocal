@@ -430,7 +430,7 @@ export function datensatzLink(
   return null
 }
 
-export type ZeitleistenHerkunft = 'agenda' | 'portal' | 'datensatz' | 'suedanflug'
+export type ZeitleistenHerkunft = 'agenda' | 'portal' | 'datensatz' | 'suedanflug' | 'abstimmung'
 
 const MONATSNAMEN = [
   'Januar',
@@ -489,6 +489,51 @@ export function meldungenNachSuedanflug<T extends { suedanflugquote: { id: strin
   return nach
 }
 
+/** Eine Gemeinde auf einer Abstimmungszeile — und ob über sie geschrieben werden darf. */
+export interface AbstimmungsGemeinde {
+  bfs: string
+  name: string
+  /** Jede Zeile dieser Gemeinde an diesem Tag ist ausgezählt. Das Tor vor jedem Artikel. */
+  ausgezaehlt: boolean
+}
+
+/** "Abstimmung vom 27.09.2026: «Fairer Kompromiss …»" — der Titel der Zeile. */
+export function abstimmungsTitel(vorlage: { datum: string; titel: string | null }): string {
+  const titel = (vorlage.titel ?? '').trim()
+  return `Abstimmung vom ${formatiereDatum(vorlage.datum)}${titel === '' ? '' : `: ${titel}`}`
+}
+
+/** "40 von 86 Gemeinden ausgezählt" — was auf der Zeile steht, bevor etwas entsteht. */
+export function abstimmungsStand(vorlage: {
+  gemeinden_ausgezaehlt: number | null
+  gemeinden_total: number | null
+  ausgezaehlt: boolean
+}): string {
+  const fertig = vorlage.gemeinden_ausgezaehlt ?? 0
+  const alle = vorlage.gemeinden_total ?? 0
+  if (vorlage.ausgezaehlt) return `Alle ${alle} Gemeinden ausgezählt.`
+  return `${fertig} von ${alle} Gemeinden ausgezählt — über eine Gemeinde, die noch zählt, wird nichts geschrieben.`
+}
+
+/**
+ * Die Meldungen je Vorlage.
+ *
+ * Eine Vorlage trägt eine Meldung je bespielter Gemeinde, also mehrere — wie
+ * das Monatsblatt des EuroAirport und anders als der Wochenblatt-Kandidat.
+ */
+export function meldungenNachAbstimmung<T extends { abstimmung: { id: string } | null }>(
+  meldungen: readonly T[]
+): Map<string, T[]> {
+  const nach = new Map<string, T[]>()
+  for (const meldung of meldungen) {
+    if (meldung.abstimmung === null) continue
+    const bisher = nach.get(meldung.abstimmung.id)
+    if (bisher === undefined) nach.set(meldung.abstimmung.id, [meldung])
+    else bisher.push(meldung)
+  }
+  return nach
+}
+
 export interface ZeitleistenEintrag {
   id: string
   herkunft: ZeitleistenHerkunft
@@ -522,6 +567,10 @@ export interface ZeitleistenEintrag {
   vorschlag: boolean
   /** Nur bei Suedanflug-Zeilen: was das Blatt an sich selbst bemaengelt. */
   befunde: string[]
+  /** Nur bei Abstimmungszeilen: die Vorlage dahinter. */
+  abstimmungId: string | null
+  /** Nur bei Abstimmungszeilen: die bespielten Gemeinden mit ihrem Auszählstand. */
+  abstimmungsgemeinden: AbstimmungsGemeinde[]
 }
 
 export interface ZeitleistenQuellen {
@@ -582,6 +631,26 @@ export interface ZeitleistenQuellen {
     vorschlag: boolean
     vorschlag_begruendung: string | null
     befunde?: string[] | null
+    quelle_url: string | null
+  }[]
+  /**
+   * Die Abstimmungsresultate — der fünfte Zufluss dieser Liste.
+   *
+   * Optional wie die Südanflug-Quote: an einem Tag ohne Abstimmung kommt hier
+   * nichts an, und die Liste sieht aus wie zuvor.
+   */
+  abstimmungen?: readonly {
+    id: string
+    vote_id: string
+    datum: string
+    titel: string | null
+    ebene: string | null
+    gemeindezahlen?: { bfs: string; gemeinde: string; ausgezaehlt: boolean }[] | null
+    gemeinden_total: number | null
+    gemeinden_ausgezaehlt: number | null
+    ausgezaehlt: boolean
+    stichfrage_gilt: boolean
+    stichfrage_grund: string | null
     quelle_url: string | null
   }[]
 }
@@ -662,7 +731,9 @@ export function zeitleiste(quellen: ZeitleistenQuellen, hoechstens = 40): Zeitle
       zeilen: null,
       quoteId: null,
       vorschlag: false,
-      befunde: []
+      befunde: [],
+      abstimmungId: null,
+      abstimmungsgemeinden: []
     })
   }
 
@@ -687,7 +758,9 @@ export function zeitleiste(quellen: ZeitleistenQuellen, hoechstens = 40): Zeitle
       zeilen: null,
       quoteId: null,
       vorschlag: false,
-      befunde: []
+      befunde: [],
+      abstimmungId: null,
+      abstimmungsgemeinden: []
     })
   }
 
@@ -713,7 +786,9 @@ export function zeitleiste(quellen: ZeitleistenQuellen, hoechstens = 40): Zeitle
       zeilen: d.zeilen ?? null,
       quoteId: null,
       vorschlag: false,
-      befunde: []
+      befunde: [],
+      abstimmungId: null,
+      abstimmungsgemeinden: []
     })
   }
 
@@ -740,7 +815,41 @@ export function zeitleiste(quellen: ZeitleistenQuellen, hoechstens = 40): Zeitle
       zeilen: null,
       quoteId: q.id,
       vorschlag: q.vorschlag,
-      befunde: q.befunde ?? []
+      befunde: q.befunde ?? [],
+      abstimmungId: null,
+      abstimmungsgemeinden: []
+    })
+  }
+
+  // Die Abstimmungsresultate, der fünfte Zufluss.
+  //
+  // Datiert auf den Abstimmungssonntag selbst — der Tag, an dem sie eine
+  // Nachricht sind. Der Hinweis auf der Zeile sagt, wie weit ausgezählt ist:
+  // ein Lauf, der nichts schreibt, weil noch gezählt wird, ist kein Fehler.
+  for (const a of quellen.abstimmungen ?? []) {
+    eintraege.push({
+      id: `abstimmung-${a.id}`,
+      herkunft: 'abstimmung',
+      datum: a.datum,
+      titel: abstimmungsTitel(a),
+      hinweis: abstimmungsStand(a),
+      datensatzId: null,
+      laufId: null,
+      pfad: null,
+      link: a.quelle_url,
+      quartal: null,
+      beschreibung: null,
+      rhythmus: null,
+      zeilen: null,
+      quoteId: null,
+      vorschlag: false,
+      befunde: [],
+      abstimmungId: a.id,
+      abstimmungsgemeinden: (a.gemeindezahlen ?? []).map((g) => ({
+        bfs: g.bfs,
+        name: g.gemeinde,
+        ausgezaehlt: g.ausgezaehlt
+      }))
     })
   }
 

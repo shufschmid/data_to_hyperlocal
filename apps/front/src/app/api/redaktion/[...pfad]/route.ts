@@ -26,6 +26,7 @@ const ERLAUBT: RegExp[] = [
   // Die Suedanflug-Quote: eine Meldung je betroffener Gemeinde, die im Koerper
   // steht. Ein Monatsblatt, mehrere Meldungen.
   /^suedanflug\/[0-9a-f-]{36}\/meldung$/i,
+  /^abstimmungen\/[0-9a-f-]{36}\/meldung$/i,
   /^vereine$/i,
   /^vereine\/[0-9a-f-]{36}$/i,
   /^wochenblaetter$/i,

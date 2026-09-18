@@ -49,6 +49,7 @@ function bericht(spielId: string) {
     gemeindemitteilung: null,
     sendungskandidat: null,
     suedanflugquote: null,
+    abstimmung: null,
     perle: null,
     spiel: {
       id: spielId,

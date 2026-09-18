@@ -89,6 +89,7 @@ describe('anzahlOffen', () => {
       gemeindemitteilung: null,
       sendungskandidat: null,
       suedanflugquote: null,
+      abstimmung: null,
       perle: null,
       ...ueber
     }

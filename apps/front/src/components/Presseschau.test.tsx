@@ -80,6 +80,7 @@ function meldung(ueber: Partial<AlleMeldungFelder>): AlleMeldungFelder {
     gemeindemitteilung: null,
     sendungskandidat: null,
     suedanflugquote: null,
+    abstimmung: null,
     perle: null,
     ...ueber
   }
