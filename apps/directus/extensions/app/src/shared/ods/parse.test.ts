@@ -406,35 +406,60 @@ describe('katalogKappung', () => {
 })
 
 describe('kappeBeschreibung', () => {
-  it('laesst kurze Beschreibungen unangetastet', () => {
+  it('laesst kurzen Fliesstext unangetastet', () => {
     expect(kappeBeschreibung('Kurz und gut.')).toBe('Kurz und gut.')
     expect(kappeBeschreibung(null)).toBeNull()
   })
 
-  it('laesst eine Beschreibung genau auf der Grenze stehen', () => {
-    const genau = 'a'.repeat(BESCHREIBUNG_MAX_ZEICHEN)
-    expect(kappeBeschreibung(genau)).toBe(genau)
+  it('wirft das Markup weg, statt es mitzuzaehlen', () => {
+    const roh =
+      '<p style="font-family: sans-serif;">Erster Satz.</p><p>Zweiter Satz.</p>'
+    expect(kappeBeschreibung(roh)).toBe('Erster Satz. Zweiter Satz.')
+  })
+
+  it('loest Entitaeten auf und macht aus Leerraum ein Leerzeichen', () => {
+    expect(kappeBeschreibung('Bund&nbsp;&amp;   Kanton\n\nZug')).toBe(
+      'Bund & Kanton Zug'
+    )
+  })
+
+  it('gibt null zurueck, wo nur Markup stand', () => {
+    expect(kappeBeschreibung('<p></p><br>')).toBeNull()
   })
 
   it('kappt, was darueber liegt, und sagt es im Text', () => {
     const lang = 'b'.repeat(BESCHREIBUNG_MAX_ZEICHEN + 1)
     const gekappt = kappeBeschreibung(lang)
-    expect(gekappt).not.toBeNull()
     expect(gekappt?.length).toBeLessThanOrEqual(BESCHREIBUNG_MAX_ZEICHEN)
-    expect(gekappt?.endsWith(' […]')).toBe(true)
+    expect(gekappt?.endsWith(' [...]')).toBe(true)
   })
 
-  it('haelt die echte Beschreibung von data.bs.ch aus, an der der Import scheiterte', () => {
-    // Gemessen am 18.09.2026 am Datensatz 100014 des Kantons Basel-Stadt.
+  it('bleibt auch in BYTES unter der Grenze, nicht nur in Zeichen', () => {
+    // Der Fehler vom 18.09.2026: 255 Zeichen waren 259 Bytes, weil zwei
+    // Umlaute und ein Auslassungszeichen doppelt zaehlen.
+    const umlaute = 'ä'.repeat(BESCHREIBUNG_MAX_ZEICHEN)
+    const gekappt = kappeBeschreibung(umlaute)
+    expect(gekappt).not.toBeNull()
+    expect(Buffer.byteLength(gekappt as string, 'utf8')).toBeLessThanOrEqual(
+      BESCHREIBUNG_MAX_ZEICHEN
+    )
+  })
+
+  it('haelt die echte Beschreibung aus, an der der Import zweimal scheiterte', () => {
+    // Gemessen am 18.09.2026 am Wassertemperatur-Datensatz von data.bs.ch.
     const echt =
-      '<p>Minuetlich aktualisierte Anzahl freie Parkplaetze der oeffentlich ' +
-      'zugaenglichen Parkhaeuser der Stadt Basel, bezogen ueber das Parkleitsystem ' +
-      'Basel (<a href="https://www.parkleitsystem-basel.ch" target="_blank">' +
-      'https://www.parkleitsystem-basel.ch</a>).<br></p> <p>Historische Daten sind ' +
-      'im folgenden Datensatz vorhanden: <a href="https://data.bs.ch/explore/dataset/100014/" ' +
-      'target="_blank">https://data.bs.ch/explore/dataset/100014/</a>. <br></p>'
-    expect(echt.length).toBeGreaterThan(BESCHREIBUNG_MAX_ZEICHEN)
+      '<p style="font-family: sans-serif;">Dieser Datensatz enthält die aktuellen ' +
+      'Wassertemperaturen in den Gartenbädern</p><p style="font-family: sans-serif;">' +
+      'Die Temperaturdaten werden alle 15 Minuten aktualisiert, indem ein ' +
+      'automatisiertes Programm die neuesten Werte aus der Datenbank liest und hier ' +
+      'bereitstellt. Historische Daten finden sich im Archiv.</p>'
     const gekappt = kappeBeschreibung(echt)
+    expect(gekappt).not.toBeNull()
+    expect(gekappt).not.toContain('<')
     expect(gekappt?.length).toBeLessThanOrEqual(BESCHREIBUNG_MAX_ZEICHEN)
+    expect(Buffer.byteLength(gekappt as string, 'utf8')).toBeLessThanOrEqual(
+      BESCHREIBUNG_MAX_ZEICHEN
+    )
+    expect(gekappt?.startsWith('Dieser Datensatz enthält')).toBe(true)
   })
 })

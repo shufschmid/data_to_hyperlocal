@@ -63,34 +63,72 @@ function parseField(raw: unknown): OdsField | null {
 }
 
 /**
- * How much of a portal's description is stored.
+ * How much of a portal's description is kept, and in what shape.
  *
  * Measured on 18 September 2026, the day data.bs.ch was switched on: 74 of its
  * first 100 descriptions run past 255 characters, the longest to 3846, and they
- * carry HTML. The import stopped with «Value … for field "beschreibung" in
- * collection "datensaetze" is too long» and left the catalogue half-read — so a
- * new portal could take the whole daily run down with a paragraph of prose.
+ * are HTML — `<p style="font-family: sans-serif;">` is 36 characters carrying
+ * no information at all. The import stopped with «Value … for field
+ * "beschreibung" in collection "datensaetze" is too long» and left the
+ * catalogue half-read.
  *
- * The cap is deliberately conservative, and the reason is honest: the snapshot
- * declares this column `text` without a length, so a fresh install has no limit
- * at all, and what Bajour's own database actually carries cannot be read from
- * here. 255 is the width that column most likely still has. A description is
- * metadata whose full text is one click away in the portal, so losing the tail
- * of a long one costs little — and a cap that bites says so in the text, which
- * is this house's rule.
+ * Three things are done here and each has its own reason.
  *
- * This is a guard, not the repair. The repair is the column.
+ * **The markup goes.** A description is read by an editor and handed to the
+ * model that maps agenda entries onto datasets; in both places a style
+ * attribute is noise. Stripping it also removes most of the length.
+ *
+ * **The cap counts BOTH characters and bytes.** A first attempt capped at 255
+ * characters, and the value that failed was exactly 255 characters — and 259
+ * bytes, because two umlauts and an ellipsis count double. Whatever counts on
+ * the other side, this stays under it on both.
+ *
+ * **And the number is deliberately no longer load-bearing.** The real width of
+ * that column could not be read from outside, two guesses at it were wrong, and
+ * the catalogue import now survives a write that is refused anyway
+ * (`uebernehme` retries without the description and says so). This cap is what
+ * keeps that from happening, not what guarantees it cannot.
  */
-export const BESCHREIBUNG_MAX_ZEICHEN = 255
+export const BESCHREIBUNG_MAX_ZEICHEN = 200
 
-const GEKUERZT = ' […]'
+const GEKUERZT = ' [...]'
+
+/** Markup out, entities back, runs of whitespace to one space. */
+export function alsFliesstext(roh: string): string {
+  return roh
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<\/(p|div|li|tr|h[1-6])>/gi, ' ')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function passtInBytes(text: string, maxBytes: number): string {
+  let kurz = text
+  while (Buffer.byteLength(kurz, 'utf8') > maxBytes) kurz = kurz.slice(0, -1)
+  return kurz
+}
 
 export function kappeBeschreibung(
   roh: string | null,
   max = BESCHREIBUNG_MAX_ZEICHEN
 ): string | null {
-  if (roh === null || roh.length <= max) return roh
-  return roh.slice(0, Math.max(0, max - GEKUERZT.length)).trimEnd() + GEKUERZT
+  if (roh === null) return null
+  const text = alsFliesstext(roh)
+  if (text === '') return null
+  if (text.length <= max && Buffer.byteLength(text, 'utf8') <= max) return text
+
+  const rumpf = passtInBytes(
+    text.slice(0, Math.max(0, max - GEKUERZT.length)),
+    Math.max(0, max - GEKUERZT.length)
+  )
+  return rumpf.trimEnd() + GEKUERZT
 }
 
 function parseDataset(raw: unknown): OdsDataset | null {

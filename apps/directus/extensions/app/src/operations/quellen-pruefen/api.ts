@@ -288,7 +288,33 @@ export default defineOperationApi<Options>({
         })
 
         for (const dataset of katalog.datasets) {
-          await uebernehme(quelle.id, dataset)
+          // One dataset must not cost the catalogue, exactly as one portal must
+          // not cost the others. Measured on 18.09.2026: a single description
+          // the column refused took the whole data.bs.ch import down and left
+          // the source marked as unreadable, while 360 other datasets were
+          // fine. The row is retried once without its description — a dataset
+          // without a description is a dataset, a missing dataset is nothing —
+          // and whatever is still refused is named in the run's result.
+          try {
+            await uebernehme(quelle.id, dataset)
+          } catch (fehler) {
+            try {
+              await uebernehme(quelle.id, { ...dataset, beschreibung: null })
+              ergebnis.hinweise.push(
+                `${quelle.name}: Datensatz ${dataset.datasetId} ohne Beschreibung uebernommen — die Datenbank hat sie abgewiesen.`
+              )
+            } catch (zweiter) {
+              const text =
+                zweiter instanceof Error ? zweiter.message : String(zweiter)
+              logger.warn(
+                zweiter,
+                `quellen-pruefen: Datensatz ${dataset.datasetId} von ${quelle.name} nicht uebernommen`
+              )
+              ergebnis.fehler.push(
+                `${quelle.name}: Datensatz ${dataset.datasetId} nicht uebernommen — ${text}`
+              )
+            }
+          }
         }
 
         ergebnis.gesehen += katalog.datasets.length
