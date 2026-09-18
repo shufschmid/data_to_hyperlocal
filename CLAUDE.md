@@ -89,7 +89,7 @@ them is wrong even if it works.
    | Host                                        | Why                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Adapter                               |
    | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
    | `api.anthropic.com`                         | every LLM call                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | `shared/claude.ts`                    |
-   | `data.bl.ch`                                | open-data catalogue and records (no auth, documented API)                                                                                                                                                                                                                                                                                                                                                                                                                                                  | `shared/ods/`                         |
+   | `data.bl.ch`                                | open-data catalogue and records (no auth, documented API) — including dataset 11990, the vote results per Vorlage and municipality, read on a vote Sunday only                                                                                                                                                                                                                                                                                                                                             | `shared/ods/`                         |
    | `data.bs.ch`                                | the same Opendatasoft platform for Basel-Stadt — registered but INACTIVE, so no request is made until a person switches it on. Measured 17.09.2026: identical paths and response shape, 361 datasets against 188, and Riehen and Bettingen are municipalities in its rows, not quarters                                                                                                                                                                                                                    | `shared/ods/`                         |
    | `www.baselland.ch`                          | the publication agenda — announcements the API cannot give — and the office's own web article behind an entry, read once per announcement for the mapping and the briefing                                                                                                                                                                                                                                                                                                                                 | `shared/agenda/`                      |
    | `statistik.bl.ch`                           | tables the open-data portal does not carry                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | `shared/statbl/`                      |
@@ -647,13 +647,19 @@ them is wrong even if it works.
    REDAKTIONSGEBIET, not the directory: all 87 rows stay in the table, because
    the source detection matches portal pages against those names — thinning it
    would quietly stop every municipality table from being recognised.
-   „statistik.bl" — until this change called „Datenquellen" — is one
+   „data to hyperlocal" — called „statistik.bl" until 18 September 2026 and
+   „Datenquellen" before that — is one
    chronological list fed by all three watchers — the
    agenda, the watched portal branches, and changes in the data.bl.ch catalogue.
    The third feed is the one that is easy to forget and carries the most: only 9
    of 188 datasets have an agenda entry, so without it most articles would have
    no visible origin at all. Announced entries without a date hang below the
    list, grouped by quarter, and move up by themselves once they get one.
+   **The name is a label and nothing else:** the tab's value stays
+   `reiter === 'statistik'`, because renumbering has hurt this house twice. It
+   was renamed because it had long since stopped being one portal — the agenda,
+   the watched branches, the catalogue, the EuroAirport and now the vote
+   results — and because everything a data journalist used to do belongs in it.
 
    **The SÜDANFLUG-QUOTE is the fourth thing in that list, and deliberately not
    a tenth tab.** The EuroAirport publishes one PDF a month saying how many of
@@ -712,6 +718,56 @@ them is wrong even if it works.
    über Binningen") uses none of them.
    **No Meldung without a person's click.** A crossed threshold is a mark on
    the row, and the run makes no model call at all.
+
+   **The ABSTIMMUNGSRESULTATE are the fifth thing in that list, and the only
+   feed with a Sunday of its own.** Dataset 11990 on data.bl.ch,
+   «Abstimmungsresultate nach Vorlage, Gemeinde und Datum (seit 2003)», 34'658
+   rows — the portal this newsroom has read every morning since the first day,
+   so this is NO new source and `shared/abstimmung/` composes the existing
+   `shared/ods/` client rather than adding one. Six things are worth knowing
+   before touching it, and the first is the whole feature.
+   **`counted` is the most important figure in the dataset and it is not a
+   figure.** It arrives as the STRING `"True"`/`"False"`, so a truthiness test
+   says yes to both; it is read in exactly one place (`istAusgezaehlt`) and
+   nowhere else. The rows of a vote day exist DAYS in advance — measured on 18
+   September 2026, the 27 September rows were already there, all 430 of them,
+   every one `counted: "False"` with empty figures — so a run that did not
+   check would write five articles about nothing. The rule is per MUNICIPALITY
+   over the whole day, not per Vorlage: while one row of a municipality is
+   open, nothing is written about it. A partly counted municipality is not a
+   carefully phrased interim state; it is a nothing one keeps quiet about, and
+   the desk says so on the row instead of offering a button.
+   **One request per vote day, never one per municipality.** 86 municipalities
+   times five Vorlagen is 430 rows and 294 KB — one export. That request is
+   also the run's FIRST question, so a Sunday without a ballot costs exactly
+   one call and writes nothing. Two more follow once per vote day, for the
+   previous ballot's turnout, and are never re-asked.
+   **`vote_id` carries Initiative, Gegenvorschlag and Stichfrage together**, so
+   one question is ONE article per municipality and not three — measured and
+   given, not a heuristic. Each of the three parts has its OWN address (k3a,
+   k3b, k3c); the article links the question's own.
+   **The Stichfrage is only a statement when the CANTON accepted both
+   Vorlagen.** Otherwise its figures are meaningless — on 8 March 2026 the
+   Tempo-30 initiative and its counter-proposal were both rejected and the
+   Stichfrage still carries 1301 against 1665 votes. `stichfrageGilt` decides
+   it, the figures are then not handed over at all, and a check catches the
+   word anyway. Two more things measured on those rows: a Stichfrage's `answer`
+   names the WINNING SIDE rather than a yes or a no, and its `yeas` are votes
+   for the Initiative, its `nays` votes for the Gegenvorschlag.
+   **The cantonal figure is the sum of ALL 86 municipalities or it does not
+   exist.** Verified against dataset 10500, the canton's own row for vote
+   20260614_E1: 49'114 Ja, 62'177 Nein, 44,131151665 percent, turnout
+   59,037150338, 192'865 eligible — the sum over the 86 municipality rows
+   matches all five to thirteen decimals, which is why this feed needs no
+   second dataset. One uncounted municipality makes it null and the prompt says
+   „keine Vergleichszahlen".
+   **The Bund is NOT in this dataset**, and that was measured rather than
+   assumed: 11990 carries 86 municipalities and no aggregate row, 10500 carries
+   the canton. So an article is handed the municipality, the canton and the
+   previous ballot's turnout, and says nothing about Switzerland.
+   Which dataset a portal carries its votes in is a ROW
+   (`quellen.konfiguration.abstimmungen`), like the office and the districts
+   beside it; a portal without one is not walked and the run names it.
 
    When it turns us away, that is not silence: the workspace shows a banner
    naming the source, the reason and the date of the last attempt, with a link
@@ -808,6 +864,9 @@ them is wrong even if it works.
 | which municipalities lie under the south approach   | „Gemeinden" → die Karte → `gemeinden.suedanflug`; die Quote gilt für den FLUGHAFEN, wer betroffen ist, entscheidet die Redaktion. Leer heisst: die Monatszeile steht da und sagt, dass niemand erfasst ist                                                                         |
 | the thresholds of the Südanflug-Quote               | `quellen.konfiguration` der EuroAirport-Zeile (`{monatsschwelle, jahresschwellen}`) — 40 Prozent im Monat ist die Schwelle der Redaktion, 8 und 10 im Jahr die der Pistenbenutzungsvereinbarung von 2006                                                                           |
 | a new rule about what a Südanflug-Meldung may say   | `redaktion/suedanflug.ts` — the prompt **and** the checks (Ortsregel, Provisorik, Attribution an den EuroAirport, Ziffern, absolute Daten, keine selbst geschriebenen Links)                                                                                                       |
+| a new rule about what an Abstimmungs-Meldung says   | `redaktion/abstimmung.ts` — the prompt **and** the checks (Stichfragenregel, Attribution an den Kanton, Ziffern gegen die übergebenen Angaben, absolute Daten, keine selbst geschriebenen Links)                                                                                   |
+| the dataset a portal carries its votes in           | `quellen.konfiguration.abstimmungen` (JSON, Admin-UI) — die Datensatz-Id des Portals, gesetzt von `migrations/20260918B`. Leer heisst: dieses Portal wird am Abstimmungssonntag nicht gelesen, und der Lauf nennt es                                                               |
+| the timing of a vote Sunday                         | der Flow «Abstimmungen holen» (`*/30 12-20 * * 0`) plus `operations/abstimmungen-holen`; ausserhalb bleibt es beim Katalogwächter um 06:00                                                                                                                                         |
 | a new environment variable                          | `apps/directus/.env.example` **and** root `.env.example` **and** docker-compose.yml                                                                                                                                                                                                |
 
 A change that spans both apps starts in `apps/directus` — data model first, then the
@@ -1033,6 +1092,30 @@ editor takes a Mitteilung over ── POST /redaktion/gemeindeseiten/:id/meldung
      Quellenzeile vom Code: die Unterseite der Gemeinde + die gelesenen
      Dokumente. Ablehnen mit Grund und Weiterreichen lehren die naechste
      Sichtung (bereich gemeinde).
+
+Flow "Abstimmungen holen"  (*/30 12-20 * * 0)   nur am Abstimmungssonntag
+  └─ operations/abstimmungen-holen   je aktivem ods-Portal mit Datensatz
+       ├─ EIN Abruf: alle Zeilen des heutigen Tages, 86 Gemeinden mal N
+       │    Vorlagen (gemessen: 430 Zeilen, 294 KB). Keine Zeilen = keine
+       │    Abstimmung = fertig, und das war der ganze Preis
+       ├─ gemeindeStand()   je Gemeinde ueber den GANZEN Tag: eine offene
+       │    Zeile heisst, ueber diese Gemeinde wird nichts geschrieben
+       ├─ gruppiereNachVorlage()  vote_id traegt Initiative, Gegenvorschlag
+       │    und Stichfrage zusammen — ein Artikel je Gemeinde und Frage
+       ├─ kantonsSumme()    ueber ALLE 86 Gemeinden oder gar nicht; gegen
+       │    Datensatz 10500 auf dreizehn Stellen geprueft
+       ├─ stichfrageGilt()  nur wenn der Kanton beide Vorlagen annahm
+       └─ einmal je Abstimmungstag: die Beteiligung der letzten Abstimmung
+            davor, je bespielter Gemeinde (zwei Abrufe, nie wiederholt)
+       Kein Modellaufruf. Der Lauf sagt in Worten, wie weit ausgezaehlt ist.
+
+editor takes a Vorlage over ── POST /redaktion/abstimmungen/:id/meldung
+  └─ 1× Sonnet ueber die uebergebenen Zahlen (Gemeinde, Kanton, letzter
+     Abstimmungstag) → kurze Meldung; Attribution an den Kanton erzwungen
+     (Pruefung + ein Nachfassen), Ziffern gegen die Angaben, absolute Daten,
+     keine selbst geschriebenen Links, und die Stichfrage nur, wenn sie
+     etwas entscheidet. Quellenzeile vom Code aus `url_web`. Eine Gemeinde,
+     die noch auszaehlt, bekommt 422 statt eines Zwischenstands.
 
 Flow "Sportresultate holen"  (0 30 6 * * *)
   └─ operations/sportresultate-holen   dispatches on vereine.quelle
@@ -1459,6 +1542,14 @@ checked rather than assumed, and there is a test.
   are computed from, so an article is written from what the editor saw and not
   from a fresh fetch. `gemeinden.suedanflug` belongs here too — who lies under
   the approach is the newsroom's judgement, not a column of the source.
+- `abstimmungen` — one row per Vorlage (`vote_id`) and vote day: the parts of
+  the question with their own addresses, the cantonal sums, the newsroom's
+  municipalities with their own figures AND whether each is fully counted, the
+  Stichfrage verdict in words, and the previous ballot's turnout. Identity is
+  `vote_id` — it contains the date, so it is unique across all years and needs
+  no composite key. The row is what an article is written from, never a fresh
+  fetch: a vote day's rows move under the run's hands for hours, and the
+  article has to stand on what the editor saw when she pressed the button.
 - `vereine` — which clubs speak for a municipality, and why. Recorded from the
   Gemeinden tab through `POST /redaktion/vereine`, whose one rule with teeth is
   that `swissvolley`, `handball` and `basketball` need an `ergebnis_url`: those

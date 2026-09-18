@@ -182,6 +182,7 @@ schlimmer als die Lücke.
 | ------------- | ---------------------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------ |
 | `statistik`   | Datensatz von data.bl.ch / statistik.bl.ch                             | „Statistisches Amt Basel-Landschaft" | der Webartikel des Amtes, sonst die Datensatzseite                                                     |
 | `statistik`   | Südanflug-Quote des EuroAirport (ILS-33-Nutzungsstatistik)             | „EuroAirport"                        | das Monats-PDF der Statistik                                                                           |
+| `statistik`   | Abstimmungsresultat einer Gemeinde (eine Vorlage, ein Abstimmungstag)  | „Kanton Basel-Landschaft"            | die amtliche Publikation des Kantons zu dieser Vorlage                                                 |
 | `sport`       | Spielresultat eines Vereins                                            | „Match-Center"                       | **null** — es gibt keine stabile Adresse für ein einzelnes Spiel (die Tagesseite des Verbands rotiert) |
 | `entsorgung`  | Abfuhrkalender der Gemeinde                                            | „Abfuhrkalender ‹Gemeinde› ‹Jahr›"   | die PDF-Adresse der Registrierung, sonst null                                                          |
 | `amtsblatt`   | Amtsblattportal (kantonal / SHAB)                                      | das publizierende Amt                | das amtliche PDF                                                                                       |
@@ -204,7 +205,7 @@ das ein Programm zurückrechnet, ist genau der Fehler, den die absolute
 Schreibweise verhindert. Wer es braucht, meldet sich, dann kommt es mit einer
 Versionszahl.
 
-**`statistik` steht zweimal in der Tabelle, und das ist Absicht.** Seit dem 17. September 2026 kommt eine zweite Art Statistik-Beitrag dazu: die
+**`statistik` steht dreimal in der Tabelle, und das ist Absicht.** Seit dem 17. September 2026 kommt eine zweite Art Statistik-Beitrag dazu: die
 Südanflug-Quote des EuroAirport, wie viele Landungen in einem Monat über die
 Piste 33 und damit über den Süden gingen. Sie bekommt **keine eigene Rubrik** —
 ein Abnehmer, der die acht Werte kennt, müsste sonst einen neunten lernen, und
@@ -220,6 +221,22 @@ Prozent aller Landungen erfolgten über den Süden, also über ‹Gemeinde›". 
 einzelne Monate nachträglich, der Text sagt das, und wenn eine Zahl sich später
 bewegt, erscheint der Beitrag im Zweifel unter `/api/v1/korrekturen` — sobald
 eine Redaktorin ihn zurückzieht. Automatisch zurückgezogen wird nichts.
+
+**Und seit dem 18. September 2026 ein drittes Mal: das Abstimmungsresultat.**
+Der Kanton veröffentlicht je Vorlage und Gemeinde das amtliche Ergebnis; daraus
+entsteht ein Beitrag je Gemeinde und Vorlage. Dieselbe Überlegung wie beim
+EuroAirport: **keine eigene Rubrik**, weil ein Abnehmer sonst einen zehnten Wert
+lernen müsste, und das ist sein Entscheid und nicht unser Nebenprodukt. Wer sie
+auseinanderhalten will, liest `quelle_name`: „Kanton Basel-Landschaft".
+
+Drei Dinge, die ein Abnehmer dieser Beiträge wissen sollte. **Initiative,
+Gegenvorschlag und Stichfrage sind EIN Beitrag**, nicht drei: der Datensatz
+trägt sie unter einer gemeinsamen Kennung, und drei Meldungen über dieselbe
+Frage liest niemand. **Eine Stichfrage steht nur dann im Text, wenn der Kanton
+beide Vorlagen angenommen hat** — sonst sind ihre Zahlen bedeutungslos, und sie
+werden gar nicht erst geschrieben. Und **ein Beitrag entsteht erst, wenn die
+Gemeinde an diesem Tag vollständig ausgezählt ist**: es gibt keine
+Zwischenstände in diesem Kanal, weder als Beitrag noch als Feld.
 
 ## Bilanz
 
