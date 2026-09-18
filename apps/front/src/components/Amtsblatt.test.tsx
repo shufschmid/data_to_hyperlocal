@@ -351,6 +351,40 @@ describe('Amtsblatt', () => {
 })
 
 describe('Vorgeschichte aus dem Zettelkasten', () => {
+  it('laesst nachfragen, wo noch niemand gefragt hat', async () => {
+    const gefragt: string[] = []
+    render(
+      <Amtsblatt
+        eintraege={[eintrag()]}
+        meldungen={[]}
+        gemeinden={GEMEINDEN}
+        heute={HEUTE}
+        onVorgeschichte={async (id) => {
+          gefragt.push(id)
+        }}
+      />
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: /Im Zettelkasten nachsehen/ }))
+    expect(gefragt).toEqual(['a'])
+  })
+
+  it('fragt nicht ein zweites Mal, wo die Antwort schon da ist', () => {
+    render(
+      <Amtsblatt
+        eintraege={[eintrag({ vorgeschichte: VORGESCHICHTE })]}
+        meldungen={[]}
+        gemeinden={GEMEINDEN}
+        heute={HEUTE}
+        onVorgeschichte={async () => {}}
+      />
+    )
+
+    // Eine leere Vorgeschichte und eine ungefragte sind zwei verschiedene
+    // Auskuenfte, und nur die zweite bekommt den Knopf.
+    expect(screen.queryByRole('button', { name: /Im Zettelkasten nachsehen/ })).not.toBeInTheDocument()
+  })
+
   it('zeigt die frueheren Publikationen erst auf Klick, mit dem Vorbehalt', async () => {
     render(
       <Amtsblatt

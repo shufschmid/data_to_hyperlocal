@@ -1252,6 +1252,9 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             onUnterlagen={async (id) => {
               await fuehreAus(`amtsblatt/${id}/unterlagen`)
             }}
+            onVorgeschichte={async (id) => {
+              await fuehreAus(`amtsblatt/${id}/vorgeschichte`)
+            }}
           />
         </Stack>
       )}
