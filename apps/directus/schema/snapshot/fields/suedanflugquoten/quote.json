@@ -26,10 +26,10 @@
   "schema": {
     "name": "quote",
     "table": "suedanflugquoten",
-    "data_type": "double precision",
+    "data_type": "real",
     "default_value": null,
     "max_length": null,
-    "numeric_precision": 53,
+    "numeric_precision": 24,
     "numeric_scale": null,
     "is_nullable": true,
     "is_unique": false,
