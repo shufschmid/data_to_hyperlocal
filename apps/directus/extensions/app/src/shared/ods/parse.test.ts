@@ -7,7 +7,9 @@ import {
   detectPeriodField,
   istGemeindeebene,
   istRegister,
-  katalogKappung
+  katalogKappung,
+  BESCHREIBUNG_MAX_ZEICHEN,
+  kappeBeschreibung
 } from './parse'
 
 // Fixtures trimmed from real data.bl.ch responses. The field shapes are
@@ -400,5 +402,39 @@ describe('katalogKappung', () => {
 
   it('haelt eine unbekannte Gesamtzahl nicht fuer eine Kappung', () => {
     expect(katalogKappung('Statistik BL', 200, 0)).toBeNull()
+  })
+})
+
+describe('kappeBeschreibung', () => {
+  it('laesst kurze Beschreibungen unangetastet', () => {
+    expect(kappeBeschreibung('Kurz und gut.')).toBe('Kurz und gut.')
+    expect(kappeBeschreibung(null)).toBeNull()
+  })
+
+  it('laesst eine Beschreibung genau auf der Grenze stehen', () => {
+    const genau = 'a'.repeat(BESCHREIBUNG_MAX_ZEICHEN)
+    expect(kappeBeschreibung(genau)).toBe(genau)
+  })
+
+  it('kappt, was darueber liegt, und sagt es im Text', () => {
+    const lang = 'b'.repeat(BESCHREIBUNG_MAX_ZEICHEN + 1)
+    const gekappt = kappeBeschreibung(lang)
+    expect(gekappt).not.toBeNull()
+    expect(gekappt?.length).toBeLessThanOrEqual(BESCHREIBUNG_MAX_ZEICHEN)
+    expect(gekappt?.endsWith(' […]')).toBe(true)
+  })
+
+  it('haelt die echte Beschreibung von data.bs.ch aus, an der der Import scheiterte', () => {
+    // Gemessen am 18.09.2026 am Datensatz 100014 des Kantons Basel-Stadt.
+    const echt =
+      '<p>Minuetlich aktualisierte Anzahl freie Parkplaetze der oeffentlich ' +
+      'zugaenglichen Parkhaeuser der Stadt Basel, bezogen ueber das Parkleitsystem ' +
+      'Basel (<a href="https://www.parkleitsystem-basel.ch" target="_blank">' +
+      'https://www.parkleitsystem-basel.ch</a>).<br></p> <p>Historische Daten sind ' +
+      'im folgenden Datensatz vorhanden: <a href="https://data.bs.ch/explore/dataset/100014/" ' +
+      'target="_blank">https://data.bs.ch/explore/dataset/100014/</a>. <br></p>'
+    expect(echt.length).toBeGreaterThan(BESCHREIBUNG_MAX_ZEICHEN)
+    const gekappt = kappeBeschreibung(echt)
+    expect(gekappt?.length).toBeLessThanOrEqual(BESCHREIBUNG_MAX_ZEICHEN)
   })
 })
