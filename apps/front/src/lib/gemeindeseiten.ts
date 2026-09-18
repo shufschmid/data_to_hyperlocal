@@ -31,11 +31,61 @@ export function bleibtAufDemTisch(
   return meldungStatus !== 'publiziert' && meldungStatus !== 'verworfen'
 }
 
-/** Newest first — by the day the municipality published, then by when we read it. */
-export function sortiere(eintraege: readonly GemeindemitteilungFelder[]): GemeindemitteilungFelder[] {
+/**
+ * Der Termin einer Zeile, oder null.
+ *
+ * Ueber `?? null`, weil eine Antwort das Feld auch weglassen kann — waehrend
+ * eines Rollouts oder aus einer aelteren Abfrage. `undefined !== null` haette
+ * jede Nachricht zum Termin ohne Datum gemacht.
+ */
+export function terminVon(eintrag: Pick<GemeindemitteilungFelder, 'veranstaltung_am'>): string | null {
+  return eintrag.veranstaltung_am ?? null
+}
+
+function tage(von: string, bis: string): number {
+  const ms = Date.parse(`${bis.slice(0, 10)}T00:00:00Z`) - Date.parse(`${von.slice(0, 10)}T00:00:00Z`)
+  return Number.isNaN(ms) ? 0 : Math.round(ms / 86_400_000)
+}
+
+/**
+ * Wie dringend eine Zeile ist: ihr Abstand zu heute, in Tagen.
+ *
+ * Nachrichten und Termine liegen auf verschiedenen Seiten von heute — die eine
+ * ist erschienen, der andere steht bevor —, und genau darum ist der Abstand
+ * das gemeinsame Mass. Die Meldung von heute und der Anlass von morgen stehen
+ * beieinander zuoberst, der Anlass in zehn Wochen und die Meldung von letzter
+ * Woche weiter unten. Ein zweiter Tisch waere die andere Antwort gewesen, und
+ * die Redaktion will keinen.
+ */
+export function dringlichkeit(eintrag: GemeindemitteilungFelder, heute: string): number {
+  const termin = terminVon(eintrag)
+  if (termin !== null) return tage(heute, termin)
+  const erschienen = eintrag.publiziert_am ?? eintrag.date_created
+  return erschienen === null ? Number.MAX_SAFE_INTEGER : tage(erschienen, heute)
+}
+
+/** Ein Termin, der stattgefunden hat — vom Tisch, wie alt die Zeile auch ist. */
+export function vorbei(eintrag: GemeindemitteilungFelder, heute: string): boolean {
+  const termin = terminVon(eintrag)
+  return termin !== null && termin < heute
+}
+
+/**
+ * Was als Naechstes dran ist, zuoberst. Ohne `heute` bleibt es beim alten
+ * Mass: die zuletzt publizierte Mitteilung zuerst.
+ */
+export function sortiere(
+  eintraege: readonly GemeindemitteilungFelder[],
+  heute: string | null = null
+): GemeindemitteilungFelder[] {
   return [...eintraege].sort((a, b) => {
-    const tag = (b.publiziert_am ?? '').localeCompare(a.publiziert_am ?? '')
-    if (tag !== 0) return tag
+    if (heute !== null) {
+      const nah = dringlichkeit(a, heute) - dringlichkeit(b, heute)
+      if (nah !== 0) return nah
+    } else {
+      const tag = (b.publiziert_am ?? '').localeCompare(a.publiziert_am ?? '')
+      if (tag !== 0) return tag
+    }
     return (b.date_created ?? '').localeCompare(a.date_created ?? '')
   })
 }
@@ -77,6 +127,8 @@ function alterInTagen(datum: string | null, heute: string): number | null {
  */
 export function abgelaufen(eintrag: GemeindemitteilungFelder, heute: string): boolean {
   if (eintrag.entscheid !== 'offen') return false
+  // Ein Termin verfaellt an seinem eigenen Tag, nicht mit dem Alter.
+  if (terminVon(eintrag) !== null) return vorbei(eintrag, heute)
   const alter = alterInTagen(eintrag.publiziert_am ?? eintrag.date_created, heute)
   if (alter === null) return false
   return eintrag.vorschlag === true ? alter >= VORSCHLAG_VERFALL_TAGE : alter >= AUFRAEUM_TAGE
@@ -101,7 +153,8 @@ export function tisch(
         bleibtAufDemTisch(e, meldungStatus.get(e.id) ?? null) &&
         passt(e, filter) &&
         (heute === null || !abgelaufen(e, heute))
-    )
+    ),
+    heute
   )
   return {
     vorschlaege: offen.filter((e) => e.vorschlag === true),
@@ -139,6 +192,11 @@ export function seitenLink(eintrag: Pick<GemeindemitteilungFelder, 'url' | 'url_
 /** Active municipalities without a registered news page — named, so an absence is never silence. */
 export function ohneNewsseite(gemeinden: readonly GemeindeFelder[]): GemeindeFelder[] {
   return gemeinden.filter((g) => g.aktiv && (g.news_url ?? '').trim() === '')
+}
+
+/** Dieselbe Aussage fuer die zweite Adresse: von hier kommen keine Veranstaltungen. */
+export function ohneVeranstaltungsseite(gemeinden: readonly GemeindeFelder[]): GemeindeFelder[] {
+  return gemeinden.filter((g) => g.aktiv && (g.veranstaltungen_url ?? '').trim() === '')
 }
 
 /** Municipalities whose last read failed — each with its own line on the desk. */

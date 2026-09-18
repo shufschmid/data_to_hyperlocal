@@ -66,6 +66,8 @@ export interface GemeindenAuswahlProps {
   onPlz?: (gemeindeId: string, plz: string[]) => Promise<void>
   /** The news page of the municipality's website; null clears it. */
   onNewsUrl?: (gemeindeId: string, url: string | null) => Promise<void>
+  /** The events page of the same website; null clears it. */
+  onVeranstaltungenUrl?: (gemeindeId: string, url: string | null) => Promise<void>
   laeuft?: boolean
   /** In Tests gesetzt. */
   jahr?: number
@@ -84,6 +86,7 @@ export function GemeindenAuswahl({
   onZumEntsorgungsTab,
   onPlz,
   onNewsUrl,
+  onVeranstaltungenUrl,
   laeuft = false,
   jahr
 }: GemeindenAuswahlProps) {
@@ -159,6 +162,7 @@ export function GemeindenAuswahl({
           {...(onZumEntsorgungsTab === undefined ? {} : { onZumEntsorgungsTab })}
           {...(onPlz === undefined ? {} : { onPlz })}
           {...(onNewsUrl === undefined ? {} : { onNewsUrl })}
+          {...(onVeranstaltungenUrl === undefined ? {} : { onVeranstaltungenUrl })}
         />
       ))}
 
@@ -229,6 +233,8 @@ interface KarteProps {
   onPlz?: (gemeindeId: string, plz: string[]) => Promise<void>
   /** The news page of the municipality's website; null clears it. */
   onNewsUrl?: (gemeindeId: string, url: string | null) => Promise<void>
+  /** The events page of the same website; null clears it. */
+  onVeranstaltungenUrl?: (gemeindeId: string, url: string | null) => Promise<void>
 }
 
 function GemeindeKarte({
@@ -244,11 +250,13 @@ function GemeindeKarte({
   onBlattAendern,
   onZumEntsorgungsTab,
   onPlz,
-  onNewsUrl
+  onNewsUrl,
+  onVeranstaltungenUrl
 }: KarteProps) {
   const statistikPortale = statistikPortaleFuer(gemeinde.bezirk, portale)
   const [plzEingabe, setPlzEingabe] = useState((gemeinde.plz ?? []).join(', '))
   const [urlEingabe, setUrlEingabe] = useState(gemeinde.news_url ?? '')
+  const [terminUrlEingabe, setTerminUrlEingabe] = useState(gemeinde.veranstaltungen_url ?? '')
 
   return (
     <Paper sx={{ p: 2 }}>
@@ -457,6 +465,50 @@ function GemeindeKarte({
                 disabled={laeuft}
                 onClick={() =>
                   void onNewsUrl(gemeinde.id, urlEingabe.trim() === '' ? null : urlEingabe.trim())
+                }
+              >
+                Speichern
+              </Button>
+            </Stack>
+          )}
+        </Abschnitt>
+
+        <Abschnitt titel="Veranstaltungen">
+          {(gemeinde.veranstaltungen_url ?? '') !== '' ? (
+            <Typography variant="body2" color="text.secondary">
+              Liest{' '}
+              <Link href={gemeinde.veranstaltungen_url ?? ''} target="_blank" rel="noopener">
+                {gemeinde.veranstaltungen_url}
+              </Link>{' '}
+              — im selben Lauf um 13 Uhr; aufgenommen wird, was in den nächsten 60 Tagen stattfindet. Termine
+              landen auf demselben Tisch wie die Mitteilungen.
+            </Typography>
+          ) : (
+            // Dieselbe Regel wie bei der Newsseite: ohne Adresse liest der
+            // Lauf nichts, und das sieht von aussen aus wie „diese Gemeinde
+            // hat nichts vor".
+            <Alert severity="info" sx={{ py: 0 }}>
+              Keine Veranstaltungsseite erfasst — von dieser Gemeinde kommen keine Veranstaltungen.
+            </Alert>
+          )}
+          {onVeranstaltungenUrl !== undefined && (
+            <Stack direction="row" spacing={1} sx={{ mt: 1, alignItems: 'flex-start' }}>
+              <TextField
+                size="small"
+                label="Adresse der Veranstaltungsübersicht"
+                placeholder="https://www.aesch.bl.ch/anlaesseaktuelles"
+                value={terminUrlEingabe}
+                onChange={(e) => setTerminUrlEingabe(e.target.value)}
+                sx={{ flex: 1 }}
+              />
+              <Button
+                size="small"
+                disabled={laeuft}
+                onClick={() =>
+                  void onVeranstaltungenUrl(
+                    gemeinde.id,
+                    terminUrlEingabe.trim() === '' ? null : terminUrlEingabe.trim()
+                  )
                 }
               >
                 Speichern

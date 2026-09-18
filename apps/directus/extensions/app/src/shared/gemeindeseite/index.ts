@@ -27,8 +27,10 @@ import type { Heute } from './datum'
 import { parseDetail, type DetailInhalt } from './detail'
 import {
   erkennePlattform,
+  listenArt,
   type DetailFamilie,
-  type Plattform
+  type Plattform,
+  type Seitenart
 } from './erkennung'
 import { parseListe, type ListenEintrag } from './liste'
 import {
@@ -480,16 +482,28 @@ export interface Uebersicht {
   transport: Transport
 }
 
+const ART_NAME: Record<Seitenart, string> = {
+  nachricht: 'Newsuebersicht',
+  termin: 'Veranstaltungsuebersicht'
+}
+
 /**
  * Reads ONE overview page and names its entries. An unrecognised layout or an
  * empty list is a loud error, never "nothing new" — that is the rule the
  * press-review reader set, and the reason a mistyped address fails the
  * registration form instead of becoming a row that errors every day.
+ *
+ * `erwartet` is what makes two addresses on one host safe: both pages belong
+ * to the same municipality and are read by the same run, so an events list
+ * pasted into the news field would otherwise look for months like a page that
+ * never has anything recent. The template says which kind it is, so the form
+ * can say so at once.
  */
 export async function leseUebersicht(
   leser: Leser,
   adresse: string,
-  heute: Heute
+  heute: Heute,
+  erwartet: Seitenart = 'nachricht'
 ): Promise<Uebersicht> {
   const site = new URL(adresse).hostname
   const seite = await leser.liesSeite(adresse, site)
@@ -501,7 +515,14 @@ export async function leseUebersicht(
   const plattform = erkennePlattform(seite.html)
   if (plattform === null) {
     throw new GemeindeseiteFehler(
-      'Seitenaufbau nicht erkannt (keine der bekannten Plattformen) — ist das die Newsuebersicht?',
+      `Seitenaufbau nicht erkannt (keine der bekannten Plattformen) — ist das die ${ART_NAME[erwartet]}?`,
+      adresse
+    )
+  }
+  const gefunden = listenArt(plattform)
+  if (gefunden !== erwartet) {
+    throw new GemeindeseiteFehler(
+      `Das ist die ${ART_NAME[gefunden]} dieser Gemeinde, erwartet war die ${ART_NAME[erwartet]}.`,
       adresse
     )
   }

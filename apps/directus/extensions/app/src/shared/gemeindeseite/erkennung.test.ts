@@ -4,7 +4,8 @@ import { describe, expect, it } from 'vitest'
 import {
   detailFamilie,
   erkenneDetailFamilie,
-  erkennePlattform
+  erkennePlattform,
+  listenArt
 } from './erkennung'
 
 const lies = (name: string): string =>
@@ -44,6 +45,48 @@ describe('erkennePlattform', () => {
     expect(detailFamilie('iweb_karten')).toBe('iweb')
     expect(detailFamilie('weblication')).toBe('weblication')
     expect(detailFamilie('backslash')).toBe('backslash')
+  })
+
+  // Measured on 18.09.2026 over the ten registered municipalities: no events
+  // page carries the template of its own news page. The four Weblication sites
+  // answer with the same Generator tag but a different list, and the i-web and
+  // Backslash sites are not recognised at all by the news fingerprints — which
+  // is why the events templates are values of their own and get checked first.
+  it('erkennt die drei Veranstaltungs-Vorlagen vor den Nachrichten-Vorlagen', () => {
+    expect(erkennePlattform(lies('allschwil-veranstaltungen.html'))).toBe(
+      'weblication_termine'
+    )
+    expect(erkennePlattform(lies('reinach-veranstaltungen.html'))).toBe(
+      'weblication_termine'
+    )
+    expect(erkennePlattform(lies('bottmingen-veranstaltungen.html'))).toBe(
+      'weblication_termine'
+    )
+    expect(erkennePlattform(lies('arlesheim-veranstaltungen.html'))).toBe(
+      'weblication_termine'
+    )
+    expect(erkennePlattform(lies('aesch-veranstaltungen.html'))).toBe(
+      'iweb_termine'
+    )
+    expect(erkennePlattform(lies('binningen-veranstaltungen.html'))).toBe(
+      'backslash_termine'
+    )
+  })
+
+  it('haelt Nachrichten- und Termin-Vorlagen auseinander', () => {
+    expect(listenArt('weblication')).toBe('nachricht')
+    expect(listenArt('iweb_tabelle')).toBe('nachricht')
+    expect(listenArt('iweb_karten')).toBe('nachricht')
+    expect(listenArt('backslash')).toBe('nachricht')
+    expect(listenArt('weblication_termine')).toBe('termin')
+    expect(listenArt('iweb_termine')).toBe('termin')
+    expect(listenArt('backslash_termine')).toBe('termin')
+  })
+
+  it('gibt einer Termin-Vorlage die Detail-Familie ihres Hauses', () => {
+    expect(detailFamilie('weblication_termine')).toBe('weblication')
+    expect(detailFamilie('iweb_termine')).toBe('iweb')
+    expect(detailFamilie('backslash_termine')).toBe('backslash')
   })
 
   it('erkennt die Familie auch an einer Detailseite allein', () => {

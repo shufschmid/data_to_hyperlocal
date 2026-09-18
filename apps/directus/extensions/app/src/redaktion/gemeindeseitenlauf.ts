@@ -19,6 +19,8 @@ import {
   parseSichtung,
   SICHTUNG_SCHEMA,
   SICHTUNG_SYSTEM_PROMPT,
+  sichtungsAuswahl,
+  VORBEI_BEGRUENDUNG,
   type AbfuhrTermin,
   type AufraeumZeile,
   type SichtungsZeile
@@ -54,7 +56,14 @@ export async function raeumeMitteilungenAuf(
 ): Promise<{ geloescht: number; verfallen: number }> {
   const offene = (await mitteilungen.readByQuery({
     filter: { entscheid: { _eq: 'offen' } },
-    fields: ['id', 'entscheid', 'vorschlag', 'publiziert_am', 'date_created'],
+    fields: [
+      'id',
+      'entscheid',
+      'vorschlag',
+      'publiziert_am',
+      'veranstaltung_am',
+      'date_created'
+    ],
     limit: -1
   })) as AufraeumZeile[]
 
@@ -131,6 +140,8 @@ export interface ZeileFuerSichtung {
   kategorie: string | null
   text_abgeschnitten: boolean
   anhaenge: ReadonlyArray<{ gelesen: boolean }> | null
+  /** Set on an events row; a past one is judged by code, never by the model. */
+  veranstaltung_am: string | null
 }
 
 export interface SichtungKontext {
@@ -181,7 +192,7 @@ export async function sichteMitteilungen(
       )
     : null
 
-  const zeilen: SichtungsZeile[] = neue.map((z) => ({
+  const alle: SichtungsZeile[] = neue.map((z) => ({
     id: z.id,
     titel: z.titel,
     auszug: auszugVon(z),
@@ -193,8 +204,29 @@ export async function sichteMitteilungen(
     abfuhr:
       kalender !== null && kalender.vorhanden && hatAbfuhrbezug(z)
         ? abfuhrAbgleich(z, kalender.termine, heute)
-        : null
+        : null,
+    veranstaltungAm: z.veranstaltung_am
   }))
+
+  // An event that has already happened is decided by code, not by the model:
+  // a date comparison needs no tokens, and the row still says on the desk why
+  // it is no proposal instead of showing an unjudged null.
+  const { zuBeurteilen: zeilen, vorbei } = sichtungsAuswahl(alle, kontext.heute)
+  for (const z of vorbei) {
+    try {
+      await kontext.mitteilungen.updateOne(z.id, {
+        vorschlag: false,
+        vorschlag_begruendung: VORBEI_BEGRUENDUNG
+      })
+    } catch (fehler) {
+      kontext.logger.warn(
+        fehler,
+        `gemeindeseiten: Vergangener Termin ${z.id} nicht vermerkt.`
+      )
+    }
+  }
+  if (zeilen.length === 0)
+    return { vorschlaege: 0, weitergereicht: 0, fehler: null }
 
   const signale = await ladeGemeindeSignale(
     {

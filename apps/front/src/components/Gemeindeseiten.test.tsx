@@ -12,6 +12,7 @@ function eintrag(ueber: Partial<GemeindemitteilungFelder> = {}): Gemeindemitteil
     titel: 'Aus der Gemeinderatssitzung vom 08. September 2026',
     teaser: 'Traktanden für die Gemeindeversammlung beschlossen.',
     publiziert_am: '2026-09-11',
+    veranstaltung_am: null,
     kategorie: 'politik_info',
     inhalt_typ: 'html',
     text: 'Der Gemeinderat hat die Traktanden beschlossen.\n\nWeiter wurde das Parkraumkonzept besprochen.',
@@ -40,6 +41,7 @@ function gemeinde(ueber: Partial<GemeindeFelder> = {}): GemeindeFelder {
     news_url: 'https://www.aesch.bl.ch/aktuellesinformationen',
     news_letzte_pruefung: '2026-09-14T11:00:00Z',
     news_letzter_fehler: null,
+    veranstaltungen_url: null,
     suedanflug: false,
     ...ueber
   }

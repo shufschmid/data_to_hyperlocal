@@ -1465,6 +1465,15 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
               await fuehreAus(`gemeinden/${id}/news-url`, { news_url: url })
               await gemeinden.refetch()
             }}
+            onVeranstaltungenUrl={async (id, url) => {
+              // Derselbe Endpunkt-Zwilling mit derselben Regel, und er prueft
+              // zusaetzlich, WELCHE der beiden Listen die Seite ist — eine
+              // vertauschte Adresse scheitert hier.
+              await fuehreAus(`gemeinden/${id}/veranstaltungen-url`, {
+                veranstaltungen_url: url
+              })
+              await gemeinden.refetch()
+            }}
           />
         </Stack>
       )}

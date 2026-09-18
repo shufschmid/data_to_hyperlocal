@@ -474,6 +474,12 @@ export interface GemeindeFelder {
    * feed; the card and the desk say so rather than showing nothing.
    */
   news_url: string | null
+  /**
+   * The events page of the SAME website — the second address the same 13:00
+   * run reads. Null means no events come from this municipality; the card says
+   * so rather than looking like a municipality with nothing on.
+   */
+  veranstaltungen_url: string | null
   news_letzte_pruefung: string | null
   /** Why the last read failed, in words — shown on the desk and the card. */
   news_letzter_fehler: string | null
@@ -499,6 +505,7 @@ export const GEMEINDEN_QUERY = gql`
       plz
       aktiv
       news_url
+      veranstaltungen_url
       news_letzte_pruefung
       news_letzter_fehler
       suedanflug
@@ -1343,6 +1350,12 @@ export interface GemeindemitteilungFelder {
   titel: string
   teaser: string | null
   publiziert_am: string | null
+  /**
+   * The day the event takes place — set only on a row from the events page.
+   * Never the same thing as `publiziert_am`: the Sichtung judges the event,
+   * the cleanup the publication.
+   */
+  veranstaltung_am: string | null
   kategorie: string | null
   /** `html`, or `pdf` when the list linked a document directly. */
   inhalt_typ: string
@@ -1379,6 +1392,7 @@ export const GEMEINDEMITTEILUNGEN_QUERY = gql`
       titel
       teaser
       publiziert_am
+      veranstaltung_am
       kategorie
       inhalt_typ
       text

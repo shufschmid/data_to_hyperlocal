@@ -18,6 +18,7 @@ function gemeinde(ueber: Partial<GemeindeFelder>): GemeindeFelder {
     news_url: null,
     news_letzte_pruefung: null,
     news_letzter_fehler: null,
+    veranstaltungen_url: null,
     suedanflug: false,
     aktiv: true,
     ...ueber
@@ -293,6 +294,56 @@ describe('GemeindenAuswahl', () => {
       bfs_nummer: 2473,
       bezirk: 'Dorneck (SO)'
     })
+  })
+
+  // Zwei Seiten derselben Website, zwei Felder: die Nachrichten sind
+  // vergangen, die Veranstaltungen liegen vor uns. Ohne die zweite Adresse
+  // bleibt die Gemeinde bei den Veranstaltungen still, und das soll die Karte
+  // sagen statt es auszusehen wie „diese Gemeinde hat nichts vor".
+  it('nennt die Veranstaltungsadresse, wo eine erfasst ist', () => {
+    render(
+      <GemeindenAuswahl
+        gemeinden={[
+          gemeinde({
+            id: 'a',
+            name: 'Aesch',
+            veranstaltungen_url: 'https://www.aesch.bl.ch/anlaesseaktuelles'
+          })
+        ]}
+        onUmschalten={jest.fn()}
+      />
+    )
+
+    expect(
+      screen.getByRole('link', { name: 'https://www.aesch.bl.ch/anlaesseaktuelles' })
+    ).toBeInTheDocument()
+    expect(screen.getByText(/60 Tagen/)).toBeInTheDocument()
+  })
+
+  it('sagt es, wenn keine Veranstaltungsadresse erfasst ist', () => {
+    render(<GemeindenAuswahl gemeinden={[gemeinde({ id: 'a', name: 'Aesch' })]} onUmschalten={jest.fn()} />)
+
+    expect(screen.getByText(/keine Veranstaltungen/i)).toBeInTheDocument()
+  })
+
+  it('reicht die zweite Adresse an ihren eigenen Endpunkt weiter', async () => {
+    const onVeranstaltungenUrl = jest.fn().mockResolvedValue(undefined)
+    render(
+      <GemeindenAuswahl
+        gemeinden={[gemeinde({ id: 'a', name: 'Aesch' })]}
+        onUmschalten={jest.fn()}
+        onVeranstaltungenUrl={onVeranstaltungenUrl}
+      />
+    )
+
+    await userEvent.type(
+      screen.getByLabelText('Adresse der Veranstaltungsübersicht'),
+      'https://www.aesch.bl.ch/anlaesseaktuelles'
+    )
+    // Ohne onNewsUrl und onPlz gibt es genau eine Speichern-Schaltflaeche.
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }))
+
+    expect(onVeranstaltungenUrl).toHaveBeenCalledWith('a', 'https://www.aesch.bl.ch/anlaesseaktuelles')
   })
 
   // Die Hauptgemeinde ist der Anker des Blatts (unique m2o) — sie hier zu

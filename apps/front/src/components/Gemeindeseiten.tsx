@@ -27,10 +27,12 @@ import {
   ABLEHNUNGSGRUENDE,
   anhangHinweis,
   datumText,
+  terminVon,
   laufText,
   lesefehler,
   meldungJeMitteilung,
   ohneNewsseite,
+  ohneVeranstaltungsseite,
   seitenLink,
   tisch,
   zeitpunktText,
@@ -99,6 +101,7 @@ export function Gemeindeseiten({
     [eintraege, filter, statusJeMitteilung, heute]
   )
   const fehlende = useMemo(() => ohneNewsseite(gemeinden), [gemeinden])
+  const ohneTermine = useMemo(() => ohneVeranstaltungsseite(gemeinden), [gemeinden])
   const gestoerte = useMemo(() => lesefehler(gemeinden), [gemeinden])
   const aktive = useMemo(() => gemeinden.filter((g) => g.aktiv), [gemeinden])
   const unterwegs = lauf?.laeuft === true
@@ -147,9 +150,13 @@ export function Gemeindeseiten({
 
           <Typography variant="body2" color="text.secondary">
             {[
-              eintrag.publiziert_am === null
-                ? 'ohne Datum'
-                : `Mitteilung vom ${datumText(eintrag.publiziert_am)}`,
+              // Termin oder Mitteilung: die Zeile sagt, welches der beiden
+              // Daten sie traegt, weil die Redaktion sie nie verwechseln darf.
+              terminVon(eintrag) !== null
+                ? `Termin am ${datumText(terminVon(eintrag))}`
+                : eintrag.publiziert_am === null
+                  ? 'ohne Datum'
+                  : `Mitteilung vom ${datumText(eintrag.publiziert_am)}`,
               ...hinweise
             ].join(' · ')}
           </Typography>
@@ -170,7 +177,10 @@ export function Gemeindeseiten({
               variant="body2"
               sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
             >
-              <ArticleOutlined fontSize="inherit" /> Mitteilung auf der Gemeindeseite
+              <ArticleOutlined fontSize="inherit" />{' '}
+              {terminVon(eintrag) === null
+                ? 'Mitteilung auf der Gemeindeseite'
+                : 'Veranstaltung auf der Gemeindeseite'}
             </Link>
             {anhaenge.map((a) => (
               <Link
@@ -306,6 +316,25 @@ export function Gemeindeseiten({
         >
           Ohne Newsseite kommen keine Mitteilungen: {fehlende.map((g) => g.name).join(', ')}. Die Adresse der
           Newsübersicht steht in der Gemeinde-Karte.
+        </Alert>
+      )}
+
+      {/* Dieselbe Aussage fuer die zweite Adresse. Eine Gemeinde ohne
+          Veranstaltungsseite sieht sonst aus wie eine Gemeinde, in der nichts
+          stattfindet. */}
+      {ohneTermine.length > 0 && (
+        <Alert
+          severity="info"
+          action={
+            onZuGemeinden !== undefined ? (
+              <Button color="inherit" size="small" onClick={onZuGemeinden}>
+                Zu den Gemeinden
+              </Button>
+            ) : undefined
+          }
+        >
+          Ohne Veranstaltungsseite kommen keine Termine: {ohneTermine.map((g) => g.name).join(', ')}. Die
+          Adresse der Veranstaltungsübersicht steht in der Gemeinde-Karte.
         </Alert>
       )}
 

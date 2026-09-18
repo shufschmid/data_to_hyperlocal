@@ -23,8 +23,19 @@ export interface ListenEintrag {
   url: string
   titel: string
   teaser: string | null
-  /** ISO date, or null when the list prints none we can trust. */
+  /** ISO date the item was PUBLISHED, or null when the list prints none we can trust. */
   datum: string | null
+  /**
+   * ISO date the event TAKES PLACE — only on an events list, null on a news
+   * list. The two are never the same thing and never share a column: the
+   * Sichtung judges the event, the cleanup the publication.
+   *
+   * The start day only. Where a list prints a span ("8. Februar – 6. Dezember")
+   * the start is what makes it news; a standing arrangement that began months
+   * ago falls outside the forward window by itself, which is the wanted
+   * behaviour rather than a gap.
+   */
+  veranstaltungAm: string | null
   /** `kalender`: month + day badge, year inferred — a full date on the detail page beats it. */
   datumQuelle: 'liste' | 'kalender' | null
   /** i-web's `_kategorieId` (news, politik_info, wahlergebnisse); other templates have none. */
@@ -33,7 +44,17 @@ export interface ListenEintrag {
   direktPdf: boolean
 }
 
-const ANKER = /<a\b[^>]*\bhref="([^"]+)"[^>]*>([\s\S]*?)<\/a\s*>/i
+// Both quote styles on purpose: the news templates write `class="…"`, and
+// Weblication's event index writes `class='…'` and `href='…'` throughout.
+// One pair of helpers reads both rather than a second pair for the second
+// kind of list.
+const ANKER = /<a\b[^>]*\bhref=(["'])([^"']+)\1[^>]*>([\s\S]*?)<\/a\s*>/i
+
+function ersterAnker(html: string): { href: string; inhalt: string } | null {
+  const treffer = ANKER.exec(html)
+  if (treffer === null) return null
+  return { href: treffer[2] ?? '', inhalt: treffer[3] ?? '' }
+}
 
 function klassenElement(
   html: string,
@@ -41,22 +62,29 @@ function klassenElement(
   tags = '[a-z][a-z0-9]*'
 ): string | null {
   const muster = new RegExp(
-    `<(${tags})\\b[^>]*\\bclass="[^"]*\\b${klasse}\\b[^"]*"[^>]*>([\\s\\S]*?)<\\/\\1\\s*>`,
+    `<(${tags})\\b[^>]*\\bclass=(["'])[^"']*\\b${klasse}\\b[^"']*\\2[^>]*>([\\s\\S]*?)<\\/\\1\\s*>`,
     'i'
   )
-  return muster.exec(html)?.[2] ?? null
+  return muster.exec(html)?.[3] ?? null
 }
 
 function eintrag(
   href: string | null,
   titel: string,
-  teil: Omit<ListenEintrag, 'url' | 'titel' | 'direktPdf'>,
+  teil: Omit<ListenEintrag, 'url' | 'titel' | 'direktPdf' | 'veranstaltungAm'> &
+    Partial<Pick<ListenEintrag, 'veranstaltungAm'>>,
   seiteUrl: string
 ): ListenEintrag | null {
   if (href === null || titel === '') return null
   const url = normalisiereUrl(href, seiteUrl)
   if (url === null || !gleicheSite(url, seiteUrl)) return null
-  return { url, titel, direktPdf: istPdfAdresse(url), ...teil }
+  return {
+    url,
+    titel,
+    direktPdf: istPdfAdresse(url),
+    veranstaltungAm: null,
+    ...teil
+  }
 }
 
 /**
@@ -85,9 +113,9 @@ export function parseWeblicationListe(
         ''
       )
 
-    const anker = ANKER.exec(titelHtml) ?? ANKER.exec(innen)
-    const href = anker?.[1] ?? /\bdata-url="([^"]+)"/i.exec(li)?.[1] ?? null
-    const titel = reinerText(anker?.[2] ?? titelHtml)
+    const anker = ersterAnker(titelHtml) ?? ersterAnker(innen)
+    const href = anker?.href ?? /\bdata-url="([^"]+)"/i.exec(li)?.[1] ?? null
+    const titel = reinerText(anker?.inhalt ?? titelHtml)
 
     let datum: string | null = null
     let datumQuelle: ListenEintrag['datumQuelle'] = null
@@ -163,8 +191,8 @@ export function parseIwebTabelle(
   const eintraege: ListenEintrag[] = []
   for (const zeile of zeilen) {
     const name = typeof zeile.name === 'string' ? zeile.name : ''
-    const anker = ANKER.exec(name)
-    const titel = reinerText(anker?.[2] ?? name)
+    const anker = ersterAnker(name)
+    const titel = reinerText(anker?.inhalt ?? name)
 
     let datum =
       typeof zeile.datum === 'string' ? parseDatum(zeile.datum, heute) : null
@@ -178,7 +206,7 @@ export function parseIwebTabelle(
         : null
 
     const e = eintrag(
-      anker?.[1] ?? null,
+      anker?.href ?? null,
       titel,
       {
         teaser: null,
@@ -217,12 +245,12 @@ export function parseIwebKarten(
   for (const treffer of html.matchAll(muster)) {
     const karte = treffer[1] ?? ''
     const titelHtml = klassenElement(karte, 'card-title') ?? ''
-    const anker = ANKER.exec(titelHtml)
+    const anker = ersterAnker(titelHtml)
     const teaserHtml = klassenElement(karte, 'card-text', 'p')
     const datum = datumAusTime(karte, heute)
     const e = eintrag(
-      anker?.[1] ?? null,
-      reinerText(anker?.[2] ?? titelHtml),
+      anker?.href ?? null,
+      reinerText(anker?.inhalt ?? titelHtml),
       {
         teaser: teaserHtml === null ? null : reinerText(teaserHtml) || null,
         datum,
@@ -248,12 +276,12 @@ export function parseBackslashListe(
   for (const treffer of html.matchAll(muster)) {
     const li = treffer[1] ?? ''
     const titelHtml = klassenElement(li, 'mod-entry-title') ?? ''
-    const anker = ANKER.exec(titelHtml)
+    const anker = ersterAnker(titelHtml)
     const teaserHtml = klassenElement(li, 'mod-entry-desc', 'p')
     const datum = datumAusTime(li, heute)
     const e = eintrag(
-      anker?.[1] ?? null,
-      reinerText(anker?.[2] ?? titelHtml),
+      anker?.href ?? null,
+      reinerText(anker?.inhalt ?? titelHtml),
       {
         teaser: teaserHtml === null ? null : reinerText(teaserHtml) || null,
         datum,
@@ -265,6 +293,177 @@ export function parseBackslashListe(
     if (e !== null) eintraege.push(e)
   }
   return eintraege
+}
+
+// ---------------------------------------------------------------------------
+// The events lists — same three houses, a date that lies ahead
+// ---------------------------------------------------------------------------
+
+/** How much of an entry rides along as the teaser: time and place, where printed. */
+const TERMIN_ANRISS_MAX = 240
+
+function anriss(text: string): string | null {
+  const sauber = text.replace(/\s+/g, ' ').trim()
+  if (sauber === '') return null
+  return sauber.length <= TERMIN_ANRISS_MAX
+    ? sauber
+    : `${sauber.slice(0, TERMIN_ANRISS_MAX).trimEnd()} …`
+}
+
+/**
+ * Weblication's event index, `#indexUL` with one `li.indexLI` per event.
+ *
+ * Measured on four sites, and they print the same list four ways: the date in
+ * a `span.listEntryDate` (Allschwil, Arlesheim), in a `div.fullDate`
+ * (Bottmingen) or as bare text at the head of the row (Reinach); the title in
+ * a `<b>` inside the link (Allschwil, Reinach), in an `h3.listEntryTitle`
+ * inside the link next to the date span (Arlesheim) or in an `h3` the link
+ * merely wraps (Bottmingen). So the date is looked for in that order and the
+ * title in this one, rather than one parser per municipality — the newsroom's
+ * rule that a rule holds for a KIND of page.
+ *
+ * Bottmingen also prints a month-and-day badge with no year, and it is
+ * deliberately never read: `parseDatum` wants a year, and the full date is
+ * printed right next to it on the same row.
+ */
+export function parseWeblicationTermine(
+  html: string,
+  seiteUrl: string,
+  heute: Heute
+): ListenEintrag[] {
+  const eintraege: ListenEintrag[] = []
+  const muster =
+    /<li\b[^>]*\bclass=['"][^'"]*\bindexLI\b[^'"]*['"][^>]*>([\s\S]*?)<\/li\s*>/gi
+  for (const treffer of html.matchAll(muster)) {
+    // The iCal button is an anchor too, and on two of the sites it comes
+    // first — it goes before anything else is looked for.
+    const innen = (treffer[1] ?? '').replace(
+      /<div\b[^>]*\bclass=['"][^'"]*\bformWorkEntryButtons\b[\s\S]*?<\/div\s*>/gi,
+      ''
+    )
+
+    const datumSpan = klassenElement(innen, 'listEntryDate', 'span')
+    const vollDatum = klassenElement(innen, 'fullDate', 'div')
+    const termin =
+      parseDatum(reinerText(datumSpan ?? ''), heute) ??
+      parseDatum(reinerText(vollDatum ?? ''), heute) ??
+      parseDatum(reinerText(innen), heute)
+
+    const anker = ersterAnker(innen)
+    const ankerInhalt = anker?.inhalt ?? ''
+    const titelElement =
+      klassenElement(ankerInhalt, 'listEntryTitle') ??
+      klassenElement(innen, 'listEntryTitle')
+    const fett = /<b\b[^>]*>([\s\S]*?)<\/b\s*>/i.exec(ankerInhalt)?.[1] ?? null
+    const titelHtml = (titelElement ?? fett ?? ankerInhalt).replace(
+      /<span\b[^>]*\blistEntryDate\b[\s\S]*?<\/span\s*>/i,
+      ''
+    )
+    const titel = reinerText(titelHtml)
+
+    const rest = reinerText(innen).replace(titel, ' ')
+    const e = eintrag(
+      anker?.href ?? null,
+      titel,
+      {
+        teaser: anriss(rest),
+        datum: null,
+        datumQuelle: null,
+        kategorie: null,
+        veranstaltungAm: termin
+      },
+      seiteUrl
+    )
+    if (e !== null) eintraege.push(e)
+  }
+  return eintraege
+}
+
+interface IwebTerminZeile {
+  name?: unknown
+  lokalitaet?: unknown
+  ort?: unknown
+  organisator?: unknown
+  _datumVon?: unknown
+}
+
+/**
+ * i-web's event calendar: the same DataTables attribute as the news table,
+ * on `#anlassList` instead of `#informationList`, and with the dates already
+ * as ISO in `_datumVon`. The whole year rides in it — the forward window is
+ * what keeps December out of September's desk.
+ */
+export function parseIwebTermine(
+  html: string,
+  seiteUrl: string,
+  heute: Heute
+): ListenEintrag[] {
+  const tabelle = /\bid="anlassList"[\s\S]*?data-entities="([^"]*)"/i.exec(html)
+  if (tabelle === null) return []
+
+  let zeilen: IwebTerminZeile[]
+  try {
+    const json = JSON.parse(decodeEntities(tabelle[1] ?? '')) as {
+      data?: unknown
+    }
+    zeilen = Array.isArray(json.data) ? (json.data as IwebTerminZeile[]) : []
+  } catch {
+    return []
+  }
+
+  const text = (wert: unknown): string =>
+    typeof wert === 'string' ? reinerText(wert) : ''
+
+  const eintraege: ListenEintrag[] = []
+  for (const zeile of zeilen) {
+    const name = typeof zeile.name === 'string' ? zeile.name : ''
+    const anker = ersterAnker(name)
+    const termin =
+      typeof zeile._datumVon === 'string'
+        ? parseDatum(zeile._datumVon, heute)
+        : null
+    const ort = [text(zeile.lokalitaet), text(zeile.ort)]
+      .filter((t) => t !== '')
+      .join(', ')
+    const veranstalter = text(zeile.organisator)
+
+    const e = eintrag(
+      anker?.href ?? null,
+      reinerText(anker?.inhalt ?? name),
+      {
+        teaser: anriss(
+          [ort, veranstalter === '' ? '' : `Veranstalter: ${veranstalter}`]
+            .filter((t) => t !== '')
+            .join(' · ')
+        ),
+        datum: null,
+        datumQuelle: null,
+        kategorie: null,
+        veranstaltungAm: termin
+      },
+      seiteUrl
+    )
+    if (e !== null) eintraege.push(e)
+  }
+  return eintraege
+}
+
+/**
+ * Backslash prints hCalendar: the same `li.mod-entry` rows as its news list,
+ * so the news parser reads them — only its date means something else. The
+ * first `<time>` of a row is `dtstart`, and that is the event's day.
+ */
+export function parseBackslashTermine(
+  html: string,
+  seiteUrl: string,
+  heute: Heute
+): ListenEintrag[] {
+  return parseBackslashListe(html, seiteUrl, heute).map((e) => ({
+    ...e,
+    datum: null,
+    datumQuelle: null,
+    veranstaltungAm: e.datum
+  }))
 }
 
 /** How many same-day list dates it takes before a date column is distrusted. */
@@ -284,14 +483,19 @@ export function parseListe(
   seiteUrl: string,
   heute: Heute
 ): ListenEintrag[] {
-  const roh =
-    plattform === 'weblication'
-      ? parseWeblicationListe(html, seiteUrl, heute)
-      : plattform === 'iweb_tabelle'
-        ? parseIwebTabelle(html, seiteUrl, heute)
-        : plattform === 'iweb_karten'
-          ? parseIwebKarten(html, seiteUrl, heute)
-          : parseBackslashListe(html, seiteUrl, heute)
+  const parser: Record<
+    Plattform,
+    (h: string, u: string, t: Heute) => ListenEintrag[]
+  > = {
+    weblication: parseWeblicationListe,
+    iweb_tabelle: parseIwebTabelle,
+    iweb_karten: parseIwebKarten,
+    backslash: parseBackslashListe,
+    weblication_termine: parseWeblicationTermine,
+    iweb_termine: parseIwebTermine,
+    backslash_termine: parseBackslashTermine
+  }
+  const roh = parser[plattform](html, seiteUrl, heute)
 
   const gesehen = new Set<string>()
   const eintraege = roh.filter((e) => {

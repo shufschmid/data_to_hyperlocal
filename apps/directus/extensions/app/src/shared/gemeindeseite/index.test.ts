@@ -336,6 +336,42 @@ describe('leseUebersicht', () => {
     })
   })
 
+  // The registration form is where a swapped address has to fail: both pages
+  // sit on the same host and both are read by the same run, so an events list
+  // in the news field would otherwise look like a page that simply never has
+  // anything recent.
+  it('weist eine Terminliste ab, wo eine Nachrichtenliste erwartet wird', async () => {
+    const TERMINE =
+      '<html><body><ul id="indexUL"><li class="  indexLI"><span class="listEntryDate">20.10.2026 | 18:00 Uhr</span>' +
+      '<br/><a href="/de/veranstaltungen/detail.php?i=1"><b>Einwohnerratssitzung</b></a>' +
+      '<a class="icalLink" href="/de/veranstaltungen/ical.php?i=1">i</a></li></ul></body></html>'
+    const stub = stubFetch({
+      [ROBOTS]: { status: 404 },
+      [SEITE]: { body: TERMINE }
+    })
+    const { l } = leser(stub)
+    await expect(leseUebersicht(l, SEITE, heute, 'nachricht')).rejects.toThrow(
+      /Veranstaltungsuebersicht/
+    )
+    const uebersicht = await leseUebersicht(l, SEITE, heute, 'termin')
+    expect(uebersicht.plattform).toBe('weblication_termine')
+    expect(uebersicht.eintraege[0]).toMatchObject({
+      titel: 'Einwohnerratssitzung',
+      veranstaltungAm: '2026-10-20',
+      datum: null
+    })
+  })
+
+  it('weist umgekehrt eine Nachrichtenliste ab, wo Termine erwartet werden', async () => {
+    const stub = stubFetch({
+      [ROBOTS]: { status: 404 },
+      [SEITE]: { body: BACKSLASH }
+    })
+    await expect(
+      leseUebersicht(leser(stub).l, SEITE, heute, 'termin')
+    ).rejects.toThrow(/Newsuebersicht/)
+  })
+
   it('eine unbekannte Vorlage und eine leere Liste sind laute Fehler, nie "nichts Neues"', async () => {
     const stub = stubFetch({
       [ROBOTS]: { status: 404 },
@@ -368,7 +404,8 @@ describe('liesMitteilung', () => {
     datum: '2026-09-10',
     datumQuelle: 'liste' as const,
     kategorie: null,
-    direktPdf: false
+    direktPdf: false,
+    veranstaltungAm: null
   }
   const pdfText = async (daten: Buffer) => ({
     text: `Inhalt von ${daten.toString('utf8').replace('%PDF-', '')}`,

@@ -4,7 +4,7 @@
 
 import { verschiebe } from '../../redaktion/feiertage'
 import type { DetailInhalt } from './detail'
-import type { Plattform } from './erkennung'
+import { listenArt, type Plattform, type Seitenart } from './erkennung'
 import type { ListenEintrag } from './liste'
 import { kappe, TEXT_MAX_ZEICHEN } from './text'
 
@@ -54,6 +54,45 @@ export function kandidaten(
   return { drin, undatiert }
 }
 
+/**
+ * How far ahead the events window reaches.
+ *
+ * Two months is what a municipal events list actually talks about: measured on
+ * 18.09.2026, Binningen's page carried 201 entries for the whole year and
+ * Aesch's 21 into December, so without an upper bound a single first read
+ * would put December's Christmas market on September's desk and let it lie
+ * there for three months. Sixty days is long enough that a registration
+ * deadline or an Einwohnerratssitzung is still worth writing about, and short
+ * enough that the desk stays a desk.
+ */
+export const VERANSTALTUNGS_FENSTER_TAGE = 60
+
+/**
+ * The events window, and the one thing the events page really does
+ * differently: it runs FORWARD. A news item is past and the question is how
+ * old it is; an event lies ahead and the question is how far. An event that
+ * has taken place is no longer news, so it never enters — the inversion of
+ * `kandidaten`, and the reason the two are separate functions rather than one
+ * with a flag.
+ *
+ * Undated entries are counted and named, exactly as on the news side.
+ */
+export function terminKandidaten(
+  eintraege: readonly ListenEintrag[],
+  heute: string,
+  tage = VERANSTALTUNGS_FENSTER_TAGE
+): { drin: ListenEintrag[]; undatiert: ListenEintrag[] } {
+  const bis = verschiebe(heute, tage)
+  const drin: ListenEintrag[] = []
+  const undatiert: ListenEintrag[] = []
+  for (const e of eintraege) {
+    if (e.veranstaltungAm === null) undatiert.push(e)
+    else if (e.veranstaltungAm >= heute && e.veranstaltungAm <= bis)
+      drin.push(e)
+  }
+  return { drin, undatiert }
+}
+
 /** How many undated entries the status line names before it counts the rest. */
 const GENANNTE_UNDATIERTE = 3
 
@@ -73,16 +112,24 @@ export function ohneDatumHinweis(undatiert: readonly ListenEintrag[]): string {
   return `Kein Eintrag trägt ein erkennbares Datum — nichts gelesen: ${titel}${rest > 0 ? ` (+${rest} weitere)` : ''}`
 }
 
-/** Newest first, undated last, at most `deckel` — the rest is counted, not forgotten. */
+/**
+ * Newest first, undated last, at most `deckel` — the rest is counted, not
+ * forgotten. For events the order turns round with the window: soonest first,
+ * because the cap should bite on December and never on next Saturday.
+ */
 export function waehleZuLesen(
   neue: readonly ListenEintrag[],
-  deckel = DETAILS_JE_HOST
+  deckel = DETAILS_JE_HOST,
+  art: Seitenart = 'nachricht'
 ): { zuLesen: ListenEintrag[]; nichtGelesen: number } {
+  const tag = (e: ListenEintrag): string | null =>
+    art === 'termin' ? e.veranstaltungAm : e.datum
   const sortiert = [...neue].sort((a, b) => {
-    if (a.datum === null && b.datum === null) return 0
-    if (a.datum === null) return 1
-    if (b.datum === null) return -1
-    return b.datum.localeCompare(a.datum)
+    const [x, y] = [tag(a), tag(b)]
+    if (x === null && y === null) return 0
+    if (x === null) return 1
+    if (y === null) return -1
+    return art === 'termin' ? x.localeCompare(y) : y.localeCompare(x)
   })
   return {
     zuLesen: sortiert.slice(0, deckel),
@@ -139,6 +186,8 @@ export interface MitteilungsZeile {
   titel: string
   teaser: string | null
   publiziert_am: string | null
+  /** The day the event takes place — set on an events row, null on a news row. */
+  veranstaltung_am: string | null
   kategorie: string | null
   inhalt_typ: 'html' | 'pdf'
   text: string | null
@@ -176,11 +225,22 @@ export function zeileAus(eingabe: ZeilenEingabe): MitteilungsZeile {
   if (gekappt.abgeschnitten) hinweise.push('Text gekürzt')
   if (gekappt.text === '') hinweise.push('Kein Text gefunden')
 
-  const { datum, quelle } = bestimmeDatum(eintrag, detail?.datum ?? null)
+  // A Termin's two dates never merge. Measured on all six events pages: not
+  // one prints when the entry was published, and the detail page prints the
+  // event's own day — so reading a detail date as a publication date would
+  // quietly make the event date do both jobs, and the cleanup would then
+  // retire a row by the day it happens rather than by the day it was posted.
+  // The row says so instead of leaving the column empty without a word.
+  const istTermin = listenArt(eingabe.plattform) === 'termin'
+  const { datum, quelle } = istTermin
+    ? { datum: null, quelle: 'keins' as DatumQuelle }
+    : bestimmeDatum(eintrag, detail?.datum ?? null)
+  if (istTermin)
+    hinweise.push('Veranstaltung — die Seite nennt kein Publikationsdatum')
   if (quelle === 'kalender')
     hinweise.push('Datum aus Kalender ohne Jahresangabe abgeleitet')
   if (quelle === 'detail') hinweise.push('Datum von der Detailseite übernommen')
-  if (quelle === 'keins') hinweise.push('Kein Datum gefunden')
+  if (!istTermin && quelle === 'keins') hinweise.push('Kein Datum gefunden')
 
   if (pdf !== null) hinweise.push('Direkt verlinktes PDF – Text aus dem PDF')
   if (detail?.verfahren === 'generisch')
@@ -202,6 +262,7 @@ export function zeileAus(eingabe: ZeilenEingabe): MitteilungsZeile {
     titel: detail?.titel ?? eintrag.titel,
     teaser: eintrag.teaser ?? detail?.lead ?? null,
     publiziert_am: datum,
+    veranstaltung_am: eintrag.veranstaltungAm,
     kategorie: eintrag.kategorie,
     inhalt_typ: pdf !== null ? 'pdf' : 'html',
     text: gekappt.text === '' ? null : gekappt.text,

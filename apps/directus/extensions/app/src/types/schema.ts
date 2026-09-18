@@ -59,6 +59,16 @@ export interface Gemeinde {
    * is Binningen and Allschwil, but that is a person's entry, not a deploy's.
    */
   suedanflug: boolean
+  /**
+   * The events page of the same website — the SECOND address the Gemeindeseiten
+   * feed reads, in the same 13:00 pass and on the same host.
+   *
+   * It is not a second source but a second page of the one the feed already
+   * reads, and it needs its own column because it is a different KIND of list:
+   * its dates lie ahead, so the window runs forward. Null means no events come
+   * from this municipality.
+   */
+  veranstaltungen_url: string | null
   date_created: string | null
   date_updated: string | null
 }

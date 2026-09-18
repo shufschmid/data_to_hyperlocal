@@ -178,21 +178,31 @@ schlimmer als die Lücke.
 
 ### Rubrik und Quelle je Art
 
-| `rubrik`      | Woher der Beitrag kommt                                    | `quelle_name`                        | `quelle_url`                                                                                           |
-| ------------- | ---------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| `statistik`   | Datensatz von data.bl.ch / statistik.bl.ch                 | „Statistisches Amt Basel-Landschaft" | der Webartikel des Amtes, sonst die Datensatzseite                                                     |
-| `statistik`   | Südanflug-Quote des EuroAirport (ILS-33-Nutzungsstatistik) | „EuroAirport"                        | das Monats-PDF der Statistik                                                                           |
-| `sport`       | Spielresultat eines Vereins                                | „Match-Center"                       | **null** — es gibt keine stabile Adresse für ein einzelnes Spiel (die Tagesseite des Verbands rotiert) |
-| `entsorgung`  | Abfuhrkalender der Gemeinde                                | „Abfuhrkalender ‹Gemeinde› ‹Jahr›"   | die PDF-Adresse der Registrierung, sonst null                                                          |
-| `amtsblatt`   | Amtsblattportal (kantonal / SHAB)                          | das publizierende Amt                | das amtliche PDF                                                                                       |
-| `beschaffung` | öffentliche Beschaffung auf simap.ch                       | „simap.ch"                           | die Projektseite                                                                                       |
-| `gemeinde`    | Mitteilung auf der offiziellen Website der Gemeinde        | „Gemeinde ‹Name›"                    | die Unterseite, auf der die Mitteilung steht                                                           |
-| `presseschau` | Wochenblatt-Beitrag                                        | der Name des Blattes                 | die Seite im PDF bzw. im issuu-Reader                                                                  |
-| `sendung`     | Regionaljournal / punkt6                                   | der Sendungsname                     | Deeplink mit Zeitmarke (`#t=` bzw. `?t=`)                                                              |
-| `null`        | kommt heute nicht vor — ehrlicher als eine geratene Rubrik | null                                 | null                                                                                                   |
+| `rubrik`      | Woher der Beitrag kommt                                                | `quelle_name`                        | `quelle_url`                                                                                           |
+| ------------- | ---------------------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| `statistik`   | Datensatz von data.bl.ch / statistik.bl.ch                             | „Statistisches Amt Basel-Landschaft" | der Webartikel des Amtes, sonst die Datensatzseite                                                     |
+| `statistik`   | Südanflug-Quote des EuroAirport (ILS-33-Nutzungsstatistik)             | „EuroAirport"                        | das Monats-PDF der Statistik                                                                           |
+| `sport`       | Spielresultat eines Vereins                                            | „Match-Center"                       | **null** — es gibt keine stabile Adresse für ein einzelnes Spiel (die Tagesseite des Verbands rotiert) |
+| `entsorgung`  | Abfuhrkalender der Gemeinde                                            | „Abfuhrkalender ‹Gemeinde› ‹Jahr›"   | die PDF-Adresse der Registrierung, sonst null                                                          |
+| `amtsblatt`   | Amtsblattportal (kantonal / SHAB)                                      | das publizierende Amt                | das amtliche PDF                                                                                       |
+| `beschaffung` | öffentliche Beschaffung auf simap.ch                                   | „simap.ch"                           | die Projektseite                                                                                       |
+| `gemeinde`    | Mitteilung ODER Veranstaltung auf der offiziellen Website der Gemeinde | „Gemeinde ‹Name›"                    | die Unterseite, auf der die Mitteilung oder die Veranstaltung steht                                    |
+| `presseschau` | Wochenblatt-Beitrag                                                    | der Name des Blattes                 | die Seite im PDF bzw. im issuu-Reader                                                                  |
+| `sendung`     | Regionaljournal / punkt6                                               | der Sendungsname                     | Deeplink mit Zeitmarke (`#t=` bzw. `?t=`)                                                              |
+| `null`        | kommt heute nicht vor — ehrlicher als eine geratene Rubrik             | null                                 | null                                                                                                   |
 
 `quelle_url: null` ist eine echte Antwort, keine Lücke: besser keine Adresse als
 eine erfundene.
+
+**Veranstaltungen sind kein eigener Weg und kein eigenes Feld.** Seit dem 18. September 2026 liest die Redaktion je Gemeinde auch deren
+Veranstaltungsseite. Was daraus entsteht, ist eine Meldung wie jede andere:
+Rubrik `gemeinde`, `quelle_url` die Seite der Veranstaltung, und der Termin
+steht ABSOLUT im Text („am 13. Oktober 2026"), weil die Fünf-Jahre-Regel auch
+für Termine gilt. Ein Feld, das den Termin vom Text unterscheidbar machte,
+wurde bewusst NICHT erfunden: kein Abnehmer hat danach gefragt, und ein Datum,
+das ein Programm zurückrechnet, ist genau der Fehler, den die absolute
+Schreibweise verhindert. Wer es braucht, meldet sich, dann kommt es mit einer
+Versionszahl.
 
 **`statistik` steht zweimal in der Tabelle, und das ist Absicht.** Seit dem 17. September 2026 kommt eine zweite Art Statistik-Beitrag dazu: die
 Südanflug-Quote des EuroAirport, wie viele Landungen in einem Monat über die
@@ -335,4 +345,6 @@ Ein Rückzug ist kein Feld, sondern ein eigener Weg: `/api/v1/korrekturen`.
 _Angelegt am 3. September 2026. Rubrik `gemeinde` ergänzt am 14. September 2026.
 Version 1.1.0 am 15. September 2026: `medium` und `pruefsiegel` je Beitrag, der
 Weg `/korrekturen`. Version 1.2.0 am 17. September 2026: der Weg `/bilanz`. Neue
-Felder und neue Wege, kein Bruch — wer sie nicht liest, merkt nichts._
+Felder und neue Wege, kein Bruch — wer sie nicht liest, merkt nichts.
+Am 18. September 2026 geprüft und unverändert: die Veranstaltungen der
+Gemeinden kommen als Rubrik `gemeinde` durch dieselbe Tür._

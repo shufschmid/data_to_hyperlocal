@@ -11,7 +11,8 @@ import {
   passt,
   seitenLink,
   sortiere,
-  tisch
+  tisch,
+  vorbei
 } from './gemeindeseiten'
 
 function eintrag(ueber: Partial<GemeindemitteilungFelder> = {}): GemeindemitteilungFelder {
@@ -23,6 +24,7 @@ function eintrag(ueber: Partial<GemeindemitteilungFelder> = {}): Gemeindemitteil
     titel: 'Aus der Gemeinderatssitzung',
     teaser: 'Traktanden beschlossen.',
     publiziert_am: '2026-09-11',
+    veranstaltung_am: null,
     kategorie: 'politik_info',
     inhalt_typ: 'html',
     text: 'Der Gemeinderat …',
@@ -51,6 +53,7 @@ function gemeinde(ueber: Partial<GemeindeFelder> = {}): GemeindeFelder {
     news_url: 'https://www.aesch.bl.ch/aktuellesinformationen',
     news_letzte_pruefung: null,
     news_letzter_fehler: null,
+    veranstaltungen_url: null,
     suedanflug: false,
     ...ueber
   }
@@ -185,5 +188,53 @@ describe('laufText', () => {
     ).toMatch(
       /^Letzter Lauf um \d\d:\d\d Uhr — 10 Gemeinden gelesen, 3 neue Mitteilungen, 1 Vorschläge, 1 Fehler\.$/
     )
+  })
+})
+
+// Ein Termin und eine Nachricht auf demselben Tisch: die eine ist vergangen,
+// der andere steht bevor, und beide sind nach demselben Mass dringend —
+// wie nah sie an heute liegen.
+describe('Termine auf dem Tisch', () => {
+  const termin = (id: string, tag: string, ueber: Partial<GemeindemitteilungFelder> = {}) =>
+    eintrag({
+      id,
+      titel: id,
+      publiziert_am: null,
+      veranstaltung_am: tag,
+      quelle_seite: 'https://www.aesch.bl.ch/anlaesseaktuelles',
+      date_created: '2026-09-14T13:00:00Z',
+      ...ueber
+    })
+
+  it('sortiert Termine und Nachrichten nach dem, was als Naechstes dran ist', () => {
+    const sortiert = sortiere(
+      [
+        termin('in-zehn-tagen', '2026-09-24'),
+        eintrag({ id: 'vorgestern', titel: 'vorgestern', publiziert_am: '2026-09-12' }),
+        termin('morgen', '2026-09-15'),
+        eintrag({ id: 'heute', titel: 'heute', publiziert_am: '2026-09-14' })
+      ],
+      '2026-09-14'
+    )
+    expect(sortiert.map((e) => e.id)).toEqual(['heute', 'morgen', 'vorgestern', 'in-zehn-tagen'])
+  })
+
+  it('nimmt einen stattgefundenen Termin vom Tisch, auch wenn er gestern erst kam', () => {
+    expect(vorbei(termin('gestern', '2026-09-13'), '2026-09-14')).toBe(true)
+    expect(vorbei(termin('heute', '2026-09-14'), '2026-09-14')).toBe(false)
+    expect(vorbei(eintrag(), '2026-09-14')).toBe(false)
+  })
+
+  it('der Tisch laesst einen vergangenen Termin nicht mehr stehen', () => {
+    const offen = tisch(
+      [
+        termin('gestern', '2026-09-13', { vorschlag: true }),
+        termin('bald', '2026-09-20', { vorschlag: true })
+      ],
+      OHNE_FILTER,
+      new Map(),
+      '2026-09-14'
+    )
+    expect(offen.vorschlaege.map((e) => e.id)).toEqual(['bald'])
   })
 })
