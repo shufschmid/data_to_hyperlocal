@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto'
+
 import type { Knex } from 'knex'
 
 /**
@@ -28,6 +30,17 @@ import type { Knex } from 'knex'
  *
  * Insert-only and update-only-where-empty: an editor's own correction survives
  * every redeploy.
+ *
+ * **The id is generated HERE, and that is not decoration.** `gemeinden.id` and
+ * `quellen.id` carry `gen_random_uuid()` as a database default, which is why
+ * every seed before this one could insert without naming one. `wochenblaetter`
+ * and `wochenblattgemeinden` do not: their uuid is made by Directus in the
+ * application layer (`special: ['uuid']`), so a raw insert without an id
+ * violates the primary key's NOT NULL, the migration throws, `database:migrate`
+ * aborts, and Directus never starts — measured on 18 September 2026, when
+ * exactly that took Bajour's production into a restart loop. A migration that
+ * writes into a collection has to check that column's default before it
+ * assumes one.
  */
 
 const ALLSCHWIL = 2762
@@ -101,16 +114,18 @@ export async function up(knex: Knex): Promise<void> {
       .where({ archiv_url: ALLSCHWILER_WOCHENBLATT.archiv_url })
       .first('id')
     if (schonDa === undefined) {
-      const [angelegt] = (await knex('wochenblaetter')
-        .insert({ ...ALLSCHWILER_WOCHENBLATT, gemeinde: allschwil })
-        .returning('id')) as Array<{ id: string }>
-      if (angelegt !== undefined) {
-        await knex('wochenblattgemeinden').insert({
-          wochenblatt: angelegt.id,
-          gemeinde: allschwil
-        })
-        console.log('Presseschau: Allschwiler Wochenblatt erfasst.')
-      }
+      const blattId = randomUUID()
+      await knex('wochenblaetter').insert({
+        ...ALLSCHWILER_WOCHENBLATT,
+        id: blattId,
+        gemeinde: allschwil
+      })
+      await knex('wochenblattgemeinden').insert({
+        id: randomUUID(),
+        wochenblatt: blattId,
+        gemeinde: allschwil
+      })
+      console.log('Presseschau: Allschwiler Wochenblatt erfasst.')
     }
   }
 
@@ -132,6 +147,7 @@ export async function up(knex: Knex): Promise<void> {
     .first('id')
   if (zugeordnet === undefined) {
     await knex('wochenblattgemeinden').insert({
+      id: randomUUID(),
       wochenblatt: birseck.id,
       gemeinde: reinach
     })
