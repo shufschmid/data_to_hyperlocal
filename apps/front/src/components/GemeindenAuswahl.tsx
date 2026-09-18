@@ -442,6 +442,14 @@ function GemeindeKarte({
                   </Typography>
                 )
               )}
+              {/* Ein gegriffener Deckel steht neben dem Fehler, nie an seiner
+                  Stelle: die Seite wurde gelesen, und das ist eine Information,
+                  keine Warnung. */}
+              {(gemeinde.news_letzter_hinweis ?? '') !== '' && (
+                <Alert severity="info" sx={{ py: 0 }}>
+                  {gemeinde.news_letzter_hinweis}
+                </Alert>
+              )}
             </Stack>
           ) : (
             // Ohne Adresse liest der Lauf nichts — und das sieht genauso aus

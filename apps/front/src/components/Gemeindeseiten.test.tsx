@@ -41,6 +41,7 @@ function gemeinde(ueber: Partial<GemeindeFelder> = {}): GemeindeFelder {
     news_url: 'https://www.aesch.bl.ch/aktuellesinformationen',
     news_letzte_pruefung: '2026-09-14T11:00:00Z',
     news_letzter_fehler: null,
+    news_letzter_hinweis: null,
     veranstaltungen_url: null,
     suedanflug: false,
     ...ueber
@@ -232,6 +233,26 @@ describe('Gemeindeseiten', () => {
     )
     expect(screen.getByText(/Ohne Newsseite kommen keine Mitteilungen: Dornach/)).toBeInTheDocument()
     expect(screen.getByText(/Nichts auf dem Tisch/)).toBeInTheDocument()
+  })
+
+  it('zeigt einen deklarierten Deckel als Information, nicht als Warnung', () => {
+    render(
+      <Gemeindeseiten
+        eintraege={[]}
+        gemeinden={[
+          gemeinde({
+            news_letzter_hinweis:
+              '141 weitere neue Mitteilungen nicht gelesen (Deckel 15 pro Gemeinde und Lauf) — morgen weiter'
+          })
+        ]}
+        heute={HEUTE}
+      />
+    )
+    const zeile = screen.getByText(/141 weitere neue Mitteilungen nicht gelesen/)
+    const kasten = zeile.closest('.MuiAlert-root')
+    expect(kasten?.className).toMatch(/Info/)
+    expect(kasten?.className).not.toMatch(/Warning|Error/)
+    expect(screen.queryByText(/konnte nicht gelesen werden/)).not.toBeInTheDocument()
   })
 
   it('laesst Abgelaufenes weg', () => {

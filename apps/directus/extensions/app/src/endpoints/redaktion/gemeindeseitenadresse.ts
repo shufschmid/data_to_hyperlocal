@@ -56,16 +56,20 @@ function fehlerText(error: unknown): string {
 }
 
 /**
- * The status line is the NEWS page's, not the municipality's second page: it
- * is cleared when the news address changes, and left alone otherwise, so a
- * stored events address never wipes a real error the news read wrote.
+ * The two status lines are the NEWS page's, not the municipality's second
+ * page: they are cleared when the news address changes, and left alone
+ * otherwise, so a stored events address never wipes a real error the news read
+ * wrote. Both go together — a cap declared on yesterday's page says nothing
+ * about the one that was just entered.
  */
 function nutzlast(
   art: Seitenart,
   wert: string | null
 ): Record<string, unknown> {
   const feld = { [ADRESSFELDER[art].spalte]: wert }
-  return art === 'nachricht' ? { ...feld, news_letzter_fehler: null } : feld
+  return art === 'nachricht'
+    ? { ...feld, news_letzter_fehler: null, news_letzter_hinweis: null }
+    : feld
 }
 
 export async function speichereAdresse(

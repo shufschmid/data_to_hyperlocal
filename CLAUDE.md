@@ -487,8 +487,19 @@ them is wrong even if it works.
    unpdf — and stored whole, every cap declared on the row (`hinweise`,
    `text_abgeschnitten`, `anhaenge[].gelesen`). A first read of a page imports
    the last seven days, never the archive (three sites list their whole
-   history on one page); a daily read looks back three days; detail pages per
-   host are capped at fifteen and the rest is counted for tomorrow. Dates were
+   history on one page); a daily read looks back three days; detail pages are
+   capped at fifteen per HOST and per run — ONE budget for both pages of the
+   municipality, because they sit on the same server, and handed out across
+   them by DISTANCE FROM TODAY (`verteileDetailbudget`), never by a fixed
+   order of the two: news first loses tomorrow's event to a notice from the
+   day before yesterday, events first loses today's news to a Christmas
+   market in November. It is the desk's own measure (`dringlichkeit`), so the
+   budget buys what the desk would show at the top. The rest is counted for
+   tomorrow, and a cap that bit is a HINT, never an error: it lands on
+   `gemeinden.news_letzter_hinweis` and shows blue on the desk, because the
+   page WAS read. Nine of ten municipalities wore an orange line on 18
+   September 2026 and eight of them were working exactly as designed — which
+   is how an editor learns to read past a status line. Dates were
    the measured trap: one list prints the visit date on every entry (the real
    day sits in a month-and-day badge without a year), one `<time datetime>`
    carries the year 2626 on every card, so a date has to be a real
@@ -1074,7 +1085,9 @@ Flow "Gemeindeseiten pruefen"  (0 13 * * *)
        ├─ Fenster Nachrichten: 7 Tage beim ersten Lesen, sonst 3 — RUECKWAERTS
        ├─ Fenster Veranstaltungen: heute bis heute+60 — VORWAERTS, ein
        │    stattgefundener Termin kommt nie herein; Identitaet = Listen-Link;
-       │    hoechstens 15 Detailseiten je Host, der Rest deklariert
+       │    hoechstens 15 Detailseiten je HOST und Lauf — EIN Budget fuer beide
+       │    Seiten, vergeben nach Abstand zu heute; der Rest deklariert, und
+       │    zwar auf gemeinden.news_letzter_hinweis, nicht als Fehler
        ├─ je neuem Eintrag: Detailseite (oder das direkt verlinkte PDF) samt bis
        │    zu drei eigenen PDFs (unpdf) → gemeindemitteilungen, Kappungen als
        │    hinweise auf der Zeile
@@ -1630,10 +1643,13 @@ checked rather than assumed, and there is a test.
   reader collected and what it could not — a Meldung is only ever written from
   them, never from a title. `gemeinden.news_url` and
   `gemeinden.veranstaltungen_url` belong here too: the two addresses per
-  municipality the feed reads, plus `news_letzte_pruefung` and
-  `news_letzter_fehler` (one status line for both pages, because it is one
-  run on one host), so a page that stopped answering is a line on the desk and
-  in the card, not silence. `gemeindemitteilungen.veranstaltung_am` is the
+  municipality the feed reads, plus `news_letzte_pruefung`,
+  `news_letzter_fehler` and `news_letzter_hinweis` (one status line pair for
+  both pages, because it is one run on one host), so a page that stopped
+  answering is a line on the desk and in the card, not silence. The two
+  fields are deliberately apart and both are rewritten on every run, null
+  included: a FAILURE says the page could not be read, a HINT says it was
+  read and a declared cap bit. `gemeindemitteilungen.veranstaltung_am` is the
   day an event takes place and never the day anything was published.
 - `sendungskandidaten.entscheid` + `ablehnungsgrund` — the broadcast feed's
   memory, scoped PER SHOW rather than per municipality: what counts as "only

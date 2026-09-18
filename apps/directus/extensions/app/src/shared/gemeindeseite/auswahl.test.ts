@@ -6,7 +6,7 @@ import {
   ohneDatumHinweis,
   terminKandidaten,
   VERANSTALTUNGS_FENSTER_TAGE,
-  waehleZuLesen,
+  verteileDetailbudget,
   zeileAus,
   type Anhang
 } from './auswahl'
@@ -85,7 +85,9 @@ describe('kandidaten', () => {
   })
 })
 
-describe('waehleZuLesen', () => {
+describe('verteileDetailbudget', () => {
+  const HEUTE = '2026-09-18'
+
   it('neueste zuerst, Undatierte zuletzt, der Rest wird gezaehlt', () => {
     const liste = [
       eintrag('ohne', null),
@@ -93,9 +95,92 @@ describe('waehleZuLesen', () => {
       eintrag('b', '2026-09-13'),
       eintrag('c', '2026-09-12')
     ]
-    const { zuLesen, nichtGelesen } = waehleZuLesen(liste, 3)
-    expect(zuLesen.map((e) => e.titel)).toEqual(['b', 'c', 'a'])
-    expect(nichtGelesen).toBe(1)
+    const [nachrichten] = verteileDetailbudget(
+      [{ art: 'nachricht', neue: liste }],
+      HEUTE,
+      3
+    )
+    expect(nachrichten?.zuLesen.map((e) => e.titel)).toEqual(['b', 'c', 'a'])
+    expect(nachrichten?.nichtGelesen).toBe(1)
+  })
+
+  it('teilt EIN Budget ueber beide Seiten desselben Hosts', () => {
+    const [nachrichten, termine] = verteileDetailbudget(
+      [
+        {
+          art: 'nachricht',
+          neue: [
+            eintrag('heute', '2026-09-18'),
+            eintrag('gestern', '2026-09-17'),
+            eintrag('vorgestern', '2026-09-16')
+          ]
+        },
+        {
+          art: 'termin',
+          neue: [
+            termin('morgen', '2026-09-19'),
+            termin('uebermorgen', '2026-09-20'),
+            termin('spaeter', '2026-09-21')
+          ]
+        }
+      ],
+      HEUTE,
+      4
+    )
+    const gelesen =
+      (nachrichten?.zuLesen.length ?? 0) + (termine?.zuLesen.length ?? 0)
+    expect(gelesen).toBe(4)
+    expect(nachrichten?.zuLesen.map((e) => e.titel)).toEqual([
+      'heute',
+      'gestern'
+    ])
+    expect(termine?.zuLesen.map((e) => e.titel)).toEqual([
+      'morgen',
+      'uebermorgen'
+    ])
+    expect(nachrichten?.nichtGelesen).toBe(1)
+    expect(termine?.nichtGelesen).toBe(1)
+  })
+
+  it('nimmt den Anlass von morgen vor die Nachricht von vorgestern', () => {
+    const [nachrichten, termine] = verteileDetailbudget(
+      [
+        { art: 'nachricht', neue: [eintrag('vorgestern', '2026-09-16')] },
+        { art: 'termin', neue: [termin('morgen', '2026-09-19')] }
+      ],
+      HEUTE,
+      1
+    )
+    expect(termine?.zuLesen.map((e) => e.titel)).toEqual(['morgen'])
+    expect(nachrichten?.zuLesen).toEqual([])
+    expect(nachrichten?.nichtGelesen).toBe(1)
+  })
+
+  it('nimmt die Nachricht von heute vor den Anlass in zwei Monaten', () => {
+    const [nachrichten, termine] = verteileDetailbudget(
+      [
+        { art: 'nachricht', neue: [eintrag('heute', '2026-09-18')] },
+        { art: 'termin', neue: [termin('weihnachtsmarkt', '2026-11-17')] }
+      ],
+      HEUTE,
+      1
+    )
+    expect(nachrichten?.zuLesen.map((e) => e.titel)).toEqual(['heute'])
+    expect(termine?.zuLesen).toEqual([])
+    expect(termine?.nichtGelesen).toBe(1)
+  })
+
+  it('laesst bei gleichem Abstand den Termin vorgehen', () => {
+    const [nachrichten, termine] = verteileDetailbudget(
+      [
+        { art: 'nachricht', neue: [eintrag('gestern', '2026-09-17')] },
+        { art: 'termin', neue: [termin('morgen', '2026-09-19')] }
+      ],
+      HEUTE,
+      1
+    )
+    expect(termine?.zuLesen.map((e) => e.titel)).toEqual(['morgen'])
+    expect(nachrichten?.zuLesen).toEqual([])
   })
 })
 
@@ -281,14 +366,19 @@ describe('terminKandidaten', () => {
   })
 })
 
-describe('waehleZuLesen: Termine', () => {
+describe('verteileDetailbudget: Termine', () => {
   it('sortiert Termine nach dem, was als Naechstes dran ist', () => {
-    const { zuLesen } = waehleZuLesen(
-      [termin('spaet', '2026-11-01'), termin('frueh', '2026-09-20')],
-      10,
-      'termin'
+    const [termine] = verteileDetailbudget(
+      [
+        {
+          art: 'termin',
+          neue: [termin('spaet', '2026-11-01'), termin('frueh', '2026-09-20')]
+        }
+      ],
+      '2026-09-18',
+      10
     )
-    expect(zuLesen.map((e) => e.titel)).toEqual(['frueh', 'spaet'])
+    expect(termine?.zuLesen.map((e) => e.titel)).toEqual(['frueh', 'spaet'])
   })
 })
 

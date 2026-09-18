@@ -489,6 +489,12 @@ export interface GemeindeFelder {
   /** Why the last read failed, in words — shown on the desk and the card. */
   news_letzter_fehler: string | null
   /**
+   * What the last read declared WITHOUT failing — a cap that bit, in words.
+   * Its own field and its own colour on the desk: the page was read, and
+   * tomorrow goes on.
+   */
+  news_letzter_hinweis: string | null
+  /**
    * Whether the municipality lies under the approach to the EuroAirport's
    * runway 33. Editorial knowledge, not a field of the source: the airport
    * publishes ONE quota for the whole airport and no breakdown by place.
@@ -513,6 +519,7 @@ export const GEMEINDEN_QUERY = gql`
       veranstaltungen_url
       news_letzte_pruefung
       news_letzter_fehler
+      news_letzter_hinweis
       suedanflug
     }
   }

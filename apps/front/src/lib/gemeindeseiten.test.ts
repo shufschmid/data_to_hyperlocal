@@ -6,6 +6,7 @@ import {
   bleibtAufDemTisch,
   laufText,
   lesefehler,
+  lesehinweise,
   meldungJeMitteilung,
   ohneNewsseite,
   passt,
@@ -53,6 +54,7 @@ function gemeinde(ueber: Partial<GemeindeFelder> = {}): GemeindeFelder {
     news_url: 'https://www.aesch.bl.ch/aktuellesinformationen',
     news_letzte_pruefung: null,
     news_letzter_fehler: null,
+    news_letzter_hinweis: null,
     veranstaltungen_url: null,
     suedanflug: false,
     ...ueber
@@ -161,6 +163,21 @@ describe('Helfer', () => {
       gemeinde({ id: 'g4', name: 'Inaktiv', aktiv: false, news_url: null, news_letzter_fehler: 'x' })
     ]
     expect(ohneNewsseite(liste).map((g) => g.name)).toEqual(['Dornach'])
+    expect(lesefehler(liste).map((g) => g.name)).toEqual(['Riehen'])
+  })
+
+  it('haelt einen deklarierten Deckel von den Lesefehlern getrennt', () => {
+    const liste = [
+      gemeinde(),
+      gemeinde({
+        id: 'g2',
+        name: 'Arlesheim',
+        news_letzter_hinweis: '141 weitere neue Mitteilungen nicht gelesen — morgen weiter'
+      }),
+      gemeinde({ id: 'g3', name: 'Riehen', news_letzter_fehler: 'Seitenaufbau nicht erkannt' }),
+      gemeinde({ id: 'g4', name: 'Inaktiv', aktiv: false, news_letzter_hinweis: 'x' })
+    ]
+    expect(lesehinweise(liste).map((g) => g.name)).toEqual(['Arlesheim'])
     expect(lesefehler(liste).map((g) => g.name)).toEqual(['Riehen'])
   })
 
