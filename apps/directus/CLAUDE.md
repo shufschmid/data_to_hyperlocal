@@ -100,9 +100,11 @@ What a migration is still for — `20260824A-stammdaten.mts` (seeds and indexes)
 `20260824B-entsorgung-indizes.mts` (indexes only),
 `20260914A-gemeindeseiten.mts` (one partial unique index whose predicate matches
 the endpoint's own guard, plus nine seeded addresses written only where the
-field is still empty) and `20260917B-suedanflug.mts` (the composite unique
+field is still empty), `20260917B-suedanflug.mts` (the composite unique
 `(jahr, monat)` on `suedanflugquoten`, plus the EuroAirport source row seeded
-**inactive**):
+**inactive**) and `20260918B-abstimmungsdatensatz.mts` (which dataset the
+data.bl.ch row carries its vote results in — one key in `konfiguration`, written
+only where it is absent, with a real `down`):
 
 - **Row data a fresh install needs without a human clicking**: the 87 municipalities,
   the three watched sources, the newsroom's registered clubs. Insert-only and
@@ -402,6 +404,19 @@ Endpoints of the learning layer, all in `src/endpoints/redaktion/`:
   from a fresh fetch: the article has to stand on what the editor saw when she
   pressed the button, and the revision watchdog is what notices when they move
   afterwards.
+- `POST /redaktion/abstimmungen/:id/meldung` — the vote article, ONE model call
+  per municipality: the Vorlage in the path, the municipality in the body
+  (`{gemeinde}`), because one question yields one article per covered place.
+  The wiring is in `index.ts`, the rest in
+  `src/endpoints/redaktion/abstimmung.ts` and `src/redaktion/abstimmung.ts`.
+  Four things it refuses rather than fudges: a municipality still counting on
+  that day (422 — the rule the whole feed exists for, and the endpoint holds it
+  a second time after the run), a municipality the dataset does not carry at all
+  (422 — Riehen belongs to Basel-Stadt), a row without the canton's own address
+  (422 — the source line is built by code and carries exactly one), and a second
+  article for the same Vorlage and municipality (409). The figures come out of
+  the STORED row, never from a fresh fetch: a vote day's rows move under the
+  run's hands for hours, and the article has to stand on what the editor saw.
 - `POST /redaktion/gemeinden/:id/news-url` — the one address the feed reads
   per municipality. Validated by READING the page first (`leseUebersicht`:
   template recognised, list non-empty), so a mistyped address fails the form
@@ -409,7 +424,17 @@ Endpoints of the learning layer, all in `src/endpoints/redaktion/`:
   a successful save starts a run so the editor sees the page's items within a
   minute. Empty clears the field.
 
-`src/shared/euroairport/` is the newest reader and the smallest: `parse.ts`
+`src/shared/abstimmung/` is the newest reader and adds no client at all: it
+composes `shared/ods/`, because dataset 11990 on data.bl.ch is a dataset on the
+portal this newsroom already reads every morning. `parse.ts` is the ONE place
+the portal's spellings are known — `counted` as the string `"True"`/`"False"`,
+the three `type` values, a Stichfrage's `answer` naming the winning side, the
+two shapes of `date` — and `index.ts` asks the three questions the feed has: the
+whole of one vote day in ONE export, the previous vote day, and that day's rows
+for our municipalities only. The rules on top are pure and live in
+`redaktion/abstimmunglauf.ts`.
+
+`src/shared/euroairport/` is the reader before it and the smallest: `parse.ts`
 pure (the overview table, the monthly sheet's text layer, and three checks that
 report and never correct), `index.ts` for the two requests. **Its one departure
 from the house style is measured:** the text layer comes from `extrahiereText`
@@ -454,7 +479,11 @@ with a path (or a trailing slash) can never authenticate at all.
 **Not everything configurable is a variable.** Which statistics portals are read
 lives in `quellen` — one row per portal, `basis_url` for the address and
 `konfiguration` (`{amt, bezirke}`) for the office it speaks for and the
-`gemeinden.bezirk` values it carries figures about. The EuroAirport's
+`gemeinden.bezirk` values it carries figures about. Which dataset a portal
+carries its VOTE results in lives there too
+(`konfiguration.abstimmungen`, `20260918B` writes `11990` onto the data.bl.ch
+row): a portal without it is not walked on a vote Sunday, and the run names it
+rather than guessing an id. The EuroAirport's
 south-approach feed is a `quellen` row for the same reason (`typ:
 'euroairport'`), and its `konfiguration` carries the thresholds
 (`{monatsschwelle: 40, jahresschwellen: [8, 10]}`) rather than the code or the

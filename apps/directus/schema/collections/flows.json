@@ -169,5 +169,19 @@
     },
     "operation": "98cc0e60-d212-449d-b6b7-83dc5eba20e9",
     "_syncId": "bf4a6544-b373-4a65-9bb3-d925b8b84462"
+  },
+  {
+    "name": "Abstimmungen holen",
+    "icon": "how_to_vote",
+    "color": null,
+    "description": "Holt am Abstimmungssonntag zwischen Mittag und Abend halbstuendlich die Resultate je Gemeinde von data.bl.ch. Gibt es fuer heute keine Zeilen, kostet ein Lauf einen Abruf und schreibt nichts. Kein Modellaufruf: Meldungen entstehen auf Klick der Redaktion.",
+    "status": "active",
+    "trigger": "schedule",
+    "accountability": "all",
+    "options": {
+      "cron": "*/30 12-20 * * 0"
+    },
+    "operation": "d4b2e48c-a6c4-409d-8b38-79cd64b42ec7",
+    "_syncId": "1fc01521-ee78-4705-a7f9-847b70a7acb4"
   }
 ]

@@ -23,6 +23,7 @@ import {
   GEMEINDE_AKTIV_MUTATION,
   GEMEINDEN_QUERY,
   SUEDANFLUG_QUERY,
+  ABSTIMMUNGEN_QUERY,
   VEREINE_QUERY,
   SPIELE_QUERY,
   ALLE_MELDUNGEN_QUERY,
@@ -52,6 +53,7 @@ import {
   type GemeindeAktivErgebnis,
   type GemeindenErgebnis,
   type SuedanflugErgebnis,
+  type AbstimmungenErgebnis,
   type VereineErgebnis,
   type SpieleErgebnis,
   type AlleMeldungenErgebnis,
@@ -74,6 +76,7 @@ import {
   istBeschaeftigt,
   meldungenNachLauf,
   meldungenNachSuedanflug,
+  meldungenNachAbstimmung,
   zeitleiste,
   type QuellenLaufStatus
 } from '@/lib/redaktion'
@@ -261,6 +264,9 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
   const suedanflug = useQuery<SuedanflugErgebnis>(SUEDANFLUG_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY
   })
+  const abstimmungen = useQuery<AbstimmungenErgebnis>(ABSTIMMUNGEN_QUERY, {
+    fetchPolicy: LIVE_FETCH_POLICY
+  })
   const vereine = useQuery<VereineErgebnis>(VEREINE_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY
   })
@@ -387,6 +393,14 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
   }, [wirdGeschrieben, meldungPollingStart, meldungPollingStop, laeufeNeuLaden])
   const berichteZuLauf = meldungenNachLauf(meldungenAlle)
   const berichteZuSuedanflug = meldungenNachSuedanflug(meldungenAlle)
+  const berichteZuAbstimmung = meldungenNachAbstimmung(meldungenAlle)
+  // Die Abstimmungszeile kennt nur die BFS-Nummer; der Knopf braucht die Id
+  // der erfassten Gemeinde.
+  const gemeindenNachBfs = new Map(
+    (gemeinden.data?.gemeinden ?? [])
+      .filter((g) => g.aktiv)
+      .map((g) => [String(g.bfs_nummer), { id: g.id, name: g.name }])
+  )
   // Wer unter der Anflugschneise liegt, sagt die Redaktion (`gemeinden.suedanflug`)
   // und nicht die Quelle: der Flughafen erhebt eine Quote fuer sich, nicht je
   // Gemeinde.
@@ -440,9 +454,19 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
       sendungskandidaten.refetch(),
       amtsblatt.refetch(),
       gemeindeseiten.refetch(),
-      suedanflug.refetch()
+      suedanflug.refetch(),
+      abstimmungen.refetch()
     ])
-  }, [laeufe, alleMeldungen, datensaetze, sendungskandidaten, amtsblatt, gemeindeseiten, suedanflug])
+  }, [
+    laeufe,
+    alleMeldungen,
+    datensaetze,
+    sendungskandidaten,
+    amtsblatt,
+    gemeindeseiten,
+    suedanflug,
+    abstimmungen
+  ])
 
   // Die Wochenzahl: einmal beim Aufbau geholt und nach jeder Aktion neu. Sie ist
   // Auskunft und kein Arbeitsmittel, darum kein Poll und kein Ladebalken --
@@ -781,7 +805,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
                 color="error"
                 sx={ZAEHLER_IM_REITER}
               >
-                statistik.bl
+                data to hyperlocal
               </Badge>
             }
           />
@@ -910,8 +934,9 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
         <Stack spacing={1}>
           <Typography variant="body2" color="text.secondary">
             Woher unser Material kommt, nach Datum: die Publikationsagenda des Amts, Änderungen an den
-            überwachten Portal-Zweigen und neue Zahlen auf data.bl.ch. Angekündigtes ohne Termin steht unten
-            und rückt nach oben, sobald es ein Datum hat.
+            überwachten Portal-Zweigen, neue Zahlen auf data.bl.ch, die Südanflug-Quote des EuroAirport und
+            die Abstimmungsresultate je Gemeinde. Angekündigtes ohne Termin steht unten und rückt nach oben,
+            sobald es ein Datum hat.
           </Typography>
           <AgendaErfassen
             quartale={[
@@ -935,7 +960,8 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
                 bereiche: portal.data?.portal_bereiche ?? [],
                 datensaetze: datensaetze.data?.datensaetze ?? [],
                 laeufe: laeufe.data?.laeufe ?? [],
-                suedanflug: suedanflug.data?.suedanflugquoten ?? []
+                suedanflug: suedanflug.data?.suedanflugquoten ?? [],
+                abstimmungen: abstimmungen.data?.abstimmungen ?? []
               },
               zeilen
             )}
@@ -970,6 +996,11 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             berichteZuSuedanflug={berichteZuSuedanflug}
             onSuedanflugMeldung={async (quoteId, gemeindeId) => {
               await fuehreAus(`suedanflug/${quoteId}/meldung`, { gemeinde: gemeindeId })
+            }}
+            gemeindenNachBfs={gemeindenNachBfs}
+            berichteZuAbstimmung={berichteZuAbstimmung}
+            onAbstimmungsMeldung={async (abstimmungId, gemeindeId) => {
+              await fuehreAus(`abstimmungen/${abstimmungId}/meldung`, { gemeinde: gemeindeId })
             }}
           />
 

@@ -252,6 +252,8 @@ export interface AlleMeldungFelder {
   sendungskandidat: { id: string } | null
   /** Set for articles written from a month of the EuroAirport's ILS-33 sheet. */
   suedanflugquote: { id: string } | null
+  /** Set for articles written from one Vorlage of one vote day. */
+  abstimmung: { id: string } | null
   /** Decided at publish time on press reviews: interesting for the city too. */
   perle: boolean | null
 }
@@ -305,6 +307,9 @@ export const ALLE_MELDUNGEN_QUERY = gql`
         id
       }
       suedanflugquote {
+        id
+      }
+      abstimmung {
         id
       }
       perle
@@ -1507,6 +1512,64 @@ export const SUEDANFLUG_QUERY = gql`
       vorschlag
       vorschlag_begruendung
       befunde
+      quelle_url
+    }
+  }
+`
+
+// Die Abstimmungsresultate je Gemeinde — eine Vorlage je Zeile.
+//
+// Stehen in derselben chronologischen Liste wie alles andere im Reiter
+// „data to hyperlocal": es ist eine Statistik unter anderen, nur von einem
+// anderen Amt und an einem Sonntag. `gemeindezahlen` sagt je bespielter
+// Gemeinde, ob sie fertig ausgezählt ist — das ist das Tor vor jedem Artikel.
+export interface AbstimmungsGemeindezahlen {
+  bfs: string
+  gemeinde: string
+  ausgezaehlt: boolean
+  ergebnisse: {
+    art: string
+    antwort: string | null
+    ja: number | null
+    nein: number | null
+    prozentJa: number | null
+    beteiligung: number | null
+  }[]
+}
+
+export interface AbstimmungsFelder {
+  id: string
+  vote_id: string
+  datum: string
+  titel: string | null
+  ebene: string | null
+  gemeindezahlen: AbstimmungsGemeindezahlen[] | null
+  gemeinden_total: number | null
+  gemeinden_ausgezaehlt: number | null
+  ausgezaehlt: boolean
+  stichfrage_gilt: boolean
+  stichfrage_grund: string | null
+  quelle_url: string | null
+}
+
+export interface AbstimmungenErgebnis {
+  abstimmungen: AbstimmungsFelder[]
+}
+
+export const ABSTIMMUNGEN_QUERY = gql`
+  query Abstimmungen {
+    abstimmungen(sort: ["-datum", "vote_id"], limit: 30) {
+      id
+      vote_id
+      datum
+      titel
+      ebene
+      gemeindezahlen
+      gemeinden_total
+      gemeinden_ausgezaehlt
+      ausgezaehlt
+      stichfrage_gilt
+      stichfrage_grund
       quelle_url
     }
   }

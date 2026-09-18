@@ -1,0 +1,46 @@
+{
+  "collection": "abstimmungen",
+  "field": "ausgezaehlt",
+  "type": "boolean",
+  "meta": {
+    "collection": "abstimmungen",
+    "conditions": null,
+    "display": "boolean",
+    "display_options": null,
+    "field": "ausgezaehlt",
+    "group": null,
+    "hidden": false,
+    "interface": "boolean",
+    "note": "Ob jede Gemeinde des Kantons ausgezaehlt ist. Erst dann gibt es Kantonszahlen.",
+    "options": {
+      "label": "Kanton fertig ausgezaehlt"
+    },
+    "readonly": true,
+    "required": false,
+    "searchable": true,
+    "sort": 10,
+    "special": null,
+    "translations": null,
+    "validation": null,
+    "validation_message": null,
+    "width": "half"
+  },
+  "schema": {
+    "name": "ausgezaehlt",
+    "table": "abstimmungen",
+    "data_type": "boolean",
+    "default_value": false,
+    "max_length": null,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "is_nullable": false,
+    "is_unique": false,
+    "is_indexed": false,
+    "is_primary_key": false,
+    "is_generated": false,
+    "generation_expression": null,
+    "has_auto_increment": false,
+    "foreign_key_table": null,
+    "foreign_key_column": null
+  }
+}

@@ -37,7 +37,8 @@ const HERKUNFT: Record<
   agenda: { label: 'Agenda', farbe: 'info' },
   portal: { label: 'Portal', farbe: 'default' },
   datensatz: { label: 'data.bl.ch', farbe: 'success' },
-  suedanflug: { label: 'EuroAirport', farbe: 'default' }
+  suedanflug: { label: 'EuroAirport', farbe: 'default' },
+  abstimmung: { label: 'Abstimmung', farbe: 'info' }
 }
 
 export interface ZeitleisteProps {
@@ -64,6 +65,14 @@ export interface ZeitleisteProps {
   /** Die Meldungen je Monatsblatt, eine je Gemeinde. */
   berichteZuSuedanflug?: Map<string, AlleMeldungFelder[]>
   onSuedanflugMeldung?: (quoteId: string, gemeindeId: string) => Promise<void>
+  /**
+   * Die bespielten Gemeinden mit ihrer Id — die Abstimmungszeile kennt nur die
+   * BFS-Nummer, der Knopf braucht die Id.
+   */
+  gemeindenNachBfs?: ReadonlyMap<string, { id: string; name: string }>
+  /** Die Meldungen je Vorlage, eine je Gemeinde. */
+  berichteZuAbstimmung?: Map<string, AlleMeldungFelder[]>
+  onAbstimmungsMeldung?: (abstimmungId: string, gemeindeId: string) => Promise<void>
 }
 
 export function Zeitleiste({
@@ -80,7 +89,10 @@ export function Zeitleiste({
   onMehr,
   suedanflugGemeinden,
   berichteZuSuedanflug,
-  onSuedanflugMeldung
+  onSuedanflugMeldung,
+  gemeindenNachBfs,
+  berichteZuAbstimmung,
+  onAbstimmungsMeldung
 }: ZeitleisteProps) {
   // Einmal gebuendelt statt in jeder Zeile: `Zeile` bekommt nur, was sie
   // betrifft, und die Signatur bleibt lesbar.
@@ -93,7 +105,10 @@ export function Zeitleiste({
     onAktion,
     suedanflugGemeinden,
     zuSuedanflug: berichteZuSuedanflug,
-    onSuedanflugMeldung
+    onSuedanflugMeldung,
+    gemeindenNachBfs,
+    zuAbstimmung: berichteZuAbstimmung,
+    onAbstimmungsMeldung
   }
   const quartale = nachQuartal(ergebnis.ohneDatum)
 
@@ -164,6 +179,9 @@ interface BerichteBuendel {
   suedanflugGemeinden?: readonly { id: string; name: string }[]
   zuSuedanflug?: Map<string, AlleMeldungFelder[]>
   onSuedanflugMeldung?: (quoteId: string, gemeindeId: string) => Promise<void>
+  gemeindenNachBfs?: ReadonlyMap<string, { id: string; name: string }>
+  zuAbstimmung?: Map<string, AlleMeldungFelder[]>
+  onAbstimmungsMeldung?: (abstimmungId: string, gemeindeId: string) => Promise<void>
 }
 
 interface ZeileProps {
@@ -270,6 +288,22 @@ function Zeile({ eintrag, laeuft, berichte, onAuftrag, onVerwerfen }: ZeileProps
         </Box>
       )}
 
+      {eintrag.herkunft === 'abstimmung' && (
+        <Box sx={{ gridColumn: '1 / -1', minWidth: 0 }}>
+          <Abstimmung
+            eintrag={eintrag}
+            laeuft={laeuft}
+            gemeindenNachBfs={berichte.gemeindenNachBfs}
+            meldungen={
+              eintrag.abstimmungId === null ? [] : (berichte.zuAbstimmung?.get(eintrag.abstimmungId) ?? [])
+            }
+            onMeldung={berichte.onAbstimmungsMeldung}
+            onChat={berichte.onChat}
+            onAktion={berichte.onAktion}
+          />
+        </Box>
+      )}
+
       {/* Was der Katalog über den Datensatz sagt — damit sich das „vergiss es"
           auf etwas stützt und nicht auf den Titel allein. */}
       {eintrag.herkunft === 'datensatz' && (
@@ -364,6 +398,101 @@ function Suedanflug({ eintrag, laeuft, gemeinden, meldungen, onMeldung, onChat, 
   )
 }
 
+interface AbstimmungProps {
+  eintrag: ZeitleistenEintrag
+  laeuft: boolean
+  gemeindenNachBfs?: ReadonlyMap<string, { id: string; name: string }>
+  meldungen: readonly AlleMeldungFelder[]
+  onMeldung?: (abstimmungId: string, gemeindeId: string) => Promise<void>
+  onChat?: (id: string, anweisung: string) => Promise<void>
+  onAktion?: (id: string, aktion: MeldungAktion, koerper?: MeldungAktionKoerper) => Promise<void>
+}
+
+/**
+ * Was unter einer Abstimmungszeile steht.
+ *
+ * Ein Knopf je bespielter Gemeinde — aber nur, wo sie fertig ausgezählt ist.
+ * Eine Gemeinde, die noch zählt, steht da und sagt das, statt einen Knopf zu
+ * zeigen, der ohnehin 422 antworten würde: eine teilausgezählte Gemeinde ist
+ * kein Zwischenstand, sondern ein Nichts. Sobald eine Meldung existiert, steht
+ * ihre Karte an derselben Stelle — das Muster der Presseschau.
+ */
+function Abstimmung({
+  eintrag,
+  laeuft,
+  gemeindenNachBfs,
+  meldungen,
+  onMeldung,
+  onChat,
+  onAktion
+}: AbstimmungProps) {
+  const abstimmungId = eintrag.abstimmungId
+  if (abstimmungId === null) return null
+
+  if (eintrag.abstimmungsgemeinden.length === 0) {
+    return (
+      <Typography variant="body2" color="text.secondary" sx={{ pt: 0.5 }}>
+        Keine bespielte Gemeinde steht in diesem Datensatz.
+      </Typography>
+    )
+  }
+
+  return (
+    <Stack spacing={1} sx={{ pt: 0.5 }}>
+      {eintrag.abstimmungsgemeinden.map((gemeinde) => {
+        const erfasst = gemeindenNachBfs?.get(gemeinde.bfs)
+        const meldung = meldungen.find((m) => m.gemeinde?.id === erfasst?.id)
+
+        if (meldung !== undefined) {
+          return (
+            <MeldungKarte
+              key={gemeinde.bfs}
+              meldung={meldung}
+              laeuft={laeuft}
+              kompakt
+              onChat={async (id, anweisung) => {
+                await onChat?.(id, anweisung)
+              }}
+              onAktion={async (id, was, koerper) => {
+                await onAktion?.(id, was, koerper)
+              }}
+            />
+          )
+        }
+
+        if (!gemeinde.ausgezaehlt) {
+          return (
+            <Typography key={gemeinde.bfs} variant="body2" color="text.secondary">
+              {gemeinde.name}: zählt noch aus — es wird nichts geschrieben.
+            </Typography>
+          )
+        }
+
+        if (erfasst === undefined) {
+          return (
+            <Typography key={gemeinde.bfs} variant="body2" color="text.secondary">
+              {gemeinde.name}: ausgezählt, aber nicht als Gemeinde erfasst.
+            </Typography>
+          )
+        }
+
+        return (
+          <Box key={gemeinde.bfs}>
+            <Button
+              size="small"
+              variant="contained"
+              disabled={laeuft}
+              onClick={() => void onMeldung?.(abstimmungId, erfasst.id)}
+            >
+              Meldung erzeugen · {gemeinde.name}
+            </Button>
+          </Box>
+        )
+      })}
+    </Stack>
+  )
+}
+
 const RHYTHMUS: Record<string, string> = {
   annual: 'jährlich',
   quarterly: 'quartalsweise',
@@ -409,6 +538,17 @@ function Aktion({ eintrag, laeuft, onAuftrag }: Pick<ZeileProps, 'eintrag' | 'la
       <Tooltip title={eintrag.hinweis ?? ''}>
         <Chip size="small" color="warning" label="Schwelle überschritten" />
       </Tooltip>
+    )
+  }
+
+  // Die Abstimmungszeile traegt ihre Knoepfe darunter, einen je ausgezaehlter
+  // Gemeinde. Hier oben steht nur, wie weit gezaehlt ist — das sagt der
+  // Hinweis, und er ist kein Fehler.
+  if (eintrag.herkunft === 'abstimmung') {
+    return (
+      <Typography variant="body2" color="text.disabled">
+        {eintrag.hinweis ?? ''}
+      </Typography>
     )
   }
 

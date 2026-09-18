@@ -1,0 +1,28 @@
+{
+  "collection": "abstimmungen",
+  "meta": {
+    "accountability": "all",
+    "archive_app_filter": true,
+    "archive_field": null,
+    "archive_value": null,
+    "collapse": "open",
+    "collection": "abstimmungen",
+    "color": null,
+    "display_template": "{{datum}} — {{titel}}",
+    "group": null,
+    "hidden": false,
+    "icon": "how_to_vote",
+    "item_duplication_fields": null,
+    "note": "Eine Volksabstimmung, wie data.bl.ch sie fuehrt: eine Zeile je Vorlage (vote_id) und Datum, mit den Zahlen der bespielten Gemeinden und der Summe des Kantons. Geschrieben wird erst, wenn eine Gemeinde vollstaendig ausgezaehlt ist.",
+    "preview_url": null,
+    "singleton": false,
+    "sort": null,
+    "sort_field": null,
+    "translations": null,
+    "unarchive_value": null,
+    "versioning": false
+  },
+  "schema": {
+    "name": "abstimmungen"
+  }
+}
