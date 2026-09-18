@@ -109,7 +109,7 @@ them is wrong even if it works.
    | `api.srgssr.ch`                             | the SRGSSR Audio Metadata API (OAuth2) — resolves a Regionaljournal story to its public MP3. Read with `optionalEnv`: missing credentials fail PER STORY as `resolution_error`, never as a crashed dossier                                                                                                                                                                                                                                                                                                 | `dossiers/srgssr-client.ts`           |
    | `telebasel.ch`                              | two plain GETs per punkt6 episode — `robots.txt` allows `/sendungen/`, and the episode page carries one schema.org `Clip` per Beitrag with exact start/end seconds, so no model is needed to find the boundaries                                                                                                                                                                                                                                                                                           | `punkt6/telebasel-client.ts`          |
    | `swiss.basketball`                          | the association's own mirror of Basketplan — `/basketplan/showLeagueSchedule.do?…&xmlView=rss` answers one `<GameRSS>` per match, and its `robots.txt` allows everything. The ORIGINAL, `basketplan.ch`, bars us with a blanket `Disallow: /` on both hosts and documents no API (measured 17.09.2026), so that door stays shut and the code refuses it. One request per GROUP, once a day. `referees` is dropped at the parser's boundary and `findTeamById.do` is never called: both carry personal data | `shared/basketplan/`                  |
-   | the municipalities' own websites            | one host per municipality, only the news page an editor registered (`gemeinden.news_url`), the detail pages it links and the same-site PDFs behind them — read once a day at 13:00, sequentially, the host's `robots.txt` honoured (crawl-delay, disallowed paths), a 429 raises that host's spacing for the rest of the run, never a redirect onto another site. Measured on the first nine: four CMS families, no bot wall                                                                               | `shared/gemeindeseite/`               |
+   | the municipalities' own websites            | one host per municipality, only the two pages an editor registered (`gemeinden.news_url` and `gemeinden.veranstaltungen_url`), the detail pages they link and the same-site PDFs behind them — read once a day at 13:00, sequentially, the host's `robots.txt` honoured (crawl-delay, disallowed paths), a 429 raises that host's spacing for the rest of the run, never a redirect onto another site. Measured on the first nine: four CMS families, no bot wall                                          | `shared/gemeindeseite/`               |
    | `www.euroairport.com`                       | the ILS-33 usage statistics: how many of a month's landings came in over the south (runway 33) — one HTML overview page and one PDF per month, text layer, no auth. `robots.txt` bars `/admin/`, `/core/`, `/profiles/`, `/search/`, `/user/…` and the facet parameters; neither `/de/publikationen/` nor `/sites/default/files/` is among them, and there is no bot check. One request a day plus one per new month                                                                                       | `shared/euroairport/`                 |
 
    The crawler is the one host we do not own the other end of, and it exists for
@@ -427,14 +427,61 @@ them is wrong even if it works.
    and `personen` stays empty on those rows so the check cannot fire on it.
 
    „Gemeindeseiten" is the ninth feed and the FOURTH desk: what a municipality
-   publishes on its own website. One address per municipality
-   (`gemeinden.news_url`, edited in the Gemeinden card, the first ten seeded by
-   `migrations/20260914A`), read daily at 13:00 — the newsroom's fixed time,
+   publishes on its own website. TWO addresses per municipality
+   (`gemeinden.news_url` and, since 18.09.2026, `gemeinden.veranstaltungen_url`,
+   both edited in the Gemeinden card, the first ten news pages seeded by
+   `migrations/20260914A` and no events page seeded at all), read daily at 13:00 — the newsroom's fixed time,
    after noon and before two. The reader (`shared/gemeindeseite/`) recognises
    the page's template FROM THE HTML, never from the host — four families cover
    the nine sites (Weblication, i-web with a DataTables archive in one
    attribute, i-web cards, Backslash), an unrecognised page is a loud error on
    the municipality's own status line, and no municipality has code of its own. A page the server cannot get directly is tried through the crawler — the row says „Über den Crawler gelesen", the run's result names the host.
+   **The events page is the SECOND page of the same source, never a second
+   source**: same host, same run, same reader, same manners, one status line.
+   What made it worth building was measured in the Dorfkönig's production on
+   17.09.2026 — over thirty days, Münchenstein, Pratteln and Aesch produced 65
+   items from events sources of which the editor picked 31, a yield of 48 per
+   cent against 27 for all other sources together, and 31 of the 178 picks
+   overall. Those numbers prove the GENUS, not this instance: whether Sämi's
+   ten municipalities bring the same yield is what the operation will measure.
+   Three more templates carry those lists, and the measurement on 18.09.2026
+   over all ten registered municipalities says why they had to be built: NOT
+   ONE events page carries the template of its own news page. The four
+   Weblication sites answer with the same Generator tag but a completely
+   different list (the CMS's `formWork` event index, `#indexUL` with an iCal
+   link per row — and it prints its date in four different places across the
+   four sites), the i-web sites hang the whole event calendar off
+   `#anlassList` in the same DataTables attribute as the news table, and the
+   Backslash site prints hCalendar, whose rows its news parser already reads.
+   So `weblication_termine`, `iweb_termine` and `backslash_termine` are
+   templates of their own, checked BEFORE the news fingerprints (the
+   Weblication Generator tag would otherwise swallow four of them), and
+   `leseUebersicht` refuses a page whose kind is not the one asked for — both
+   pages sit on the same host, and a swapped address would otherwise look for
+   months like a page that never has anything recent.
+   **The date is the one thing that really thinks differently, and it runs the
+   other way.** A news item is past and the question is how old; an event lies
+   ahead and the question is how far. So the window runs FORWARD
+   (`terminKandidaten`, `VERANSTALTUNGS_FENSTER_TAGE` = 60): measured on
+   18.09.2026, Binningen's page carried 201 entries for the whole year, so
+   without an upper bound one first read would put December's Christmas market
+   on September's desk for three months. An event that has taken place never
+   enters. The event date and the publication date NEVER share a column
+   (`gemeindemitteilungen.veranstaltung_am` against `publiziert_am`): measured
+   on all six events pages, not one prints when its entry was published, and
+   the detail page prints the event's own day — so the row says that outright
+   instead of leaving the column quietly empty. Three rules hold for a Termin,
+   and only the third is a prompt: dates, times and places ABSOLUTE
+   (`zeitbezug.ts`, imported unchanged, the five-year rule without an
+   exception); an event already past is never proposed, and CODE decides that
+   (`sichtungsAuswahl` — a date comparison costs no tokens, the row still says
+   on the desk why it is no proposal, and when every Termin is past the model
+   call falls away entirely); and a RECURRING event is not news while the
+   exception to the routine is — the same distinction the waste calendar makes
+   between a Termin and a routine, and no code can make it. Measured while
+   building: Aesch and Binningen carry their own collection dates in the
+   events calendar, so the existing cross-check against `entsorgungstermine`
+   catches them there by itself.
    The item's identity is its normalized list link; every new one is OPENED —
    the detail page, plus up to three same-site PDFs it links, text layer via
    unpdf — and stored whole, every cap declared on the row (`hinweise`,
@@ -466,7 +513,16 @@ them is wrong even if it works.
    private-person check: a municipality names its office-holders by design.
    The desk cleans itself (`aufraeumAktion`): unproposed rows go after seven
    days, undecided proposals lapse to `verfallen` after fourteen — news is
-   perishable, unlike a permit with a deadline. The Dorfkönig sees these
+   perishable, unlike a permit with a deadline. A TERMIN is measured not by its
+   age but by its own day: it lapses once it has taken place, even if it was
+   proposed yesterday, and the run's look-back window does not hold it back —
+   the forward window can never fetch a past event in again, so the loop that
+   floor guards against on the news side cannot happen here. Both kinds sit on
+   ONE desk, no second tab, sorted by their distance from today (`dringlichkeit`
+   in `lib/gemeindeseiten.ts`): today's Meldung and tomorrow's Anlass stand
+   together at the top, because news and events lie on opposite sides of today
+   and the distance is what they have in common. The Sichtung stays ONE model
+   call per municipality and run, over both pages together. The Dorfkönig sees these
    articles as `rubrik: gemeinde` with `quelle_url` = the municipality's page
    (SCHNITTSTELLE.md).
 
@@ -951,17 +1007,20 @@ editor takes a publication over ── POST /redaktion/amtsblatt/:id/meldung
      Zeile nach — 202 + detached, Fortschritt als plan_status.
 
 Flow "Gemeindeseiten pruefen"  (0 13 * * *)
-  └─ operations/gemeindeseiten-pruefen   je aktive Gemeinde mit news_url
+  └─ operations/gemeindeseiten-pruefen   je aktive Gemeinde, beide Adressen
        ├─ robots.txt einmal je Host, Pause je Host (robots' Crawl-delay
        │    verlaengert sie), Weiterleitungen nur auf dieselbe Site
        ├─ Uebersicht lesen → Plattform aus dem HTML erkennen → Liste parsen
        │    (unerkannt oder leer = lauter Fehler auf gemeinden.news_letzter_fehler)
-       ├─ Fenster: 7 Tage beim ersten Lesen, sonst 3; Identitaet = Listen-Link;
+       ├─ Fenster Nachrichten: 7 Tage beim ersten Lesen, sonst 3 — RUECKWAERTS
+       ├─ Fenster Veranstaltungen: heute bis heute+60 — VORWAERTS, ein
+       │    stattgefundener Termin kommt nie herein; Identitaet = Listen-Link;
        │    hoechstens 15 Detailseiten je Host, der Rest deklariert
        ├─ je neuem Eintrag: Detailseite (oder das direkt verlinkte PDF) samt bis
        │    zu drei eigenen PDFs (unpdf) → gemeindemitteilungen, Kappungen als
        │    hinweise auf der Zeile
-       └─ 1× Sonnet je Gemeinde → Sichtung ueber die NEUEN Eintraege (Titel +
+       └─ 1× Sonnet je Gemeinde → Sichtung ueber die NEUEN Eintraege BEIDER
+          Seiten zusammen, vergangene Termine vorher vom Code aussortiert (Titel +
           Auszug): Regeln R1…Rn, Bilanz und Beispiele dieser Gemeinde, und wo
           eine Mitteilung von Abfuhren handelt, der Abfuhrkalender samt
           Abgleich der genannten Tage; sortiert, filtert nie
@@ -1478,10 +1537,13 @@ checked rather than assumed, and there is a test.
   `redaktion/gemeindeseite.ts`, mirrored by `abgelaufen` in the frontend).
   The rows also ARE the read: `text`, `anhaenge` and `hinweise` hold what the
   reader collected and what it could not — a Meldung is only ever written from
-  them, never from a title. `gemeinden.news_url` belongs here too: the one
-  address per municipality the feed reads, plus `news_letzte_pruefung` and
-  `news_letzter_fehler`, so a page that stopped answering is a line on the
-  desk and in the card, not silence.
+  them, never from a title. `gemeinden.news_url` and
+  `gemeinden.veranstaltungen_url` belong here too: the two addresses per
+  municipality the feed reads, plus `news_letzte_pruefung` and
+  `news_letzter_fehler` (one status line for both pages, because it is one
+  run on one host), so a page that stopped answering is a line on the desk and
+  in the card, not silence. `gemeindemitteilungen.veranstaltung_am` is the
+  day an event takes place and never the day anything was published.
 - `sendungskandidaten.entscheid` + `ablehnungsgrund` — the broadcast feed's
   memory, scoped PER SHOW rather than per municipality: what counts as "only
   mentioned" is a property of how a programme talks, and the two talk very

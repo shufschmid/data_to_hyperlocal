@@ -2691,6 +2691,9 @@ export default defineEndpoint(
               gemeinde: zeile.gemeinde.name,
               titel: zeile.titel,
               publiziert_am: zeile.publiziert_am,
+              // Working material, not a field of the door: a consumer reads
+              // the day out of the text, which says it absolutely.
+              veranstaltung_am: zeile.veranstaltung_am,
               kategorie: zeile.kategorie,
               url: fakten.url,
               quelle_seite: zeile.quelle_seite,

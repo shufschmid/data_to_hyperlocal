@@ -377,6 +377,17 @@ Endpoints of the learning layer, all in `src/endpoints/redaktion/`:
   municipal-news desk, same shape as the gazette's; `/meldung` refuses (422) a
   row whose reader stored no text, because a Meldung from a title alone reads
   complete and is not.
+- `POST /redaktion/gemeinden/:id/news-url` and
+  `POST /redaktion/gemeinden/:id/veranstaltungen-url` — the two pages of a
+  municipality's own website the Gemeindeseiten feed reads (`gemeinden.news_url`,
+  `gemeinden.veranstaltungen_url`; empty clears the field). Twins over one
+  function (`endpoints/redaktion/gemeindeseitenadresse.ts`) with one rule: the
+  page is READ BEFORE IT IS WRITTEN, so a mistyped address fails the form and
+  never becomes a row that errors every day at one. The read also checks WHICH
+  of the two lists the page is — the templates say so — because both sit on the
+  same host and a swapped address would otherwise look for months like a page
+  that never has anything recent. 202 on success, and the run starts at once so
+  the editor sees the page's items within a minute.
 - `POST /redaktion/suedanflug/:id/meldung` — the south-approach article, ONE
   model call per municipality: the month's row in the path, the municipality in
   the body (`{gemeinde}`), because one sheet yields one article per affected
@@ -416,7 +427,13 @@ sequential requests, a per-host pause `robots.txt` may lengthen, disallowed
 paths never fetched, redirects only within the site, charset-aware decoding,
 size caps. Platform detection is by fingerprint in the HTML, never by host: the
 newsroom's rule is that a rule holds for a kind of page, not for one
-municipality.
+municipality. Since 18.09.2026 it reads TWO pages per municipality, and the
+events templates are values of their own (`weblication_termine`,
+`iweb_termine`, `backslash_termine`, checked before the news fingerprints):
+measured over all ten registered municipalities, not one events page carries
+the template of its own news page. The events window runs FORWARD — a news item
+is past, an event lies ahead — and the event date never shares a column with a
+publication date.
 
 ## Environment variables
 
