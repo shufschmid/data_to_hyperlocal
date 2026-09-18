@@ -1,56 +1,18 @@
+import { darfLesen, darfSchreiben } from '@/lib/aktionen'
 import { proxyToDirectus, problem } from '@/lib/proxy.server'
 
 // Forwards the editorial actions to the extension endpoint, with the signed-in
 // user's token. A proxy and nothing else: no rule, no prompt, no calculation.
 //
 // One handler instead of eight near-identical files, which only works because
-// the shapes below are an allowlist rather than a pass-through. Without it this
-// would forward any path a caller invented straight into Directus, as the
-// signed-in user.
-const ERLAUBT: RegExp[] = [
-  /^tabellen$/i,
-  /^spielberichte$/i,
-  /^spielberichte\/publizieren$/i,
-  /^ankuendigungen$/i,
-  /^datensaetze\/[0-9a-f-]{36}\/lauf$/i,
-  /^laeufe\/[0-9a-f-]{36}\/(chat|publizieren|pruefung|verwerfen)$/i,
-  /^meldungen\/[0-9a-f-]{36}\/(chat|publizieren|pruefung|verwerfen|freigeben)$/i,
-  /^entsorgung\/kalender$/i,
-  /^entsorgung\/kalender\/[0-9a-f-]{36}\/(extrahieren|pruefen|meldungen|freigeben)$/i,
-  /^quellen\/lauf$/i,
-  /^gemeinden$/i,
-  /^gemeinden\/[0-9a-f-]{36}\/plz$/i,
-  /^gemeinden\/[0-9a-f-]{36}\/news-url$/i,
-  /^gemeindeseiten\/pruefen$/i,
-  /^gemeindeseiten\/[0-9a-f-]{36}\/(meldung|ablehnen|weiterreichen)$/i,
-  // Die Suedanflug-Quote: eine Meldung je betroffener Gemeinde, die im Koerper
-  // steht. Ein Monatsblatt, mehrere Meldungen.
-  /^suedanflug\/[0-9a-f-]{36}\/meldung$/i,
-  /^abstimmungen\/[0-9a-f-]{36}\/meldung$/i,
-  /^vereine$/i,
-  /^vereine\/[0-9a-f-]{36}$/i,
-  /^wochenblaetter$/i,
-  /^wochenblaetter\/[0-9a-f-]{36}\/gemeinden$/i,
-  /^wochenblaetter\/pruefen$/i,
-  /^ausgaben\/[0-9a-f-]{36}\/inventar$/i,
-  /^kandidaten\/[0-9a-f-]{36}\/(meldung|ablehnen|gemeinde|weiterreichen|perle)$/i,
-  /^hinweise\/[0-9a-f-]{36}\/(bewerten|zurueck)$/i,
-  /^wissen$/i,
-  /^sendungen\/[0-9a-f-]{36}\/(meldung|ablehnen|weiterreichen)$/i,
-  /^amtsblatt\/pruefen$/i,
-  /^amtsblatt\/[0-9a-f-]{36}\/(meldung|ablehnen|weiterreichen|unterlagen)$/i
-]
-
-// Die zwei Laeufe und die Bilanz: der Zustand eines von Hand gestarteten Laufs
-// lebt im Prozess der Erweiterung, und die Bilanz ist eine Rechnung ueber alle
-// Tische. Alles andere, was der Arbeitsplatz liest, geht ueber GraphQL.
-const LESBAR: RegExp[] = [/^quellen\/lauf$/i, /^gemeindeseiten\/lauf$/i, /^bilanz$/i]
+// the shapes live in `@/lib/aktionen` as an allowlist rather than a
+// pass-through, and are tested there against what the workspace actually calls.
 
 export async function GET(_request: Request, { params }: { params: Promise<{ pfad: string[] }> }) {
   const { pfad } = await params
   const ziel = pfad.join('/')
 
-  if (!LESBAR.some((muster) => muster.test(ziel))) {
+  if (!darfLesen(ziel)) {
     return problem(404, 'Unbekannte Aktion.')
   }
 
@@ -61,7 +23,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ pfa
   const { pfad } = await params
   const ziel = pfad.join('/')
 
-  if (!ERLAUBT.some((muster) => muster.test(ziel))) {
+  if (!darfSchreiben(ziel)) {
     return problem(404, 'Unbekannte Aktion.')
   }
 
