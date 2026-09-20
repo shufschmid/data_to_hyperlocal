@@ -1405,7 +1405,16 @@ them is not a time reference at all: German writes the adverb "morgen" small and
 the noun "Morgen" capital, and a waste reminder saying "am Morgen des
 Abfuhrtages" was reported for a rule it kept. `GROSS_IST_SUBSTANTIV` holds the
 words whose capitalisation decides that, and at the start of a sentence, where
-the capital says nothing, the word is still reported.
+the capital says nothing, the word is still reported. **And a weekday stops
+being relative the moment its date follows it.** „am Sonntag" rots; „am
+Sonntag, 20. September 2026" is still true in five years, and that is exactly
+the form the newsroom insists on — the waste reminders have written it that
+way from the start, and the events desk since 20 September 2026, whose very
+first article carried a warning about its own correct sentence. A check that
+scolds the prescribed form teaches the desk to read past warnings, which is
+the one thing it must not do. `MIT_DATUM_ABSOLUT` holds the weekday phrases
+and `DATUM_FOLGT` what has to come after: a day, a month and a YEAR. „am
+Samstag, 20. September" without the year is reported as before.
 
 **Telegramme: the association's own match report, where it exists.** The Match
 Center hangs a small icon next to some results (`…&tg=<id>`); the page behind it

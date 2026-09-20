@@ -211,6 +211,37 @@ describe('zeitWarnungen', () => {
   })
 })
 
+// Die erste echte Veranstaltungs-Meldung (20.09.2026) trug die Warnung
+// „Relativer Zeitbezug: am sonntag" ueber einem Satz, der das Datum vollstaendig
+// nannte — und das ist genau die Form, auf der die Redaktion besteht. Ein
+// Check, der die vorgeschriebene Form anmahnt, lehrt das Ueberlesen.
+describe('Wochentag mit Datum', () => {
+  it('meldet den Wochentag nicht, wenn das Datum dahintersteht', () => {
+    expect(
+      zeitWarnungen(
+        'Die Aufführung findet am Sonntag, 20. September 2026, um 11 Uhr statt.'
+      )
+    ).toEqual([])
+    expect(zeitWarnungen('Gespielt wird am Samstag, 06.09.2026.')).toEqual([])
+  })
+
+  it('meldet ihn weiterhin, wo kein Datum folgt', () => {
+    expect(zeitWarnungen('Gespielt wird am Sonntag.')).toEqual([
+      'Relativer Zeitbezug: "am sonntag"'
+    ])
+    // Ein Datum ohne Jahr rettet nichts: „am Sonntag, 20. September" verrottet.
+    expect(zeitWarnungen('Der Markt ist am Samstag, 20. September.')).toEqual([
+      'Relativer Zeitbezug: "am samstag"'
+    ])
+  })
+
+  it('laesst die uebrigen relativen Angaben unberuehrt', () => {
+    expect(zeitWarnungen('Das Spiel war gestern, 19. September 2026.')).toEqual(
+      ['Relativer Zeitbezug: "gestern"']
+    )
+  })
+})
+
 describe('zahlWarnungen', () => {
   it('laesst Resultat, Tag und Jahr durch', () => {
     expect(zahlWarnungen('Am 19. August 2026 endete es 3:3.', FAKTEN)).toEqual(

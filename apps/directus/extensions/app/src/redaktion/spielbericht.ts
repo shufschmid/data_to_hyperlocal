@@ -450,6 +450,38 @@ const RELATIV = [
  */
 const GROSS_IST_SUBSTANTIV = new Set(['morgen'])
 
+/**
+ * Wochentage, die kein Zeitbezug mehr sind, sobald das Datum dahintersteht.
+ *
+ * „am Sonntag" allein verrottet; „am Sonntag, 20. September 2026" ist in fuenf
+ * Jahren noch wahr — und genau diese Form verlangt die Redaktion, bei den
+ * Abfuhrerinnerungen seit je und bei den Veranstaltungen seit dem 20.
+ * September 2026. Die erste echte Veranstaltungs-Meldung trug prompt die
+ * Warnung „Relativer Zeitbezug: am sonntag" ueber einem vollstaendig
+ * datierten Satz. Ein Check, der die vorgeschriebene Form anmahnt, bringt der
+ * Redaktion bei, Warnungen zu ueberlesen — dieselbe Lehre wie beim Sporttisch,
+ * wo 23 von 32 Zahlwarnungen der TAG eines ausgeschriebenen Datums waren.
+ */
+const MIT_DATUM_ABSOLUT = new Set([
+  'am samstag',
+  'am sonntag',
+  'am freitag',
+  'am mittwoch',
+  'vergangenen samstag',
+  'vergangenen sonntag'
+])
+
+/** „20. September 2026", „20.09.2026" — ein Tag, der ein Jahr nennt. */
+const DATUM_FOLGT = /^[\s,]*\d{1,2}\.\s*(?:\p{L}+|\d{1,2}\.)\s*\d{4}/u
+
+/** Whether the date right after the weekday makes the phrase absolute. */
+function mitDatum(text: string, wort: string, stelle: number): boolean {
+  if (!MIT_DATUM_ABSOLUT.has(wort)) return false
+  return DATUM_FOLGT.test(
+    text.slice(stelle + wort.length, stelle + wort.length + 40)
+  )
+}
+
 /** Whether this hit is the capitalised noun rather than the adverb. */
 function istSubstantiv(text: string, wort: string, stelle: number): boolean {
   if (!GROSS_IST_SUBSTANTIV.has(wort)) return false
@@ -466,7 +498,9 @@ export function zeitWarnungen(text: string): string[] {
   return RELATIV.filter((wort) => {
     const regex = new RegExp(`(?<!\\p{L})${wort}(?!\\p{L})`, 'gu')
     for (const treffer of klein.matchAll(regex)) {
-      if (!istSubstantiv(text, wort, treffer.index)) return true
+      if (istSubstantiv(text, wort, treffer.index)) continue
+      if (mitDatum(klein, wort, treffer.index)) continue
+      return true
     }
     return false
   }).map(zeitWarnung)
