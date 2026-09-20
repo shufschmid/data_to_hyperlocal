@@ -1,0 +1,71 @@
+{
+  "collection": "veranstaltungen",
+  "field": "rhythmus",
+  "type": "string",
+  "meta": {
+    "collection": "veranstaltungen",
+    "conditions": null,
+    "display": "labels",
+    "display_options": null,
+    "field": "rhythmus",
+    "group": null,
+    "hidden": false,
+    "interface": "select-dropdown",
+    "note": "Vom Code aus den Terminen und dem Text erkannt. Entscheidet nur, was Routine ist — nie ueber den Nachrichtenwert.",
+    "options": {
+      "choices": [
+        {
+          "text": "Einmalig",
+          "value": "einmalig"
+        },
+        {
+          "text": "Laufend (Spanne)",
+          "value": "laufend"
+        },
+        {
+          "text": "Woechentlich",
+          "value": "woechentlich"
+        },
+        {
+          "text": "Monatlich",
+          "value": "monatlich"
+        },
+        {
+          "text": "Seltener",
+          "value": "seltener"
+        },
+        {
+          "text": "Unbekannt",
+          "value": "unbekannt"
+        }
+      ]
+    },
+    "readonly": false,
+    "required": false,
+    "searchable": true,
+    "sort": 10,
+    "special": null,
+    "translations": null,
+    "validation": null,
+    "validation_message": null,
+    "width": "half"
+  },
+  "schema": {
+    "name": "rhythmus",
+    "table": "veranstaltungen",
+    "data_type": "character varying",
+    "default_value": "unbekannt",
+    "max_length": 16,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "is_nullable": false,
+    "is_unique": false,
+    "is_indexed": false,
+    "is_primary_key": false,
+    "is_generated": false,
+    "generation_expression": null,
+    "has_auto_increment": false,
+    "foreign_key_table": null,
+    "foreign_key_column": null
+  }
+}

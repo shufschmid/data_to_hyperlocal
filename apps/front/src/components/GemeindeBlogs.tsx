@@ -189,15 +189,17 @@ function Beitrag({
       ? `${beitrag.spiel.sportart} · ${beitrag.spiel.heim} – ${beitrag.spiel.gast}`
       : beitrag.gemeindemitteilung !== null
         ? 'Gemeindeseite'
-        : beitrag.amtsblattmeldung !== null
-          ? 'Amtsblatt'
-          : beitrag.kandidat !== null
-            ? 'Wochenblatt'
-            : beitrag.sendungskandidat !== null
-              ? 'Sendung'
-              : beitrag.erscheint_am !== null
-                ? 'Entsorgung'
-                : 'Statistik'
+        : beitrag.veranstaltung !== null
+          ? 'Veranstaltungskalender'
+          : beitrag.amtsblattmeldung !== null
+            ? 'Amtsblatt'
+            : beitrag.kandidat !== null
+              ? 'Wochenblatt'
+              : beitrag.sendungskandidat !== null
+                ? 'Sendung'
+                : beitrag.erscheint_am !== null
+                  ? 'Entsorgung'
+                  : 'Statistik'
 
   // Nur was auch publiziert werden darf: „in_pruefung“ gehoert den
   // Gegenlesenden, „verworfen“ ist entschieden.

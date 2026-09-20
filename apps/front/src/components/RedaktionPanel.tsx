@@ -68,6 +68,10 @@ import {
   type AmtsblattErgebnis,
   GEMEINDEMITTEILUNGEN_QUERY,
   type GemeindemitteilungenErgebnis,
+  VERANSTALTUNGEN_QUERY,
+  type VeranstaltungenErgebnis,
+  VERANSTALTUNGSQUELLEN_QUERY,
+  type VeranstaltungsquellenErgebnis,
   SENDUNGSKANDIDATEN_QUERY,
   type SendungskandidatenErgebnis
 } from '@/graphql/redaktion'
@@ -87,6 +91,7 @@ import { QuellenLauf } from './QuellenLauf'
 import { Presseschau } from './Presseschau'
 import { Amtsblatt } from './Amtsblatt'
 import { Gemeindeseiten } from './Gemeindeseiten'
+import { Veranstaltungen } from './Veranstaltungen'
 import { SendungsDurchsicht } from './SendungsDurchsicht'
 import IconButton from '@mui/material/IconButton'
 import Menu from '@mui/material/Menu'
@@ -95,6 +100,7 @@ import MenuItem from '@mui/material/MenuItem'
 import { anzahlOffen as anzahlSendungskandidaten } from '@/lib/sendungen'
 import { anzahlOffen, liestUnterlagen } from '@/lib/amtsblatt'
 import { anzahlOffen as anzahlMitteilungen, type GemeindeseitenLaufStatus } from '@/lib/gemeindeseiten'
+import { anzahlOffen as anzahlAnlaesse } from '@/lib/veranstaltungen'
 import { Chefredaktion } from './Chefredaktion'
 import { Gelerntes } from './Gelerntes'
 import { Zeitleiste } from './Zeitleiste'
@@ -141,6 +147,7 @@ type Reiter =
   | 'wochenblaetter'
   | 'amtsblatt'
   | 'gemeindeseiten'
+  | 'veranstaltungen'
   | 'regionaljournal'
   | 'punkt6'
   | 'chefredaktion'
@@ -294,6 +301,12 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
   const gemeindeseiten = useQuery<GemeindemitteilungenErgebnis>(GEMEINDEMITTEILUNGEN_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY
   })
+  const veranstaltungen = useQuery<VeranstaltungenErgebnis>(VERANSTALTUNGEN_QUERY, {
+    fetchPolicy: LIVE_FETCH_POLICY
+  })
+  const veranstaltungsquellen = useQuery<VeranstaltungsquellenErgebnis>(VERANSTALTUNGSQUELLEN_QUERY, {
+    fetchPolicy: LIVE_FETCH_POLICY
+  })
   const sendungskandidaten = useQuery<SendungskandidatenErgebnis>(SENDUNGSKANDIDATEN_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY
   })
@@ -437,6 +450,9 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
       m.gemeindemitteilung === null ? [] : [[m.gemeindemitteilung.id, m.status] as const]
     )
   )
+  const meldungStatusJeAnlass = new Map(
+    meldungenAlle.flatMap((m) => (m.veranstaltung === null ? [] : [[m.veranstaltung.id, m.status] as const]))
+  )
   const meldungStatusJeKandidat = new Map(
     meldungenAlle.flatMap((m) => (m.kandidat === null ? [] : [[m.kandidat.id, m.status] as const]))
   )
@@ -457,6 +473,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
       sendungskandidaten.refetch(),
       amtsblatt.refetch(),
       gemeindeseiten.refetch(),
+      veranstaltungen.refetch(),
       suedanflug.refetch(),
       abstimmungen.refetch()
     ])
@@ -467,6 +484,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
     sendungskandidaten,
     amtsblatt,
     gemeindeseiten,
+    veranstaltungen,
     suedanflug,
     abstimmungen
   ])
@@ -551,11 +569,22 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
   const gemeindeseitenRefetch = gemeindeseiten.refetch
   const gemeindenRefetch = gemeinden.refetch
   const alleMeldungenRefetch = alleMeldungen.refetch
+  // Es ist EIN Lauf: dieselbe Operation liest die Newsseite und die Kalender
+  // derselben Gemeinde. Also laedt sein Ende beide Tische neu — und die
+  // Kalenderzeilen dazu, weil deren Statuszeilen dort geschrieben werden.
+  const veranstaltungenRefetch = veranstaltungen.refetch
+  const veranstaltungsquellenRefetch = veranstaltungsquellen.refetch
   const gemeindeseitenWarUnterwegs = useRef(false)
   useEffect(() => {
     const unterwegs = gemeindeseitenLaufStatus?.laeuft === true
     if (gemeindeseitenWarUnterwegs.current && !unterwegs) {
-      void Promise.all([gemeindeseitenRefetch(), gemeindenRefetch(), alleMeldungenRefetch()])
+      void Promise.all([
+        gemeindeseitenRefetch(),
+        veranstaltungenRefetch(),
+        veranstaltungsquellenRefetch(),
+        gemeindenRefetch(),
+        alleMeldungenRefetch()
+      ])
     }
     gemeindeseitenWarUnterwegs.current = unterwegs
     if (!unterwegs) return
@@ -565,6 +594,8 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
     gemeindeseitenLaufStatus?.laeuft,
     ladeGemeindeseitenLauf,
     gemeindeseitenRefetch,
+    veranstaltungenRefetch,
+    veranstaltungsquellenRefetch,
     gemeindenRefetch,
     alleMeldungenRefetch
   ])
@@ -872,6 +903,21 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
                 sx={ZAEHLER_IM_REITER}
               >
                 Gemeindeseiten
+              </Badge>
+            }
+          />
+          <Tab
+            value="veranstaltungen"
+            label={
+              <Badge
+                color="info"
+                badgeContent={anzahlAnlaesse(
+                  veranstaltungen.data?.veranstaltungen ?? [],
+                  meldungStatusJeAnlass
+                )}
+                sx={ZAEHLER_IM_REITER}
+              >
+                Veranstaltungen
               </Badge>
             }
           />
@@ -1334,6 +1380,52 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
         </Stack>
       )}
 
+      {reiter === 'veranstaltungen' && (
+        <Stack spacing={2}>
+          <Typography variant="body2" color="text.secondary">
+            Was in den Gemeinden stattfindet — aus ihren eigenen Veranstaltungskalendern, täglich um 13 Uhr im
+            selben Lauf wie die Newsseiten gelesen. Eine Zeile ist ein Anlass mit allen seinen Terminen, nicht
+            ein Kalendertag. Was daran eine Meldung sein könnte, rechnet der Lauf aus; die Sichtung sortiert
+            und stuft nie herab, weil ein Verein oder eine Partei dahintersteht.
+          </Typography>
+          <Veranstaltungen
+            anlaesse={veranstaltungen.data?.veranstaltungen ?? []}
+            quellen={veranstaltungsquellen.data?.veranstaltungsquellen ?? []}
+            gemeinden={gemeinden.data?.gemeinden ?? []}
+            meldungen={meldungenAlle}
+            lauf={gemeindeseitenLaufStatus}
+            heute={new Date().toISOString().slice(0, 10)}
+            laeuft={sendet}
+            onChat={async (id, anweisung) => {
+              await fuehreAus(`meldungen/${id}/chat`, { anweisung })
+            }}
+            onAktion={async (id, was, koerper) => {
+              await fuehreAus(`meldungen/${id}/${was}`, koerper)
+            }}
+            onLauf={async () => {
+              await fuehreAus('gemeindeseiten/pruefen')
+              await ladeGemeindeseitenLauf()
+            }}
+            onUebernehmen={async (id) => {
+              await fuehreAus(`veranstaltungen/${id}/meldung`)
+            }}
+            onAblehnen={async (id, grund, kommentar) => {
+              await fuehreAus(`veranstaltungen/${id}/ablehnen`, { grund, kommentar })
+            }}
+            onWeiterreichen={async (id, begruendung) => {
+              await fuehreAus(`veranstaltungen/${id}/weiterreichen`, { begruendung })
+            }}
+            onDauerangebot={async (id, modus) => {
+              // „jetzt" legt ohne Modellaufruf einen Vorschlag an; die beiden
+              // anderen Stellungen sind Einstellungen, die bleiben.
+              await fuehreAus(`veranstaltungen/${id}/dauerangebot`, { modus })
+              await veranstaltungen.refetch()
+            }}
+            onZuGemeinden={() => setReiter('gemeinden')}
+          />
+        </Stack>
+      )}
+
       {(reiter === 'regionaljournal' || reiter === 'punkt6') && (
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
@@ -1430,6 +1522,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
                 wochenblaetter.refetch(),
                 amtsblatt.refetch(),
                 gemeindeseiten.refetch(),
+                veranstaltungen.refetch(),
                 sendungskandidaten.refetch()
               ])
             }}
@@ -1535,14 +1628,22 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
               await fuehreAus(`gemeinden/${id}/news-url`, { news_url: url })
               await gemeinden.refetch()
             }}
-            onVeranstaltungenUrl={async (id, url) => {
-              // Derselbe Endpunkt-Zwilling mit derselben Regel, und er prueft
-              // zusaetzlich, WELCHE der beiden Listen die Seite ist — eine
-              // vertauschte Adresse scheitert hier.
-              await fuehreAus(`gemeinden/${id}/veranstaltungen-url`, {
-                veranstaltungen_url: url
-              })
-              await gemeinden.refetch()
+            quellen={veranstaltungsquellen.data?.veranstaltungsquellen ?? []}
+            onKalenderErfassen={async (gemeindeId, eingabe) => {
+              // Derselbe Handel wie bei der Newsseite: der Endpunkt LIEST die
+              // Seite, bevor er sie speichert, und er prueft, ob es eine
+              // Veranstaltungsuebersicht ist — eine vertauschte Adresse
+              // scheitert hier am Formular und nicht morgen um eins.
+              await fuehreAus('veranstaltungsquellen', { gemeinde: gemeindeId, ...eingabe })
+              await Promise.all([veranstaltungsquellen.refetch(), ladeGemeindeseitenLauf()])
+            }}
+            onKalenderSchalten={async (quelleId, aktiv) => {
+              await fuehreAus(`veranstaltungsquellen/${quelleId}`, { aktiv })
+              await veranstaltungsquellen.refetch()
+            }}
+            onKalenderLoeschen={async (quelleId) => {
+              await fuehreAus(`veranstaltungsquellen/${quelleId}/loeschen`)
+              await Promise.all([veranstaltungsquellen.refetch(), veranstaltungen.refetch()])
             }}
           />
         </Stack>

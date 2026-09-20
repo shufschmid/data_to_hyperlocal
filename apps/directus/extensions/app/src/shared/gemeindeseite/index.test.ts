@@ -405,7 +405,15 @@ describe('liesMitteilung', () => {
     datumQuelle: 'liste' as const,
     kategorie: null,
     direktPdf: false,
-    veranstaltungAm: null
+    veranstaltungAm: null,
+    veranstaltungBis: null,
+    zeit: null,
+    lokalitaet: null,
+    ort: null,
+    veranstalter: null,
+    serie: null,
+    serieSeit: null,
+    abgesagt: false
   }
   const pdfText = async (daten: Buffer) => ({
     text: `Inhalt von ${daten.toString('utf8').replace('%PDF-', '')}`,

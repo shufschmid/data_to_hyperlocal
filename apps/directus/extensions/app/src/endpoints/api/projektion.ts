@@ -29,6 +29,7 @@ export type Rubrik =
   | 'amtsblatt'
   | 'beschaffung'
   | 'gemeinde'
+  | 'veranstaltung'
   | 'presseschau'
   | 'sendung'
 
@@ -76,6 +77,7 @@ export interface Rohzeile {
   amtsblattmeldung: { quelle_typ: string | null } | string | null
   /** Set for articles written from a municipality's own news page. */
   gemeindemitteilung: string | null
+  veranstaltung: string | null
   spiel: {
     sportart: string | null
     wettbewerb: string | null
@@ -249,6 +251,7 @@ export function rubrikVon(zeile: Rohzeile): Rubrik | null {
   if (zeile.amtsblattmeldung !== null)
     return quelleTypVon(zeile) === 'simap' ? 'beschaffung' : 'amtsblatt'
   if (zeile.gemeindemitteilung !== null) return 'gemeinde'
+  if (zeile.veranstaltung !== null) return 'veranstaltung'
   if (zeile.sendungskandidat !== null) return 'sendung'
   return null
 }
@@ -376,6 +379,17 @@ export function quelleVon(zeile: Rohzeile, rubrik: Rubrik | null): Quelle {
         name:
           text(daten['quelle_name']) ??
           (zeile.gemeinde === null ? null : `Gemeinde ${zeile.gemeinde.name}`),
+        url: text(daten['url'])
+      }
+    // An Anlass names its CALENDAR — the municipality's own today, a platform
+    // or a venue later — and links its own page, never the calendar's list.
+    case 'veranstaltung':
+      return {
+        name:
+          text(daten['quelle_name']) ??
+          (zeile.gemeinde === null
+            ? null
+            : `Veranstaltungskalender der Gemeinde ${zeile.gemeinde.name}`),
         url: text(daten['url'])
       }
 

@@ -47,6 +47,7 @@ function bericht(spielId: string) {
     kandidat: null,
     amtsblattmeldung: null,
     gemeindemitteilung: null,
+    veranstaltung: null,
     sendungskandidat: null,
     suedanflugquote: null,
     abstimmung: null,

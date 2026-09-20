@@ -21,6 +21,7 @@ import Typography from '@mui/material/Typography'
 import type {
   EntsorgungskalenderFelder,
   GemeindeFelder,
+  VeranstaltungsquelleFelder,
   VereinFelder,
   WochenblattFelder
 } from '@/graphql/redaktion'
@@ -35,6 +36,7 @@ import {
 } from '@/lib/redaktion'
 import { kalenderStatusText } from '@/lib/entsorgung'
 import { zeitpunktText } from '@/lib/gemeindeseiten'
+import { quellenJeGemeinde } from '@/lib/veranstaltungen'
 import { VereinDialog, type VereinFormular } from './VereinDialog'
 
 // Das Redaktionsgebiet — eine Karte je Gemeinde, mit allem, was an ihr haengt.
@@ -66,8 +68,15 @@ export interface GemeindenAuswahlProps {
   onPlz?: (gemeindeId: string, plz: string[]) => Promise<void>
   /** The news page of the municipality's website; null clears it. */
   onNewsUrl?: (gemeindeId: string, url: string | null) => Promise<void>
-  /** The events page of the same website; null clears it. */
-  onVeranstaltungenUrl?: (gemeindeId: string, url: string | null) => Promise<void>
+  /** Die Veranstaltungskalender — eine Liste je Gemeinde, nicht eine zweite Spalte. */
+  quellen?: readonly VeranstaltungsquelleFelder[]
+  /** Legt einen Kalender an; der Endpunkt liest die Seite, BEVOR er schreibt. */
+  onKalenderErfassen?: (
+    gemeindeId: string,
+    eingabe: { url: string; name: string | null; art: string }
+  ) => Promise<void>
+  onKalenderSchalten?: (quelleId: string, aktiv: boolean) => Promise<void>
+  onKalenderLoeschen?: (quelleId: string) => Promise<void>
   laeuft?: boolean
   /** In Tests gesetzt. */
   jahr?: number
@@ -86,7 +95,10 @@ export function GemeindenAuswahl({
   onZumEntsorgungsTab,
   onPlz,
   onNewsUrl,
-  onVeranstaltungenUrl,
+  quellen = [],
+  onKalenderErfassen,
+  onKalenderSchalten,
+  onKalenderLoeschen,
   laeuft = false,
   jahr
 }: GemeindenAuswahlProps) {
@@ -103,6 +115,7 @@ export function GemeindenAuswahl({
   const nachGemeinde = useMemo(() => vereineNachGemeinde(vereine), [vereine])
   const blattVon = useMemo(() => blattJeGemeinde(blaetter), [blaetter])
   const kalenderVon = useMemo(() => kalenderJeGemeinde(kalender, aktiveJahr), [kalender, aktiveJahr])
+  const quellenVon = useMemo(() => quellenJeGemeinde(quellen), [quellen])
   const anzahlAktiv = gemeinden.filter((g) => g.aktiv).length
 
   return (
@@ -149,6 +162,7 @@ export function GemeindenAuswahl({
           vereine={nachGemeinde.get(gemeinde.id) ?? []}
           blatt={blattVon.get(gemeinde.id) ?? null}
           kalender={kalenderVon.get(gemeinde.id) ?? null}
+          quellen={quellenVon.get(gemeinde.id) ?? []}
           portale={portale}
           jahr={aktiveJahr}
           laeuft={laeuft}
@@ -162,7 +176,9 @@ export function GemeindenAuswahl({
           {...(onZumEntsorgungsTab === undefined ? {} : { onZumEntsorgungsTab })}
           {...(onPlz === undefined ? {} : { onPlz })}
           {...(onNewsUrl === undefined ? {} : { onNewsUrl })}
-          {...(onVeranstaltungenUrl === undefined ? {} : { onVeranstaltungenUrl })}
+          {...(onKalenderErfassen === undefined ? {} : { onKalenderErfassen })}
+          {...(onKalenderSchalten === undefined ? {} : { onKalenderSchalten })}
+          {...(onKalenderLoeschen === undefined ? {} : { onKalenderLoeschen })}
         />
       ))}
 
@@ -223,6 +239,7 @@ interface KarteProps {
   vereine: readonly VereinFelder[]
   blatt: WochenblattFelder | null
   kalender: EntsorgungskalenderFelder | null
+  quellen: readonly VeranstaltungsquelleFelder[]
   portale: readonly StatistikPortal[]
   jahr: number
   laeuft: boolean
@@ -233,8 +250,12 @@ interface KarteProps {
   onPlz?: (gemeindeId: string, plz: string[]) => Promise<void>
   /** The news page of the municipality's website; null clears it. */
   onNewsUrl?: (gemeindeId: string, url: string | null) => Promise<void>
-  /** The events page of the same website; null clears it. */
-  onVeranstaltungenUrl?: (gemeindeId: string, url: string | null) => Promise<void>
+  onKalenderErfassen?: (
+    gemeindeId: string,
+    eingabe: { url: string; name: string | null; art: string }
+  ) => Promise<void>
+  onKalenderSchalten?: (quelleId: string, aktiv: boolean) => Promise<void>
+  onKalenderLoeschen?: (quelleId: string) => Promise<void>
 }
 
 function GemeindeKarte({
@@ -242,6 +263,7 @@ function GemeindeKarte({
   vereine,
   blatt,
   kalender,
+  quellen,
   portale,
   jahr,
   laeuft,
@@ -251,12 +273,16 @@ function GemeindeKarte({
   onZumEntsorgungsTab,
   onPlz,
   onNewsUrl,
-  onVeranstaltungenUrl
+  onKalenderErfassen,
+  onKalenderSchalten,
+  onKalenderLoeschen
 }: KarteProps) {
   const statistikPortale = statistikPortaleFuer(gemeinde.bezirk, portale)
   const [plzEingabe, setPlzEingabe] = useState((gemeinde.plz ?? []).join(', '))
   const [urlEingabe, setUrlEingabe] = useState(gemeinde.news_url ?? '')
-  const [terminUrlEingabe, setTerminUrlEingabe] = useState(gemeinde.veranstaltungen_url ?? '')
+  const [kalenderUrl, setKalenderUrl] = useState('')
+  const [kalenderName, setKalenderName] = useState('')
+  const [kalenderArt, setKalenderArt] = useState('gemeinde')
 
   return (
     <Paper sx={{ p: 2 }}>
@@ -481,45 +507,116 @@ function GemeindeKarte({
           )}
         </Abschnitt>
 
-        <Abschnitt titel="Veranstaltungen">
-          {(gemeinde.veranstaltungen_url ?? '') !== '' ? (
-            <Typography variant="body2" color="text.secondary">
-              Liest{' '}
-              <Link href={gemeinde.veranstaltungen_url ?? ''} target="_blank" rel="noopener">
-                {gemeinde.veranstaltungen_url}
-              </Link>{' '}
-              — im selben Lauf um 13 Uhr; aufgenommen wird, was in den nächsten 60 Tagen stattfindet. Termine
-              landen auf demselben Tisch wie die Mitteilungen.
-            </Typography>
-          ) : (
-            // Dieselbe Regel wie bei der Newsseite: ohne Adresse liest der
-            // Lauf nichts, und das sieht von aussen aus wie „diese Gemeinde
-            // hat nichts vor".
+        {/* Die Kalender sind eine LISTE, keine zweite Adresse.
+
+            Gemessen im September 2026: Aesch und Allschwil fuehren auf ihrer
+            eigenen Seite nur Amtliches, das Dorfleben liegt auf Crossiety
+            beziehungsweise kallaender.ch, und Riehen hat ueberhaupt keinen
+            Gemeindekalender. Eine Spalte auf `gemeinden` haette dafuer nie
+            gereicht. Plattformen und Veranstaltungsorte duerfen erfasst
+            werden, bevor es einen Leser fuer sie gibt — die Zeile steht dann
+            inaktiv da und sagt warum. */}
+        <Abschnitt titel="Veranstaltungskalender">
+          {quellen.length === 0 ? (
             <Alert severity="info" sx={{ py: 0 }}>
-              Keine Veranstaltungsseite erfasst — von dieser Gemeinde kommen keine Veranstaltungen.
+              Kein Kalender erfasst — von dieser Gemeinde kommen keine Anlässe.
             </Alert>
+          ) : (
+            <Stack spacing={1}>
+              {quellen.map((quelle) => (
+                <Stack key={quelle.id} spacing={0.25}>
+                  <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+                    <Link href={quelle.url} target="_blank" rel="noopener" variant="body2">
+                      {quelle.name}
+                    </Link>
+                    {!quelle.aktiv && <Chip size="small" variant="outlined" label="ausgeschaltet" />}
+                    {quelle.art !== 'gemeinde' && (
+                      <Chip size="small" variant="outlined" label="noch kein Leser" />
+                    )}
+                    {onKalenderSchalten !== undefined && (
+                      <Button
+                        size="small"
+                        disabled={laeuft}
+                        onClick={() => void onKalenderSchalten(quelle.id, !quelle.aktiv)}
+                      >
+                        {quelle.aktiv ? 'Ausschalten' : 'Einschalten'}
+                      </Button>
+                    )}
+                    {onKalenderLoeschen !== undefined && (
+                      <Button
+                        size="small"
+                        color="inherit"
+                        disabled={laeuft}
+                        onClick={() => void onKalenderLoeschen(quelle.id)}
+                      >
+                        Entfernen
+                      </Button>
+                    )}
+                  </Stack>
+                  {(quelle.letzter_fehler ?? '') !== '' ? (
+                    <Alert severity="warning" sx={{ py: 0 }}>
+                      Letzter Lauf gescheitert: {quelle.letzter_fehler}
+                    </Alert>
+                  ) : (quelle.letzter_hinweis ?? '') !== '' ? (
+                    <Alert severity="info" sx={{ py: 0 }}>
+                      {quelle.letzter_hinweis}
+                    </Alert>
+                  ) : (
+                    quelle.letzte_pruefung !== null && (
+                      <Typography variant="caption" color="text.secondary">
+                        Zuletzt gelesen: {zeitpunktText(quelle.letzte_pruefung)}
+                      </Typography>
+                    )
+                  )}
+                </Stack>
+              ))}
+            </Stack>
           )}
-          {onVeranstaltungenUrl !== undefined && (
-            <Stack direction="row" spacing={1} sx={{ mt: 1, alignItems: 'flex-start' }}>
+          {onKalenderErfassen !== undefined && (
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{ mt: 1, alignItems: 'flex-start', flexWrap: 'wrap', rowGap: 1 }}
+            >
               <TextField
                 size="small"
-                label="Adresse der Veranstaltungsübersicht"
+                label="Adresse des Kalenders"
                 placeholder="https://www.aesch.bl.ch/anlaesseaktuelles"
-                value={terminUrlEingabe}
-                onChange={(e) => setTerminUrlEingabe(e.target.value)}
-                sx={{ flex: 1 }}
+                value={kalenderUrl}
+                onChange={(e) => setKalenderUrl(e.target.value)}
+                sx={{ flex: 1, minWidth: 220 }}
+              />
+              <TextField
+                size="small"
+                select
+                label="Art"
+                value={kalenderArt}
+                onChange={(e) => setKalenderArt(e.target.value)}
+                sx={{ minWidth: 150 }}
+              >
+                <MenuItem value="gemeinde">Kalender der Gemeinde</MenuItem>
+                <MenuItem value="plattform">Plattform</MenuItem>
+                <MenuItem value="ort">Veranstaltungsort</MenuItem>
+              </TextField>
+              <TextField
+                size="small"
+                label="Name (optional)"
+                value={kalenderName}
+                onChange={(e) => setKalenderName(e.target.value)}
+                sx={{ minWidth: 170 }}
               />
               <Button
                 size="small"
-                disabled={laeuft}
+                disabled={laeuft || kalenderUrl.trim() === ''}
                 onClick={() =>
-                  void onVeranstaltungenUrl(
-                    gemeinde.id,
-                    terminUrlEingabe.trim() === '' ? null : terminUrlEingabe.trim()
-                  )
+                  void onKalenderErfassen(gemeinde.id, {
+                    url: kalenderUrl.trim(),
+                    name: kalenderName.trim() === '' ? null : kalenderName.trim(),
+                    art: kalenderArt
+                  })
                 }
               >
-                Speichern
+                Kalender erfassen
               </Button>
             </Stack>
           )}

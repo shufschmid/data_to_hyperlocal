@@ -29,10 +29,15 @@ export const ERLAUBT: RegExp[] = [
   /^quellen\/lauf$/i,
   /^gemeinden$/i,
   /^gemeinden\/[0-9a-f-]{36}\/plz$/i,
-  // Beide Adressen derselben Gemeindeseite: die Nachrichten und die Termine.
-  /^gemeinden\/[0-9a-f-]{36}\/(news-url|veranstaltungen-url)$/i,
+  /^gemeinden\/[0-9a-f-]{36}\/news-url$/i,
   /^gemeindeseiten\/pruefen$/i,
   /^gemeindeseiten\/[0-9a-f-]{36}\/(meldung|ablehnen|weiterreichen)$/i,
+  // Die Anlaesse und ihre Kalender. `dauerangebot` ist der Schalter auf einer
+  // Routine; die Kalenderpflege laeuft als POST-Verben, weil der Proxy nur
+  // GET und POST weiterleitet.
+  /^veranstaltungen\/[0-9a-f-]{36}\/(meldung|ablehnen|weiterreichen|dauerangebot)$/i,
+  /^veranstaltungsquellen$/i,
+  /^veranstaltungsquellen\/[0-9a-f-]{36}(\/loeschen)?$/i,
   // Die Suedanflug-Quote: eine Meldung je betroffener Gemeinde, die im Koerper
   // steht. Ein Monatsblatt, mehrere Meldungen.
   /^suedanflug\/[0-9a-f-]{36}\/meldung$/i,

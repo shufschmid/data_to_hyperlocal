@@ -1,0 +1,59 @@
+{
+  "collection": "veranstaltungen",
+  "field": "zugang",
+  "type": "string",
+  "meta": {
+    "collection": "veranstaltungen",
+    "conditions": null,
+    "display": "labels",
+    "display_options": null,
+    "field": "zugang",
+    "group": null,
+    "hidden": false,
+    "interface": "select-dropdown",
+    "note": "Offen = Ausstellung, Dauer-Treff: ihr Ende ist eine letzte Gelegenheit. Programm = Lager, Kurs, Ferienpass: das Ende interessiert nur die Teilnehmenden, kein Anker \"endet\".",
+    "options": {
+      "choices": [
+        {
+          "text": "Offen (jeden Tag besuchbar)",
+          "value": "offen"
+        },
+        {
+          "text": "Programm (Teilnahme ueber die Dauer)",
+          "value": "programm"
+        },
+        {
+          "text": "Unbekannt",
+          "value": "unbekannt"
+        }
+      ]
+    },
+    "readonly": false,
+    "required": false,
+    "searchable": true,
+    "sort": 11,
+    "special": null,
+    "translations": null,
+    "validation": null,
+    "validation_message": null,
+    "width": "half"
+  },
+  "schema": {
+    "name": "zugang",
+    "table": "veranstaltungen",
+    "data_type": "character varying",
+    "default_value": "unbekannt",
+    "max_length": 16,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "is_nullable": false,
+    "is_unique": false,
+    "is_indexed": false,
+    "is_primary_key": false,
+    "is_generated": false,
+    "generation_expression": null,
+    "has_auto_increment": false,
+    "foreign_key_table": null,
+    "foreign_key_column": null
+  }
+}

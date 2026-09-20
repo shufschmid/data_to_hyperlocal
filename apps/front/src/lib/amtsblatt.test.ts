@@ -231,7 +231,6 @@ describe('ohnePlz', () => {
       news_letzte_pruefung: null,
       news_letzter_fehler: null,
       news_letzter_hinweis: null,
-      veranstaltungen_url: null,
       suedanflug: false,
       aktiv: true,
       ...ueber
@@ -253,7 +252,6 @@ describe('ohnePlz', () => {
         news_letzte_pruefung: null,
         news_letzter_fehler: null,
         news_letzter_hinweis: null,
-        veranstaltungen_url: null,
         suedanflug: false,
         aktiv: false
       })

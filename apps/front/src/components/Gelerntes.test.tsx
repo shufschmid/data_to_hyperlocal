@@ -121,6 +121,7 @@ describe('Gelerntes', () => {
           kandidat: null,
           amtsblattmeldung: null,
           gemeindemitteilung: null,
+          veranstaltung: null,
           sendungskandidat: null,
           gemeinde: null,
           ausgabe: null,

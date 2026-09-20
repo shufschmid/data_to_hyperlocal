@@ -1,0 +1,28 @@
+{
+  "collection": "veranstaltungen",
+  "meta": {
+    "accountability": "all",
+    "archive_app_filter": true,
+    "archive_field": null,
+    "archive_value": null,
+    "collapse": "open",
+    "collection": "veranstaltungen",
+    "color": null,
+    "display_template": "{{titel}}",
+    "group": null,
+    "hidden": false,
+    "icon": "event",
+    "item_duplication_fields": null,
+    "note": "Ein ANLASS je Zeile, nicht ein Kalendereintrag: dieselbe Sache an mehreren Tagen ist eine Zeile mit ihrer Terminliste (Serienschluessel = Titel + Lokalitaet + Zeit). Der Code erkennt Rhythmus und Anker; die Sichtung sortiert nur die Anlaesse mit Anker; die Redaktion entscheidet. Routinen bleiben stehen und kommen als Dauerangebot alle sechs Monate einmal.",
+    "preview_url": null,
+    "singleton": false,
+    "sort": null,
+    "sort_field": null,
+    "translations": null,
+    "unarchive_value": null,
+    "versioning": false
+  },
+  "schema": {
+    "name": "veranstaltungen"
+  }
+}

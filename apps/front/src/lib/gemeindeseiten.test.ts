@@ -55,7 +55,6 @@ function gemeinde(ueber: Partial<GemeindeFelder> = {}): GemeindeFelder {
     news_letzte_pruefung: null,
     news_letzter_fehler: null,
     news_letzter_hinweis: null,
-    veranstaltungen_url: null,
     suedanflug: false,
     ...ueber
   }

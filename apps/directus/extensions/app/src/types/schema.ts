@@ -287,6 +287,11 @@ export interface Meldung {
    */
   abstimmung: string | null
   /**
+   * Set for articles written from an Anlass in a municipality's events
+   * calendar. Null otherwise — the ninth kind, since 20 September 2026.
+   */
+  veranstaltung: string | null
+  /**
    * Mirror of the candidate's Perle verdict, for downstream readers of
    * published press reviews. The Chefredaktion decides on the CANDIDATE
    * (`wochenblattkandidaten.perle`) — independent of whether a Meldung ever
@@ -458,6 +463,7 @@ export type WissenBereich =
   | 'sendung'
   | 'suedanflug'
   | 'abstimmung'
+  | 'veranstaltung'
 /** A Sichtung rule steers what is proposed; a text rule, how a Meldung is written. */
 export type WissenStufe = 'sichtung' | 'text'
 /** `weiterreichen` lets a Sichtung hand a matching proposal to the Chefredaktion by itself. */
@@ -762,6 +768,7 @@ export interface Recherchehinweis {
   amtsblattmeldung: string | null
   gemeindemitteilung: string | null
   sendungskandidat: string | null
+  veranstaltung: string | null
   /** Handed up by a learned rule, not by a person. */
   automatisch: boolean
   /** The rule that did it — the automation's track record hangs on this. */
@@ -840,6 +847,8 @@ export interface Schema {
   gemeindemitteilungen: Gemeindemitteilung[]
   suedanflugquoten: Suedanflugquote[]
   abstimmungen: Abstimmung[]
+  veranstaltungsquellen: Veranstaltungsquelle[]
+  veranstaltungen: Veranstaltung[]
 }
 
 export type MitteilungsPlattform =
@@ -847,6 +856,9 @@ export type MitteilungsPlattform =
   | 'iweb_tabelle'
   | 'iweb_karten'
   | 'backslash'
+  | 'weblication_termine'
+  | 'iweb_termine'
+  | 'backslash_termine'
 
 export type MitteilungsEntscheid =
   | 'offen'
@@ -1306,4 +1318,128 @@ export interface Abstimmungsgemeinde {
 export interface Abstimmungsvergleich {
   datum: string
   gemeinden: Array<{ bfs: string; beteiligung: number }>
+}
+
+/** Who runs a calendar. Only `gemeinde` has a reader today; the others are registered and declared. */
+export type VeranstaltungsquelleArt = 'gemeinde' | 'plattform' | 'ort'
+
+/**
+ * One events calendar a municipality reads — its own website's (`art:
+ * gemeinde`), or later a platform such as Crossiety or a venue such as the
+ * Z7. A LIST per municipality, because the measurement of September 2026
+ * showed that the municipality's own calendar is only one of several.
+ */
+export interface Veranstaltungsquelle {
+  id: string
+  gemeinde: string
+  /** What the source line and the attribution call it. */
+  name: string
+  url: string
+  art: VeranstaltungsquelleArt
+  /** Recognised from the HTML by the run, informational only. */
+  plattform: string | null
+  aktiv: boolean
+  letzte_pruefung: string | null
+  /** Why the calendar could NOT be read last time; null when it was. */
+  letzter_fehler: string | null
+  /** What was declared although the calendar WAS read: caps, unread details, no reader. */
+  letzter_hinweis: string | null
+  date_created: string | null
+  date_updated: string | null
+}
+
+/** How often an Anlass recurs — decides only what is routine, never news value. */
+export type Rhythmus =
+  | 'einmalig'
+  | 'laufend'
+  | 'woechentlich'
+  | 'monatlich'
+  | 'seltener'
+  | 'unbekannt'
+
+/**
+ * Whether one can drop in on any day (an exhibition — its last day is a last
+ * chance) or takes part over the whole span (a camp, a course — its end
+ * concerns only the participants).
+ */
+export type Zugang = 'offen' | 'programm' | 'unbekannt'
+
+/** What could make an Anlass a Meldung, computed by code. See `shared/veranstaltung/anker.ts`. */
+export type Anker =
+  | 'neu'
+  | 'einmalig'
+  | 'erinnerung'
+  | 'abweichung'
+  | 'beginnt'
+  | 'endet'
+  | 'ausfall'
+  | 'verschoben'
+  | 'frist'
+  | 'gremium'
+  | 'dauerangebot'
+  | 'routine'
+  | 'abfuhr'
+  | 'platzhalter'
+
+/** The editor's setting for a routine: remind every six months, or never. */
+export type Dauerangebot = 'intervall' | 'nie'
+
+/** A document an Anlass page links — same shape as a Mitteilung's. */
+export type VeranstaltungDokument = MitteilungAnhang
+
+/**
+ * One ANLASS, not one calendar row: the same thing on several days is one row
+ * with its list of dates. Identity is `(quelle, schluessel)` — the series
+ * key, readable on purpose. The code computes rhythm and anchor; the
+ * Sichtung only sorts anchored rows; the editor decides, and a routine keeps
+ * its row so the next run knows it.
+ */
+export interface Veranstaltung {
+  id: string
+  quelle: string
+  gemeinde: string
+  schluessel: string
+  titel: string
+  /** Every known date as ISO day, ascending. */
+  termine: string[] | null
+  von: string
+  bis: string | null
+  zeit: string | null
+  rhythmus: Rhythmus
+  zugang: Zugang
+  anker: Anker | null
+  anker_am: string | null
+  anker_grund: string | null
+  frist_am: string | null
+  lokalitaet: string | null
+  adresse: string | null
+  ort: string | null
+  ort_ausserhalb: boolean
+  veranstalter: string | null
+  kategorie: string | null
+  preis: string | null
+  anmeldung: string | null
+  beschreibung: string | null
+  text_abgeschnitten: boolean
+  dokumente: VeranstaltungDokument[] | null
+  traktanden: string[] | null
+  traktanden_url: string | null
+  /** The first date's own page — what the desk and the source line show. */
+  url: string
+  url_kanonisch: string | null
+  plattform: string | null
+  hinweise: string[] | null
+  gelesen_am: string | null
+  zuletzt_gesehen_am: string
+  /** Sichtung verdict; null = not judged, not "no". */
+  vorschlag: boolean | null
+  vorschlag_begruendung: string | null
+  entscheid: MitteilungsEntscheid
+  ablehnungsgrund: MitteilungsGrund | null
+  ablehnungskommentar: string | null
+  dauerangebot: Dauerangebot | null
+  zuletzt_vorgelegt_am: string | null
+  zuletzt_gemeldet_am: string | null
+  date_created: string | null
+  date_updated: string | null
 }

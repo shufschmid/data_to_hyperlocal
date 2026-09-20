@@ -30,15 +30,29 @@ export interface ListenEintrag {
    * list. The two are never the same thing and never share a column: the
    * Sichtung judges the event, the cleanup the publication.
    *
-   * The start day only. Where a list prints a span ("8. Februar – 6. Dezember")
-   * the start is what makes it news; a standing arrangement that began months
-   * ago falls outside the forward window by itself, which is the wanted
-   * behaviour rather than a gap.
+   * The first day. A span ("8. Februar – 6. Dezember", i-web's `_datumBis`,
+   * hCalendar's `dtend`) puts its last day in `veranstaltungBis`, so a
+   * running exhibition is visible to the window until it ends — which is what
+   * makes its end a "last chance".
    */
   veranstaltungAm: string | null
+  /** Last day of a span, where the list prints one. Null for a single day. */
+  veranstaltungBis: string | null
+  /** Time as the list prints it, normalised to "18:00" or "18:00–21:00". */
+  zeit: string | null
+  /** Venue and place, where the list prints them as fields (i-web) or labels (Weblication). */
+  lokalitaet: string | null
+  ort: string | null
+  veranstalter: string | null
+  /** The site's own series id, where the markup carries one (Backslash: `/event/<id>/`). */
+  serie: string | null
+  /** The series' first day, where the markup carries it (Backslash: the `dtstart` attribute). */
+  serieSeit: string | null
+  /** The row itself says cancelled, moved or not taking place. */
+  abgesagt: boolean
   /** `kalender`: month + day badge, year inferred — a full date on the detail page beats it. */
   datumQuelle: 'liste' | 'kalender' | null
-  /** i-web's `_kategorieId` (news, politik_info, wahlergebnisse); other templates have none. */
+  /** i-web's `_kategorieId` (news) or `_hauptkategorieId` (events); other templates have none. */
   kategorie: string | null
   /** The list links a file, not a page — the item IS the document. */
   direktPdf: boolean
@@ -68,11 +82,13 @@ function klassenElement(
   return muster.exec(html)?.[3] ?? null
 }
 
+type EintragTeil = Omit<Partial<ListenEintrag>, 'url' | 'titel' | 'direktPdf'> &
+  Pick<ListenEintrag, 'teaser' | 'datum' | 'datumQuelle' | 'kategorie'>
+
 function eintrag(
   href: string | null,
   titel: string,
-  teil: Omit<ListenEintrag, 'url' | 'titel' | 'direktPdf' | 'veranstaltungAm'> &
-    Partial<Pick<ListenEintrag, 'veranstaltungAm'>>,
+  teil: EintragTeil,
   seiteUrl: string
 ): ListenEintrag | null {
   if (href === null || titel === '') return null
@@ -83,6 +99,14 @@ function eintrag(
     titel,
     direktPdf: istPdfAdresse(url),
     veranstaltungAm: null,
+    veranstaltungBis: null,
+    zeit: null,
+    lokalitaet: null,
+    ort: null,
+    veranstalter: null,
+    serie: null,
+    serieSeit: null,
+    abgesagt: false,
     ...teil
   }
 }
@@ -311,6 +335,105 @@ function anriss(text: string): string | null {
 }
 
 /**
+ * The row itself says the event will not happen as listed. Measured on three
+ * sites: "Kinderkleiderbörse ist leider abgesagt" (Bottmingen), "ABGESAGT:"
+ * as a title prefix (riehenevents), "Gemeindeversammlung findet nicht statt"
+ * (Muttenz), "wurde vom 19. auf den 26. September verschoben" (Muttenz).
+ */
+const ABGESAGT =
+  /\babgesagt\b|\bverschoben\b|findet nicht statt|f[äa]llt aus|\bentf[äa]llt\b/i
+
+/**
+ * Ein Wert ohne Buchstabe und ohne Ziffer ist KEINE Angabe.
+ *
+ * Gemessen am ersten Lauf ueber die zehn Kalender (20.09.2026): Arlesheim
+ * schreibt „Lokalität: -" in Eintraege, deren Ort es nicht fuehrt. Der Strich
+ * kam als Ort durch — auf dem Tisch als Ort „-", und im Serienschluessel als
+ * ein ANDERER Ort, was dieselbe Ausstellung in zwei Anlaesse zerlegte.
+ */
+export function oderNull(wert: string): string | null {
+  return wert === '' || !/[\p{L}\p{N}]/u.test(wert) ? null : wert
+}
+
+export function istAbgesagt(text: string): boolean {
+  return ABGESAGT.test(text.normalize('NFC'))
+}
+
+const VOLLES_DATUM =
+  /(\d{1,2})\.\s?(\d{1,2})\.\s?(\d{4})(?!\d)|(\d{1,2})\.\s*([A-Za-zÄÖÜäöü]{3,9})\.?\s+(\d{4})(?!\d)/g
+/** "13.00 Uhr" — the dot form only counts with the word, or it reads a date's day and month as a time. */
+const ZEIT_PUNKT = /\b(\d{1,2})\.(\d{2})\s*Uhr/g
+/** "15:00", with or without "Uhr". */
+const ZEIT_DOPPELPUNKT = /\b(\d{1,2}):(\d{2})(?![.:\d])/g
+
+function zeiten(text: string): string[] {
+  const funde: { index: number; zeit: string }[] = []
+  for (const muster of [ZEIT_PUNKT, ZEIT_DOPPELPUNKT]) {
+    for (const treffer of text.matchAll(muster)) {
+      const stunde = Number(treffer[1])
+      const minute = Number(treffer[2])
+      if (stunde > 23 || minute > 59) continue
+      funde.push({
+        index: treffer.index ?? 0,
+        zeit: `${String(stunde).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+      })
+    }
+  }
+  funde.sort((a, b) => a.index - b.index)
+  const gesehen = new Set<number>()
+  return funde
+    .filter((f) =>
+      gesehen.has(f.index) ? false : (gesehen.add(f.index), true)
+    )
+    .map((f) => f.zeit)
+}
+
+/**
+ * The time a row or a field prints, normalised: "13.00 Uhr - 18.00 Uhr" and
+ * "15:00 Uhr - 23:45 Uhr" both become "13:00–18:00"; a lone "19.00 Uhr"
+ * becomes "19:00"; "60 Minuten" becomes null. Only the first two times count —
+ * a span across two days prints its end time after the second date, and that
+ * is still the end.
+ */
+export function zeitText(text: string): string | null {
+  const z = zeiten(text.normalize('NFC'))
+  if (z.length === 0) return null
+  const [erste, zweite] = z
+  if (erste === undefined) return null
+  return zweite === undefined || zweite === erste ? erste : `${erste}–${zweite}`
+}
+
+export interface TerminZeile {
+  von: string | null
+  bis: string | null
+  zeit: string | null
+}
+
+/**
+ * What a Weblication event row says about WHEN: the first full date is the
+ * day, a later one the end of a span, the times in between the time.
+ * Measured: "13.10.2026 | 18:00 Uhr - 21:00 Uhr" (Allschwil), "18.09.2026 |
+ * 15:00 Uhr - 19.09.2026 | 23:45 Uhr" (Reinach, a span), "19.09.2026 | 10:00
+ * Uhr - 12:00 Uhr" (Bottmingen's `fullDate`).
+ */
+export function parseTerminZeile(text: string, heute: Heute): TerminZeile {
+  const roh = text.normalize('NFC')
+  const daten: string[] = []
+  for (const treffer of roh.matchAll(VOLLES_DATUM)) {
+    const datum = parseDatum(treffer[0], heute)
+    if (datum !== null && !daten.includes(datum)) daten.push(datum)
+  }
+  const von = daten[0] ?? null
+  const letztes = daten[daten.length - 1] ?? null
+  const bis = von !== null && letztes !== null && letztes > von ? letztes : null
+  return { von, bis, zeit: zeitText(roh) }
+}
+
+const LOKALITAET_LABEL =
+  /Lokalit[äa]t:\s*(.+?)(?=\s(?:Veranstalter|Kategorie|Zeit|Ort):|$)/i
+const LOKALITAET_MAX = 200
+
+/**
  * Weblication's event index, `#indexUL` with one `li.indexLI` per event.
  *
  * Measured on four sites, and they print the same list four ways: the date in
@@ -344,10 +467,14 @@ export function parseWeblicationTermine(
 
     const datumSpan = klassenElement(innen, 'listEntryDate', 'span')
     const vollDatum = klassenElement(innen, 'fullDate', 'div')
-    const termin =
-      parseDatum(reinerText(datumSpan ?? ''), heute) ??
-      parseDatum(reinerText(vollDatum ?? ''), heute) ??
-      parseDatum(reinerText(innen), heute)
+    const text = reinerText(innen)
+    const datumsQuelle = datumSpan ?? vollDatum
+    let zeile = parseTerminZeile(
+      datumsQuelle === null ? text : reinerText(datumsQuelle),
+      heute
+    )
+    if (zeile.von === null && datumsQuelle !== null)
+      zeile = parseTerminZeile(text, heute)
 
     const anker = ersterAnker(innen)
     const ankerInhalt = anker?.inhalt ?? ''
@@ -361,7 +488,9 @@ export function parseWeblicationTermine(
     )
     const titel = reinerText(titelHtml)
 
-    const rest = reinerText(innen).replace(titel, ' ')
+    const rest = text.replace(titel, ' ')
+    const lokalitaet =
+      LOKALITAET_LABEL.exec(rest)?.[1]?.trim().slice(0, LOKALITAET_MAX) ?? null
     const e = eintrag(
       anker?.href ?? null,
       titel,
@@ -370,7 +499,11 @@ export function parseWeblicationTermine(
         datum: null,
         datumQuelle: null,
         kategorie: null,
-        veranstaltungAm: termin
+        veranstaltungAm: zeile.von,
+        veranstaltungBis: zeile.bis,
+        zeit: zeile.zeit,
+        lokalitaet: oderNull(lokalitaet ?? ''),
+        abgesagt: istAbgesagt(text)
       },
       seiteUrl
     )
@@ -385,13 +518,20 @@ interface IwebTerminZeile {
   ort?: unknown
   organisator?: unknown
   _datumVon?: unknown
+  _datumBis?: unknown
+  _anlassTime?: unknown
+  _hauptkategorieId?: unknown
+  _ort?: unknown
 }
 
 /**
- * i-web's event calendar: the same DataTables attribute as the news table,
- * on `#anlassList` instead of `#informationList`, and with the dates already
- * as ISO in `_datumVon`. The whole year rides in it — the forward window is
- * what keeps December out of September's desk.
+ * i-web hangs the whole event calendar off `#anlassList` in the same
+ * DataTables attribute as the news table. Its rows carry MORE than the news
+ * rows: venue, place and organiser as fields, `_datumVon`/`_datumBis` as
+ * ISO days (a running exhibition is one row with a span, measured on
+ * Pratteln's "Alder & Bahn", 10.08.2026 – 21.03.2027), the time as printed and
+ * the category as a number. All of it is kept as fields; the teaser is still
+ * composed from venue and organiser, as before.
  */
 export function parseIwebTermine(
   html: string,
@@ -418,28 +558,43 @@ export function parseIwebTermine(
   for (const zeile of zeilen) {
     const name = typeof zeile.name === 'string' ? zeile.name : ''
     const anker = ersterAnker(name)
+    const titel = reinerText(anker?.inhalt ?? name)
     const termin =
       typeof zeile._datumVon === 'string'
         ? parseDatum(zeile._datumVon, heute)
         : null
-    const ort = [text(zeile.lokalitaet), text(zeile.ort)]
+    const bisRoh =
+      typeof zeile._datumBis === 'string'
+        ? parseDatum(zeile._datumBis, heute)
+        : null
+    const bis =
+      termin !== null && bisRoh !== null && bisRoh > termin ? bisRoh : null
+    const lokalitaet = text(zeile.lokalitaet)
+    const ort = text(zeile._ort) || text(zeile.ort)
+    const veranstalter = text(zeile.organisator)
+    const ortZeile = [lokalitaet, text(zeile.ort)]
       .filter((t) => t !== '')
       .join(', ')
-    const veranstalter = text(zeile.organisator)
 
     const e = eintrag(
       anker?.href ?? null,
-      reinerText(anker?.inhalt ?? name),
+      titel,
       {
         teaser: anriss(
-          [ort, veranstalter === '' ? '' : `Veranstalter: ${veranstalter}`]
+          [ortZeile, veranstalter === '' ? '' : `Veranstalter: ${veranstalter}`]
             .filter((t) => t !== '')
             .join(' · ')
         ),
         datum: null,
         datumQuelle: null,
-        kategorie: null,
-        veranstaltungAm: termin
+        kategorie: oderNull(text(zeile._hauptkategorieId)),
+        veranstaltungAm: termin,
+        veranstaltungBis: bis,
+        zeit: zeitText(text(zeile._anlassTime)),
+        lokalitaet: oderNull(lokalitaet),
+        ort: oderNull(ort),
+        veranstalter: oderNull(veranstalter),
+        abgesagt: istAbgesagt(titel)
       },
       seiteUrl
     )
@@ -448,22 +603,67 @@ export function parseIwebTermine(
   return eintraege
 }
 
+const TIME_ELEMENT = /<time\b([^>]*)>([\s\S]*?)<\/time\s*>/gi
+const SERIE_IN_URL = /\/event\/(\d+)\/eventdate\/\d+/i
+
 /**
  * Backslash prints hCalendar: the same `li.mod-entry` rows as its news list,
- * so the news parser reads them — only its date means something else. The
- * first `<time>` of a row is `dtstart`, and that is the event's day.
+ * with `time.dtstart` (the day, as text — the `datetime` attribute carries the
+ * SERIES' first day, measured: "2026-01-12" on a row whose text says
+ * "21. September 2026") and, on a few rows, `time.dtend`. The link carries the
+ * series: `/event/<serie>/eventdate/<termin>`, so the site itself says which
+ * rows are one Anlass.
  */
 export function parseBackslashTermine(
   html: string,
   seiteUrl: string,
   heute: Heute
 ): ListenEintrag[] {
-  return parseBackslashListe(html, seiteUrl, heute).map((e) => ({
-    ...e,
-    datum: null,
-    datumQuelle: null,
-    veranstaltungAm: e.datum
-  }))
+  const eintraege: ListenEintrag[] = []
+  const muster =
+    /<li\b[^>]*\bclass="[^"]*\bmod-entry\b[^"]*"[^>]*>([\s\S]*?)<\/li\s*>/gi
+  for (const treffer of html.matchAll(muster)) {
+    const li = treffer[1] ?? ''
+    const titelHtml = klassenElement(li, 'mod-entry-title') ?? ''
+    const anker = ersterAnker(titelHtml)
+    const titel = reinerText(anker?.inhalt ?? titelHtml)
+    const teaserHtml = klassenElement(li, 'mod-entry-desc', 'p')
+
+    let von: string | null = null
+    let serieSeit: string | null = null
+    let bis: string | null = null
+    for (const zeit of li.matchAll(TIME_ELEMENT)) {
+      const attribute = zeit[1] ?? ''
+      const inhalt = reinerText(zeit[2] ?? '')
+      const attribut = /\bdatetime="([^"]+)"/i.exec(attribute)?.[1] ?? ''
+      if (/\bclass="[^"]*\bdtstart\b/i.test(attribute)) {
+        von = parseDatum(inhalt, heute) ?? parseDatum(attribut, heute)
+        serieSeit = parseDatum(attribut, heute)
+      } else if (/\bclass="[^"]*\bdtend\b/i.test(attribute)) {
+        bis = parseDatum(inhalt, heute) ?? parseDatum(attribut, heute)
+      }
+    }
+    if (von !== null && bis !== null && bis <= von) bis = null
+
+    const e = eintrag(
+      anker?.href ?? null,
+      titel,
+      {
+        teaser: teaserHtml === null ? null : reinerText(teaserHtml) || null,
+        datum: null,
+        datumQuelle: null,
+        kategorie: null,
+        veranstaltungAm: von,
+        veranstaltungBis: bis,
+        serie: SERIE_IN_URL.exec(anker?.href ?? '')?.[1] ?? null,
+        serieSeit: serieSeit === von ? null : serieSeit,
+        abgesagt: istAbgesagt(titel)
+      },
+      seiteUrl
+    )
+    if (e !== null) eintraege.push(e)
+  }
+  return eintraege
 }
 
 /** How many same-day list dates it takes before a date column is distrusted. */

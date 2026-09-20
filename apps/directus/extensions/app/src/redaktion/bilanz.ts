@@ -24,6 +24,7 @@ export type Tisch =
   | 'presseschau'
   | 'amtsblatt'
   | 'gemeindeseite'
+  | 'veranstaltung'
   | 'sendung'
   | 'entsorgung'
   | 'ohne'
@@ -41,6 +42,7 @@ export const TISCHE: readonly Tisch[] = [
   'presseschau',
   'amtsblatt',
   'gemeindeseite',
+  'veranstaltung',
   'sendung',
   'entsorgung',
   'ohne'
@@ -54,6 +56,7 @@ export interface BilanzZeile {
   kandidat: string | null
   amtsblattmeldung: string | null
   gemeindemitteilung: string | null
+  veranstaltung: string | null
   sendungskandidat: string | null
   suedanflugquote: string | null
   erscheint_am: string | null
@@ -109,6 +112,7 @@ export function tischVon(zeile: BilanzZeile): Tisch {
   if (zeile.kandidat !== null) return 'presseschau'
   if (zeile.amtsblattmeldung !== null) return 'amtsblatt'
   if (zeile.gemeindemitteilung !== null) return 'gemeindeseite'
+  if (zeile.veranstaltung !== null) return 'veranstaltung'
   if (zeile.sendungskandidat !== null) return 'sendung'
   if (zeile.erscheint_am !== null) return 'entsorgung'
   return 'ohne'

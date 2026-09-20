@@ -1,0 +1,28 @@
+{
+  "collection": "veranstaltungsquellen",
+  "meta": {
+    "accountability": "all",
+    "archive_app_filter": true,
+    "archive_field": null,
+    "archive_value": null,
+    "collapse": "open",
+    "collection": "veranstaltungsquellen",
+    "color": null,
+    "display_template": "{{name}}",
+    "group": null,
+    "hidden": false,
+    "icon": "event",
+    "item_duplication_fields": null,
+    "note": "Ein Veranstaltungskalender je Zeile: die Kalenderseite der Gemeinde (art gemeinde, wird taeglich um 13 Uhr mit der Newsseite gelesen) oder spaeter eine Plattform oder ein Veranstaltungsort (art plattform/ort, noch ohne Leser — die Zeile bleibt inaktiv und sagt es). Eine Gemeinde kann mehrere Kalender haben.",
+    "preview_url": null,
+    "singleton": false,
+    "sort": null,
+    "sort_field": null,
+    "translations": null,
+    "unarchive_value": null,
+    "versioning": false
+  },
+  "schema": {
+    "name": "veranstaltungsquellen"
+  }
+}

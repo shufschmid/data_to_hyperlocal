@@ -555,51 +555,26 @@ function anhangGrund(error: unknown): AnhangGrund {
 }
 
 /**
- * Opens ONE item: the detail page (or the file the list linked directly),
- * then the documents the page links — same-site PDFs read up to a cap,
- * everything else listed with the reason it was not read. Every request goes
- * through the same polite reader as the overview.
+ * The documents a page links, read the same way for a Mitteilung and an
+ * Anlass: same-site PDFs up to a cap, everything else listed with the reason
+ * it was not read. Every request goes through the polite reader.
  */
-export async function liesMitteilung(
+export async function liesAnhaenge(
   leser: Leser,
-  eintrag: ListenEintrag,
-  familie: DetailFamilie,
+  dokumente: readonly { bezeichnung: string; url: string }[],
   siteVon: string,
-  heute: Heute,
   optionen: {
     anhaengeMax?: number
     anhangMaxBytes?: number
     pdfText?: PdfText
   } = {}
-): Promise<GeleseneMitteilung> {
+): Promise<Anhang[]> {
   const anhaengeMax = optionen.anhaengeMax ?? ANHAENGE_MAX
   const anhangMaxBytes = optionen.anhangMaxBytes ?? ANHANG_MAX_BYTES
   const liesText = optionen.pdfText ?? pdfText
-
-  const seite = await leser.liesSeite(eintrag.url, siteVon, anhangMaxBytes)
-  if (seite.art === 'pdf') {
-    return {
-      detail: null,
-      pdf: await liesText(seite.daten),
-      anhaenge: [],
-      transport: seite.transport
-    }
-  }
-
-  const detail = parseDetail(seite.html, familie, seite.url, heute)
-  // Where the page named no canonical address but the request landed
-  // elsewhere, the landing address is the one a reader opens.
-  const gelandet = normalisiereUrl(seite.url, seite.url)
-  if (
-    detail.kanonisch === null &&
-    gelandet !== null &&
-    gelandet !== eintrag.url
-  )
-    detail.kanonisch = gelandet
-
   const anhaenge: Anhang[] = []
   let versuche = 0
-  for (const dokument of detail.dokumente) {
+  for (const dokument of dokumente) {
     const basis = { bezeichnung: dokument.bezeichnung, url: dokument.url }
     if (!gleicheSite(dokument.url, siteVon)) {
       anhaenge.push({
@@ -657,6 +632,58 @@ export async function liesMitteilung(
       })
     }
   }
+
+  return anhaenge
+}
+
+/**
+ * Opens ONE item: the detail page (or the file the list linked directly),
+ * then the documents the page links — same-site PDFs read up to a cap,
+ * everything else listed with the reason it was not read. Every request goes
+ * through the same polite reader as the overview.
+ */
+export async function liesMitteilung(
+  leser: Leser,
+  eintrag: ListenEintrag,
+  familie: DetailFamilie,
+  siteVon: string,
+  heute: Heute,
+  optionen: {
+    anhaengeMax?: number
+    anhangMaxBytes?: number
+    pdfText?: PdfText
+  } = {}
+): Promise<GeleseneMitteilung> {
+  const anhaengeMax = optionen.anhaengeMax ?? ANHAENGE_MAX
+  const anhangMaxBytes = optionen.anhangMaxBytes ?? ANHANG_MAX_BYTES
+  const liesText = optionen.pdfText ?? pdfText
+
+  const seite = await leser.liesSeite(eintrag.url, siteVon, anhangMaxBytes)
+  if (seite.art === 'pdf') {
+    return {
+      detail: null,
+      pdf: await liesText(seite.daten),
+      anhaenge: [],
+      transport: seite.transport
+    }
+  }
+
+  const detail = parseDetail(seite.html, familie, seite.url, heute)
+  // Where the page named no canonical address but the request landed
+  // elsewhere, the landing address is the one a reader opens.
+  const gelandet = normalisiereUrl(seite.url, seite.url)
+  if (
+    detail.kanonisch === null &&
+    gelandet !== null &&
+    gelandet !== eintrag.url
+  )
+    detail.kanonisch = gelandet
+
+  const anhaenge = await liesAnhaenge(leser, detail.dokumente, siteVon, {
+    anhaengeMax,
+    anhangMaxBytes,
+    pdfText: liesText
+  })
 
   return { detail, pdf: null, anhaenge, transport: seite.transport }
 }

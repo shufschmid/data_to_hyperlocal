@@ -13,6 +13,7 @@
 // proposals" — the loudest signal for "too many proposals" — was invisible to
 // the model. Ignored rows are now marked `verfallen` and counted here.
 
+import { ANKER_TEXT } from './veranstaltung'
 import type {
   FaehrtenUrteil,
   GemeindeKorrektur,
@@ -147,11 +148,18 @@ function neuesteZuerst(
   return (b.date_updated ?? '').localeCompare(a.date_updated ?? '')
 }
 
+/** The anchor as the digest names it — the code's own vocabulary, in the newsroom's words. */
+function ankerName(anker: string | null): string {
+  if (anker === null) return 'Anlass'
+  return (ANKER_TEXT as Record<string, string>)[anker] ?? anker
+}
+
 type UrsprungsFeld =
   | 'kandidat'
   | 'amtsblattmeldung'
   | 'gemeindemitteilung'
   | 'sendungskandidat'
+  | 'veranstaltung'
 
 /** Discarded Meldungen written from these rows, by row id. */
 async function ladeVerwuerfe(
@@ -437,15 +445,34 @@ export function ladeGemeindeSignale(
 }
 
 /**
- * One loader for the two desks scoped by MUNICIPALITY. What differs is the
- * column that carries the class hint (`rubrik_name` / `kategorie`) and the
- * origin field a hand-up's lead points back through.
+ * The events desk's memory: per municipality like the other two, keyed on
+ * the ANCHOR — what brought the Anlass to the desk is the class the editor's
+ * decision teaches about.
+ */
+export function ladeVeranstaltungSignale(
+  dienste: LernDienste,
+  gemeindeId: string,
+  heute: string
+): Promise<AmtsblattSignale> {
+  return ladeGemeindebezogeneSignale(
+    dienste,
+    gemeindeId,
+    heute,
+    'anker',
+    'veranstaltung'
+  )
+}
+
+/**
+ * One loader for the three desks scoped by MUNICIPALITY. What differs is the
+ * column that carries the class hint (`rubrik_name` / `kategorie` / `anker`)
+ * and the origin field a hand-up's lead points back through.
  */
 async function ladeGemeindebezogeneSignale(
   dienste: LernDienste,
   gemeindeId: string,
   heute: string,
-  merkmalFeld: 'rubrik_name' | 'kategorie',
+  merkmalFeld: 'rubrik_name' | 'kategorie' | 'anker',
   ursprung: UrsprungsFeld
 ): Promise<AmtsblattSignale> {
   const beispiele = (
@@ -523,7 +550,10 @@ async function ladeGemeindebezogeneSignale(
     entscheide: beispiele.map((z) => ({
       titel: z.titel,
       rubrikName:
-        z.rubrik_name ?? (merkmalFeld === 'kategorie' ? 'Mitteilung' : ''),
+        merkmalFeld === 'anker'
+          ? ankerName(z.rubrik_name)
+          : (z.rubrik_name ??
+            (merkmalFeld === 'kategorie' ? 'Mitteilung' : '')),
       entscheid: z.entscheid as AmtsblattEintrag['entscheid'],
       grund: z.ablehnungsgrund,
       kommentar: z.ablehnungskommentar,
@@ -533,7 +563,9 @@ async function ladeGemeindebezogeneSignale(
     rahmen: {
       bilanz: bilanzZeile(
         bilanz(imFenster),
-        `der letzten ${BILANZ_TAGE} Tage in dieser Gemeinde`
+        merkmalFeld === 'anker'
+          ? `der letzten ${BILANZ_TAGE} Tage in dieser Gemeinde (Veranstaltungen)`
+          : `der letzten ${BILANZ_TAGE} Tage in dieser Gemeinde`
       ),
       verfallene: verfallene.map((z) => z.titel),
       kappung: deklariereKappung(alleEntschiedenen.length, beispiele.length)

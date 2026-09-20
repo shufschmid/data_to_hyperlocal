@@ -194,11 +194,6 @@ export function ohneNewsseite(gemeinden: readonly GemeindeFelder[]): GemeindeFel
   return gemeinden.filter((g) => g.aktiv && (g.news_url ?? '').trim() === '')
 }
 
-/** Dieselbe Aussage fuer die zweite Adresse: von hier kommen keine Veranstaltungen. */
-export function ohneVeranstaltungsseite(gemeinden: readonly GemeindeFelder[]): GemeindeFelder[] {
-  return gemeinden.filter((g) => g.aktiv && (g.veranstaltungen_url ?? '').trim() === '')
-}
-
 /** Municipalities whose last read failed — each with its own line on the desk. */
 export function lesefehler(gemeinden: readonly GemeindeFelder[]): GemeindeFelder[] {
   return gemeinden.filter((g) => g.aktiv && (g.news_letzter_fehler ?? '').trim() !== '')

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import type {
   EntsorgungskalenderFelder,
   GemeindeFelder,
+  VeranstaltungsquelleFelder,
   VereinFelder,
   WochenblattFelder
 } from '@/graphql/redaktion'
@@ -19,9 +20,24 @@ function gemeinde(ueber: Partial<GemeindeFelder>): GemeindeFelder {
     news_letzte_pruefung: null,
     news_letzter_fehler: null,
     news_letzter_hinweis: null,
-    veranstaltungen_url: null,
     suedanflug: false,
     aktiv: true,
+    ...ueber
+  }
+}
+
+function kalenderquelle(ueber: Partial<VeranstaltungsquelleFelder>): VeranstaltungsquelleFelder {
+  return {
+    id: 'q1',
+    name: 'Veranstaltungskalender der Gemeinde Aesch',
+    url: 'https://www.aesch.bl.ch/anlaesseaktuelles',
+    art: 'gemeinde',
+    plattform: 'iweb_termine',
+    aktiv: true,
+    letzte_pruefung: '2026-09-20T11:00:00Z',
+    letzter_fehler: null,
+    letzter_hinweis: null,
+    gemeinde: { id: 'a', name: 'Aesch' },
     ...ueber
   }
 }
@@ -297,28 +313,36 @@ describe('GemeindenAuswahl', () => {
     })
   })
 
-  // Zwei Seiten derselben Website, zwei Felder: die Nachrichten sind
-  // vergangen, die Veranstaltungen liegen vor uns. Ohne die zweite Adresse
-  // bleibt die Gemeinde bei den Veranstaltungen still, und das soll die Karte
-  // sagen statt es auszusehen wie „diese Gemeinde hat nichts vor".
-  it('nennt die Veranstaltungsadresse, wo eine erfasst ist', () => {
+  // Ein Kalender ist eine ZEILE, keine Spalte: gemessen im September 2026
+  // fuehren Aesch und Allschwil auf ihrer eigenen Seite nur Amtliches, das
+  // Dorfleben liegt auf Crossiety beziehungsweise kallaender.ch, und Riehen
+  // hat gar keinen Gemeindekalender.
+  it('listet die Kalender einer Gemeinde samt Statuszeile', () => {
     render(
       <GemeindenAuswahl
-        gemeinden={[
-          gemeinde({
-            id: 'a',
-            name: 'Aesch',
-            veranstaltungen_url: 'https://www.aesch.bl.ch/anlaesseaktuelles'
+        gemeinden={[gemeinde({ id: 'a', name: 'Aesch' })]}
+        quellen={[
+          kalenderquelle({}),
+          kalenderquelle({
+            id: 'q2',
+            name: 'Crossiety Aesch',
+            url: 'https://crossiety.app/dorfplatz/aesch/agenda',
+            art: 'plattform',
+            aktiv: false,
+            letzte_pruefung: null
           })
         ]}
         onUmschalten={jest.fn()}
       />
     )
 
-    expect(
-      screen.getByRole('link', { name: 'https://www.aesch.bl.ch/anlaesseaktuelles' })
-    ).toBeInTheDocument()
-    expect(screen.getByText(/60 Tagen/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Veranstaltungskalender der Gemeinde Aesch' })).toHaveAttribute(
+      'href',
+      'https://www.aesch.bl.ch/anlaesseaktuelles'
+    )
+    expect(screen.getByRole('link', { name: 'Crossiety Aesch' })).toBeInTheDocument()
+    expect(screen.getByText('noch kein Leser')).toBeInTheDocument()
+    expect(screen.getByText(/Zuletzt gelesen/)).toBeInTheDocument()
   })
 
   it('nennt einen deklarierten Deckel als Information neben der Gemeindeseite', () => {
@@ -343,30 +367,55 @@ describe('GemeindenAuswahl', () => {
     expect(screen.queryByText(/Letzter Lauf gescheitert/)).not.toBeInTheDocument()
   })
 
-  it('sagt es, wenn keine Veranstaltungsadresse erfasst ist', () => {
+  it('sagt es, wenn kein Kalender erfasst ist', () => {
     render(<GemeindenAuswahl gemeinden={[gemeinde({ id: 'a', name: 'Aesch' })]} onUmschalten={jest.fn()} />)
 
-    expect(screen.getByText(/keine Veranstaltungen/i)).toBeInTheDocument()
+    expect(screen.getByText(/Kein Kalender erfasst/i)).toBeInTheDocument()
   })
 
-  it('reicht die zweite Adresse an ihren eigenen Endpunkt weiter', async () => {
-    const onVeranstaltungenUrl = jest.fn().mockResolvedValue(undefined)
+  it('reicht einen neuen Kalender mit seiner Art an den Endpunkt weiter', async () => {
+    const onKalenderErfassen = jest.fn().mockResolvedValue(undefined)
     render(
       <GemeindenAuswahl
         gemeinden={[gemeinde({ id: 'a', name: 'Aesch' })]}
         onUmschalten={jest.fn()}
-        onVeranstaltungenUrl={onVeranstaltungenUrl}
+        onKalenderErfassen={onKalenderErfassen}
       />
     )
 
     await userEvent.type(
-      screen.getByLabelText('Adresse der Veranstaltungsübersicht'),
+      screen.getByLabelText('Adresse des Kalenders'),
       'https://www.aesch.bl.ch/anlaesseaktuelles'
     )
-    // Ohne onNewsUrl und onPlz gibt es genau eine Speichern-Schaltflaeche.
-    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Kalender erfassen' }))
 
-    expect(onVeranstaltungenUrl).toHaveBeenCalledWith('a', 'https://www.aesch.bl.ch/anlaesseaktuelles')
+    expect(onKalenderErfassen).toHaveBeenCalledWith('a', {
+      url: 'https://www.aesch.bl.ch/anlaesseaktuelles',
+      name: null,
+      art: 'gemeinde'
+    })
+  })
+
+  // Ein abgeschalteter Kalender verschwindet nicht — sonst waere er weg statt
+  // aus, und niemand koennte ihn zurueckholen.
+  it('schaltet einen Kalender aus und entfernt ihn auf Wunsch', async () => {
+    const onKalenderSchalten = jest.fn().mockResolvedValue(undefined)
+    const onKalenderLoeschen = jest.fn().mockResolvedValue(undefined)
+    render(
+      <GemeindenAuswahl
+        gemeinden={[gemeinde({ id: 'a', name: 'Aesch' })]}
+        quellen={[kalenderquelle({})]}
+        onUmschalten={jest.fn()}
+        onKalenderSchalten={onKalenderSchalten}
+        onKalenderLoeschen={onKalenderLoeschen}
+      />
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: 'Ausschalten' }))
+    expect(onKalenderSchalten).toHaveBeenCalledWith('q1', false)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Entfernen' }))
+    expect(onKalenderLoeschen).toHaveBeenCalledWith('q1')
   })
 
   // Die Hauptgemeinde ist der Anker des Blatts (unique m2o) — sie hier zu

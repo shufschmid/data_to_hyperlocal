@@ -296,6 +296,17 @@ async function ladeFall(
       'begruendung',
       'quelle',
       'gemeinde.name'
+    ],
+    veranstaltung: [
+      'id',
+      'titel',
+      'anker',
+      'veranstalter',
+      'kategorie',
+      'beschreibung',
+      'vorschlag_begruendung',
+      'gemeinde.id',
+      'gemeinde.name'
     ]
   }
   const [zeile] = (await dienste.zeilen.readByQuery({
@@ -363,6 +374,29 @@ async function ladeFall(
       kommentar: signal.kommentar
     }
     scope = gemeinde === null ? {} : { gemeinde: { _eq: gemeinde.id } }
+  } else if (signal.tisch === 'veranstaltung') {
+    const gemeinde = zeile['gemeinde'] as { id: string; name: string } | null
+    const beschreibung = text(zeile['beschreibung'])
+    const veranstalter = text(zeile['veranstalter'])
+    fall = {
+      tisch: 'veranstaltung',
+      quelleName: gemeinde?.name ?? 'Gemeinde',
+      titel: String(zeile['titel'] ?? ''),
+      // The anchor is the class hint here — what brought the row to the desk.
+      merkmal: text(zeile['anker']),
+      zusammenfassung:
+        [
+          veranstalter === null ? null : `Veranstalter: ${veranstalter}`,
+          beschreibung === null ? null : beschreibung.slice(0, 600)
+        ]
+          .filter((t): t is string => t !== null)
+          .join(' — ') || null,
+      modellBegruendung: text(zeile['vorschlag_begruendung']),
+      entscheid: signal.entscheid,
+      grund: signal.grund,
+      kommentar: signal.kommentar
+    }
+    scope = gemeinde === null ? {} : { gemeinde: { _eq: gemeinde.id } }
   } else {
     const gemeinde = zeile['gemeinde'] as { name: string } | null
     fall = {
@@ -389,7 +423,9 @@ async function ladeFall(
           ? 'amtsblattmeldung'
           : signal.tisch === 'gemeinde'
             ? 'gemeindemitteilung'
-            : 'sendungskandidat'
+            : signal.tisch === 'veranstaltung'
+              ? 'veranstaltung'
+              : 'sendungskandidat'
     const andere = (await dienste.hinweise.readByQuery({
       filter: {
         [fk]: { _nnull: true, _neq: zeileId },

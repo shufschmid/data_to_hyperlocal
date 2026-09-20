@@ -102,9 +102,14 @@ What a migration is still for — `20260824A-stammdaten.mts` (seeds and indexes)
 the endpoint's own guard, plus nine seeded addresses written only where the
 field is still empty), `20260917B-suedanflug.mts` (the composite unique
 `(jahr, monat)` on `suedanflugquoten`, plus the EuroAirport source row seeded
-**inactive**) and `20260918B-abstimmungsdatensatz.mts` (which dataset the
+**inactive**), `20260918B-abstimmungsdatensatz.mts` (which dataset the
 data.bl.ch row carries its vote results in — one key in `konfiguration`, written
-only where it is absent, with a real `down`):
+only where it is absent, with a real `down`) and
+`20260919A-veranstaltungsquellen.mts` (three indexes — the series unique
+`(quelle, schluessel)` on `veranstaltungen`, `(gemeinde, url)` on
+`veranstaltungsquellen` and the partial unique on `meldungen(veranstaltung)`
+— plus one calendar row per municipality that still carries a
+`gemeinden.veranstaltungen_url`):
 
 - **Row data a fresh install needs without a human clicking**: the 87 municipalities,
   the three watched sources, the newsroom's registered clubs. Insert-only and
@@ -119,7 +124,11 @@ Rules for the rare migration you do write:
 - **Migrations run AFTER the schema push** (see `docker/entrypoint.sh`): they may
   assume the model exists, and must never create it. This is deliberately the
   opposite of the old boot order — a row-data migration on a fresh database needs
-  the tables the snapshot builds.
+  the tables the snapshot builds. It also decides when a column may go:
+  `gemeinden.veranstaltungen_url` was replaced by the `veranstaltungsquellen`
+  rows on 20.09.2026 and is only HIDDEN, not dropped, because a column removed
+  from the snapshot in the same release would be gone before the migration that
+  reads it ever ran. It goes in the release after.
 - Filename `YYYYMMDDA-description.mts` — the leading number must be unique and sorts
   the run order. Directus records applied versions in `directus_migrations`.
 - Write **`.mts`**, never `.js`: `npm run database:migrate` compiles them to `.mjs`
@@ -339,12 +348,12 @@ next Sichtung's user turn, as a candidate RULE in `redaktionswissen`, and, for o
 armed kind of rule, as an ACTION. Four modules in `src/redaktion/` carry it, and
 the split between them is the split between pure and Directus-bound code:
 
-| Module             | Pure? | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| ------------------ | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `lernsignale.ts`   | no    | ONE loader per desk (`ladeWochenblattSignale`, `ladeAmtsblattSignale`, `ladeGemeindeSignale`, `ladeSendungSignale`) for the scheduled run and the re-inventory button alike: decided rows of the window (last three issues / 30 days), the Verwerfen join, the Chefredaktion's verdict via the lead's origin FK, the `verfallen` titles and a `Bilanz`. The two municipality-scoped desks share one private loader. Pure helpers `bilanzZeile`, `deklariereKappung`. |
-| `lernen.ts`        | yes   | The rules of learning: `lohntLernen` (a comment always, a bare click only after two same-direction decisions, doublette/veraltet/falsche Gemeinde never), the Lern prompt and schema, `parseLernUrteil` with its code guards, `regelnBlock` (R1…Rn for a Sichtung), `vorgabenZeilen` (for an article prompt), `automatischeWeitergabe` (fail-closed) and `automatikPausieren` (two rejections in a row).                                                             |
-| `gedaechtnis.ts`   | no    | The store: `ladeRegeln(bereich, stufe)` capped at 30 with a warning, `merkeWissenAus` for words (chat, comments, Begründungen), `lerneAusEntscheid` for decisions (fire-and-forget, `logger.warn` on failure, one promise chain per desk so two quick decisions cannot create twin rules) and `pausiereAutomatikWennNoetig`.                                                                                                                                         |
-| `weiterreichen.ts` | mixed | Four pure mappers build a lead from a candidate / publication / municipal item / broadcast candidate with its origin FK; `reicheWeiter` creates the lead FIRST and marks the origin `weitergereicht` second. The endpoints and the four Sichtungen share it — an automatic hand-up is `automatisch: true` plus the `regel` that asked for it.                                                                                                                        |
+| Module             | Pure? | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lernsignale.ts`   | no    | ONE loader per desk (`ladeWochenblattSignale`, `ladeAmtsblattSignale`, `ladeGemeindeSignale`, `ladeVeranstaltungSignale`, `ladeSendungSignale`) for the scheduled run and the re-inventory button alike: decided rows of the window (last three issues / 30 days), the Verwerfen join, the Chefredaktion's verdict via the lead's origin FK, the `verfallen` titles and a `Bilanz`. The three municipality-scoped desks share one private loader — the events desk keys its examples on the `anker` where the gazette uses the rubric, so „a Gremium is always proposed" can be learned as such. Pure helpers `bilanzZeile`, `deklariereKappung`. |
+| `lernen.ts`        | yes   | The rules of learning: `lohntLernen` (a comment always, a bare click only after two same-direction decisions, doublette/veraltet/falsche Gemeinde never), the Lern prompt and schema, `parseLernUrteil` with its code guards, `regelnBlock` (R1…Rn for a Sichtung), `vorgabenZeilen` (for an article prompt), `automatischeWeitergabe` (fail-closed) and `automatikPausieren` (two rejections in a row).                                                                                                                                                                                                                                          |
+| `gedaechtnis.ts`   | no    | The store: `ladeRegeln(bereich, stufe)` capped at 30 with a warning, `merkeWissenAus` for words (chat, comments, Begründungen), `lerneAusEntscheid` for decisions (fire-and-forget, `logger.warn` on failure, one promise chain per desk so two quick decisions cannot create twin rules) and `pausiereAutomatikWennNoetig`.                                                                                                                                                                                                                                                                                                                      |
+| `weiterreichen.ts` | mixed | Five pure mappers build a lead from a candidate / publication / municipal item / Anlass / broadcast candidate with its origin FK; `reicheWeiter` creates the lead FIRST and marks the origin `weitergereicht` second. The endpoints and the Sichtungen share it — an automatic hand-up is `automatisch: true` plus the `regel` that asked for it.                                                                                                                                                                                                                                                                                                 |
 
 Four things a change here must keep:
 
@@ -379,17 +388,34 @@ Endpoints of the learning layer, all in `src/endpoints/redaktion/`:
   municipal-news desk, same shape as the gazette's; `/meldung` refuses (422) a
   row whose reader stored no text, because a Meldung from a title alone reads
   complete and is not.
-- `POST /redaktion/gemeinden/:id/news-url` and
-  `POST /redaktion/gemeinden/:id/veranstaltungen-url` — the two pages of a
-  municipality's own website the Gemeindeseiten feed reads (`gemeinden.news_url`,
-  `gemeinden.veranstaltungen_url`; empty clears the field). Twins over one
-  function (`endpoints/redaktion/gemeindeseitenadresse.ts`) with one rule: the
-  page is READ BEFORE IT IS WRITTEN, so a mistyped address fails the form and
-  never becomes a row that errors every day at one. The read also checks WHICH
-  of the two lists the page is — the templates say so — because both sit on the
-  same host and a swapped address would otherwise look for months like a page
-  that never has anything recent. 202 on success, and the run starts at once so
-  the editor sees the page's items within a minute.
+- `POST /redaktion/gemeinden/:id/news-url` — the news page of a
+  municipality's own website (`gemeinden.news_url`; empty clears the field),
+  in `endpoints/redaktion/gemeindeseitenadresse.ts`, with one rule: the page is
+  READ BEFORE IT IS WRITTEN, so a mistyped address fails the form and never
+  becomes a row that errors every day at one. The read also checks WHICH of the
+  two lists the page is — the templates say so — because the news page and the
+  calendar sit on the same host and a swapped address would otherwise look for
+  months like a page that never has anything recent. 202 on success, and the
+  run starts at once so the editor sees the page's items within a minute.
+- `POST /redaktion/veranstaltungen/:id/{meldung,ablehnen,weiterreichen,dauerangebot}`
+  — the events desk. `/meldung` writes from the STRUCTURED facts of the row
+  (`endpoints/redaktion/veranstaltung.ts` maps it, `redaktion/veranstaltung.ts`
+  prompts and checks it) and refuses 422 where neither a description nor a read
+  document carries text; 409 where a Meldung already exists.
+  `/dauerangebot` takes `{modus: 'intervall' | 'nie' | 'jetzt'}` — the first
+  two are the editor's standing setting on a routine, `jetzt` writes a
+  proposal directly and costs NO model call, because she has already decided
+  what the Sichtung would be asked.
+- `POST /redaktion/veranstaltungsquellen`, `POST /redaktion/veranstaltungsquellen/:id`
+  and `POST /redaktion/veranstaltungsquellen/:id/loeschen` — the calendars a
+  municipality reads, a LIST rather than a column
+  (`endpoints/redaktion/veranstaltungsquelle.ts`). The same handshake as the
+  news address: the page is read before the row is written, and `art: gemeinde`
+  must parse as an events overview. A `plattform` or an `ort` (Crossiety, the
+  Z7) may be registered although nothing can read it yet — the row is forced
+  `aktiv: false` and says so, so the newsroom's list of calendars is complete
+  before its readers are. Editing takes only the switch and the name; deleting
+  is a POST verb because the frontend proxy forwards GET and POST only.
 - `POST /redaktion/suedanflug/:id/meldung` — the south-approach article, ONE
   model call per municipality: the month's row in the path, the municipality in
   the body (`{gemeinde}`), because one sheet yields one article per affected

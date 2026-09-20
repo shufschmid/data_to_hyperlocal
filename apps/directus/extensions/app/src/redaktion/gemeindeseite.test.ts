@@ -553,9 +553,12 @@ describe('buildSichtungPrompt: Termine', () => {
     expect(prompt).toContain('Termin am 17. Oktober 2026')
   })
 
-  it('der System-Prompt kennt die drei Termin-Regeln', () => {
-    expect(SICHTUNG_SYSTEM_PROMPT).toMatch(/wiederkehrend/i)
-    expect(SICHTUNG_SYSTEM_PROMPT).toMatch(/Datum, Zeit und Ort/i)
+  // Since 20 September 2026 events have a desk of their own with its own
+  // prompt (`redaktion/veranstaltung.ts`); the news prompt no longer speaks
+  // of recurring dates — an old events row still gets its head line above.
+  it('der System-Prompt ueberlaesst die Termin-Regeln dem Veranstaltungs-Tisch', () => {
+    expect(SICHTUNG_SYSTEM_PROMPT).not.toMatch(/wiederkehrend/i)
+    expect(SICHTUNG_SYSTEM_PROMPT).toMatch(/Abfuhren:/)
   })
 })
 

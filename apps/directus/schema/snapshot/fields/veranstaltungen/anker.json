@@ -1,0 +1,103 @@
+{
+  "collection": "veranstaltungen",
+  "field": "anker",
+  "type": "string",
+  "meta": {
+    "collection": "veranstaltungen",
+    "conditions": null,
+    "display": "labels",
+    "display_options": null,
+    "field": "anker",
+    "group": null,
+    "hidden": false,
+    "interface": "select-dropdown",
+    "note": "Was eine Meldung ausloesen koennte, vom Code berechnet. Nur Anlaesse mit einem Anker im Vorschlagsfenster erreichen die Sichtung.",
+    "options": {
+      "choices": [
+        {
+          "text": "Neu (erste Durchfuehrung)",
+          "value": "neu"
+        },
+        {
+          "text": "Einmalig",
+          "value": "einmalig"
+        },
+        {
+          "text": "Erinnerung (monatlich oder seltener)",
+          "value": "erinnerung"
+        },
+        {
+          "text": "Abweichung vom Muster",
+          "value": "abweichung"
+        },
+        {
+          "text": "Beginnt",
+          "value": "beginnt"
+        },
+        {
+          "text": "Endet (letzte Gelegenheit)",
+          "value": "endet"
+        },
+        {
+          "text": "Ausfall",
+          "value": "ausfall"
+        },
+        {
+          "text": "Verschoben",
+          "value": "verschoben"
+        },
+        {
+          "text": "Anmeldefrist",
+          "value": "frist"
+        },
+        {
+          "text": "Gremium",
+          "value": "gremium"
+        },
+        {
+          "text": "Dauerangebot",
+          "value": "dauerangebot"
+        },
+        {
+          "text": "Routine (kein Anker)",
+          "value": "routine"
+        },
+        {
+          "text": "Abfuhr (Entsorgungs-Tisch)",
+          "value": "abfuhr"
+        },
+        {
+          "text": "Platzhalter",
+          "value": "platzhalter"
+        }
+      ]
+    },
+    "readonly": false,
+    "required": false,
+    "searchable": true,
+    "sort": 12,
+    "special": null,
+    "translations": null,
+    "validation": null,
+    "validation_message": null,
+    "width": "half"
+  },
+  "schema": {
+    "name": "anker",
+    "table": "veranstaltungen",
+    "data_type": "character varying",
+    "default_value": null,
+    "max_length": 16,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "is_nullable": true,
+    "is_unique": false,
+    "is_indexed": false,
+    "is_primary_key": false,
+    "is_generated": false,
+    "generation_expression": null,
+    "has_auto_increment": false,
+    "foreign_key_table": null,
+    "foreign_key_column": null
+  }
+}

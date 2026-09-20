@@ -24,6 +24,7 @@ function meldung(ueber: Partial<AlleMeldungFelder>): AlleMeldungFelder {
     kandidat: null,
     amtsblattmeldung: null,
     gemeindemitteilung: null,
+    veranstaltung: null,
     sendungskandidat: null,
     suedanflugquote: null,
     abstimmung: null,

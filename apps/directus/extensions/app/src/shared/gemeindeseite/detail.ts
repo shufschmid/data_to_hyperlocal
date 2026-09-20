@@ -90,7 +90,8 @@ function kanonischVon(html: string, seiteUrl: string): string | null {
   return url !== null && gleicheSite(url, seiteUrl) ? url : null
 }
 
-function dokumenteAus(
+/** Every document link in a fragment, same-site or not — the reader decides what to fetch. */
+export function dokumenteAus(
   fragment: string,
   seiteUrl: string,
   typHinweis?: (nachAnker: string) => string | null

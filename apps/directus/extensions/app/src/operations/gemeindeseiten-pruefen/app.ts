@@ -9,7 +9,7 @@ export default defineOperationApp({
   name: 'Gemeindeseiten pruefen',
   icon: 'campaign',
   description:
-    'Liest die Newsseite jeder bespielten Gemeinde, die eine registriert hat: neue Eintraege werden erkannt, jede Unterseite samt verlinkten PDFs eingesammelt, und eine Sichtung je Gemeinde sortiert, was einen Blick lohnt. robots.txt wird befolgt, jede Kappung deklariert. Meldungen entstehen erst, wenn die Redaktion uebernimmt.',
+    'Liest die Newsseite und die Veranstaltungskalender jeder bespielten Gemeinde: neue Mitteilungen werden samt Unterseite und PDFs eingesammelt, Kalenderzeilen zu Anlaessen gefaltet und mit einem Anker versehen, und je Gemeinde sortiert eine Sichtung die Mitteilungen und eine zweite die Anlaesse mit Anker. robots.txt wird befolgt, jede Kappung deklariert. Meldungen entstehen erst, wenn die Redaktion uebernimmt.',
   overview: ({ gemeinden, details }) => [
     { label: 'Gemeinden pro Lauf', text: String(gemeinden ?? 20) },
     { label: 'Unterseiten pro Gemeinde', text: String(details ?? 15) }
@@ -69,6 +69,28 @@ export default defineOperationApp({
         note: 'Abstand zwischen zwei Anfragen an denselben Host. Ein Crawl-delay in robots.txt erhoeht ihn, senkt ihn nie.'
       },
       schema: { default_value: 2000 }
+    },
+    {
+      field: 'vorlauf',
+      name: 'Vorlauf Veranstaltungen in Tagen',
+      type: 'integer',
+      meta: {
+        width: 'half',
+        interface: 'input',
+        note: 'Wie weit der Kalender nach vorn gelesen wird. Lang genug, dass Anfang und Ende einer Serie sichtbar sind.'
+      },
+      schema: { default_value: 60 }
+    },
+    {
+      field: 'vorschlag',
+      name: 'Vorschlagsfenster in Tagen',
+      type: 'integer',
+      meta: {
+        width: 'half',
+        interface: 'input',
+        note: 'Wie viele Tage vor seinem Anker (Termin, Anmeldefrist, letzter Tag) ein Anlass auf den Tisch kommt.'
+      },
+      schema: { default_value: 10 }
     }
   ]
 })

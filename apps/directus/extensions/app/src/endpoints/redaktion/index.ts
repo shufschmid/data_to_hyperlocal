@@ -162,6 +162,7 @@ import {
 } from '../../redaktion/lernen'
 import type { WissenBereich, WissenStufe } from '../../types/schema'
 import {
+  anlassAlsHinweis,
   kandidatAlsHinweis,
   mitteilungAlsHinweis,
   publikationAlsHinweis,
@@ -184,6 +185,26 @@ import {
   heuteAus,
   leseUebersicht
 } from '../../shared/gemeindeseite'
+import {
+  attributionsWarnung as anlassAttributionsWarnung,
+  buildMeldungPrompt as buildAnlassPrompt,
+  buildMeldungRevision as buildAnlassRevision,
+  MELDUNG_SYSTEM_PROMPT as ANLASS_SYSTEM_PROMPT,
+  mitQuelle as mitAnlassQuelle,
+  parseMeldung as parseAnlassMeldung,
+  volltextVon as anlassVolltext,
+  zahlWarnungen as zahlWarnungenAnlass,
+  type AnlassFakten
+} from '../../redaktion/veranstaltung'
+import { dauerangebotNachEntscheid } from '../../shared/veranstaltung/anker'
+import {
+  ANLASS_FELDER,
+  anlassFakten,
+  dauerangebotJetzt,
+  pruefeDauerangebotModus,
+  type AnlassRohzeile
+} from './veranstaltung'
+import { pruefeQuelle, pruefeQuellenAenderung } from './veranstaltungsquelle'
 import gemeindeseitenPruefen from '../../operations/gemeindeseiten-pruefen/api'
 import { wissenFelderManuell } from '../../redaktion/wissen'
 import {
@@ -486,6 +507,36 @@ const GemeindeseiteNichtLesbar = createError<{ grund: string }>(
   400
 )
 
+const AnlassSchonEntschieden = createError(
+  'ALREADY_DECIDED',
+  'Ueber diesen Anlass ist bereits entschieden.',
+  409
+)
+
+const AnlassOhneText = createError(
+  'TEXT_FEHLT',
+  'Der Beschrieb des Anlasses liegt nicht vor — ohne ihn wird keine Meldung geschrieben. «Jetzt pruefen» liest die Detailseite nach.',
+  422
+)
+
+const UngueltigerDauerangebotModus = createError(
+  'INVALID_PAYLOAD',
+  'Unbekannte Einstellung — erlaubt sind nie, intervall und jetzt.',
+  400
+)
+
+const KalenderNichtLesbar = createError<{ grund: string }>(
+  'PAGE_UNREADABLE',
+  ({ grund }) => `Kalender nicht lesbar: ${grund}`,
+  400
+)
+
+const QuellenAenderungLeer = createError(
+  'INVALID_PAYLOAD',
+  'Nichts zu aendern — aktiv oder name angeben.',
+  400
+)
+
 export default defineEndpoint(
   (router, { services, database, getSchema, logger }) => {
     const { ItemsService } = services
@@ -594,6 +645,7 @@ export default defineEndpoint(
               'kandidat',
               'amtsblattmeldung',
               'gemeindemitteilung',
+              'veranstaltung',
               'sendungskandidat',
               'erscheint_am',
               'date_created',
@@ -2926,6 +2978,474 @@ export default defineEndpoint(
       }
     )
 
+    // --- the events desk: Anlässe from the municipalities' calendars ----------
+    //
+    // The same three decisions as the news desk, the same checks, one more
+    // switch: a routine row's Dauerangebot setting. The article is written
+    // from the row's FIELDS — date, time, venue, organiser, price,
+    // registration, agenda — and attributed to the calendar by name.
+
+    async function ladeAnlassZeile(
+      id: string,
+      accountability: ApiRequest['accountability']
+    ): Promise<AnlassRohzeile> {
+      const service = new ItemsService('veranstaltungen', {
+        schema: await getSchema(),
+        accountability
+      })
+      return (await service.readOne(id, {
+        fields: ANLASS_FELDER
+      })) as AnlassRohzeile
+    }
+
+    async function anlassMitChecks(
+      fakten: AnlassFakten,
+      prompt: string
+    ): Promise<{
+      bericht: { titel: string; lead: string; text: string }
+      warnungen: string[]
+    }> {
+      let bericht = parseAnlassMeldung(
+        await completeJson<unknown>({
+          system: ANLASS_SYSTEM_PROMPT,
+          prompt,
+          maxTokens: 1500
+        })
+      )
+      let attribution = anlassAttributionsWarnung(
+        `${bericht.lead} ${bericht.text}`,
+        fakten
+      )
+      if (attribution !== null) {
+        bericht = parseAnlassMeldung(
+          await completeJson<unknown>({
+            system: ANLASS_SYSTEM_PROMPT,
+            prompt: buildAnlassRevision(
+              fakten,
+              bericht,
+              `Nenne die Quelle im Fliesstext: "laut dem ${fakten.quelleName}".`
+            ),
+            maxTokens: 1500
+          })
+        )
+        attribution = anlassAttributionsWarnung(
+          `${bericht.lead} ${bericht.text}`,
+          fakten
+        )
+      }
+      const alles = `${bericht.titel} ${bericht.lead} ${bericht.text}`
+      const warnungen = [
+        ...zeitWarnungen(alles),
+        ...zahlWarnungenAnlass(alles, fakten),
+        ...spielLinkWarnungen(alles),
+        ...ueberlappungsWarnungen(
+          `${bericht.lead} ${bericht.text}`,
+          anlassVolltext(fakten)
+        ).map((w) => w.replace('aus dem Blatt', 'aus dem Kalender')),
+        ...(attribution === null ? [] : [attribution])
+      ]
+      return { bericht, warnungen }
+    }
+
+    async function ueberarbeiteAnlass(
+      meldung: {
+        id: string
+        titel: string | null
+        lead: string | null
+        text: string | null
+      },
+      anlassId: string,
+      anweisung: string
+    ): Promise<string[]> {
+      const schema = await getSchema()
+      const meldungen = new ItemsService('meldungen', { schema })
+      const heute = heuteIsoZuerich()
+      const zeile = await ladeAnlassZeile(anlassId, undefined)
+      const fakten = anlassFakten(zeile, heute)
+      const { bericht, warnungen } = await anlassMitChecks(
+        fakten,
+        buildAnlassRevision(
+          fakten,
+          meldung,
+          anweisung,
+          await regelnFuer('veranstaltung', 'text')
+        )
+      )
+      await meldungen.updateOne(meldung.id, {
+        titel: bericht.titel,
+        lead: bericht.lead,
+        text: mitAnlassQuelle(bericht.text, fakten),
+        zeit_warnungen: warnungen.length > 0 ? warnungen : null,
+        verarbeitung: 'idle',
+        anweisung: null,
+        fehler: null
+      })
+      return warnungen
+    }
+
+    function heuteIsoZuerich(): string {
+      return new Date().toLocaleDateString('sv-SE', {
+        timeZone: 'Europe/Zurich'
+      })
+    }
+
+    router.post(
+      '/veranstaltungen/:id/meldung',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        try {
+          const id = pruefeId(req.params['id'])
+          const schema = await getSchema()
+          const anlaesse = new ItemsService('veranstaltungen', {
+            schema,
+            accountability: req.accountability
+          })
+          const meldungenService = new ItemsService('meldungen', {
+            schema,
+            accountability: req.accountability
+          })
+          const zeile = await ladeAnlassZeile(id, req.accountability)
+          const vorhandene = (await meldungenService.readByQuery({
+            filter: {
+              veranstaltung: { _eq: id },
+              status: { _neq: 'verworfen' }
+            },
+            fields: ['id'],
+            limit: 1
+          })) as { id: string }[]
+          if (vorhandene.length > 0) return next(new AnlassSchonEntschieden())
+
+          const heute = heuteIsoZuerich()
+          const fakten = anlassFakten(zeile, heute)
+          const hatDokumenttext = fakten.dokumente.some(
+            (d) => d.gelesen && (d.text ?? '').trim() !== ''
+          )
+          if (
+            fakten.beschreibung.trim() === '' &&
+            !hatDokumenttext &&
+            fakten.traktanden.length === 0
+          )
+            throw new AnlassOhneText()
+
+          const { bericht, warnungen } = await anlassMitChecks(
+            fakten,
+            buildAnlassPrompt(fakten, await regelnFuer('veranstaltung', 'text'))
+          )
+          const meldungId = (await meldungenService.createOne({
+            veranstaltung: id,
+            gemeinde: zeile.gemeinde.id,
+            titel: bericht.titel,
+            lead: bericht.lead,
+            text: mitAnlassQuelle(bericht.text, fakten),
+            status: 'entwurf',
+            verarbeitung: 'idle',
+            zeit_warnungen: warnungen.length > 0 ? warnungen : null,
+            // Everything the public API needs without a join — the calendar's
+            // name and the Anlass's own page in particular (`quelleVon`).
+            datengrundlage: {
+              quelle: 'veranstaltung',
+              quelle_name: zeile.quelle.name,
+              quelle_url: zeile.quelle.url,
+              gemeinde: zeile.gemeinde.name,
+              titel: zeile.titel,
+              termine: fakten.termine,
+              von: zeile.von,
+              bis: zeile.bis,
+              zeit: zeile.zeit,
+              lokalitaet: zeile.lokalitaet,
+              ort: zeile.ort,
+              veranstalter: zeile.veranstalter,
+              anker: zeile.anker,
+              dauerangebot: fakten.dauerangebot,
+              url: fakten.url,
+              traktanden_url: zeile.traktanden_url,
+              dokumente: fakten.dokumente.map((d) => ({
+                bezeichnung: d.bezeichnung,
+                url: d.url,
+                typ: d.typ,
+                gelesen: d.gelesen
+              })),
+              text_abgeschnitten: zeile.text_abgeschnitten
+            }
+          })) as string
+
+          await anlaesse.updateOne(id, {
+            entscheid: 'uebernommen',
+            ...dauerangebotNachEntscheid('uebernommen', null, heute)
+          })
+          return res.json({ data: { meldung: meldungId, warnungen } })
+        } catch (error) {
+          const status = (error as { status?: unknown }).status
+          if (
+            status === 403 ||
+            status === 404 ||
+            status === 400 ||
+            status === 409 ||
+            status === 422
+          )
+            return next(uebersetze(error))
+          logger.error(
+            error,
+            'redaktion: Veranstaltungs-Meldung fehlgeschlagen'
+          )
+          return next(new UeberarbeitungFehlgeschlagen())
+        }
+      }
+    )
+
+    router.post(
+      '/veranstaltungen/:id/ablehnen',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        const GRUENDE = [
+          'nicht_relevant',
+          'doublette',
+          'veraltet',
+          'falsche_gemeinde',
+          'andere'
+        ]
+        const koerper = (req.body ?? {}) as {
+          grund?: unknown
+          kommentar?: unknown
+        }
+        if (
+          typeof koerper.grund !== 'string' ||
+          !GRUENDE.includes(koerper.grund)
+        )
+          return next(new UngueltigerAblehnungsgrund())
+        const kommentar =
+          typeof koerper.kommentar === 'string' &&
+          koerper.kommentar.trim() !== ''
+            ? koerper.kommentar.trim()
+            : null
+        try {
+          const id = pruefeId(req.params['id'])
+          const anlaesse = new ItemsService('veranstaltungen', {
+            schema: await getSchema(),
+            accountability: req.accountability
+          })
+          await anlaesse.updateOne(id, {
+            entscheid: 'abgelehnt',
+            ablehnungsgrund: koerper.grund,
+            ablehnungskommentar: kommentar,
+            // A routine rejected as "nicht relevant" never comes back; any
+            // other rejection only stamps the date it lay on the desk.
+            ...dauerangebotNachEntscheid(
+              'abgelehnt',
+              koerper.grund,
+              heuteIsoZuerich()
+            )
+          })
+          lerne({
+            tisch: 'veranstaltung',
+            art: 'entscheid',
+            zeileId: id,
+            entscheid: 'abgelehnt',
+            grund: koerper.grund,
+            kommentar
+          })
+          return res.json({
+            data: { veranstaltung: id, entscheid: 'abgelehnt' }
+          })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    router.post(
+      '/veranstaltungen/:id/weiterreichen',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        const koerper = (req.body ?? {}) as { begruendung?: unknown }
+        const begruendung =
+          typeof koerper.begruendung === 'string' &&
+          koerper.begruendung.trim() !== ''
+            ? koerper.begruendung.trim()
+            : null
+        try {
+          const id = pruefeId(req.params['id'])
+          const schema = await getSchema()
+          const anlaesse = new ItemsService('veranstaltungen', {
+            schema,
+            accountability: req.accountability
+          })
+          const hinweiseService = new ItemsService('recherchehinweise', {
+            schema,
+            accountability: req.accountability
+          })
+          const zeile = await ladeAnlassZeile(id, req.accountability)
+          if (zeile.entscheid !== 'offen')
+            return next(new AnlassSchonEntschieden())
+          const hinweisId = await reicheWeiter(
+            { hinweise: hinweiseService, ursprung: anlaesse },
+            {
+              ursprungId: id,
+              felder: anlassAlsHinweis(
+                {
+                  ...zeile,
+                  dokumente: zeile.dokumente ?? null
+                },
+                begruendung
+              )
+            }
+          )
+          lerne({
+            tisch: 'veranstaltung',
+            art: 'entscheid',
+            zeileId: id,
+            entscheid: 'weitergereicht',
+            grund: null,
+            kommentar: begruendung
+          })
+          return res.json({ data: { hinweis: hinweisId } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    router.post(
+      '/veranstaltungen/:id/dauerangebot',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        const modus = pruefeDauerangebotModus(req.body)
+        if (modus === null) return next(new UngueltigerDauerangebotModus())
+        try {
+          const id = pruefeId(req.params['id'])
+          const anlaesse = new ItemsService('veranstaltungen', {
+            schema: await getSchema(),
+            accountability: req.accountability
+          })
+          const heute = heuteIsoZuerich()
+          // "jetzt" is a proposal without a model call: the editor asked for
+          // it, the Sichtung has nothing to add.
+          await anlaesse.updateOne(
+            id,
+            modus === 'jetzt'
+              ? dauerangebotJetzt(heute)
+              : { dauerangebot: modus }
+          )
+          return res.json({ data: { veranstaltung: id, modus } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    // --- the calendars a municipality reads --------------------------------
+    //
+    // A list per municipality. The page is read before the row is written
+    // (`veranstaltungsquelle.ts`); a platform nobody can read yet is created
+    // inactive and says so. The frontend proxy forwards GET and POST only,
+    // which is why editing and deleting are POST verbs like `vereine/:id`.
+
+    router.post(
+      '/veranstaltungsquellen',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        try {
+          const koerper = (req.body ?? {}) as Record<string, unknown>
+          const gemeindeId = pruefeId(koerper['gemeinde'])
+          const schema = await getSchema()
+          const gemeinden = new ItemsService('gemeinden', {
+            schema,
+            accountability: req.accountability
+          })
+          const gemeinde = (await gemeinden.readOne(gemeindeId, {
+            fields: ['id', 'name']
+          })) as { id: string; name: string }
+          const ergebnis = await pruefeQuelle(
+            {
+              roh: koerper,
+              liesSeite: async (adresse) => {
+                const leser = erstelleLeser({
+                  kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch'),
+                  crawler: crawlerKonfiguriert() ? holeUeberCrawler : null
+                })
+                const uebersicht = await leseUebersicht(
+                  leser,
+                  adresse,
+                  heuteAus(heuteIsoZuerich()),
+                  'termin'
+                )
+                return {
+                  plattform: uebersicht.plattform,
+                  gefunden: uebersicht.eintraege.length
+                }
+              }
+            },
+            gemeinde.name
+          )
+          if (ergebnis.status === 'ungueltig')
+            return next(new UngueltigeStammdaten({ grund: ergebnis.grund }))
+          if (ergebnis.status === 'nicht_lesbar') {
+            logger.warn(`redaktion: Kalender nicht lesbar — ${ergebnis.grund}`)
+            return next(new KalenderNichtLesbar({ grund: ergebnis.grund }))
+          }
+          const quellen = new ItemsService('veranstaltungsquellen', {
+            schema,
+            accountability: req.accountability
+          })
+          const quelleId = (await quellen.createOne({
+            gemeinde: gemeinde.id,
+            ...ergebnis.felder
+          })) as string
+          if (ergebnis.felder.aktiv) starteGemeindeseitenLauf()
+          return res.status(202).json({
+            data: {
+              quelle: quelleId,
+              gemeinde: gemeinde.id,
+              ...ergebnis.felder,
+              gefunden: ergebnis.gefunden
+            }
+          })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    router.post(
+      '/veranstaltungsquellen/:id',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        const aenderung = pruefeQuellenAenderung(req.body)
+        if (aenderung === null) return next(new QuellenAenderungLeer())
+        try {
+          const id = pruefeId(req.params['id'])
+          const quellen = new ItemsService('veranstaltungsquellen', {
+            schema: await getSchema(),
+            accountability: req.accountability
+          })
+          await quellen.updateOne(id, aenderung)
+          return res.json({ data: { quelle: id, ...aenderung } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    router.post(
+      '/veranstaltungsquellen/:id/loeschen',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        try {
+          const id = pruefeId(req.params['id'])
+          const quellen = new ItemsService('veranstaltungsquellen', {
+            schema: await getSchema(),
+            accountability: req.accountability
+          })
+          // CASCADE takes the calendar's Anlässe with it; a Meldung already
+          // written keeps its text (SET NULL on the article's foreign key).
+          await quellen.deleteOne(id)
+          return res.json({ data: { quelle: id, geloescht: true } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
     // --- the south-approach quota: one article per affected municipality ------
     //
     // The desk is the statistik.bl tab and the unit of work is one month. The
@@ -3422,7 +3942,9 @@ export default defineEndpoint(
      * page that never has anything recent. The rules are in
      * `gemeindeseitenadresse.ts`; this is the wiring.
      */
-    for (const art of ['nachricht', 'termin'] as const) {
+    // Since 20.09.2026 the calendars are rows in `veranstaltungsquellen`
+    // (routes above); only the news address lives on the municipality.
+    for (const art of ['nachricht'] as const) {
       const feld = ADRESSFELDER[art]
       router.post(
         `/gemeinden/:id/${art === 'nachricht' ? 'news-url' : 'veranstaltungen-url'}`,
@@ -3693,6 +4215,7 @@ export default defineEndpoint(
               'kandidat',
               'amtsblattmeldung',
               'gemeindemitteilung',
+              'veranstaltung',
               'sendungskandidat',
               'regel'
             ]
@@ -3700,6 +4223,7 @@ export default defineEndpoint(
             kandidat: string | null
             amtsblattmeldung: string | null
             gemeindemitteilung: string | null
+            veranstaltung: string | null
             sendungskandidat: string | null
             regel: string | null
           }
@@ -3713,14 +4237,17 @@ export default defineEndpoint(
                 ? 'amtsblatt'
                 : herkunft.gemeindemitteilung !== null
                   ? 'gemeinde'
-                  : herkunft.sendungskandidat !== null
-                    ? 'sendung'
-                    : 'presseschau',
+                  : herkunft.veranstaltung !== null
+                    ? 'veranstaltung'
+                    : herkunft.sendungskandidat !== null
+                      ? 'sendung'
+                      : 'presseschau',
             art: 'faehrte',
             zeileId:
               herkunft.kandidat ??
               herkunft.amtsblattmeldung ??
               herkunft.gemeindemitteilung ??
+              herkunft.veranstaltung ??
               herkunft.sendungskandidat ??
               null,
             hinweisId: id,
@@ -3786,6 +4313,7 @@ export default defineEndpoint(
               'kandidat',
               'amtsblattmeldung',
               'gemeindemitteilung',
+              'veranstaltung',
               'sendungskandidat',
               'regel'
             ]
@@ -3794,6 +4322,7 @@ export default defineEndpoint(
             kandidat: string | null
             amtsblattmeldung: string | null
             gemeindemitteilung: string | null
+            veranstaltung: string | null
             sendungskandidat: string | null
             regel: string | null
           }
@@ -3807,9 +4336,11 @@ export default defineEndpoint(
                 ? ['amtsblattmeldungen', lead.amtsblattmeldung]
                 : lead.gemeindemitteilung !== null
                   ? ['gemeindemitteilungen', lead.gemeindemitteilung]
-                  : lead.sendungskandidat !== null
-                    ? ['sendungskandidaten', lead.sendungskandidat]
-                    : null
+                  : lead.veranstaltung !== null
+                    ? ['veranstaltungen', lead.veranstaltung]
+                    : lead.sendungskandidat !== null
+                      ? ['sendungskandidaten', lead.sendungskandidat]
+                      : null
           if (ursprung === null) return next(new FaehrteOhneTisch())
 
           await new ItemsService(ursprung[0], {
@@ -4196,6 +4727,7 @@ export default defineEndpoint(
               'kandidat',
               'amtsblattmeldung',
               'gemeindemitteilung',
+              'veranstaltung',
               'sendungskandidat',
               'suedanflugquote',
               'abstimmung',
@@ -4214,6 +4746,7 @@ export default defineEndpoint(
             kandidat: string | null
             amtsblattmeldung: string | null
             gemeindemitteilung: string | null
+            veranstaltung: string | null
             sendungskandidat: string | null
             suedanflugquote: string | null
             abstimmung: string | null
@@ -4412,6 +4945,44 @@ export default defineEndpoint(
               logger.error(
                 fehler,
                 'redaktion: Gemeindeseiten-Ueberarbeitung fehlgeschlagen'
+              )
+              throw new UeberarbeitungFehlgeschlagen()
+            }
+          }
+
+          // An events article: written from the Anlass's fields, revised the
+          // same way — the ninth kind without a `lauf`.
+          if (meldung.veranstaltung !== null) {
+            await meldungen.updateOne(id, { verarbeitung: 'laeuft', anweisung })
+            try {
+              const warnungen = await ueberarbeiteAnlass(
+                meldung,
+                meldung.veranstaltung,
+                anweisung
+              )
+              merkeAnweisung(
+                anweisung,
+                'veranstaltung',
+                'Veranstaltungs-Meldung'
+              )
+              await chat.createOne({
+                meldung: id,
+                rolle: 'assistant',
+                inhalt:
+                  warnungen.length === 0
+                    ? 'Neu formuliert.'
+                    : `Neu formuliert — mit Hinweisen: ${warnungen.join(' · ')}`,
+                position: position + 1
+              })
+              return res.json({ data: { meldung: id, warnungen } })
+            } catch (fehler) {
+              await meldungen.updateOne(id, {
+                verarbeitung: 'idle',
+                fehler: fehlerText(fehler)
+              })
+              logger.error(
+                fehler,
+                'redaktion: Veranstaltungs-Ueberarbeitung fehlgeschlagen'
               )
               throw new UeberarbeitungFehlgeschlagen()
             }
@@ -4621,6 +5192,7 @@ export default defineEndpoint(
                 'kandidat',
                 'amtsblattmeldung',
                 'gemeindemitteilung',
+                'veranstaltung',
                 'sendungskandidat',
                 'spiel',
                 'erscheint_am',
@@ -4630,6 +5202,7 @@ export default defineEndpoint(
               kandidat: string | null
               amtsblattmeldung: string | null
               gemeindemitteilung: string | null
+              veranstaltung: string | null
               sendungskandidat: string | null
               spiel: string | null
               erscheint_am: string | null
@@ -4642,9 +5215,11 @@ export default defineEndpoint(
                   ? 'amtsblatt'
                   : herkunft.gemeindemitteilung !== null
                     ? 'gemeinde'
-                    : herkunft.sendungskandidat !== null
-                      ? 'sendung'
-                      : null
+                    : herkunft.veranstaltung !== null
+                      ? 'veranstaltung'
+                      : herkunft.sendungskandidat !== null
+                        ? 'sendung'
+                        : null
             if (tisch !== null) {
               lerne({
                 tisch,
@@ -4653,6 +5228,7 @@ export default defineEndpoint(
                   herkunft.kandidat ??
                   herkunft.amtsblattmeldung ??
                   herkunft.gemeindemitteilung ??
+                  herkunft.veranstaltung ??
                   herkunft.sendungskandidat,
                 entscheid: 'verworfen',
                 grund: null,
@@ -6721,7 +7297,9 @@ export default defineEndpoint(
               ? 'amtsblattmeldungen'
               : signal.tisch === 'gemeinde'
                 ? 'gemeindemitteilungen'
-                : 'sendungskandidaten'
+                : signal.tisch === 'veranstaltung'
+                  ? 'veranstaltungen'
+                  : 'sendungskandidaten'
         await lerneAusEntscheid(
           {
             zeilen: new ItemsService(sammlung, { schema }),

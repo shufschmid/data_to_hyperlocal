@@ -178,32 +178,46 @@ schlimmer als die Lücke.
 
 ### Rubrik und Quelle je Art
 
-| `rubrik`      | Woher der Beitrag kommt                                                | `quelle_name`                        | `quelle_url`                                                                                           |
-| ------------- | ---------------------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| `statistik`   | Datensatz von data.bl.ch / statistik.bl.ch                             | „Statistisches Amt Basel-Landschaft" | der Webartikel des Amtes, sonst die Datensatzseite                                                     |
-| `statistik`   | Südanflug-Quote des EuroAirport (ILS-33-Nutzungsstatistik)             | „EuroAirport"                        | das Monats-PDF der Statistik                                                                           |
-| `statistik`   | Abstimmungsresultat einer Gemeinde (eine Vorlage, ein Abstimmungstag)  | „Kanton Basel-Landschaft"            | die amtliche Publikation des Kantons zu dieser Vorlage                                                 |
-| `sport`       | Spielresultat eines Vereins                                            | „Match-Center"                       | **null** — es gibt keine stabile Adresse für ein einzelnes Spiel (die Tagesseite des Verbands rotiert) |
-| `entsorgung`  | Abfuhrkalender der Gemeinde                                            | „Abfuhrkalender ‹Gemeinde› ‹Jahr›"   | die PDF-Adresse der Registrierung, sonst null                                                          |
-| `amtsblatt`   | Amtsblattportal (kantonal / SHAB)                                      | das publizierende Amt                | das amtliche PDF                                                                                       |
-| `beschaffung` | öffentliche Beschaffung auf simap.ch                                   | „simap.ch"                           | die Projektseite                                                                                       |
-| `gemeinde`    | Mitteilung ODER Veranstaltung auf der offiziellen Website der Gemeinde | „Gemeinde ‹Name›"                    | die Unterseite, auf der die Mitteilung oder die Veranstaltung steht                                    |
-| `presseschau` | Wochenblatt-Beitrag                                                    | der Name des Blattes                 | die Seite im PDF bzw. im issuu-Reader                                                                  |
-| `sendung`     | Regionaljournal / punkt6                                               | der Sendungsname                     | Deeplink mit Zeitmarke (`#t=` bzw. `?t=`)                                                              |
-| `null`        | kommt heute nicht vor — ehrlicher als eine geratene Rubrik             | null                                 | null                                                                                                   |
+| `rubrik`        | Woher der Beitrag kommt                                               | `quelle_name`                                                                                                   | `quelle_url`                                                                                           |
+| --------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `statistik`     | Datensatz von data.bl.ch / statistik.bl.ch                            | „Statistisches Amt Basel-Landschaft"                                                                            | der Webartikel des Amtes, sonst die Datensatzseite                                                     |
+| `statistik`     | Südanflug-Quote des EuroAirport (ILS-33-Nutzungsstatistik)            | „EuroAirport"                                                                                                   | das Monats-PDF der Statistik                                                                           |
+| `statistik`     | Abstimmungsresultat einer Gemeinde (eine Vorlage, ein Abstimmungstag) | „Kanton Basel-Landschaft"                                                                                       | die amtliche Publikation des Kantons zu dieser Vorlage                                                 |
+| `sport`         | Spielresultat eines Vereins                                           | „Match-Center"                                                                                                  | **null** — es gibt keine stabile Adresse für ein einzelnes Spiel (die Tagesseite des Verbands rotiert) |
+| `entsorgung`    | Abfuhrkalender der Gemeinde                                           | „Abfuhrkalender ‹Gemeinde› ‹Jahr›"                                                                              | die PDF-Adresse der Registrierung, sonst null                                                          |
+| `amtsblatt`     | Amtsblattportal (kantonal / SHAB)                                     | das publizierende Amt                                                                                           | das amtliche PDF                                                                                       |
+| `beschaffung`   | öffentliche Beschaffung auf simap.ch                                  | „simap.ch"                                                                                                      | die Projektseite                                                                                       |
+| `gemeinde`      | Mitteilung auf der offiziellen Website der Gemeinde                   | „Gemeinde ‹Name›"                                                                                               | die Unterseite, auf der die Mitteilung steht                                                           |
+| `veranstaltung` | Anlass aus einem Veranstaltungskalender einer Gemeinde                | der Name des Kalenders — heute „Veranstaltungskalender der Gemeinde ‹Name›", später eine Plattform oder ein Ort | die Seite des Anlasses                                                                                 |
+| `presseschau`   | Wochenblatt-Beitrag                                                   | der Name des Blattes                                                                                            | die Seite im PDF bzw. im issuu-Reader                                                                  |
+| `sendung`       | Regionaljournal / punkt6                                              | der Sendungsname                                                                                                | Deeplink mit Zeitmarke (`#t=` bzw. `?t=`)                                                              |
+| `null`          | kommt heute nicht vor — ehrlicher als eine geratene Rubrik            | null                                                                                                            | null                                                                                                   |
 
 `quelle_url: null` ist eine echte Antwort, keine Lücke: besser keine Adresse als
 eine erfundene.
 
-**Veranstaltungen sind kein eigener Weg und kein eigenes Feld.** Seit dem 18. September 2026 liest die Redaktion je Gemeinde auch deren
-Veranstaltungsseite. Was daraus entsteht, ist eine Meldung wie jede andere:
-Rubrik `gemeinde`, `quelle_url` die Seite der Veranstaltung, und der Termin
-steht ABSOLUT im Text („am 13. Oktober 2026"), weil die Fünf-Jahre-Regel auch
-für Termine gilt. Ein Feld, das den Termin vom Text unterscheidbar machte,
-wurde bewusst NICHT erfunden: kein Abnehmer hat danach gefragt, und ein Datum,
-das ein Programm zurückrechnet, ist genau der Fehler, den die absolute
-Schreibweise verhindert. Wer es braucht, meldet sich, dann kommt es mit einer
-Versionszahl.
+**Veranstaltungen sind seit dem 20. September 2026 eine eigene Rubrik.** Bis
+dahin kamen sie als `gemeinde` durch; jetzt ist `veranstaltung` der zehnte
+Wert der Rubrik, und ein Abnehmer, der ihn nicht kennt, sieht einen Beitrag
+mit einer unbekannten Rubrik — kein Bruch der Form, aber ein neuer Wert. Der
+Grund für den Bruch der bisherigen Zusage: die Redaktion liest je Gemeinde
+nicht mehr nur die Kalenderseite der Gemeinde, sondern eine LISTE von
+Kalendern (die eigene Website heute, Plattformen wie Crossiety und
+Veranstaltungsorte wie das Z7 in Pratteln danach), und ein Konzert aus dem Z7
+ist keine „Gemeinde ‹Name›"-Quelle. `quelle_name` nennt darum den Kalender,
+`quelle_url` die Seite des Anlasses selbst, nie die Liste.
+
+Was gleich bleibt: der Termin steht ABSOLUT im Text („am Freitag, 25.
+September 2026, von 13 bis 18 Uhr im Kultur- und Sportzentrum"), weil die
+Fünf-Jahre-Regel auch für Termine gilt. Ein Beitrag, der ein laufendes
+Angebot in Erinnerung ruft (die Redaktion nennt das ein Dauerangebot: der
+Jass-Nachmittag jeden Freitag, einmal im halben Jahr für Neuzugezogene),
+trägt eine Zeile „Stand: ‹Datum›, laut ‹Kalender›." vor der Quellenzeile —
+das ist, was ihn im Archiv wahr hält. Strukturierte Felder für Termin, Zeit
+und Ort (`termin_am`, `termin_bis`, `ort`) wurden weiterhin NICHT
+erfunden: kein Abnehmer hat danach gefragt. Die Werte liegen in der
+`datengrundlage` des Beitrags bereit; wer sie braucht, meldet sich, dann
+kommen sie mit einer Versionszahl.
 
 **`statistik` steht dreimal in der Tabelle, und das ist Absicht.** Seit dem 17. September 2026 kommt eine zweite Art Statistik-Beitrag dazu: die
 Südanflug-Quote des EuroAirport, wie viele Landungen in einem Monat über die
@@ -256,19 +270,19 @@ der Beitrag, den sie hervorbringen.
 | `fenster_tage` | integer | wie weit die Wochenzahlen zurückreichen (Parameter `fenster`) |
 | `medium`       | string  | wie beim Beitrag                                              |
 | `gesamt`       | Objekt  | dieselben Felder wie eine Tischzeile, über alle Tische        |
-| `tische[]`     | Liste   | je Tisch eine Zeile, immer alle acht                          |
+| `tische[]`     | Liste   | je Tisch eine Zeile, immer alle neun                          |
 
 Je Tisch:
 
-| Feld                        | Typ             | Bedeutung                                                                                          |
-| --------------------------- | --------------- | -------------------------------------------------------------------------------------------------- |
-| `tisch`                     | enum            | `statistik`, `sport`, `presseschau`, `amtsblatt`, `gemeindeseite`, `sendung`, `entsorgung`, `ohne` |
-| `offen`                     | integer         | wartet auf einen Menschen (`entwurf`, `in_pruefung`)                                               |
-| `freigegeben`               | integer         | unterschrieben, wartet auf den Zeitlauf                                                            |
-| `aeltester_tage`            | integer \| null | Alter des ältesten wartenden Beitrags in ganzen Tagen; `null`, wenn keiner wartet                  |
-| `publiziert_im_fenster`     | integer         | im Fenster publiziert                                                                              |
-| `freigegeben_im_fenster`    | integer         | im Fenster unterschrieben                                                                          |
-| `zurueckgezogen_im_fenster` | integer         | im Fenster zurückgezogen                                                                           |
+| Feld                        | Typ             | Bedeutung                                                                                                           |
+| --------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `tisch`                     | enum            | `statistik`, `sport`, `presseschau`, `amtsblatt`, `gemeindeseite`, `veranstaltung`, `sendung`, `entsorgung`, `ohne` |
+| `offen`                     | integer         | wartet auf einen Menschen (`entwurf`, `in_pruefung`)                                                                |
+| `freigegeben`               | integer         | unterschrieben, wartet auf den Zeitlauf                                                                             |
+| `aeltester_tage`            | integer \| null | Alter des ältesten wartenden Beitrags in ganzen Tagen; `null`, wenn keiner wartet                                   |
+| `publiziert_im_fenster`     | integer         | im Fenster publiziert                                                                                               |
+| `freigegeben_im_fenster`    | integer         | im Fenster unterschrieben                                                                                           |
+| `zurueckgezogen_im_fenster` | integer         | im Fenster zurückgezogen                                                                                            |
 
 **Ein Tisch ohne Arbeit fällt nicht heraus**, er steht mit Nullen da: «kommt
 nicht vor» liest sich wie «gibt es nicht» und nicht wie «hat nichts zu tun».
@@ -364,4 +378,6 @@ Version 1.1.0 am 15. September 2026: `medium` und `pruefsiegel` je Beitrag, der
 Weg `/korrekturen`. Version 1.2.0 am 17. September 2026: der Weg `/bilanz`. Neue
 Felder und neue Wege, kein Bruch — wer sie nicht liest, merkt nichts.
 Am 18. September 2026 geprüft und unverändert: die Veranstaltungen der
-Gemeinden kommen als Rubrik `gemeinde` durch dieselbe Tür._
+Gemeinden kamen als Rubrik `gemeinde` durch dieselbe Tür. Version 1.3.0 am 20. September 2026: Rubrik `veranstaltung` mit dem Kalender als
+`quelle_name`, ein neunter Tisch `veranstaltung` in der Bilanz — ein neuer
+Wert je Enum, keine neue Form._

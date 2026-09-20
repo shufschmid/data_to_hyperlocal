@@ -112,6 +112,7 @@ describe('Zeitleiste — Abstimmung', () => {
               kandidat: null,
               amtsblattmeldung: null,
               gemeindemitteilung: null,
+              veranstaltung: null,
               sendungskandidat: null,
               suedanflugquote: null,
               abstimmung: { id: 'a-k3' },

@@ -254,6 +254,8 @@ export interface AlleMeldungFelder {
   suedanflugquote: { id: string } | null
   /** Set for articles written from one Vorlage of one vote day. */
   abstimmung: { id: string } | null
+  /** Set for articles written from an Anlass of an events calendar. */
+  veranstaltung: { id: string } | null
   /** Decided at publish time on press reviews: interesting for the city too. */
   perle: boolean | null
 }
@@ -310,6 +312,9 @@ export const ALLE_MELDUNGEN_QUERY = gql`
         id
       }
       abstimmung {
+        id
+      }
+      veranstaltung {
         id
       }
       perle
@@ -479,12 +484,6 @@ export interface GemeindeFelder {
    * feed; the card and the desk say so rather than showing nothing.
    */
   news_url: string | null
-  /**
-   * The events page of the SAME website — the second address the same 13:00
-   * run reads. Null means no events come from this municipality; the card says
-   * so rather than looking like a municipality with nothing on.
-   */
-  veranstaltungen_url: string | null
   news_letzte_pruefung: string | null
   /** Why the last read failed, in words — shown on the desk and the card. */
   news_letzter_fehler: string | null
@@ -516,7 +515,6 @@ export const GEMEINDEN_QUERY = gql`
       plz
       aktiv
       news_url
-      veranstaltungen_url
       news_letzte_pruefung
       news_letzter_fehler
       news_letzter_hinweis
@@ -1109,6 +1107,7 @@ export interface RecherchehinweisFelder {
   kandidat: { id: string } | null
   amtsblattmeldung: { id: string } | null
   gemeindemitteilung: { id: string } | null
+  veranstaltung: { id: string } | null
   sendungskandidat: { id: string; quelle: string } | null
   gemeinde: { id: string; name: string } | null
   ausgabe: {
@@ -1147,6 +1146,9 @@ export const RECHERCHEHINWEISE_QUERY = gql`
         id
       }
       gemeindemitteilung {
+        id
+      }
+      veranstaltung {
         id
       }
       sendungskandidat {
@@ -1417,6 +1419,183 @@ export const GEMEINDEMITTEILUNGEN_QUERY = gql`
       entscheid
       ablehnungsgrund
       date_created
+      gemeinde {
+        id
+        name
+      }
+    }
+  }
+`
+
+// --- Veranstaltungen: ein Anlass, nicht eine Kalenderzeile ------------------
+//
+// Die Einheit ist die SERIE: dasselbe an drei Tagen ist eine Zeile mit drei
+// Terminen, nicht drei Zeilen. Was daran eine Meldung werden koennte, hat der
+// Lauf als `anker` ausgerechnet — der Tisch zeigt ihn, entscheidet ihn aber
+// nie neu. Eine Routine bleibt stehen, damit der naechste Lauf sie kennt und
+// die Redaktion ihren Dauerangebot-Schalter daran findet.
+
+/** Ein Dokument, das die Anlass-Seite verlinkt — dieselbe Form wie bei einer Mitteilung. */
+export type VeranstaltungDokumentFelder = MitteilungAnhangFelder
+
+export interface VeranstaltungFelder {
+  id: string
+  /** Der lesbare Serienschluessel — die Identitaet innerhalb eines Kalenders. */
+  schluessel: string
+  titel: string
+  /** Alle bekannten Tage, aufsteigend. */
+  termine: string[] | null
+  von: string
+  bis: string | null
+  zeit: string | null
+  rhythmus: string
+  /** `offen` heisst: man kann an einem Tag hingehen — nur dann ist ein letzter Tag eine letzte Gelegenheit. */
+  zugang: string
+  /** Was eine Meldung tragen koennte, vom Code ausgerechnet; null heisst: nichts steht an. */
+  anker: string | null
+  anker_am: string | null
+  anker_grund: string | null
+  frist_am: string | null
+  lokalitaet: string | null
+  adresse: string | null
+  ort: string | null
+  /** Der Anlass findet ausserhalb der Gemeinde statt — deklariert, nicht ausgeschlossen. */
+  ort_ausserhalb: boolean
+  veranstalter: string | null
+  kategorie: string | null
+  preis: string | null
+  anmeldung: string | null
+  beschreibung: string | null
+  text_abgeschnitten: boolean
+  dokumente: VeranstaltungDokumentFelder[] | null
+  /** Die Traktanden eines Gremiums, wo der Kalender sie verlinkt. */
+  traktanden: string[] | null
+  traktanden_url: string | null
+  url: string
+  url_kanonisch: string | null
+  plattform: string | null
+  hinweise: string[] | null
+  gelesen_am: string | null
+  zuletzt_gesehen_am: string
+  /** Null heisst: die Sichtung hat nicht geurteilt — nicht, dass sie Nein sagte. */
+  vorschlag: boolean | null
+  vorschlag_begruendung: string | null
+  entscheid: string
+  ablehnungsgrund: string | null
+  /** Der Schalter der Redaktion auf einer Routine: alle sechs Monate erinnern, oder nie. */
+  dauerangebot: string | null
+  zuletzt_vorgelegt_am: string | null
+  zuletzt_gemeldet_am: string | null
+  date_created: string | null
+  gemeinde: { id: string; name: string } | null
+  quelle: { id: string; name: string; url: string } | null
+}
+
+export interface VeranstaltungenErgebnis {
+  veranstaltungen: VeranstaltungFelder[]
+}
+
+export const VERANSTALTUNGEN_QUERY = gql`
+  query Veranstaltungen {
+    veranstaltungen(
+      filter: { entscheid: { _in: ["offen", "uebernommen"] } }
+      sort: ["anker_am", "von"]
+      limit: -1
+    ) {
+      id
+      schluessel
+      titel
+      termine
+      von
+      bis
+      zeit
+      rhythmus
+      zugang
+      anker
+      anker_am
+      anker_grund
+      frist_am
+      lokalitaet
+      adresse
+      ort
+      ort_ausserhalb
+      veranstalter
+      kategorie
+      preis
+      anmeldung
+      beschreibung
+      text_abgeschnitten
+      dokumente
+      traktanden
+      traktanden_url
+      url
+      url_kanonisch
+      plattform
+      hinweise
+      gelesen_am
+      zuletzt_gesehen_am
+      vorschlag
+      vorschlag_begruendung
+      entscheid
+      ablehnungsgrund
+      dauerangebot
+      zuletzt_vorgelegt_am
+      zuletzt_gemeldet_am
+      date_created
+      gemeinde {
+        id
+        name
+      }
+      quelle {
+        id
+        name
+        url
+      }
+    }
+  }
+`
+
+/**
+ * Die Kalender, die eine Gemeinde liest — eine Liste, keine zweite Spalte.
+ *
+ * Heute ist es je Gemeinde der eigene Veranstaltungskalender; Plattformen wie
+ * Crossiety und Orte wie das Z7 duerfen erfasst werden, bevor es einen Leser
+ * fuer sie gibt: die Zeile steht dann inaktiv da und sagt warum. Auch die
+ * inaktiven kommen mit, sonst waere ein abgeschalteter Kalender aus der Karte
+ * verschwunden statt abgeschaltet.
+ */
+export interface VeranstaltungsquelleFelder {
+  id: string
+  name: string
+  url: string
+  /** `gemeinde` | `plattform` | `ort` — nur die erste hat heute einen Leser. */
+  art: string
+  /** Die im HTML erkannte Vorlage — Auskunft, kein Schalter. */
+  plattform: string | null
+  aktiv: boolean
+  letzte_pruefung: string | null
+  letzter_fehler: string | null
+  /** Deklariert, ohne gescheitert zu sein: ein Deckel, ein fehlender Leser. */
+  letzter_hinweis: string | null
+  gemeinde: { id: string; name: string } | null
+}
+
+export interface VeranstaltungsquellenErgebnis {
+  veranstaltungsquellen: VeranstaltungsquelleFelder[]
+}
+
+export const VERANSTALTUNGSQUELLEN_QUERY = gql`
+  query Veranstaltungsquellen {
+    veranstaltungsquellen(sort: ["name"], limit: -1) {
+      id
+      name
+      url
+      art
+      plattform
+      aktiv
+      letzte_pruefung
+      letzter_fehler
+      letzter_hinweis
       gemeinde {
         id
         name

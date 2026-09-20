@@ -33,6 +33,7 @@ function zeile(ueber: Partial<Rohzeile> = {}): Rohzeile {
     abstimmung: null,
     amtsblattmeldung: null,
     gemeindemitteilung: null,
+    veranstaltung: null,
     spiel: null,
     gemeinde: { id: 'g-1', name: 'Münchenstein', bfs_nummer: 2769 },
     datengrundlage: null,
@@ -80,7 +81,7 @@ describe('buildSlugMap', () => {
 })
 
 describe('rubrikVon', () => {
-  it('erkennt jede der sechs Arten an ihrem Merkmal', () => {
+  it('erkennt jede der sieben Arten an ihrem Merkmal', () => {
     expect(rubrikVon(zeile({ lauf: 'l-1' }))).toBe('statistik')
     expect(
       rubrikVon(
@@ -100,6 +101,7 @@ describe('rubrikVon', () => {
     expect(rubrikVon(zeile({ erscheint_am: '2026-09-04' }))).toBe('entsorgung')
     expect(rubrikVon(zeile({ kandidat: 'k-1' }))).toBe('presseschau')
     expect(rubrikVon(zeile({ sendungskandidat: 's-1' }))).toBe('sendung')
+    expect(rubrikVon(zeile({ veranstaltung: 'v-1' }))).toBe('veranstaltung')
   })
 
   // Die Suedanflug-Quote ist bewusst KEINE eigene Rubrik: ein Abnehmer, der
@@ -597,6 +599,30 @@ describe('liste', () => {
 describe('Rubrik gemeinde', () => {
   it('erkennt eine Gemeindemitteilung an ihrer Relation', () => {
     expect(rubrikVon(zeile({ gemeindemitteilung: 'm-1' }))).toBe('gemeinde')
+    expect(
+      quelleVon(
+        zeile({
+          veranstaltung: 'v-1',
+          datengrundlage: {
+            quelle_name: 'Veranstaltungskalender der Gemeinde Pratteln',
+            url: 'https://www.pratteln.ch/_rte/anlass/1'
+          }
+        }),
+        'veranstaltung'
+      )
+    ).toEqual({
+      name: 'Veranstaltungskalender der Gemeinde Pratteln',
+      url: 'https://www.pratteln.ch/_rte/anlass/1'
+    })
+    expect(
+      quelleVon(
+        zeile({ veranstaltung: 'v-1', datengrundlage: null }),
+        'veranstaltung'
+      )
+    ).toEqual({
+      name: 'Veranstaltungskalender der Gemeinde Münchenstein',
+      url: null
+    })
   })
 
   it('nimmt Quellenname und Unterseite aus der datengrundlage, die Gemeinde nur als Rueckfall', () => {

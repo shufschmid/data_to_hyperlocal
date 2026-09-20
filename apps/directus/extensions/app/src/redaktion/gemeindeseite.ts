@@ -66,20 +66,6 @@ schreibt der Entsorgungs-Tisch. Faellt eine Abfuhr aus, wird sie verschoben,
 kommt eine neue hinzu oder aendert sich der Ablauf, ist das eine Meldung.
 Begruende mit dem Abgleich, der bei der Mitteilung steht.
 
-Veranstaltungen: Zeilen, die als "Termin am …" ausgewiesen sind, kommen von
-der Veranstaltungsseite der Gemeinde. Fuer sie gilt zusaetzlich: Ein
-WIEDERKEHRENDER Termin ist keine Nachricht — der Mittagstisch jeden Dienstag,
-der Freitagstreff, der Monatsmarkt, die woechentliche Sprechstunde. Das ist
-dieselbe Unterscheidung wie beim Abfuhrkalender zwischen Termin und Routine.
-Die AUSNAHME von der Routine ist sehr wohl eine Meldung: faellt der
-Mittagstisch aus, zieht er um, wird ein Anlass abgesagt oder verschoben,
-gehoert das auf den Tisch. Ein Termin ohne Datum, Zeit und Ort ist ein
-schlechter Vorschlag, weil die Meldung sie nennen muesste und nicht kann.
-Und was die Gemeinde als Behoerde selbst tut — Gemeindeversammlung,
-Einwohnerratssitzung, Vernehmlassungsanlass, Informationsveranstaltung zu
-einem Projekt — waegt schwerer als ein Vereinsanlass, der ueber die
-Wochenblaetter ohnehin kommt.
-
 Im Zweifel: nein. Die nicht vorgeschlagenen Mitteilungen verschwinden nicht,
 sie stehen der Redaktion weiterhin zur Verfuegung — ein falsches Ja kostet
 Aufmerksamkeit, ein falsches Nein kostet einen Klick. Die Bilanz und die

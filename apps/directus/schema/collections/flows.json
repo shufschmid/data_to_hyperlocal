@@ -160,7 +160,7 @@
     "name": "Gemeindeseiten pruefen",
     "icon": "campaign",
     "color": null,
-    "description": "Liest um 13 Uhr die Newsseiten der bespielten Gemeinden: jede neue Unterseite samt PDFs wird eingesammelt, eine Sichtung je Gemeinde sortiert, was einen Blick lohnt. Meldungen entstehen erst, wenn die Redaktion uebernimmt.",
+    "description": "Liest um 13 Uhr die Newsseiten und die Veranstaltungskalender der bespielten Gemeinden: jede neue Unterseite samt PDFs wird eingesammelt, Kalenderzeilen werden zu Anlaessen mit Anker, und je Gemeinde sortiert eine Sichtung die Mitteilungen und eine zweite die Anlaesse. Meldungen entstehen erst, wenn die Redaktion uebernimmt.",
     "status": "active",
     "trigger": "schedule",
     "accountability": "all",

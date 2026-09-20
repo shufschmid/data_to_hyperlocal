@@ -32,6 +32,58 @@ export interface HinweisFelder {
   amtsblattmeldung?: string
   gemeindemitteilung?: string
   sendungskandidat?: string
+  veranstaltung?: string
+}
+
+/** An Anlass handed up: its fields and description travel with the lead. */
+export function anlassAlsHinweis(
+  zeile: {
+    id: string
+    titel: string
+    url: string
+    url_kanonisch: string | null
+    von: string
+    bis: string | null
+    zeit: string | null
+    lokalitaet: string | null
+    ort: string | null
+    veranstalter: string | null
+    anker: string | null
+    beschreibung: string | null
+    traktanden: string[] | null
+    dokumente: Array<{ bezeichnung: string; gelesen: boolean }> | null
+    vorschlag_begruendung: string | null
+    gemeinde: { id: string }
+  },
+  begruendung: string | null
+): HinweisFelder {
+  const wann =
+    zeile.bis === null || zeile.bis === zeile.von
+      ? datumDeutsch(zeile.von)
+      : `${datumDeutsch(zeile.von)} bis ${datumDeutsch(zeile.bis)}`
+  return {
+    gemeinde: zeile.gemeinde.id,
+    titel: zeile.titel,
+    fundort: `Veranstaltungskalender der Gemeinde, Termin ${wann}${zeile.anker === null ? '' : ` (${zeile.anker})`}`,
+    begruendung: begruendung ?? zeile.vorschlag_begruendung ?? null,
+    quelltext: [
+      zeile.titel,
+      [wann, zeile.zeit, zeile.lokalitaet, zeile.ort]
+        .filter((t): t is string => t !== null && t !== '')
+        .join(' · '),
+      zeile.veranstalter === null ? '' : `Veranstalter: ${zeile.veranstalter}`,
+      gekuerzt(zeile.beschreibung ?? '', 12_000),
+      ...(zeile.traktanden ?? []).map((t) => `Traktandum: ${t}`),
+      ...(zeile.dokumente ?? [])
+        .filter((d) => d.gelesen)
+        .map((d) => `Dokument: ${d.bezeichnung}`),
+      zeile.url_kanonisch ?? zeile.url
+    ]
+      .filter((z) => z.trim() !== '')
+      .join('\n'),
+    status: 'offen',
+    veranstaltung: zeile.id
+  }
 }
 
 /** A municipal-news item handed up: the whole text travels with the lead. */

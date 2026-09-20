@@ -33,7 +33,6 @@ import {
   lesehinweise,
   meldungJeMitteilung,
   ohneNewsseite,
-  ohneVeranstaltungsseite,
   seitenLink,
   tisch,
   zeitpunktText,
@@ -102,7 +101,6 @@ export function Gemeindeseiten({
     [eintraege, filter, statusJeMitteilung, heute]
   )
   const fehlende = useMemo(() => ohneNewsseite(gemeinden), [gemeinden])
-  const ohneTermine = useMemo(() => ohneVeranstaltungsseite(gemeinden), [gemeinden])
   const gestoerte = useMemo(() => lesefehler(gemeinden), [gemeinden])
   const deklariert = useMemo(() => lesehinweise(gemeinden), [gemeinden])
   const aktive = useMemo(() => gemeinden.filter((g) => g.aktiv), [gemeinden])
@@ -329,25 +327,6 @@ export function Gemeindeseiten({
         >
           Ohne Newsseite kommen keine Mitteilungen: {fehlende.map((g) => g.name).join(', ')}. Die Adresse der
           Newsübersicht steht in der Gemeinde-Karte.
-        </Alert>
-      )}
-
-      {/* Dieselbe Aussage fuer die zweite Adresse. Eine Gemeinde ohne
-          Veranstaltungsseite sieht sonst aus wie eine Gemeinde, in der nichts
-          stattfindet. */}
-      {ohneTermine.length > 0 && (
-        <Alert
-          severity="info"
-          action={
-            onZuGemeinden !== undefined ? (
-              <Button color="inherit" size="small" onClick={onZuGemeinden}>
-                Zu den Gemeinden
-              </Button>
-            ) : undefined
-          }
-        >
-          Ohne Veranstaltungsseite kommen keine Termine: {ohneTermine.map((g) => g.name).join(', ')}. Die
-          Adresse der Veranstaltungsübersicht steht in der Gemeinde-Karte.
         </Alert>
       )}
 

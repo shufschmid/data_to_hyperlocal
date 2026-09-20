@@ -25,7 +25,15 @@ const eintrag = (
   datumQuelle,
   kategorie: null,
   direktPdf: false,
-  veranstaltungAm: null
+  veranstaltungAm: null,
+  veranstaltungBis: null,
+  zeit: null,
+  lokalitaet: null,
+  ort: null,
+  veranstalter: null,
+  serie: null,
+  serieSeit: null,
+  abgesagt: false
 })
 
 const termin = (
@@ -349,6 +357,19 @@ describe('terminKandidaten', () => {
       60
     )
     expect(drin.map((e) => e.titel)).toEqual(['heute', 'bald', 'grenze'])
+  })
+
+  it('eine laufende Spanne bleibt drin, bis ihr letzter Tag vorbei ist', () => {
+    const laufend = {
+      ...termin('ausstellung', '2026-05-09'),
+      veranstaltungBis: '2026-11-30'
+    }
+    const vorbei = {
+      ...termin('vorbei', '2026-05-09'),
+      veranstaltungBis: '2026-09-17'
+    }
+    const { drin } = terminKandidaten([laufend, vorbei], '2026-09-18', 60)
+    expect(drin.map((e) => e.titel)).toEqual(['ausstellung'])
   })
 
   it('zaehlt Termine ohne Datum, statt sie zu oeffnen', () => {

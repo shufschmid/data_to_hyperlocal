@@ -2,7 +2,15 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { heuteAus } from './datum'
-import { KAPUTTE_SPALTE_AB, parseListe, parseWeblicationListe } from './liste'
+import {
+  oderNull,
+  KAPUTTE_SPALTE_AB,
+  istAbgesagt,
+  parseListe,
+  parseTerminZeile,
+  parseWeblicationListe,
+  zeitText
+} from './liste'
 
 const HEUTE = heuteAus('2026-09-14')
 const lies = (name: string): string =>
@@ -119,7 +127,15 @@ describe('Weblication', () => {
         datumQuelle: 'liste',
         kategorie: null,
         direktPdf: false,
-        veranstaltungAm: null
+        veranstaltungAm: null,
+        veranstaltungBis: null,
+        zeit: null,
+        lokalitaet: null,
+        ort: null,
+        veranstalter: null,
+        serie: null,
+        serieSeit: null,
+        abgesagt: false
       }
     ])
   })
@@ -142,7 +158,15 @@ describe('i-web', () => {
       datumQuelle: 'liste',
       kategorie: 'news',
       direktPdf: false,
-      veranstaltungAm: null
+      veranstaltungAm: null,
+      veranstaltungBis: null,
+      zeit: null,
+      lokalitaet: null,
+      ort: null,
+      veranstalter: null,
+      serie: null,
+      serieSeit: null,
+      abgesagt: false
     })
     expect(liste[336]).toMatchObject({
       titel: 'Aus der Gemeinderatssitzung vom 08. September 2026',
@@ -361,6 +385,166 @@ describe('Veranstaltungen', () => {
     expect(liste.every((e) => e.veranstaltungAm !== null)).toBe(true)
   })
 
+  // What the row says about WHEN and WHERE, beyond the day: the Anlass model
+  // groups rows into series on venue and time, and a span's last day is what
+  // keeps a running exhibition in the window until it ends.
+  it('liest Uhrzeit und Spanne aus der Weblication-Zeile', () => {
+    const allschwil = parseListe(
+      lies('allschwil-veranstaltungen.html'),
+      'weblication_termine',
+      'https://www.allschwil.ch/de/veranstaltungen/',
+      HEUTE
+    )
+    expect(allschwil[0]).toMatchObject({
+      veranstaltungAm: '2026-10-13',
+      veranstaltungBis: null,
+      zeit: '18:00–21:00'
+    })
+    const reinach = parseListe(
+      lies('reinach-veranstaltungen.html'),
+      'weblication_termine',
+      'https://www.reinach-bl.ch/de/veranstaltungen/',
+      HEUTE
+    )
+    expect(reinach.find((e) => e.titel === 'Gnuss uf em Platz')).toMatchObject({
+      veranstaltungAm: '2026-09-18',
+      veranstaltungBis: '2026-09-19',
+      zeit: '15:00–23:45'
+    })
+    const arlesheim = parseListe(
+      lies('arlesheim-veranstaltungen.html'),
+      'weblication_termine',
+      'https://www.arlesheim.ch/de/veranstaltungen/',
+      HEUTE
+    )
+    expect(arlesheim[0]?.lokalitaet).toBe(
+      'Feuerwehrmagazin Birs Wache 24 / Arlesheim'
+    )
+  })
+
+  it('bottmingen: eine abgesagte Boerse sagt es im Titel', () => {
+    const liste = parseListe(
+      lies('bottmingen-veranstaltungen.html'),
+      'weblication_termine',
+      'https://www.bottmingen.ch/de/veranstaltungen/',
+      HEUTE
+    )
+    const abgesagt = liste.filter((e) => e.abgesagt)
+    expect(abgesagt.length).toBeGreaterThan(0)
+    expect(abgesagt[0]?.titel).toMatch(/abgesagt/)
+    expect(liste[0]?.abgesagt).toBe(false)
+  })
+
+  it('i-web: Spanne, Zeit, Lokalitaet, Ort, Veranstalter und Kategorie sind Felder', () => {
+    const pratteln = parseListe(
+      lies('pratteln-veranstaltungen.html'),
+      'iweb_termine',
+      'https://www.pratteln.ch/anlaesseaktuelles',
+      HEUTE
+    )
+    expect(pratteln).toHaveLength(47)
+    expect(pratteln.find((e) => e.titel === 'Markt des Alterns')).toMatchObject(
+      {
+        veranstaltungAm: '2026-09-25',
+        veranstaltungBis: null,
+        zeit: '13:00–18:00',
+        lokalitaet: 'Kultur- und Sportzentrum',
+        ort: 'Pratteln',
+        veranstalter: 'Gemeinde Pratteln',
+        kategorie: '3,26'
+      }
+    )
+    // A running exhibition is ONE row with a span, not a row per day.
+    expect(pratteln.find((e) => /Alder & Bahn/.test(e.titel))).toMatchObject({
+      veranstaltungAm: '2026-08-10',
+      veranstaltungBis: '2027-03-21'
+    })
+    const aesch = parseListe(
+      lies('aesch-veranstaltungen.html'),
+      'iweb_termine',
+      'https://www.aesch.bl.ch/anlaesseaktuelles',
+      HEUTE
+    )
+    expect(
+      aesch.find((e) => e.titel === 'Aescher Weihnachtsmarkt')
+    ).toMatchObject({
+      veranstaltungAm: '2026-11-27',
+      veranstaltungBis: '2026-11-29',
+      veranstalter: 'Verein Attraktives Aesch'
+    })
+  })
+
+  it('muttenz und muenchenstein: Ausfall im Titel, Spanne einer Laufgruppe', () => {
+    const muttenz = parseListe(
+      lies('muttenz-veranstaltungen.html'),
+      'iweb_termine',
+      'https://www.muttenz.ch/anlass',
+      HEUTE
+    )
+    expect(muttenz).toHaveLength(53)
+    expect(
+      muttenz.find((e) => e.titel === 'Gemeindeversammlung findet nicht statt')
+    ).toMatchObject({ abgesagt: true, veranstaltungAm: '2026-10-15' })
+    const muenchenstein = parseListe(
+      lies('muenchenstein-veranstaltungen.html'),
+      'iweb_termine',
+      'https://www.muenchenstein.ch/anlaesseaktuelles',
+      HEUTE
+    )
+    expect(muenchenstein).toHaveLength(63)
+    expect(muenchenstein.find((e) => /Laufgruppe/.test(e.titel))).toMatchObject(
+      {
+        veranstaltungAm: '2026-05-07',
+        veranstaltungBis: '2026-12-17',
+        veranstalter: 'Koordinationsstelle für das Alter und der Seniorenrat'
+      }
+    )
+  })
+
+  it('binningen: die Adresse traegt die Serie, dtend die Spanne, das dtstart-Attribut den Serienstart', () => {
+    const liste = parseListe(
+      lies('binningen-veranstaltungen.html'),
+      'backslash_termine',
+      'https://www.binningen.ch/de/gemeinde/news-und-medien/veranstaltungen.html/51',
+      HEUTE
+    )
+    expect(liste[0]).toMatchObject({
+      titel: 'Kiki die Kinderkirche 2026',
+      veranstaltungAm: '2026-02-08',
+      veranstaltungBis: '2026-12-06',
+      serie: '8364'
+    })
+    const sitzungen = liste.filter((e) => e.titel === 'Einwohnerratssitzung')
+    expect(sitzungen.length).toBeGreaterThan(1)
+    expect(sitzungen[0]).toMatchObject({
+      veranstaltungAm: '2026-09-21',
+      serie: '2648',
+      serieSeit: '2022-04-04'
+    })
+    expect(new Set(sitzungen.map((e) => e.serie)).size).toBe(1)
+  })
+
+  it('zeitText und parseTerminZeile normalisieren, was die Seiten drucken', () => {
+    expect(zeitText('13.00 Uhr - 18.00 Uhr')).toBe('13:00–18:00')
+    expect(zeitText('19.00 Uhr')).toBe('19:00')
+    expect(zeitText('9:30 – 10:15')).toBe('09:30–10:15')
+    expect(zeitText('60 Minuten')).toBeNull()
+    // A price is not a time, and a date's day and month are not one either.
+    expect(zeitText('CHF 20.00')).toBeNull()
+    expect(zeitText('18.09.2026')).toBeNull()
+    expect(
+      parseTerminZeile('18.09.2026 | 15:00 Uhr - 19.09.2026 | 23:45 Uhr', HEUTE)
+    ).toEqual({ von: '2026-09-18', bis: '2026-09-19', zeit: '15:00–23:45' })
+    expect(parseTerminZeile('13. Oktober 2026, 18:00 Uhr', HEUTE)).toEqual({
+      von: '2026-10-13',
+      bis: null,
+      zeit: '18:00'
+    })
+    expect(istAbgesagt('ABGESAGT: Die eigene Scholle')).toBe(true)
+    expect(istAbgesagt('Die Führung wurde verschoben')).toBe(true)
+    expect(istAbgesagt('Absage-Regelung siehe Flyer')).toBe(false)
+  })
+
   it('traegt auf Nachrichtenlisten kein Veranstaltungsdatum ein', () => {
     const liste = parseListe(
       lies('binningen-uebersicht.html'),
@@ -369,5 +553,20 @@ describe('Veranstaltungen', () => {
       HEUTE
     )
     expect(liste.every((e) => e.veranstaltungAm === null)).toBe(true)
+  })
+})
+
+describe('oderNull', () => {
+  // Gemessen am ersten Lauf (20.09.2026): Arlesheim schreibt „Lokalität: -"
+  // in Eintraege, deren Ort es nicht fuehrt. Der Strich kam als Ort durch —
+  // auf dem Tisch als Ort „-", und im Serienschluessel als ein ANDERER Ort,
+  // was dieselbe Ausstellung in zwei Anlaesse zerlegte.
+  it('nimmt einen Wert ohne Buchstabe und ohne Ziffer nicht als Angabe', () => {
+    expect(oderNull('-')).toBeNull()
+    expect(oderNull('–')).toBeNull()
+    expect(oderNull('. . .')).toBeNull()
+    expect(oderNull('')).toBeNull()
+    expect(oderNull('Trotte')).toBe('Trotte')
+    expect(oderNull('Saal 1')).toBe('Saal 1')
   })
 })

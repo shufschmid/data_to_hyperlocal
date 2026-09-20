@@ -78,7 +78,8 @@ export const VERANSTALTUNGS_FENSTER_TAGE = 60
  * old it is; an event lies ahead and the question is how far. An event that
  * has taken place is no longer news, so it never enters — the inversion of
  * `kandidaten`, and the reason the two are separate functions rather than one
- * with a flag.
+ * with a flag. A SPAN is measured by its last day: an exhibition that opened
+ * months ago is still in the window while it runs, so its end can be seen.
  *
  * Undated entries are counted and named, exactly as on the news side.
  */
@@ -91,9 +92,14 @@ export function terminKandidaten(
   const drin: ListenEintrag[] = []
   const undatiert: ListenEintrag[] = []
   for (const e of eintraege) {
-    if (e.veranstaltungAm === null) undatiert.push(e)
-    else if (e.veranstaltungAm >= heute && e.veranstaltungAm <= bis)
-      drin.push(e)
+    if (e.veranstaltungAm === null) {
+      undatiert.push(e)
+      continue
+    }
+    // A span counts until its LAST day: a running exhibition stays in the
+    // window until it ends, which is what makes its end a "last chance".
+    const ende = e.veranstaltungBis ?? e.veranstaltungAm
+    if (ende >= heute && e.veranstaltungAm <= bis) drin.push(e)
   }
   return { drin, undatiert }
 }

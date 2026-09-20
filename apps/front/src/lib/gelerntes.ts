@@ -13,6 +13,7 @@ export const BEREICHE: ReadonlyArray<{ wert: string; text: string }> = [
   { wert: 'presseschau', text: 'Wochenblätter' },
   { wert: 'amtsblatt', text: 'Amtsblatt' },
   { wert: 'gemeinde', text: 'Gemeindeseiten' },
+  { wert: 'veranstaltung', text: 'Veranstaltungen' },
   { wert: 'sendung', text: 'Regionaljournal / punkt6' }
 ]
 
