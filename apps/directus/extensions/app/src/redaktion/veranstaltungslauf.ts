@@ -68,7 +68,11 @@ export async function raeumeAnlaesseAuf(
       'id',
       'entscheid',
       'vorschlag',
+      'anker',
       'anker_am',
+      'von',
+      'bis',
+      'termine',
       'zuletzt_gesehen_am',
       'dauerangebot'
     ],
@@ -198,8 +202,9 @@ export async function schreibeAnlaesse(
   heuteObj: Heute,
   erstlauf: boolean,
   logger: Logger
-): Promise<GeschriebenerAnlass[]> {
+): Promise<{ geschrieben: GeschriebenerAnlass[]; abfuhren: number }> {
   const geschrieben: GeschriebenerAnlass[] = []
+  let abfuhren = 0
   for (const anlass of gruppen) {
     const vorher = bekannt.get(anlass.schluessel) ?? null
     const befund = berechneAnker(
@@ -224,6 +229,24 @@ export async function schreibeAnlaesse(
       { erstlauf, bekannt: vorher !== null },
       heuteObj
     )
+
+    // Eine Abfuhr steht schon auf dem Entsorgungstisch. Hier wird sie
+    // gezaehlt und nicht gespeichert — der Lauf sagt wie viele, der Tisch
+    // bleibt frei.
+    if (befund.anker === 'abfuhr') {
+      abfuhren += 1
+      if (vorher !== null && vorher.entscheid === 'offen') {
+        try {
+          await anlaesse.deleteMany([vorher.id])
+        } catch (fehler) {
+          logger.warn(
+            fehler,
+            `veranstaltungen: ${quelle.gemeinde.name} — Abfuhrzeile "${anlass.titel}" nicht entfernt.`
+          )
+        }
+      }
+      continue
+    }
 
     const basis = {
       titel: anlass.titel,
@@ -299,7 +322,7 @@ export async function schreibeAnlaesse(
       )
     }
   }
-  return geschrieben
+  return { geschrieben, abfuhren }
 }
 
 // ---------------------------------------------------------------------------

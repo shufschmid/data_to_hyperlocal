@@ -267,9 +267,21 @@ export interface AufraeumAnlass {
   id: string
   entscheid: string
   vorschlag: boolean | null
+  anker: string | null
   anker_am: string | null
+  von: string | null
+  bis: string | null
+  termine: string[] | null
   zuletzt_gesehen_am: string | null
   dauerangebot: string | null
+}
+
+/** Der letzte Tag, den wir von diesem Anlass kennen. */
+export function letzterTag(
+  zeile: Pick<AufraeumAnlass, 'von' | 'bis' | 'termine'>
+): string | null {
+  const termine = zeile.termine ?? []
+  return zeile.bis ?? termine[termine.length - 1] ?? zeile.von ?? null
 }
 
 function tageSeit(datum: string | null, heute: string): number | null {
@@ -281,18 +293,37 @@ function tageSeit(datum: string | null, heute: string): number | null {
 }
 
 /**
- * A proposal lapses the day after its anchor — an event proposed for
- * yesterday is done, and "not worth a click" counts in the next Sichtung's
- * tally. An unproposed row goes once the calendar has not shown it for three
- * weeks. Decided rows never go, and neither does a row the editor set a
- * Dauerangebot switch on: that switch IS her setting, whatever the calendar
- * does.
+ * Was vom Tisch geht.
+ *
+ * **Vorbei ist vorbei.** Die Redaktion hat das am 20. September 2026
+ * ausdruecklich verlangt: ein Anlass, dessen letzter Termin hinter uns liegt,
+ * verschwindet — auch wenn der Tisch ein paar Tage niemand angefasst hat.
+ * Vorher hing das am ANKER, und ein Anlass ohne Anker-Datum blieb drei Wochen
+ * liegen; wer montags aus den Ferien kam, raeumte von Hand ein Dutzend
+ * vergangener Termine weg. Was ein Vorschlag war oder einen Schalter traegt,
+ * verfaellt (und bleibt als Gedaechtnis stehen), alles andere wird geloescht:
+ * es hat nie etwas gefragt und haelt keine Lehre.
+ *
+ * **Abfuhren gehoeren nicht hierher.** Sie stehen laengst auf dem
+ * Entsorgungstisch, aus dem Abfuhrkalender, den eine Redaktorin einmal im Jahr
+ * erfasst. Auf diesem Tisch waeren sie nur Rauschen — 21 Zeilen am ersten Tag.
+ * Der Anker wird weiter gerechnet (er ist die Erklaerung dafuer, WARUM eine
+ * Zeile fehlt, und der Lauf zaehlt sie), die Zeile selbst geht.
+ *
+ * Ein entschiedener Anlass bleibt unangetastet: seine Meldung entscheidet,
+ * wie lange er in Arbeit ist.
  */
 export function aufraeumAnlass(
   zeile: AufraeumAnlass,
   heute: string
 ): 'verfallen' | 'loeschen' | null {
   if (zeile.entscheid !== 'offen') return null
+  if (zeile.anker === 'abfuhr') return 'loeschen'
+  const letzter = letzterTag(zeile)
+  if (letzter !== null && letzter < heute)
+    return zeile.vorschlag === true || zeile.dauerangebot !== null
+      ? 'verfallen'
+      : 'loeschen'
   if (zeile.vorschlag === true)
     return zeile.anker_am !== null && zeile.anker_am < heute
       ? 'verfallen'

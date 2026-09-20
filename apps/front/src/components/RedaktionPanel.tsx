@@ -600,7 +600,16 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
     alleMeldungenRefetch
   ])
 
-  async function fuehreAus(pfad: string, body?: unknown) {
+  /**
+   * Fuehrt eine Aktion aus und GIBT das Problem zurueck.
+   *
+   * Der Rueckgabewert ist neu und hat einen gemessenen Grund: die Fehlerzeile
+   * steht ganz oben an der Seite, ein „Kalender erfassen" steht weit unten in
+   * der Karte einer Gemeinde. Wer dort klickte und abgewiesen wurde, sah
+   * nichts — der Knopf „funktionierte nicht". Wer die Antwort braucht, wo
+   * geklickt wurde, nimmt sie hier entgegen.
+   */
+  async function fuehreAus(pfad: string, body?: unknown): Promise<string | null> {
     setSendet(true)
     setFehler(null)
 
@@ -611,21 +620,23 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
       // wuerde nur drei weitere Fehlschlaege erzeugen.
       if (sitzungBeendet) {
         await onSitzungEnde?.()
-        return
+        return problem
       }
       await allesNeuLaden()
       // Die Wochenzahl gehoert dazu: wer eben publiziert hat, soll es in der
       // Kopfzeile sehen und nicht erst beim naechsten Laden der Seite.
       await ladeBilanz()
+      return problem
     } catch (error) {
       // Without this, a failing refetch — a broken query, a dropped connection —
       // skipped the reset below and left every button in the workspace disabled
       // for good, with nothing on screen to say why.
-      setFehler(
+      const text =
         error instanceof Error
           ? `Die Ansicht konnte nicht aktualisiert werden: ${error.message}`
           : 'Die Ansicht konnte nicht aktualisiert werden.'
-      )
+      setFehler(text)
+      return text
     } finally {
       setSendet(false)
     }
@@ -1633,9 +1644,14 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
               // Derselbe Handel wie bei der Newsseite: der Endpunkt LIEST die
               // Seite, bevor er sie speichert, und er prueft, ob es eine
               // Veranstaltungsuebersicht ist — eine vertauschte Adresse
-              // scheitert hier am Formular und nicht morgen um eins.
-              await fuehreAus('veranstaltungsquellen', { gemeinde: gemeindeId, ...eingabe })
+              // scheitert hier am Formular und nicht morgen um eins. Die
+              // Antwort geht an die Karte zurueck, weil dort geklickt wurde.
+              const problem = await fuehreAus('veranstaltungsquellen', {
+                gemeinde: gemeindeId,
+                ...eingabe
+              })
               await Promise.all([veranstaltungsquellen.refetch(), ladeGemeindeseitenLauf()])
+              return problem
             }}
             onKalenderSchalten={async (quelleId, aktiv) => {
               await fuehreAus(`veranstaltungsquellen/${quelleId}`, { aktiv })

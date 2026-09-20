@@ -7,6 +7,7 @@ import {
   buildMeldungRevision,
   buildSichtungPrompt,
   datumMitWochentag,
+  letzterTag,
   mitQuelle,
   NEWS_KONTEXT_MAX,
   quelleZeile,
@@ -163,15 +164,20 @@ describe('Sichtung', () => {
 })
 
 describe('Aufraeumen', () => {
+  const basis = {
+    id: 'x',
+    entscheid: 'offen',
+    vorschlag: null as boolean | null,
+    anker: 'einmalig' as string | null,
+    anker_am: null as string | null,
+    von: '2026-09-25',
+    bis: null as string | null,
+    termine: ['2026-09-25'] as string[] | null,
+    zuletzt_gesehen_am: '2026-09-18',
+    dauerangebot: null as string | null
+  }
+
   it('ein Vorschlag verfaellt nach seinem Anker, eine unvorgeschlagene Zeile geht nach drei Wochen ohne Sichtung', () => {
-    const basis = {
-      id: 'x',
-      entscheid: 'offen',
-      vorschlag: null,
-      anker_am: null,
-      zuletzt_gesehen_am: '2026-09-18',
-      dauerangebot: null
-    }
     expect(
       aufraeumAnlass(
         { ...basis, vorschlag: true, anker_am: '2026-09-18' },
@@ -199,19 +205,87 @@ describe('Aufraeumen', () => {
     expect(RUHEND_TAGE).toBe(21)
   })
 
+  // Die Redaktion am 20.09.2026: „alle alten Veranstaltungen automatisch weg
+  // vom Tisch — wenn der Tisch mal einige Tage nicht bearbeitet wird, vorbei
+  // ist vorbei." Vorher hing das am Anker, und ein Anlass ohne Anker-Datum
+  // blieb drei Wochen liegen.
+  describe('vorbei ist vorbei', () => {
+    it('raeumt einen vergangenen Anlass weg, egal ob er je vorgeschlagen wurde', () => {
+      const vergangen = {
+        ...basis,
+        von: '2026-09-15',
+        termine: ['2026-09-15']
+      }
+      expect(aufraeumAnlass(vergangen, '2026-09-19')).toBe('loeschen')
+      expect(
+        aufraeumAnlass({ ...vergangen, vorschlag: true }, '2026-09-19')
+      ).toBe('verfallen')
+    })
+
+    it('zaehlt den LETZTEN bekannten Tag, nicht den ersten', () => {
+      const serie = {
+        ...basis,
+        von: '2026-09-10',
+        termine: ['2026-09-10', '2026-09-17', '2026-09-24']
+      }
+      expect(letzterTag(serie)).toBe('2026-09-24')
+      expect(aufraeumAnlass(serie, '2026-09-19')).toBeNull()
+      const spanne = { ...basis, von: '2026-06-01', bis: '2026-09-27' }
+      expect(letzterTag(spanne)).toBe('2026-09-27')
+      expect(aufraeumAnlass(spanne, '2026-09-19')).toBeNull()
+    })
+
+    it('laesst eine Zeile mit Schalter verfallen statt sie zu loeschen — die Einstellung ist das Gedaechtnis', () => {
+      expect(
+        aufraeumAnlass(
+          {
+            ...basis,
+            von: '2026-09-15',
+            termine: ['2026-09-15'],
+            dauerangebot: 'nie'
+          },
+          '2026-09-19'
+        )
+      ).toBe('verfallen')
+    })
+
+    it('ruehrt einen Anlass am eigenen Tag nicht an', () => {
+      expect(
+        aufraeumAnlass(
+          { ...basis, von: '2026-09-19', termine: ['2026-09-19'] },
+          '2026-09-19'
+        )
+      ).toBeNull()
+    })
+  })
+
+  // Abfuhren stehen laengst auf dem Entsorgungstisch, aus dem Abfuhrkalender.
+  // Hier waeren sie nur Rauschen — 21 Zeilen am ersten Tag.
+  it('nimmt eine Abfuhr vom Tisch, auch wenn ihr Termin noch bevorsteht', () => {
+    expect(aufraeumAnlass({ ...basis, anker: 'abfuhr' }, '2026-09-19')).toBe(
+      'loeschen'
+    )
+  })
+
   it('Entschiedenes und Zeilen mit Dauerangebot-Einstellung bleiben', () => {
-    const alt = {
-      id: 'x',
-      entscheid: 'offen',
-      vorschlag: null,
-      anker_am: null,
+    const ruhend = {
+      ...basis,
+      von: '2026-12-01',
+      termine: ['2026-12-01'],
       zuletzt_gesehen_am: '2026-01-01',
       dauerangebot: 'nie'
     }
-    expect(aufraeumAnlass(alt, '2026-09-19')).toBeNull()
+    expect(aufraeumAnlass(ruhend, '2026-09-19')).toBeNull()
     expect(
       aufraeumAnlass(
-        { ...alt, dauerangebot: null, entscheid: 'abgelehnt' },
+        { ...ruhend, dauerangebot: null, entscheid: 'abgelehnt' },
+        '2026-09-19'
+      )
+    ).toBeNull()
+    // Auch eine Abfuhr, die schon entschieden ist, bleibt unangetastet.
+    expect(
+      aufraeumAnlass(
+        { ...basis, anker: 'abfuhr', entscheid: 'uebernommen' },
         '2026-09-19'
       )
     ).toBeNull()

@@ -98,8 +98,14 @@ export const DAUERANGEBOT_OPTIONEN: { wert: string; text: string }[] = [
   { wert: 'nie', text: 'Nie vorschlagen' }
 ]
 
-/** Anker, die keine Arbeit sind: sie stehen im gefalteten Teil des Tischs. */
-const STILLE_ANKER = new Set(['routine', 'abfuhr', 'platzhalter'])
+/**
+ * Anker, die keine Arbeit sind: sie stehen im gefalteten Teil des Tischs.
+ *
+ * `abfuhr` steht hier nicht mehr — eine Abfuhr kommt gar nicht erst auf
+ * diesen Tisch, sie liegt seit dem Abfuhrkalender auf dem Entsorgungstisch.
+ * Sollte doch eine durchkommen, faengt `abgelaufen` sie ab.
+ */
+const STILLE_ANKER = new Set(['routine', 'platzhalter'])
 
 export function istRuhend(eintrag: Pick<VeranstaltungFelder, 'anker'>): boolean {
   return eintrag.anker === null || STILLE_ANKER.has(eintrag.anker)
@@ -161,14 +167,28 @@ function alterInTagen(datum: string | null, heute: string): number | null {
 /** Wie lange eine unvorgeschlagene Zeile ohne den Kalender ueberlebt. */
 export const RUHEND_TAGE = 21
 
+/** Der letzte Tag, den wir von diesem Anlass kennen. */
+export function letzterTag(eintrag: Pick<VeranstaltungFelder, 'von' | 'bis' | 'termine'>): string | null {
+  const termine = eintrag.termine ?? []
+  return eintrag.bis ?? termine[termine.length - 1] ?? eintrag.von ?? null
+}
+
 /**
  * Die Haelfte der Regel, die der 13-Uhr-Lauf durchsetzt (`aufraeumAnlass` in
  * `redaktion/veranstaltung.ts`, dort gehoert sie hin): ohne den Spiegel zeigte
  * der Tisch bis zu einen Tag lang, was der naechste Lauf wegraeumt.
  * Aenderungen auf der einen Seite gehoeren auf die andere.
+ *
+ * **Vorbei ist vorbei** — die Regel der Redaktion vom 20. September 2026: ein
+ * Anlass, dessen letzter Termin hinter uns liegt, verschwindet, auch wenn den
+ * Tisch ein paar Tage niemand angefasst hat. Und eine Abfuhr steht hier gar
+ * nicht: sie liegt auf dem Entsorgungstisch, aus dem Abfuhrkalender.
  */
 export function abgelaufen(eintrag: VeranstaltungFelder, heute: string): boolean {
   if (eintrag.entscheid !== 'offen') return false
+  if (eintrag.anker === 'abfuhr') return true
+  const letzter = letzterTag(eintrag)
+  if (letzter !== null && letzter < heute) return true
   if (eintrag.vorschlag === true) return eintrag.anker_am !== null && eintrag.anker_am < heute
   // Der Schalter der Redaktion ist ihre Einstellung — die Zeile bleibt, was
   // der Kalender auch tut.

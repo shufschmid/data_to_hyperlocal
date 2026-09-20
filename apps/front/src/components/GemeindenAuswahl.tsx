@@ -70,11 +70,14 @@ export interface GemeindenAuswahlProps {
   onNewsUrl?: (gemeindeId: string, url: string | null) => Promise<void>
   /** Die Veranstaltungskalender — eine Liste je Gemeinde, nicht eine zweite Spalte. */
   quellen?: readonly VeranstaltungsquelleFelder[]
-  /** Legt einen Kalender an; der Endpunkt liest die Seite, BEVOR er schreibt. */
+  /**
+   * Legt einen Kalender an; der Endpunkt liest die Seite, BEVOR er schreibt.
+   * Gibt zurueck, WARUM es nicht ging — null heisst: es ging.
+   */
   onKalenderErfassen?: (
     gemeindeId: string,
     eingabe: { url: string; name: string | null; art: string }
-  ) => Promise<void>
+  ) => Promise<string | null>
   onKalenderSchalten?: (quelleId: string, aktiv: boolean) => Promise<void>
   onKalenderLoeschen?: (quelleId: string) => Promise<void>
   laeuft?: boolean
@@ -253,7 +256,7 @@ interface KarteProps {
   onKalenderErfassen?: (
     gemeindeId: string,
     eingabe: { url: string; name: string | null; art: string }
-  ) => Promise<void>
+  ) => Promise<string | null>
   onKalenderSchalten?: (quelleId: string, aktiv: boolean) => Promise<void>
   onKalenderLoeschen?: (quelleId: string) => Promise<void>
 }
@@ -283,6 +286,7 @@ function GemeindeKarte({
   const [kalenderUrl, setKalenderUrl] = useState('')
   const [kalenderName, setKalenderName] = useState('')
   const [kalenderArt, setKalenderArt] = useState('gemeinde')
+  const [kalenderProblem, setKalenderProblem] = useState<string | null>(null)
 
   return (
     <Paper sx={{ p: 2 }}>
@@ -608,17 +612,36 @@ function GemeindeKarte({
               <Button
                 size="small"
                 disabled={laeuft || kalenderUrl.trim() === ''}
-                onClick={() =>
+                onClick={() => {
+                  setKalenderProblem(null)
                   void onKalenderErfassen(gemeinde.id, {
                     url: kalenderUrl.trim(),
                     name: kalenderName.trim() === '' ? null : kalenderName.trim(),
                     art: kalenderArt
+                  }).then((problem) => {
+                    setKalenderProblem(problem)
+                    if (problem === null) {
+                      setKalenderUrl('')
+                      setKalenderName('')
+                    }
                   })
-                }
+                }}
               >
                 Kalender erfassen
               </Button>
             </Stack>
+          )}
+          {/* Die Antwort steht HIER und nicht in der Fehlerzeile zuoberst an
+              der Seite: wer unten in einer Gemeinde-Karte klickt, sieht die
+              nicht und haelt den Knopf fuer kaputt. Gemessen am 20. September
+              2026 an Riehen, dessen Kalender auf einer eigenen Domain liegt
+              und darum als Gemeindekalender abgewiesen wird. */}
+          {kalenderProblem !== null && (
+            <Alert severity="warning" sx={{ mt: 1, py: 0 }} onClose={() => setKalenderProblem(null)}>
+              {kalenderProblem}
+              {kalenderArt === 'gemeinde' &&
+                ' Liegt der Kalender auf einer eigenen Adresse (eine Plattform oder ein Veranstaltungsort), wähle die passende Art — er wird dann erfasst und ruht, bis es einen Leser dafür gibt.'}
+            </Alert>
           )}
         </Abschnitt>
 

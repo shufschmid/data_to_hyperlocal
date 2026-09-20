@@ -8,6 +8,7 @@ import {
   dringlichkeit,
   gemeindenOhneKalender,
   laufText,
+  letzterTag,
   meldungJeAnlass,
   naechsterTermin,
   passt,
@@ -166,7 +167,9 @@ describe('tisch', () => {
     )
     expect(vorschlaege.map((a) => a.id)).toEqual(['nah', 'fern'])
     expect(verankert.map((a) => a.id)).toEqual(['gremium'])
-    expect(routine.map((a) => a.id).sort()).toEqual(['abfuhr', 'jass'])
+    // Die Abfuhr ist gar nicht dabei: sie liegt auf dem Entsorgungstisch,
+    // aus dem Abfuhrkalender, und waere hier nur Rauschen.
+    expect(routine.map((a) => a.id)).toEqual(['jass'])
   })
 
   it('filtert nach Gemeinde und sucht ueber Titel, Ort und Veranstalter', () => {
@@ -192,6 +195,30 @@ describe('abgelaufen', () => {
 
   it('ruehrt Entschiedenes nicht an', () => {
     expect(abgelaufen(anlass({ entscheid: 'uebernommen', anker_am: '2026-01-01' }), HEUTE)).toBe(false)
+  })
+
+  // Die Redaktion am 20.09.2026: „vorbei ist vorbei" — auch wenn der Tisch
+  // ein paar Tage niemand angefasst hat.
+  it('nimmt einen vergangenen Anlass vom Tisch, gleich ob vorgeschlagen oder nicht', () => {
+    const vergangen = { von: '2026-09-15', termine: ['2026-09-15'] }
+    expect(abgelaufen(anlass({ ...vergangen, vorschlag: null, anker_am: null }), HEUTE)).toBe(true)
+    expect(abgelaufen(anlass({ ...vergangen, vorschlag: true }), HEUTE)).toBe(true)
+    expect(abgelaufen(anlass({ ...vergangen, dauerangebot: 'nie' }), HEUTE)).toBe(true)
+  })
+
+  it('zaehlt den letzten Termin einer Serie, nicht den ersten', () => {
+    const serie = anlass({
+      vorschlag: null,
+      anker_am: null,
+      von: '2026-09-10',
+      termine: ['2026-09-10', '2026-09-17', '2026-09-24']
+    })
+    expect(letzterTag(serie)).toBe('2026-09-24')
+    expect(abgelaufen(serie, HEUTE)).toBe(false)
+  })
+
+  it('nimmt eine Abfuhr vom Tisch, auch wenn ihr Termin bevorsteht', () => {
+    expect(abgelaufen(anlass({ anker: 'abfuhr', vorschlag: null }), HEUTE)).toBe(true)
   })
 })
 

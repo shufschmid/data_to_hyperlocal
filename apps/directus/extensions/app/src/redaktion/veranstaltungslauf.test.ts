@@ -125,7 +125,7 @@ describe('ortAusserhalb', () => {
 describe('schreibeAnlaesse', () => {
   it('legt Unbekanntes an und markiert die Serie als neu erkannt — nicht auf dem Erstlauf', async () => {
     const d = dienst()
-    const [markt] = await schreibeAnlaesse(
+    const { geschrieben } = await schreibeAnlaesse(
       d,
       QUELLE,
       [
@@ -140,7 +140,7 @@ describe('schreibeAnlaesse', () => {
       false,
       logger
     )
-    expect(markt).toMatchObject({ id: 'neu-1', vorher: null })
+    expect(geschrieben[0]).toMatchObject({ id: 'neu-1', vorher: null })
     expect(d.erstellt[0]).toMatchObject({
       quelle: 'q1',
       gemeinde: 'g1',
@@ -176,7 +176,7 @@ describe('schreibeAnlaesse', () => {
       vorschlag: false,
       beschreibung: 'Jeden Freitag von 9 bis 11 Uhr.'
     })
-    const [treff] = await schreibeAnlaesse(
+    const { geschrieben } = await schreibeAnlaesse(
       d,
       QUELLE,
       [anlass({ titel: 'Freitags Treff', termine: ['2026-09-25'] })],
@@ -186,7 +186,7 @@ describe('schreibeAnlaesse', () => {
       false,
       logger
     )
-    expect(treff?.befund.anker).toBe('routine')
+    expect(geschrieben[0]?.befund.anker).toBe('routine')
     expect(d.erstellt).toHaveLength(0)
     expect(d.geaendert[0]?.id).toBe('z1')
     expect(d.geaendert[0]?.payload).not.toHaveProperty('entscheid')
@@ -259,7 +259,7 @@ describe('schreibeAnlaesse', () => {
     d.createOne = vi.fn(async () => {
       throw new Error('kaputt')
     })
-    const geschrieben = await schreibeAnlaesse(
+    const { geschrieben } = await schreibeAnlaesse(
       d,
       QUELLE,
       [anlass({ titel: 'A' }), anlass({ titel: 'B' })],
@@ -271,6 +271,51 @@ describe('schreibeAnlaesse', () => {
     )
     expect(geschrieben).toHaveLength(0)
     expect(logger.warn).toHaveBeenCalled()
+  })
+
+  // Abfuhren stehen laengst auf dem Entsorgungstisch, aus dem Abfuhrkalender.
+  // Der Lauf zaehlt sie, damit ihr Fehlen nie still ist, und speichert sie
+  // nicht.
+  it('zaehlt eine Abfuhr und legt keine Zeile dafuer an', async () => {
+    const d = dienst()
+    const { geschrieben, abfuhren } = await schreibeAnlaesse(
+      d,
+      QUELLE,
+      [
+        anlass({ titel: 'Grünabfuhr', termine: ['2026-09-25'] }),
+        anlass({ titel: 'Markt des Alterns', termine: ['2026-09-25'] })
+      ],
+      new Map(),
+      HEUTE,
+      HEUTE_OBJ,
+      false,
+      logger
+    )
+    expect(abfuhren).toBe(1)
+    expect(geschrieben).toHaveLength(1)
+    expect(geschrieben[0]?.anlass.titel).toBe('Markt des Alterns')
+    expect(d.erstellt).toHaveLength(1)
+  })
+
+  it('entfernt eine Zeile, die zur Abfuhr geworden ist — aber nur eine offene', async () => {
+    const d = dienst()
+    const vorher = bekannt({
+      id: 'z9',
+      schluessel: 'grünabfuhr',
+      anker: 'einmalig',
+      entscheid: 'offen'
+    })
+    await schreibeAnlaesse(
+      d,
+      QUELLE,
+      [anlass({ titel: 'Grünabfuhr', termine: ['2026-09-25'] })],
+      new Map([['grünabfuhr', vorher]]),
+      HEUTE,
+      HEUTE_OBJ,
+      false,
+      logger
+    )
+    expect(d.deleteMany).toHaveBeenCalledWith(['z9'])
   })
 })
 

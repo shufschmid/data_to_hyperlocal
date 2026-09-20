@@ -124,6 +124,8 @@ interface Ergebnis {
   anlaesseNeu: number
   /** How many Anlässe carry which anchor after this run. */
   ankerJeArt: Partial<Record<Anker, number>>
+  /** Waste dates the calendars carry — counted, never stored: they live on the Entsorgung desk. */
+  abfuhrenUebersprungen: number
   /** Anchored Anlässe whose detail page the host budget left for tomorrow. */
   verankertNichtGelesen: { gemeinde: string; anzahl: number }[]
   anlaesseGelesen: number
@@ -235,6 +237,7 @@ export default defineOperationApi<Optionen>({
       anlaesse: 0,
       anlaesseNeu: 0,
       ankerJeArt: {},
+      abfuhrenUebersprungen: 0,
       verankertNichtGelesen: [],
       anlaesseGelesen: 0,
       anlaesseVorschlaege: 0,
@@ -451,7 +454,7 @@ export default defineOperationApi<Optionen>({
           const bekannt = await ladeBekannteSerien(anlaesse, quelle.id)
           const erstlauf = bekannt.size === 0
           const gruppen = gruppiereAnlaesse(drin)
-          const geschrieben = await schreibeAnlaesse(
+          const { geschrieben, abfuhren } = await schreibeAnlaesse(
             anlaesse,
             {
               id: quelle.id,
@@ -465,6 +468,7 @@ export default defineOperationApi<Optionen>({
             erstlauf,
             logger
           )
+          ergebnis.abfuhrenUebersprungen += abfuhren
           ergebnis.anlaesse += geschrieben.length
           ergebnis.anlaesseNeu += geschrieben.filter(
             (g) => g.vorher === null

@@ -374,7 +374,7 @@ describe('GemeindenAuswahl', () => {
   })
 
   it('reicht einen neuen Kalender mit seiner Art an den Endpunkt weiter', async () => {
-    const onKalenderErfassen = jest.fn().mockResolvedValue(undefined)
+    const onKalenderErfassen = jest.fn().mockResolvedValue(null)
     render(
       <GemeindenAuswahl
         gemeinden={[gemeinde({ id: 'a', name: 'Aesch' })]}
@@ -394,6 +394,34 @@ describe('GemeindenAuswahl', () => {
       name: null,
       art: 'gemeinde'
     })
+  })
+
+  // Gemessen am 20. September 2026 an Riehen: der Kalender liegt auf einer
+  // eigenen Domain, wird als Gemeindekalender abgewiesen — und die Absage
+  // stand in der Fehlerzeile zuoberst an der Seite, die niemand sieht, der
+  // unten in einer Karte klickt. Der Knopf galt als kaputt.
+  it('sagt in der Karte, warum ein Kalender abgewiesen wurde', async () => {
+    const onKalenderErfassen = jest
+      .fn()
+      .mockResolvedValue(
+        'Kalender nicht lesbar: Seitenaufbau nicht erkannt (keine der bekannten Plattformen)'
+      )
+    render(
+      <GemeindenAuswahl
+        gemeinden={[gemeinde({ id: 'a', name: 'Riehen' })]}
+        onUmschalten={jest.fn()}
+        onKalenderErfassen={onKalenderErfassen}
+      />
+    )
+
+    await userEvent.type(screen.getByLabelText('Adresse des Kalenders'), 'https://www.riehenevents.ch/')
+    await userEvent.click(screen.getByRole('button', { name: 'Kalender erfassen' }))
+
+    expect(await screen.findByText(/Seitenaufbau nicht erkannt/)).toBeInTheDocument()
+    // Und sie sagt, was stattdessen geht.
+    expect(screen.getByText(/eigenen Adresse/)).toBeInTheDocument()
+    // Die Eingabe bleibt stehen, damit die Art nur umgestellt werden muss.
+    expect(screen.getByLabelText('Adresse des Kalenders')).toHaveValue('https://www.riehenevents.ch/')
   })
 
   // Ein abgeschalteter Kalender verschwindet nicht — sonst waere er weg statt

@@ -537,9 +537,12 @@ them is wrong even if it works.
    verschoben → gremium → frist → neu → einmalig → laufend (beginnt / endet) →
    abweichung / erinnerung / routine. Every step of that order was paid for by
    a measurement. **Abfuhr comes BEFORE the rhythm** because a waste date is a
-   waste date whether it recurs or not, and it belongs on the Entsorgung desk
-   (Muttenz, Reinach and Allschwil have no Abfuhrkalender registered, so the
-   keyword rule has to carry it alone and says so). A **Platzhalter** is not an
+   waste date whether it recurs or not — and such a row never reaches this
+   desk at all: it is COUNTED by the run and not stored, because the
+   Abfuhrkalender put it on the Entsorgung desk months ago. Twenty-one of them
+   arrived on the first day, which is what settled it (Muttenz, Reinach and
+   Allschwil have no Abfuhrkalender registered, so the keyword rule has to
+   carry it alone and the run says how many it dropped). A **Platzhalter** is not an
    Anlass — Muttenz prints „Blanko-Abstimmungstermin" and „Reservetermin
    Gemeindeversammlung". An **Ausfall or a Verschiebung** stands in the title
    or in the text („ist leider abgesagt", „findet nicht statt", „wurde vom 19.
@@ -556,9 +559,9 @@ them is wrong even if it works.
    evening event reaches the desk on Monday at one.
    **The first run over all ten calendars (20 September 2026) read nine of
    them in 31 requests and produced 252 Anlässe** — 146 einmalig, 28
-   Erinnerungen, 22 Routinen with 16 waiting as Dauerangebote, 21 Abfuhren
-   handed to the Entsorgung desk, 13 beginnt, 10 Gremien, 4 Ausfälle, 3
-   Abweichungen, 3 Fristen, 1 Verschiebung, 1 endet; Dornach and Riehen were
+   Erinnerungen, 22 Routinen with 16 waiting as Dauerangebote, 13 beginnt, 10
+   Gremien, 4 Ausfälle, 3 Abweichungen, 3 Fristen, 1 Verschiebung, 1 endet,
+   plus 21 Abfuhren counted and dropped; Dornach and Riehen were
    named as having no calendar rather than looking quiet. **It also paid for
    three more rules.** An offer that is open daily but CLOSED one weekday is still
    `laufend`: Arlesheim prints its Grieshaber exhibition as one line per
@@ -610,10 +613,15 @@ them is wrong even if it works.
    an exclusion, the titles the municipality's own news page carried in the
    last fourteen days. Three decisions, all learning, under
    `bereich: veranstaltung`. The desk cleans itself
-   (`aufraeumAnlass`): a proposal lapses the day after its anchor, an
-   unproposed row goes after 21 days without the calendar (`RUHEND_TAGE`) —
-   and a row the editor set a switch on never goes, because that switch is her
-   setting whatever the calendar does. The Dorfkönig sees these articles as
+   (`aufraeumAnlass`), and its first rule is the newsroom's own words: **vorbei
+   ist vorbei.** An Anlass whose last known day has passed leaves, whatever its
+   anchor and whether or not it was ever proposed — a desk nobody touched for a
+   few days must not fill up with events that already happened. What was a
+   proposal or carries a switch LAPSES and stays as memory; the rest is
+   deleted, having asked nothing and holding no lesson. After that the older
+   rules still apply: a proposal lapses the day after its anchor, an unproposed
+   row goes after 21 days without the calendar (`RUHEND_TAGE`), and a decided
+   row is governed by its Meldung, not by this. The Dorfkönig sees these articles as
    `rubrik: veranstaltung` with `quelle_name` = the calendar's name — a
    concert in the Z7 is not a „Gemeinde ‹Name›"-source, which is why the old
    promise that events would keep coming through `rubrik: gemeinde` was
