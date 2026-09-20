@@ -28,11 +28,16 @@ import { parseDetail, type DetailInhalt } from './detail'
 import {
   erkennePlattform,
   listenArt,
+  ueberDatentuer,
   type DetailFamilie,
   type Plattform,
   type Seitenart
 } from './erkennung'
+// Die eine Vorlage, deren Liste hinter einer Datentuer liegt. Der Leser
+// gehoert hierher, der Dialekt der Tuer dorthin.
+import { drupalEintraege } from '../veranstaltung/drupal'
 import { parseListe, type ListenEintrag } from './liste'
+import { VERANSTALTUNGS_FENSTER_TAGE } from './auswahl'
 import {
   crawlDelaySekunden,
   darfLesen,
@@ -88,6 +93,15 @@ export interface GeladenesPdf {
 export interface Leser {
   /** A page (or the file it turns out to be). `siteVon` is the registered site the URL must belong to. */
   liesSeite(url: string, siteVon: string, maxPdfBytes?: number): Promise<Seite>
+  /**
+   * Eine Datentuer derselben Site, mit denselben Manieren: robots, Pause,
+   * Bremse, nur dieselbe Site.
+   *
+   * Der Crawler bleibt hier AUSSEN VOR. Er ist die zweite Tuer fuer Seiten und
+   * Textdateien; eine Daten-Schnittstelle geht ihn nichts an, und was er von
+   * JSON zurueckgaebe, waere escapter Text.
+   */
+  liesJson(url: string, siteVon: string): Promise<unknown>
   liesPdf(url: string, siteVon: string, maxBytes: number): Promise<GeladenesPdf>
   protokoll(): {
     anfragen: number
@@ -419,6 +433,41 @@ export function erstelleLeser(options: AbrufOptionen): Leser {
       }
     },
 
+    async liesJson(adresse, siteVon) {
+      const url = new URL(adresse)
+      const antwort = await geladen(
+        url,
+        siteVon,
+        'application/json',
+        20_000,
+        // Keine zweite Tuer: siehe die Schnittstelle.
+        false
+      )
+      const typ = antwort.headers.get('content-type') ?? ''
+      if (!/application\/json|\+json/i.test(typ)) {
+        throw new GemeindeseiteFehler(
+          `Kein JSON (Content-Type ${typ || 'unbekannt'}).`,
+          adresse
+        )
+      }
+      zuGross(antwort, HTML_MAX_BYTES, adresse)
+      const daten = Buffer.from(await antwort.arrayBuffer())
+      if (daten.length > HTML_MAX_BYTES) {
+        throw new GemeindeseiteFehler(
+          `Antwort ist ${Math.round(daten.length / 1024)} kB gross — mehr als die Grenze.`,
+          adresse
+        )
+      }
+      try {
+        return JSON.parse(dekodiere(daten, typ)) as unknown
+      } catch {
+        throw new GemeindeseiteFehler(
+          'Antwort ist kein gueltiges JSON.',
+          adresse
+        )
+      }
+    },
+
     async liesPdf(adresse, siteVon, maxBytes) {
       const url = new URL(adresse)
       const antwort = await geladen(
@@ -480,6 +529,12 @@ export interface Uebersicht {
   url: string
   /** Which door the page came through. */
   transport: Transport
+  /**
+   * Was die Uebersicht NICHT bringen konnte, in Worten — ein Tag, dessen
+   * Datentuer schwieg, oder einer, der am Deckel anschlug. Fehlt, wo nichts
+   * fehlte: eine Luecke wird genannt, nie geschwiegen.
+   */
+  luecken?: string[]
 }
 
 const ART_NAME: Record<Seitenart, string> = {
@@ -503,7 +558,8 @@ export async function leseUebersicht(
   leser: Leser,
   adresse: string,
   heute: Heute,
-  erwartet: Seitenart = 'nachricht'
+  erwartet: Seitenart = 'nachricht',
+  fensterTage: number = VERANSTALTUNGS_FENSTER_TAGE
 ): Promise<Uebersicht> {
   const site = new URL(adresse).hostname
   const seite = await leser.liesSeite(adresse, site)
@@ -526,14 +582,42 @@ export async function leseUebersicht(
       adresse
     )
   }
-  const eintraege = parseListe(seite.html, plattform, seite.url, heute)
-  if (eintraege.length === 0) {
+  // Eine Vorlage, die ihre Liste erst im Browser baut, wird nicht geparst
+  // sondern gefragt — sonst stuende hier fuer immer „keine Eintraege".
+  const gelesen = ueberDatentuer(plattform)
+    ? await drupalEintraege(leser, seite.url, heute, fensterTage)
+    : {
+        eintraege: parseListe(seite.html, plattform, seite.url, heute),
+        abgeschnitten: [],
+        fehler: []
+      }
+  const eintraege = gelesen.eintraege
+  if (eintraege.length === 0 && gelesen.fehler.length === 0) {
     throw new GemeindeseiteFehler(
       'Liste erkannt, aber keine Eintraege gefunden — hat sich der Seitenaufbau geaendert?',
       adresse
     )
   }
-  return { plattform, eintraege, url: seite.url, transport: seite.transport }
+  if (gelesen.fehler.length > 0 && eintraege.length === 0) {
+    throw new GemeindeseiteFehler(
+      `Die Datentuer antwortete nicht: ${gelesen.fehler[0] ?? ''}`,
+      adresse
+    )
+  }
+  return {
+    plattform,
+    eintraege,
+    url: seite.url,
+    transport: seite.transport,
+    ...(gelesen.abgeschnitten.length > 0 || gelesen.fehler.length > 0
+      ? {
+          luecken: [
+            ...gelesen.abgeschnitten.map((t) => `${t}: Deckel erreicht`),
+            ...gelesen.fehler
+          ]
+        }
+      : {})
+  }
 }
 
 export interface GeleseneMitteilung {

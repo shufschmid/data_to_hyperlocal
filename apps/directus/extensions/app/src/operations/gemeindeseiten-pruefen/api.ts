@@ -439,8 +439,14 @@ export default defineOperationApi<Optionen>({
             leser,
             quelle.url,
             heuteObj,
-            'termin'
+            'termin',
+            // Eine Vorlage hinter einer Datentuer muss ihr Fenster KENNEN: sie
+            // fragt Tag fuer Tag und kann nicht hinterher filtern.
+            vorlaufTage
           )
+          // Was die Uebersicht nicht bringen konnte, steht auf der Zeile des
+          // Kalenders — ein stiller Tag saehe aus wie ein leerer.
+          for (const luecke of uebersicht.luecken ?? []) hinweiseQ.push(luecke)
           const { drin, undatiert } = terminKandidaten(
             uebersicht.eintraege,
             heute,

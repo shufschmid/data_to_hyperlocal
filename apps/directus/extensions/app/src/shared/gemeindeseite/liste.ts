@@ -692,6 +692,14 @@ export function parseListe(
     iweb_karten: parseIwebKarten,
     backslash: parseBackslashListe,
     weblication_termine: parseWeblicationTermine,
+    // Diese Vorlage traegt ihre Liste nicht im HTML, sondern hinter einer
+    // Datentuer; `leseUebersicht` fragt sie dort und kommt hier nie vorbei.
+    // Ein leeres Ergebnis waere eine Luege, darum eine laute.
+    drupal_termine: () => {
+      throw new Error(
+        'Diese Vorlage hat keine Liste im HTML — sie wird ueber ihre Datentuer gelesen.'
+      )
+    },
     iweb_termine: parseIwebTermine,
     backslash_termine: parseBackslashTermine
   }

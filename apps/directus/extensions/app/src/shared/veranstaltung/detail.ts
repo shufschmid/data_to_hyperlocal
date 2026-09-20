@@ -77,9 +77,17 @@ function adresseAus(zeilen: readonly string[]): {
   ort: string | null
 } {
   const sauber = zeilen.map((z) => z.trim()).filter((z) => z !== '')
-  const plzOrt = sauber.findIndex((z) => /^\d{4}\s+\S/.test(z))
+  // Zwei Schreibweisen, beide gemessen: „4102 Binningen" bei den drei
+  // Gemeinde-CMS, „Riehen 4125" bei der Datentuer-Vorlage. Eine Hausnummer
+  // hat nie vier Stellen, darum ist das unterscheidbar.
+  const plzOrt = sauber.findIndex(
+    (z) => /^\d{4}\s+\S/.test(z) || /^\D.*\s\d{4}$/.test(z)
+  )
   const ort =
-    plzOrt === -1 ? null : (sauber[plzOrt]?.replace(/^\d{4}\s+/, '') ?? null)
+    plzOrt === -1
+      ? null
+      : (sauber[plzOrt]?.replace(/^\d{4}\s+/, '').replace(/\s+\d{4}$/, '') ??
+        null)
   const rest = sauber.filter((_, i) => i !== plzOrt)
   return {
     lokalitaet: rest[0] ?? null,
@@ -335,6 +343,95 @@ export function parseBackslashAnlass(
   }
 }
 
+// --- Drupal mit JSON-Tuer (Riehens Kalender) ---------------------------------
+
+/**
+ * Die Seitenleiste dieser Vorlage ist beschriftet — je Angabe ein eigener
+ * Block mit seinem Namen in der Klasse. Das ist die freundlichste der vier
+ * Familien: nichts muss aus Fliesstext geraten werden.
+ */
+export function drupalSeitenleiste(html: string): Map<string, string> {
+  const werte = new Map<string, string>()
+  for (const treffer of html.matchAll(
+    /<div\b[^>]*\bclass="[^"]*\bevent__sidebar__item--([a-z]+)\b[^"]*"[^>]*>/gi
+  )) {
+    const name = (treffer[1] ?? '').toLowerCase()
+    if (name === '' || werte.has(name)) continue
+    werte.set(name, schneideElement(html, treffer.index ?? 0))
+  }
+  return werte
+}
+
+function drupalFeld(html: string, klasse: string): string {
+  const start = html.search(
+    new RegExp(`<div[^>]*\\bclass="[^"]*?(?<![-\\w])${klasse}(?![-\\w])`, 'i')
+  )
+  return start === -1 ? '' : schneideElement(html, start)
+}
+
+export function parseDrupalAnlass(
+  html: string,
+  seiteUrl: string,
+  heute: Heute
+): AnlassDetail {
+  const titel =
+    oderNull(reinerText(drupalFeld(html, 'event__intro__title'))) ??
+    metaTitel(html)
+  const leiste = drupalSeitenleiste(html)
+  const feld = (name: string): string | null => {
+    const block = leiste.get(name)
+    return block === undefined ? null : oderNull(reinerText(block))
+  }
+
+  // Die Adresse steht als Zeilen im Adressblock; „Google Maps" ist ein Link
+  // und keine Zeile.
+  const adressBlock = (leiste.get('address') ?? '')
+    .replace(/<a\b[\s\S]*?<\/a\s*>/gi, '')
+    .split(/<br\s*\/?>|<\/(?:p|div|li)\s*>/i)
+    .map((z) => reinerText(z))
+  const adresse = adresseAus(adressBlock)
+
+  // Der Termin der Seitenleiste ist der des aufgerufenen Vorkommens; die
+  // Serie selbst kennt der Lauf aus der Tuer, darum genau EIN Datum.
+  const termine = new Set<string>()
+  const datum = parseDatum(feld('date') ?? '', heute)
+  if (datum !== null) termine.add(datum)
+
+  const inhalt = drupalFeld(html, 'event__main__elements')
+  const lead = reinerText(drupalFeld(html, 'event__intro__lead'))
+  const text = blockZuText(
+    inhalt === '' ? drupalFeld(html, 'event__main') : inhalt
+  )
+  // Der Lead steht auch im Inhalt — doppelt gesetzt liest er sich wie ein
+  // Stottern, also nur voranstellen, wo er fehlt.
+  const beschreibung =
+    lead !== '' && !text.includes(lead) ? `${lead}\n\n${text}` : text
+
+  return {
+    titel,
+    zeit: zeitText(feld('time') ?? '') ?? feld('time'),
+    lokalitaet: adresse.lokalitaet,
+    adresse: adresse.adresse,
+    ort: adresse.ort,
+    veranstalter: feld('organizer'),
+    // Die Kategorie steht im Kicker ueber dem Titel; `event__intro__category`
+    // daneben traegt nur ihr Icon.
+    kategorie: oderNull(
+      reinerText(drupalFeld(html, 'event__intro__title-kicker'))
+    ),
+    preis: feld('price'),
+    // „Ticket kaufen" ist die Anmeldung dieser Vorlage; der Kontaktblock
+    // nennt eine Person und bleibt darum aussen vor.
+    anmeldung: feld('ticket'),
+    beschreibung,
+    dokumente: dokumenteAus(inhalt === '' ? html : inhalt, seiteUrl),
+    weitereTermine: [...termine].sort(),
+    traktandenLink: null,
+    kanonisch: kanonischVon(html, seiteUrl),
+    verfahren: 'drupal'
+  }
+}
+
 function kanonischVon(html: string, seiteUrl: string): string | null {
   const link =
     /<link\b[^>]*\brel="canonical"[^>]*\bhref="([^"]+)"/i.exec(html)?.[1] ??
@@ -358,7 +455,9 @@ export function parseAnlassDetail(
       ? parseWeblicationAnlass(html, seiteUrl, heute)
       : familie === 'iweb'
         ? parseIwebAnlass(html, seiteUrl, heute)
-        : parseBackslashAnlass(html, seiteUrl, heute)
+        : familie === 'drupal'
+          ? parseDrupalAnlass(html, seiteUrl, heute)
+          : parseBackslashAnlass(html, seiteUrl, heute)
   if (eigen.beschreibung.trim() !== '' || eigen.weitereTermine.length > 0)
     return eigen
   const generisch = parseDetail(html, familie, seiteUrl, heute)

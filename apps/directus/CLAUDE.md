@@ -105,6 +105,10 @@ field is still empty), `20260917B-suedanflug.mts` (the composite unique
 **inactive**), `20260918B-abstimmungsdatensatz.mts` (which dataset the
 data.bl.ch row carries its vote results in — one key in `konfiguration`, written
 only where it is absent, with a real `down`) and
+`20260920A-riehen-kalender.mts` (one row: Riehens offizieller Kalender, der
+auf einer eigenen Domain liegt und den `20260919A` darum nicht finden konnte —
+er hebt eine schon von Hand erfasste Plattform-Zeile desselben Kalenders,
+statt sie zu verdoppeln) und
 `20260919A-veranstaltungsquellen.mts` (three indexes — the series unique
 `(quelle, schluessel)` on `veranstaltungen`, `(gemeinde, url)` on
 `veranstaltungsquellen` and the partial unique on `meldungen(veranstaltung)`

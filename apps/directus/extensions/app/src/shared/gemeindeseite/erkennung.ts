@@ -18,8 +18,25 @@ export type Plattform =
   | 'weblication_termine'
   | 'iweb_termine'
   | 'backslash_termine'
+  | 'drupal_termine'
 
-export type DetailFamilie = 'weblication' | 'iweb' | 'backslash'
+export type DetailFamilie = 'weblication' | 'iweb' | 'backslash' | 'drupal'
+
+/**
+ * Vorlagen, deren Liste NICHT im HTML steht, sondern hinter einer Datentuer.
+ *
+ * Riehens Kalender rendert seine Agenda erst im Browser: das rohe HTML traegt
+ * null Eintraege. Wer hier nach einer Liste parst, findet fuer immer nichts —
+ * darum fragt der Leser fuer diese Vorlagen die Tuer, die die Seite selbst
+ * benutzt (`shared/veranstaltung/drupal.ts`).
+ */
+const TUER_VORLAGEN: ReadonlySet<Plattform> = new Set<Plattform>([
+  'drupal_termine'
+])
+
+export function ueberDatentuer(plattform: Plattform): boolean {
+  return TUER_VORLAGEN.has(plattform)
+}
 
 /**
  * What a list is ABOUT — and the one thing that really separates the two.
@@ -33,7 +50,8 @@ export type Seitenart = 'nachricht' | 'termin'
 const TERMIN_VORLAGEN: ReadonlySet<Plattform> = new Set<Plattform>([
   'weblication_termine',
   'iweb_termine',
-  'backslash_termine'
+  'backslash_termine',
+  'drupal_termine'
 ])
 
 export function listenArt(plattform: Plattform): Seitenart {
@@ -64,6 +82,14 @@ function erkenneTerminliste(html: string): Plattform | null {
     return 'iweb_termine'
   }
   if (/\bclass="[^"]*\bevent-lst\b/i.test(html)) return 'backslash_termine'
+  // Die Agenda dieser Vorlage baut sich erst im Browser; erkennbar ist sie an
+  // der Komponente, die ihre eigene Datentuer ruft. Der Fingerabdruck ist die
+  // Komponente, nicht der Host — kein Kalender bekommt Code fuer sich. Die
+  // Agenda-Seite ruft `componentEventList`, die Kachel auf der Startseite
+  // `componentEventCalendar`; beide fragen dieselbe Tuer.
+  if (/component(?:EventList|EventCalendar)\s*\(/i.test(html)) {
+    return 'drupal_termine'
+  }
   return null
 }
 
@@ -98,6 +124,7 @@ export function detailFamilie(plattform: Plattform): DetailFamilie {
   }
   if (plattform === 'weblication_termine') return 'weblication'
   if (plattform === 'backslash_termine') return 'backslash'
+  if (plattform === 'drupal_termine') return 'drupal'
   return plattform
 }
 
