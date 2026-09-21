@@ -35,6 +35,10 @@ import {
 import { heuteIso } from '../../redaktion/feiertage'
 import { ladeRegeln } from '../../redaktion/gedaechtnis'
 import {
+  schreibeGemeindeMeldungen,
+  GEMEINDE_MELDUNGEN_JE_LAUF
+} from '../../redaktion/gemeindemeldungen'
+import {
   raeumeMitteilungenAuf,
   sichteMitteilungen,
   type ZeileFuerSichtung
@@ -134,6 +138,12 @@ interface Ergebnis {
   dauerangeboteVorgelegt: number
   dauerangeboteWarten: number
   aufgeraeumtAnlaesse: { geloescht: number; verfallen: number }
+  /** Meldungen, die der Lauf zu seinen Vorschlaegen selbst geschrieben hat. */
+  meldungenGeschrieben: number
+  /** Vorschlaege, deren Artikel der Deckel dieses Laufs liegen liess. */
+  meldungenWartend: number
+  /** Vorschlaege ohne lesbaren Text — benannt statt still uebergangen. */
+  meldungenOhneText: string[]
   anfragen: number
   /** Hosts that asked for spacing (429/503) — the reader slowed down, the run says where. */
   gebremst: string[]
@@ -245,6 +255,9 @@ export default defineOperationApi<Optionen>({
       dauerangeboteVorgelegt: 0,
       dauerangeboteWarten: 0,
       aufgeraeumtAnlaesse: { geloescht: 0, verfallen: 0 },
+      meldungenGeschrieben: 0,
+      meldungenWartend: 0,
+      meldungenOhneText: [],
       anfragen: 0,
       gebremst: [],
       ueberCrawler: [],
@@ -820,6 +833,48 @@ export default defineOperationApi<Optionen>({
         ergebnis.fehler.push(`${gemeinde.name}: ${f}`)
       for (const h of eigeneHinweise)
         ergebnis.hinweise.push(`${gemeinde.name}: ${h}`)
+    }
+
+    // Jeder Vorschlag bekommt seinen Artikel — erst jetzt, wenn alle
+    // Gemeinden gesichtet sind, damit der Deckel ueber den ganzen Lauf und
+    // nicht je Gemeinde greift. Die UEBRIGEN bleiben ohne Artikel liegen:
+    // das ist der halbe Preis und die ausdrueckliche Abmachung.
+    //
+    // Es lehrt nichts. Die drei Entscheide der Redaktion sind das Lernsignal
+    // dieses Tischs; was der Lauf schreibt, ist keiner.
+    try {
+      const geschrieben = await schreibeGemeindeMeldungen(
+        {
+          mitteilungen,
+          meldungen: artikel,
+          regeln: (
+            await ladeRegeln(
+              wissen,
+              { bereich: 'gemeinde', stufe: 'text' },
+              warnung
+            )
+          ).map((r) => r.regel),
+          logger: {
+            info: (text: string) => logger.info(text),
+            warn: (...args: unknown[]) =>
+              logger.warn(args[0], String(args[1] ?? ''))
+          }
+        },
+        GEMEINDE_MELDUNGEN_JE_LAUF
+      )
+      ergebnis.meldungenGeschrieben = geschrieben.geschrieben
+      ergebnis.meldungenWartend = geschrieben.wartend
+      ergebnis.meldungenOhneText = geschrieben.ohneText
+      for (const f of geschrieben.fehler) ergebnis.fehler.push(f)
+      if (geschrieben.wartend > 0)
+        ergebnis.hinweise.push(
+          `${geschrieben.wartend} Vorschlaege warten auf ihre Meldung — der naechste Lauf schreibt sie.`
+        )
+    } catch (fehler) {
+      logger.warn(fehler, 'gemeindeseiten: Meldungen schreiben fehlgeschlagen.')
+      ergebnis.fehler.push(
+        `Meldungen schreiben: ${fehler instanceof Error ? fehler.message : 'Fehler'}`
+      )
     }
 
     const protokoll = leser.protokoll()

@@ -301,4 +301,60 @@ describe('Gemeindeseiten: der Lauf', () => {
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Jetzt prüfen' })).toBeEnabled()
   })
+
+  // Seit dem 21. September 2026 schreibt der Lauf die Meldung zu jedem
+  // Vorschlag selbst. Damit steht der Artikel schon da — aber die Redaktion
+  // muss ihn immer noch ablehnen oder weiterreichen koennen, sonst sind die
+  // zwei Lernsignale dieses Tischs weg.
+  it('laesst Ablehnen und Weiterreichen stehen, auch wenn die Meldung schon da ist', () => {
+    render(
+      <Gemeindeseiten
+        eintraege={[eintrag({ entscheid: 'uebernommen' })]}
+        gemeinden={[gemeinde()]}
+        meldungen={[meldung()]}
+        heute={HEUTE}
+      />
+    )
+
+    expect(screen.getByText('Aesch legt die Traktanden der Gemeindeversammlung fest')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ablehnen' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'An Chefredaktion' })).toBeInTheDocument()
+    // „Meldung schreiben" ist erledigt und verschwindet.
+    expect(screen.queryByRole('button', { name: 'Meldung schreiben' })).not.toBeInTheDocument()
+  })
+
+  it('bietet den Sammelknopf mit der Zahl der fertigen Meldungen', async () => {
+    const onAllePublizieren = jest.fn().mockResolvedValue(undefined)
+    render(
+      <Gemeindeseiten
+        eintraege={[eintrag({ id: 'a', entscheid: 'uebernommen' })]}
+        gemeinden={[gemeinde()]}
+        meldungen={[
+          meldung({ id: 'm-1', status: 'entwurf' }),
+          meldung({ id: 'm-2', status: 'freigegeben', gemeindemitteilung: { id: 'b' } }),
+          // In der Gegenpruefung: gehoert der gegenlesenden Person.
+          meldung({ id: 'm-3', status: 'in_pruefung', gemeindemitteilung: { id: 'c' } })
+        ]}
+        heute={HEUTE}
+        onAllePublizieren={onAllePublizieren}
+      />
+    )
+
+    const knopf = screen.getByRole('button', { name: 'Alle publizieren (2)' })
+    await userEvent.click(knopf)
+    expect(onAllePublizieren).toHaveBeenCalled()
+  })
+
+  it('zeigt den Sammelknopf nicht, wenn nichts fertig ist', () => {
+    render(
+      <Gemeindeseiten
+        eintraege={[eintrag()]}
+        gemeinden={[gemeinde()]}
+        meldungen={[]}
+        heute={HEUTE}
+        onAllePublizieren={jest.fn()}
+      />
+    )
+    expect(screen.queryByRole('button', { name: /Alle publizieren/ })).not.toBeInTheDocument()
+  })
 })

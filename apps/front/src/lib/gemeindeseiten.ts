@@ -162,6 +162,22 @@ export function tisch(
   }
 }
 
+/**
+ * Die Artikel dieses Tischs, die jetzt publiziert werden duerfen.
+ *
+ * `in_pruefung` fehlt mit Absicht: ein Artikel in der Gegenpruefung gehoert
+ * fuer den Moment der gegenlesenden Person und wird nicht hinter ihrem Ruecken
+ * publiziert. Der Sammelknopf zaehlt genau diese Menge, damit die Zahl auf dem
+ * Knopf und das, was er tut, dasselbe sind.
+ */
+export function publizierbare<T extends { gemeindemitteilung: { id: string } | null; status: string }>(
+  meldungen: readonly T[]
+): T[] {
+  return meldungen.filter(
+    (m) => m.gemeindemitteilung !== null && (m.status === 'entwurf' || m.status === 'freigegeben')
+  )
+}
+
 /** The badge on the tab: the proposals, plus what is taken over and not finished. */
 export function anzahlOffen(
   eintraege: readonly GemeindemitteilungFelder[],

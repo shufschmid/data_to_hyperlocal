@@ -5,9 +5,9 @@ import AlertTitle from '@mui/material/AlertTitle'
 import Button from '@mui/material/Button'
 import Link from '@mui/material/Link'
 import Stack from '@mui/material/Stack'
-import Typography from '@mui/material/Typography'
 import type { QuelleFelder } from '@/graphql/redaktion'
 import { formatiereDatum } from '@/lib/redaktion'
+import { kannVonHand, kurzerFehler, laufFuer } from '@/lib/quellenhinweis'
 
 // A source that could not be read is news, and it belongs on the front page.
 //
@@ -19,51 +19,78 @@ import { formatiereDatum } from '@/lib/redaktion'
 // nothing said whether that meant "nothing was published" or "we were not let
 // in".
 //
-// So the banner does two things: it says which source is silent since when, and
-// it hands over the two ways to carry on by hand — open the page, and type in
-// what is there.
+// **Zwei Zeilen, nicht fuenf.** Am 21. September 2026 stand die Zeile des
+// EuroAirports dreizeilig auf dem Bildschirm und sagte zweimal dasselbe
+// („nicht erreichbar: fetch failed — auch über den Crawler nicht: Crawler
+// nicht erreichbar: fetch failed"), dazu einen Satz darueber, was ein
+// Ausfall bedeutet. Das weiss die Redaktion. Geblieben sind der Name, die
+// gekuerzte Ursache und das Datum; die Knoepfe stehen rechts daneben, wo sie
+// keine Zeile kosten.
+//
+// **Und der wichtigste Knopf ist neu.** Eine gestoerte Quelle war eine
+// Sackgasse mit einem Link darauf; jetzt startet ein Griff genau den Lauf,
+// der diese Zeile geschrieben hat (`laufFuer`). Abgetippt wird nur noch dort,
+// wo es etwas zum Abtippen gibt (`kannVonHand`).
 
 export interface QuellenHinweisProps {
   quellen: readonly QuelleFelder[]
   /** Jumps to the tab where an entry can be typed in. */
   onErfassen: () => void
+  /** Startet den Lauf, der diese Quelle liest — den, den `laufFuer` nennt. */
+  onNochmals?: (lauf: string) => Promise<void> | void
+  laeuft?: boolean
 }
 
-export function QuellenHinweis({ quellen, onErfassen }: QuellenHinweisProps) {
+export function QuellenHinweis({ quellen, onErfassen, onNochmals, laeuft = false }: QuellenHinweisProps) {
   const gestoert = quellen.filter((q) => q.letzter_fehler !== null && q.letzter_fehler.trim() !== '')
 
   if (gestoert.length === 0) return null
 
   return (
     <Stack spacing={1}>
-      {gestoert.map((quelle) => (
-        <Alert key={quelle.id} severity="warning">
-          <AlertTitle>{quelle.name} konnte nicht gelesen werden</AlertTitle>
-          <Typography variant="body2" sx={{ mb: 1 }}>
-            {quelle.letzter_fehler}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            Letzter Versuch:{' '}
-            {quelle.letzte_pruefung === null ? 'unbekannt' : formatiereDatum(quelle.letzte_pruefung)}. Bis das
-            wieder geht, erfährst du von hier nichts Neues — auch dann nicht, wenn etwas publiziert wurde.
-          </Typography>
-          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
-            <Button
-              size="small"
-              variant="outlined"
-              component={Link}
-              href={quelle.basis_url}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Seite öffnen
-            </Button>
-            <Button size="small" variant="contained" onClick={onErfassen}>
-              Eintrag von Hand erfassen
-            </Button>
-          </Stack>
-        </Alert>
-      ))}
+      {gestoert.map((quelle) => {
+        const lauf = laufFuer(quelle.typ)
+        return (
+          <Alert
+            key={quelle.id}
+            severity="warning"
+            sx={{ py: 0.5, '& .MuiAlert-message': { py: 0.5 } }}
+            action={
+              <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                <Button
+                  size="small"
+                  color="inherit"
+                  component={Link}
+                  href={quelle.basis_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Seite öffnen
+                </Button>
+                {kannVonHand(quelle.typ) && (
+                  <Button size="small" color="inherit" onClick={onErfassen}>
+                    Von Hand
+                  </Button>
+                )}
+                {lauf !== null && onNochmals !== undefined && (
+                  <Button
+                    size="small"
+                    variant="contained"
+                    disabled={laeuft}
+                    onClick={() => void onNochmals(lauf)}
+                  >
+                    Nochmals versuchen
+                  </Button>
+                )}
+              </Stack>
+            }
+          >
+            <AlertTitle sx={{ mb: 0 }}>{quelle.name} konnte nicht gelesen werden</AlertTitle>
+            {kurzerFehler(quelle.letzter_fehler)}
+            {quelle.letzte_pruefung !== null && ` · zuletzt ${formatiereDatum(quelle.letzte_pruefung)}`}
+          </Alert>
+        )
+      })}
     </Stack>
   )
 }

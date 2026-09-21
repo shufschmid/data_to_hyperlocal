@@ -33,6 +33,7 @@ import {
   lesehinweise,
   meldungJeMitteilung,
   ohneNewsseite,
+  publizierbare,
   seitenLink,
   tisch,
   zeitpunktText,
@@ -55,6 +56,8 @@ export interface GemeindeseitenProps {
   onUebernehmen?: (id: string) => Promise<void> | void
   onAblehnen?: (id: string, grund: string, kommentar: string | null) => Promise<void> | void
   onWeiterreichen?: (id: string, begruendung: string | null) => Promise<void> | void
+  /** Publiziert alle geschriebenen Meldungen dieses Tischs auf einen Griff. */
+  onAllePublizieren?: () => Promise<void> | void
   onZuGemeinden?: () => void
 }
 
@@ -80,6 +83,7 @@ export function Gemeindeseiten({
   onUebernehmen,
   onAblehnen,
   onWeiterreichen,
+  onAllePublizieren,
   onZuGemeinden
 }: GemeindeseitenProps) {
   const [filter, setFilter] = useState<Filter>({ gemeinde: null, suche: '' })
@@ -104,6 +108,8 @@ export function Gemeindeseiten({
   const gestoerte = useMemo(() => lesefehler(gemeinden), [gemeinden])
   const deklariert = useMemo(() => lesehinweise(gemeinden), [gemeinden])
   const aktive = useMemo(() => gemeinden.filter((g) => g.aktiv), [gemeinden])
+  // Die Zahl auf dem Knopf und das, was er tut, sind dieselbe Menge.
+  const fertige = useMemo(() => publizierbare(meldungen), [meldungen])
   const unterwegs = lauf?.laeuft === true
   const laufHinweis = lauf === null ? null : laufText(lauf)
 
@@ -207,15 +213,22 @@ export function Gemeindeseiten({
 
           {/* Sobald eine Meldung da ist, wird sie HIER redigiert — der Tisch
               zeigt Arbeit, nicht Geschichte. */}
-          {meldung !== undefined ? (
+          {meldung !== undefined && (
             <MeldungKarte
               meldung={meldung}
               onChat={onChat ?? (async () => {})}
               onAktion={onAktion ?? (async () => {})}
               laeuft={laeuft}
             />
-          ) : (
-            <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
+          )}
+
+          {/* Die Entscheide bleiben stehen, AUCH wenn der Lauf den Artikel
+              schon geschrieben hat. Sonst haette die Redaktion zu einem
+              Vorschlag, den sie nicht will, nur noch das Verwerfen des
+              Artikels — und die beiden Signale, die die naechste Sichtung
+              lehren (Grund und Weiterreichen), waeren verloren. */}
+          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
+            {meldung === undefined && (
               <Button
                 size="small"
                 variant="contained"
@@ -224,29 +237,29 @@ export function Gemeindeseiten({
               >
                 Meldung schreiben
               </Button>
-              <Button
-                size="small"
-                disabled={beschaeftigt === eintrag.id}
-                onClick={() => {
-                  setAblehnung(eintrag)
-                  setGrund('nicht_relevant')
-                  setKommentar('')
-                }}
-              >
-                Ablehnen
-              </Button>
-              <Button
-                size="small"
-                disabled={beschaeftigt === eintrag.id}
-                onClick={() => {
-                  setWeitergabe(eintrag)
-                  setBegruendung('')
-                }}
-              >
-                An Chefredaktion
-              </Button>
-            </Stack>
-          )}
+            )}
+            <Button
+              size="small"
+              disabled={beschaeftigt === eintrag.id}
+              onClick={() => {
+                setAblehnung(eintrag)
+                setGrund('nicht_relevant')
+                setKommentar('')
+              }}
+            >
+              Ablehnen
+            </Button>
+            <Button
+              size="small"
+              disabled={beschaeftigt === eintrag.id}
+              onClick={() => {
+                setWeitergabe(eintrag)
+                setBegruendung('')
+              }}
+            >
+              An Chefredaktion
+            </Button>
+          </Stack>
         </Stack>
       </Paper>
     )
@@ -258,6 +271,11 @@ export function Gemeindeseiten({
         <Typography variant="h6" sx={{ flexGrow: 1 }}>
           Mitteilungen der Gemeinden
         </Typography>
+        {onAllePublizieren !== undefined && fertige.length > 0 && (
+          <Button variant="contained" disabled={laeuft || unterwegs} onClick={() => void onAllePublizieren()}>
+            Alle publizieren ({fertige.length})
+          </Button>
+        )}
         <Button
           variant="outlined"
           disabled={laeuft || unterwegs}
@@ -269,8 +287,10 @@ export function Gemeindeseiten({
       </Stack>
 
       <Typography variant="caption" color="text.secondary">
-        Der Tisch räumt sich selbst: was die Sichtung nicht vorgeschlagen hat, verschwindet nach sieben Tagen,
-        ein unentschiedener Vorschlag nach vierzehn — der Zähler im Reiter zählt die Vorschläge.
+        Zu jedem Vorschlag schreibt der Lauf die Meldung gleich mit — publizieren genügt. Abgelehnt oder
+        weitergereicht wird trotzdem hier, und der Entwurf geht dann mit. Was die Sichtung nicht vorgeschlagen
+        hat, bleibt ohne Meldung liegen und verschwindet nach sieben Tagen, ein unentschiedener Vorschlag nach
+        vierzehn — der Zähler im Reiter zählt die Vorschläge.
       </Typography>
 
       {/* The run's own voice: a click has to show something for the minutes it

@@ -31,6 +31,7 @@ export const ERLAUBT: RegExp[] = [
   /^gemeinden\/[0-9a-f-]{36}\/plz$/i,
   /^gemeinden\/[0-9a-f-]{36}\/news-url$/i,
   /^gemeindeseiten\/pruefen$/i,
+  /^gemeindeseiten\/publizieren$/i,
   /^gemeindeseiten\/[0-9a-f-]{36}\/(meldung|ablehnen|weiterreichen)$/i,
   // Die Anlaesse und ihre Kalender. `dauerangebot` ist der Schalter auf einer
   // Routine; die Kalenderpflege laeuft als POST-Verben, weil der Proxy nur

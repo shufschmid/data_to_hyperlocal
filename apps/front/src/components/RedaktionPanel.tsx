@@ -815,7 +815,17 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
           </Alert>
         ))}
 
-      <QuellenHinweis quellen={quellen.data?.quellen ?? []} onErfassen={() => setReiter('statistik')} />
+      <QuellenHinweis
+        quellen={quellen.data?.quellen ?? []}
+        onErfassen={() => setReiter('statistik')}
+        laeuft={sendet}
+        onNochmals={async (lauf) => {
+          // Genau der Lauf, der diese Zeile geschrieben hat — welcher das ist,
+          // sagt `laufFuer` anhand des Quellentyps.
+          await fuehreAus(lauf)
+          if (lauf === 'quellen/lauf') await ladeQuellenLauf()
+        }}
+      />
 
       <EntsorgungHinweis
         gemeinden={gemeinden.data?.gemeinden ?? []}
@@ -1385,6 +1395,12 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             }}
             onWeiterreichen={async (id, begruendung) => {
               await fuehreAus(`gemeindeseiten/${id}/weiterreichen`, { begruendung })
+            }}
+            onAllePublizieren={async () => {
+              // Ein Griff statt eines Klicks je Artikel. Der Statuswaechter
+              // sieht trotzdem jede Zeile einzeln — was er abweist, nennt der
+              // Endpunkt mit Grund.
+              await fuehreAus('gemeindeseiten/publizieren')
             }}
             onZuGemeinden={() => setReiter('gemeinden')}
           />

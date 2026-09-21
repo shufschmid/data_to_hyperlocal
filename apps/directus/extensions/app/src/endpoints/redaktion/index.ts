@@ -149,6 +149,14 @@ import {
 } from '../../redaktion/presseschau'
 import { ladeWochenblattSignale } from '../../redaktion/lernsignale'
 import {
+  mitteilungFakten,
+  mitteilungMitChecks,
+  schreibeGemeindeMeldung,
+  MITTEILUNG_FELDER,
+  type MitteilungRohzeile
+} from '../../redaktion/gemeindemeldungen'
+import { verwirfEntwurfZu } from '../../redaktion/entwurf'
+import {
   ladeRegeln,
   lerneAusEntscheid,
   merkeWissenAus,
@@ -170,15 +178,8 @@ import {
   sendungAlsHinweis
 } from '../../redaktion/weiterreichen'
 import {
-  attributionsWarnung as mitteilungAttributionsWarnung,
-  buildMitteilungPrompt,
   buildMitteilungRevision,
-  MELDUNG_SYSTEM_PROMPT as MITTEILUNG_SYSTEM_PROMPT,
-  mitQuelle as mitMitteilungsQuelle,
-  parseMitteilung,
-  volltextVon,
-  zahlWarnungen as zahlWarnungenMitteilung,
-  type MitteilungFakten
+  mitQuelle as mitMitteilungsQuelle
 } from '../../redaktion/gemeindeseite'
 import {
   erstelleLeser,
@@ -2587,73 +2588,6 @@ export default defineEndpoint(
       }
     )
 
-    interface MitteilungRohzeile {
-      id: string
-      url: string
-      url_kanonisch: string | null
-      quelle_seite: string | null
-      titel: string
-      teaser: string | null
-      publiziert_am: string | null
-      veranstaltung_am: string | null
-      kategorie: string | null
-      text: string | null
-      text_abgeschnitten: boolean
-      anhaenge: Array<{
-        bezeichnung: string
-        url: string
-        typ: 'pdf' | 'link'
-        gelesen: boolean
-        text?: string | null
-        grund?: string
-      }> | null
-      entscheid: string
-      vorschlag_begruendung: string | null
-      gemeinde: { id: string; name: string }
-    }
-
-    const MITTEILUNG_FELDER = [
-      'id',
-      'url',
-      'url_kanonisch',
-      'quelle_seite',
-      'titel',
-      'teaser',
-      'publiziert_am',
-      'veranstaltung_am',
-      'kategorie',
-      'text',
-      'text_abgeschnitten',
-      'anhaenge',
-      'entscheid',
-      'vorschlag_begruendung',
-      'gemeinde.id',
-      'gemeinde.name'
-    ]
-
-    function mitteilungFakten(zeile: MitteilungRohzeile): MitteilungFakten {
-      return {
-        gemeinde: zeile.gemeinde.name,
-        titel: zeile.titel,
-        teaser: zeile.teaser,
-        publiziertAm: zeile.publiziert_am,
-        veranstaltungAm: zeile.veranstaltung_am,
-        kategorie: zeile.kategorie,
-        text: zeile.text ?? '',
-        textAbgeschnitten: zeile.text_abgeschnitten,
-        anhaenge: (zeile.anhaenge ?? []).map((a) => ({
-          bezeichnung: a.bezeichnung,
-          url: a.url,
-          typ: a.typ,
-          gelesen: a.gelesen,
-          text: a.text ?? null,
-          grund: a.grund ?? null
-        })),
-        // The page the article is shown on — canonical where known.
-        url: zeile.url_kanonisch ?? zeile.url
-      }
-    }
-
     async function ladeMitteilungsZeile(
       id: string,
       accountability: ApiRequest['accountability']
@@ -2665,65 +2599,6 @@ export default defineEndpoint(
       return (await service.readOne(id, {
         fields: MITTEILUNG_FELDER
       })) as MitteilungRohzeile
-    }
-
-    /**
-     * The article, with the checks that make its rules real: attribution to
-     * the municipality (retried once), digits against the handed material,
-     * absolute dates, no self-written links, and the verbatim-overlap check
-     * against the municipality's own text — a Meldung in the municipality's
-     * words is its press release, not our reporting.
-     */
-    async function mitteilungMitChecks(
-      fakten: MitteilungFakten,
-      prompt: string
-    ): Promise<{
-      bericht: { titel: string; lead: string; text: string }
-      warnungen: string[]
-    }> {
-      let bericht = parseMitteilung(
-        await completeJson<unknown>({
-          system: MITTEILUNG_SYSTEM_PROMPT,
-          prompt,
-          maxTokens: 1500
-        })
-      )
-
-      let attribution = mitteilungAttributionsWarnung(
-        `${bericht.lead} ${bericht.text}`,
-        fakten
-      )
-      if (attribution !== null) {
-        bericht = parseMitteilung(
-          await completeJson<unknown>({
-            system: MITTEILUNG_SYSTEM_PROMPT,
-            prompt: buildMitteilungRevision(
-              fakten,
-              bericht,
-              `Nenne die Quelle im Fliesstext: "wie die Gemeinde ${fakten.gemeinde} mitteilt".`
-            ),
-            maxTokens: 1500
-          })
-        )
-        attribution = mitteilungAttributionsWarnung(
-          `${bericht.lead} ${bericht.text}`,
-          fakten
-        )
-      }
-
-      const alles = `${bericht.titel} ${bericht.lead} ${bericht.text}`
-      const warnungen = [
-        ...zeitWarnungen(alles),
-        ...zahlWarnungenMitteilung(alles, fakten),
-        ...spielLinkWarnungen(alles),
-        ...ueberlappungsWarnungen(
-          `${bericht.lead} ${bericht.text}`,
-          volltextVon(fakten)
-        ).map((w) => w.replace('aus dem Blatt', 'aus der Mitteilung')),
-        ...(attribution === null ? [] : [attribution])
-      ]
-
-      return { bericht, warnungen }
     }
 
     async function ueberarbeiteMitteilung(
@@ -2807,45 +2682,18 @@ export default defineEndpoint(
             throw new MitteilungOhneText()
           }
 
-          const { bericht, warnungen } = await mitteilungMitChecks(
-            fakten,
-            buildMitteilungPrompt(fakten, await regelnFuer('gemeinde', 'text'))
-          )
-
-          const meldungId = (await meldungenService.createOne({
-            gemeindemitteilung: id,
-            gemeinde: zeile.gemeinde.id,
-            titel: bericht.titel,
-            lead: bericht.lead,
-            text: mitMitteilungsQuelle(bericht.text, fakten),
-            status: 'entwurf',
-            verarbeitung: 'idle',
-            zeit_warnungen: warnungen.length > 0 ? warnungen : null,
-            // Everything the public API needs without a join — the source
-            // name and the page's address in particular (`quelleVon`).
-            datengrundlage: {
-              quelle: 'gemeindeseite',
-              quelle_name: `Gemeinde ${zeile.gemeinde.name}`,
-              gemeinde: zeile.gemeinde.name,
-              titel: zeile.titel,
-              publiziert_am: zeile.publiziert_am,
-              // Working material, not a field of the door: a consumer reads
-              // the day out of the text, which says it absolutely.
-              veranstaltung_am: zeile.veranstaltung_am,
-              kategorie: zeile.kategorie,
-              url: fakten.url,
-              quelle_seite: zeile.quelle_seite,
-              anhaenge: fakten.anhaenge.map((a) => ({
-                bezeichnung: a.bezeichnung,
-                url: a.url,
-                typ: a.typ,
-                gelesen: a.gelesen
-              })),
-              text_abgeschnitten: zeile.text_abgeschnitten
-            }
-          })) as string
-
-          await mitteilungen.updateOne(id, { entscheid: 'uebernommen' })
+          // Derselbe Weg, den der 13-Uhr-Lauf geht: ein von Hand
+          // ausgeloester Artikel und ein vom Lauf geschriebener sind derselbe
+          // Artikel.
+          const { meldung: meldungId, warnungen } =
+            await schreibeGemeindeMeldung(
+              {
+                mitteilungen,
+                meldungen: meldungenService,
+                regeln: await regelnFuer('gemeinde', 'text')
+              },
+              zeile
+            )
 
           return res.json({ data: { meldung: meldungId, warnungen } })
         } catch (error) {
@@ -2909,6 +2757,19 @@ export default defineEndpoint(
             ablehnungsgrund: koerper.grund,
             ablehnungskommentar: kommentar
           })
+          // Seit der Lauf die Vorschlaege selbst schreibt, liegt hier meist
+          // schon ein Artikel. Wer die Mitteilung ablehnt, will ihn nicht —
+          // aber nur den ENTWURF: was die Redaktion schon publiziert oder zur
+          // Gegenpruefung gegeben hat, wird ihr nicht unter den Haenden
+          // weggenommen.
+          await verwirfEntwurfZu(
+            new ItemsService('meldungen', {
+              schema: await getSchema(),
+              accountability: req.accountability
+            }),
+            { gemeindemitteilung: { _eq: id } },
+            `Mitteilung abgelehnt: ${koerper.grund}`
+          )
           lerne({
             tisch: 'gemeinde',
             art: 'entscheid',
@@ -5550,6 +5411,62 @@ export default defineEndpoint(
           logger.error(
             error,
             'redaktion: Spielberichte publizieren fehlgeschlagen'
+          )
+          next(error)
+        }
+      }
+    )
+
+    router.post(
+      '/gemeindeseiten/publizieren',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        try {
+          const meldungen = new ItemsService('meldungen', {
+            schema: await getSchema(),
+            accountability: req.accountability
+          })
+
+          // Nur was legitim publiziert werden darf: `in_pruefung` bleibt
+          // ausdruecklich aussen vor — ein Artikel in der Gegenpruefung wird
+          // nicht hinter dem Ruecken der gegenlesenden Person publiziert.
+          const offen = (await meldungen.readByQuery({
+            filter: {
+              _and: [
+                { gemeindemitteilung: { _nnull: true } },
+                { status: { _in: ['entwurf', 'freigegeben'] } }
+              ]
+            },
+            fields: ['id'],
+            limit: -1
+          })) as Array<{ id: string }>
+
+          if (offen.length === 0) return next(new NichtsZuTun())
+
+          const erledigt: string[] = []
+          const abgelehnt: Array<{ id: string; grund: string }> = []
+
+          // Einzeln, damit der Statuswaechter jede Zeile sieht: ein Artikel
+          // ohne Quellenzeile oder mit offener Gegenpruefung faellt hier
+          // heraus und nennt den Grund, statt den ganzen Griff zu verhindern.
+          for (const meldung of offen) {
+            try {
+              await meldungen.updateOne(meldung.id, { status: 'publiziert' })
+              erledigt.push(meldung.id)
+            } catch (fehler) {
+              abgelehnt.push({
+                id: meldung.id,
+                grund: fehler instanceof Error ? fehler.message : String(fehler)
+              })
+            }
+          }
+
+          res.json({ data: { erledigt: erledigt.length, abgelehnt } })
+        } catch (error) {
+          logger.error(
+            error,
+            'redaktion: Gemeindeseiten publizieren fehlgeschlagen'
           )
           next(error)
         }

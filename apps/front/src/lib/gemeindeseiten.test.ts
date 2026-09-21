@@ -10,6 +10,7 @@ import {
   meldungJeMitteilung,
   ohneNewsseite,
   passt,
+  publizierbare,
   seitenLink,
   sortiere,
   tisch,
@@ -252,5 +253,27 @@ describe('Termine auf dem Tisch', () => {
       '2026-09-14'
     )
     expect(offen.vorschlaege.map((e) => e.id)).toEqual(['bald'])
+  })
+})
+
+describe('publizierbare', () => {
+  // Die Zahl auf dem Sammelknopf und das, was er tut, muessen dieselbe Menge
+  // sein — sonst verspricht er mehr, als der Statuswaechter durchlaesst.
+  it('nimmt Entwuerfe und Freigegebenes, nie die Gegenpruefung', () => {
+    const m = (id: string, status: string, zeile: string | null = 'a') => ({
+      id,
+      status,
+      gemeindemitteilung: zeile === null ? null : { id: zeile }
+    })
+    expect(
+      publizierbare([
+        m('1', 'entwurf'),
+        m('2', 'freigegeben'),
+        m('3', 'in_pruefung'),
+        m('4', 'publiziert'),
+        m('5', 'verworfen'),
+        m('6', 'entwurf', null)
+      ]).map((x) => x.id)
+    ).toEqual(['1', '2'])
   })
 })

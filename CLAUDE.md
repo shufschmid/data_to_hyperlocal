@@ -481,6 +481,32 @@ them is wrong even if it works.
    documents, and the verbatim-overlap check runs against the municipality's
    text — its press release in its words is not our reporting. No
    private-person check: a municipality names its office-holders by design.
+   **Since 21 September 2026 the run WRITES those articles itself**, the
+   same bargain the sport desk has had from the start
+   (`redaktion/gemeindemeldungen.ts`, shared by the run and the button so a
+   hand-triggered article and a written one are the same article): the
+   newsroom said the feed had proven itself and it should be one click to
+   publish. Four things hold it in place. Only PROPOSALS are written — what
+   the Sichtung left lying stays there without an article, which is half the
+   price and the newsroom’s explicit words. It teaches NOTHING: the three
+   decisions are this desk’s learning signal and a machine draft is not one,
+   so there is no `lerne(…)` on that path. The decisions therefore STAY on
+   the row beside the finished article — without that, a proposal she does
+   not want would offer only the discarding of its text, and the two signals
+   that teach the next Sichtung (the reason, the hand-up) would be gone;
+   rejecting or handing up takes the DRAFT with it (`redaktion/entwurf.ts`),
+   never a published or counter-checked article. And the cap is audible:
+   twenty per run, the rest named in `meldungenWartend` and carried into the
+   next one. One more thing the first unattended run paid for: an answer that
+   is not parseable JSON gets exactly ONE second attempt at the same prompt.
+   While a person pressed the button that was a visible failure and a second
+   click; now the run writes, and the same slip would cost the row every day.
+   It is not the token limit — that raises an error of its own — and any other
+   failure is not retried. „Alle publizieren" (`POST /redaktion/gemeindeseiten/publizieren`)
+   is the other half of the same wish — one grip for every finished draft,
+   `in_pruefung` deliberately excluded, each row still passing the status
+   hook one at a time so a refusal names its reason instead of failing the
+   whole grip.
    The desk cleans itself (`aufraeumAktion`): unproposed rows go after seven
    days, undecided proposals lapse to `verfallen` after fourteen — news is
    perishable, unlike a permit with a deadline. The Dorfkönig sees these
@@ -1223,6 +1249,10 @@ Flow "Gemeindeseiten pruefen"  (0 13 * * *)
           Tatsache des Codes, die Titel der letzten 14 Tage von der Newsseite
           reisen als KONTEXT mit, und herabgestuft wird nie wegen des
           Veranstalters — nur mit genanntem Grund
+
+der Lauf schreibt die Meldung jedes Vorschlags gleich mit (hoechstens 20,
+  der Rest wartet auf morgen und wird genannt) — dieselbe Funktion, die auch
+  der Knopf ruft. Die UEBRIGEN bleiben ohne Artikel liegen.
 
 editor takes a Mitteilung over ── POST /redaktion/gemeindeseiten/:id/meldung
   └─ 1× Sonnet ueber den ganzen Wortlaut + gelesene Anhaenge → kurze Meldung in
