@@ -13,6 +13,7 @@ import {
   schreibeAnlaesse,
   sichteAnlaesse,
   sichtungsKandidat,
+  verpassteAnmeldung,
   type AnlaesseDienst,
   type BekannteZeile,
   type GeschriebenerAnlass
@@ -752,5 +753,56 @@ describe('kuerzeFelder', () => {
     const { felder, hinweise } = kuerzeFelder({ ort: 'Pratteln', preis: null })
     expect(felder).toEqual({ ort: 'Pratteln', preis: null })
     expect(hinweise).toEqual([])
+  })
+})
+
+// Die Redaktion am 21. September 2026: ist die Anmeldefrist vorbei UND die
+// Anmeldung zwingend, kann niemand mehr hin — der Hinweis gehoert unter
+// „Weitere mit Anker", nicht in die Vorschlaege.
+describe('verpassteAnmeldung', () => {
+  it('stuft herab, wo die Frist vorbei und die Teilnahme angemeldet ist', () => {
+    expect(
+      verpassteAnmeldung({ frist_am: '2026-09-17', zugang: 'programm' }, HEUTE)
+    ).toContain('17. September 2026')
+  })
+
+  it('laesst einen Anlass in Ruhe, zu dem man auch spontan gehen kann', () => {
+    // Eine Ausstellung mit Anmeldung fuer die Fuehrung bleibt ein Vorschlag.
+    expect(
+      verpassteAnmeldung({ frist_am: '2026-09-17', zugang: 'offen' }, HEUTE)
+    ).toBeNull()
+  })
+
+  it('stuft auch bei unbekanntem Zugang herab — ein `frist_am` entsteht nur aus „Anmeldung bis"', () => {
+    expect(
+      verpassteAnmeldung({ frist_am: '2026-09-17', zugang: 'unbekannt' }, HEUTE)
+    ).not.toBeNull()
+  })
+
+  it('ruehrt eine Frist an, die noch laeuft, gar nicht an', () => {
+    expect(
+      verpassteAnmeldung({ frist_am: HEUTE, zugang: 'programm' }, HEUTE)
+    ).toBeNull()
+    expect(
+      verpassteAnmeldung({ frist_am: '2026-09-30', zugang: 'programm' }, HEUTE)
+    ).toBeNull()
+    expect(verpassteAnmeldung({ frist_am: null }, HEUTE)).toBeNull()
+  })
+
+  it('nimmt die Zeile damit aus der Sichtung', () => {
+    const basis = {
+      anker: 'frist' as const,
+      anker_am: HEUTE,
+      vorschlag: null,
+      entscheid: 'offen'
+    }
+    expect(sichtungsKandidat(basis, HEUTE, 10)).toBe(true)
+    expect(
+      sichtungsKandidat(
+        { ...basis, frist_am: '2026-09-17', zugang: 'programm' },
+        HEUTE,
+        10
+      )
+    ).toBe(false)
   })
 })

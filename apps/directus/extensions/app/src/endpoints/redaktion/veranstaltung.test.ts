@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   anlassFakten,
+  hatAnlassMaterial,
   dauerangebotJetzt,
   pruefeDauerangebotModus,
   type AnlassRohzeile
@@ -43,6 +44,7 @@ const zeile = (ueber: Partial<AnlassRohzeile> = {}): AnlassRohzeile => ({
   zugang: 'offen',
   url: 'https://www.pratteln.ch/_rte/anlass/7353004',
   url_kanonisch: null,
+  plattform: 'iweb_termine',
   entscheid: 'offen',
   vorschlag_begruendung: null,
   dauerangebot: null,
@@ -202,5 +204,63 @@ describe('pruefeQuelle', () => {
       name: 'Z7'
     })
     expect(pruefeQuellenAenderung({ url: 'x' })).toBeNull()
+  })
+})
+
+// Gemessen am 21. September 2026 an „MidnightSports Riehen": ein Dauerangebot
+// kann vorgelegt werden, BEVOR der Lauf sein Detailbudget dorthin verteilt
+// hat — und „Jetzt vorschlagen" hat gar keinen Lauf dazwischen. Der Endpunkt
+// liest die Seite darum nach, statt zu verweigern; diese Funktion sagt, wann
+// das noetig ist.
+describe('hatAnlassMaterial', () => {
+  it('verlangt Beschrieb, Traktanden oder einen gelesenen Anhang', () => {
+    const f = anlassFakten(zeile(), '2026-09-21')
+    expect(hatAnlassMaterial(f)).toBe(true)
+    // Die Fixture traegt einen gelesenen Flyer — leer ist die Zeile erst
+    // ohne Text UND ohne Dokument.
+    expect(
+      hatAnlassMaterial({ ...f, beschreibung: '   ', dokumente: [] })
+    ).toBe(false)
+    expect(
+      hatAnlassMaterial({
+        ...f,
+        beschreibung: '',
+        dokumente: [],
+        traktanden: ['Budget']
+      })
+    ).toBe(true)
+    expect(
+      hatAnlassMaterial({
+        ...f,
+        beschreibung: '',
+        dokumente: [
+          {
+            bezeichnung: 'Flyer',
+            url: 'https://x.ch/f.pdf',
+            typ: 'pdf',
+            gelesen: true,
+            text: 'Inhalt',
+            grund: null
+          }
+        ]
+      })
+    ).toBe(true)
+    // Ein Dokument, das der Leser NICHT bekam, traegt nichts.
+    expect(
+      hatAnlassMaterial({
+        ...f,
+        beschreibung: '',
+        dokumente: [
+          {
+            bezeichnung: 'Flyer',
+            url: 'https://x.ch/f.pdf',
+            typ: 'pdf',
+            gelesen: false,
+            text: null,
+            grund: 'zu_gross'
+          }
+        ]
+      })
+    ).toBe(false)
   })
 })

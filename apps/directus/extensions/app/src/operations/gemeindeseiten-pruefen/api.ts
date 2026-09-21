@@ -56,9 +56,10 @@ import {
   schreibeAnlaesse,
   sichteAnlaesse,
   sichtungsKandidat,
+  verpassteAnmeldung,
   type GeschriebenerAnlass
 } from '../../redaktion/veranstaltungslauf'
-import type { Anker, VeranstaltungsquelleArt } from '../../types/schema'
+import type { Anker, VeranstaltungsquelleArt, Zugang } from '../../types/schema'
 
 // The 13:00 look at the municipalities' own websites: the news page and the
 // events calendars.
@@ -144,6 +145,8 @@ interface Ergebnis {
   meldungenWartend: number
   /** Vorschlaege ohne lesbaren Text — benannt statt still uebergangen. */
   meldungenOhneText: string[]
+  /** Anlaesse, deren Anmeldefrist verstrichen ist — kein Vorschlag mehr. */
+  fristVerpasst: number
   anfragen: number
   /** Hosts that asked for spacing (429/503) — the reader slowed down, the run says where. */
   gebremst: string[]
@@ -258,6 +261,7 @@ export default defineOperationApi<Optionen>({
       meldungenGeschrieben: 0,
       meldungenWartend: 0,
       meldungenOhneText: [],
+      fristVerpasst: 0,
       anfragen: 0,
       gebremst: [],
       ueberCrawler: [],
@@ -718,7 +722,9 @@ export default defineOperationApi<Optionen>({
               'vorschlag',
               'entscheid',
               'zuletzt_vorgelegt_am',
-              'dauerangebot'
+              'dauerangebot',
+              'frist_am',
+              'zugang'
             ],
             limit: -1
           })) as Array<{
@@ -729,10 +735,33 @@ export default defineOperationApi<Optionen>({
             entscheid: string
             zuletzt_vorgelegt_am: string | null
             dauerangebot: 'intervall' | 'nie' | null
+            frist_am: string | null
+            zugang: Zugang
           }>
           const kandidatenIds = offene
             .filter((z) => sichtungsKandidat(z, heute, vorschlagTage))
             .map((z) => z.id)
+
+          // Eine verpasste Anmeldefrist macht den Hinweis unbrauchbar. Die
+          // Zeile bleibt auf dem Tisch — unter „Weitere mit Anker", mit ihrem
+          // Grund —, kostet aber keinen Modellaufruf mehr.
+          for (const z of offene) {
+            if (z.vorschlag !== null) continue
+            const grund = verpassteAnmeldung(z, heute)
+            if (grund === null) continue
+            try {
+              await anlaesse.updateOne(z.id, {
+                vorschlag: false,
+                vorschlag_begruendung: grund
+              })
+              ergebnis.fristVerpasst += 1
+            } catch (fehler) {
+              logger.warn(
+                fehler,
+                `veranstaltungen: Frist-Hinweis zu ${z.id} nicht gespeichert.`
+              )
+            }
+          }
 
           // The Dauerangebot dose: one routine a week, the longest-waiting
           // first, the rest counted for the result.

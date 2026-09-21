@@ -36,6 +36,8 @@ export interface AnlassRohzeile {
   zugang: Zugang
   url: string
   url_kanonisch: string | null
+  /** Die im HTML erkannte Vorlage — sie sagt, welcher Detailparser gilt. */
+  plattform: string | null
   entscheid: string
   vorschlag_begruendung: string | null
   dauerangebot: string | null
@@ -67,6 +69,7 @@ export const ANLASS_FELDER = [
   'zugang',
   'url',
   'url_kanonisch',
+  'plattform',
   'entscheid',
   'vorschlag_begruendung',
   'dauerangebot',
@@ -76,6 +79,20 @@ export const ANLASS_FELDER = [
   'quelle.name',
   'quelle.url'
 ]
+
+/**
+ * Ob aus dieser Zeile ueberhaupt ein Artikel werden kann.
+ *
+ * Ein Anlass ohne Beschreibung, ohne gelesenes Dokument und ohne Traktanden
+ * traegt nichts, woraus sich schreiben liesse. Bevor das eine Absage wird,
+ * liest der Endpunkt die Detailseite nach — ein Dauerangebot kann vorgelegt
+ * worden sein, bevor der Lauf je dazu kam.
+ */
+export function hatAnlassMaterial(fakten: AnlassFakten): boolean {
+  if (fakten.beschreibung.trim() !== '') return true
+  if (fakten.traktanden.length > 0) return true
+  return fakten.dokumente.some((d) => d.gelesen && (d.text ?? '').trim() !== '')
+}
 
 /** The row as the writer sees it. `heute` is the day the article is written — the Stand line names it. */
 export function anlassFakten(

@@ -202,9 +202,16 @@ import {
   ANLASS_FELDER,
   anlassFakten,
   dauerangebotJetzt,
+  hatAnlassMaterial,
   pruefeDauerangebotModus,
   type AnlassRohzeile
 } from './veranstaltung'
+import { liesAnlass } from '../../shared/veranstaltung'
+import {
+  detailFamilie,
+  type Plattform
+} from '../../shared/gemeindeseite/erkennung'
+import { nachgelesenePayload } from '../../redaktion/veranstaltungslauf'
 import { pruefeQuelle, pruefeQuellenAenderung } from './veranstaltungsquelle'
 import gemeindeseitenPruefen from '../../operations/gemeindeseiten-pruefen/api'
 import { wissenFelderManuell } from '../../redaktion/wissen'
@@ -2950,6 +2957,49 @@ export default defineEndpoint(
       })
     }
 
+    /**
+     * Die Detailseite eines Anlasses nachlesen und seine Fakten speichern.
+     *
+     * Derselbe Leser und dieselben Manieren wie im Lauf — robots, Pause,
+     * zweite Tuer —, und der Anker bleibt unangetastet
+     * (`nachgelesenePayload`): die Redaktion hat sich zu ihm entschieden.
+     * Scheitert das Lesen, bleibt die Zeile, wie sie war, und der Aufrufer
+     * bekommt seine ehrliche Absage.
+     */
+    async function lieseAnlassNach(
+      zeile: AnlassRohzeile,
+      heute: string
+    ): Promise<void> {
+      try {
+        const leser = erstelleLeser({
+          kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch'),
+          crawler: crawlerKonfiguriert() ? holeUeberCrawler : null
+        })
+        const gelesen = await liesAnlass(
+          leser,
+          { url: zeile.url_kanonisch ?? zeile.url, termin: zeile.von },
+          detailFamilie((zeile.plattform ?? 'weblication') as Plattform),
+          new URL(zeile.quelle.url).hostname,
+          heuteAus(heute),
+          { gremium: zeile.anker === 'gremium' }
+        )
+        const anlaesse = new ItemsService('veranstaltungen', {
+          schema: await getSchema()
+        })
+        await anlaesse.updateOne(
+          zeile.id,
+          nachgelesenePayload(gelesen, zeile.gemeinde.name, heute, {
+            ort: zeile.ort
+          })
+        )
+      } catch (fehler) {
+        logger.warn(
+          fehler,
+          `redaktion: Detailseite zu "${zeile.titel}" nicht nachgelesen.`
+        )
+      }
+    }
+
     router.post(
       '/veranstaltungen/:id/meldung',
       async (req: ApiRequest, res: Response, next: NextFunction) => {
@@ -2965,7 +3015,7 @@ export default defineEndpoint(
             schema,
             accountability: req.accountability
           })
-          const zeile = await ladeAnlassZeile(id, req.accountability)
+          let zeile = await ladeAnlassZeile(id, req.accountability)
           const vorhandene = (await meldungenService.readByQuery({
             filter: {
               veranstaltung: { _eq: id },
@@ -2977,16 +3027,17 @@ export default defineEndpoint(
           if (vorhandene.length > 0) return next(new AnlassSchonEntschieden())
 
           const heute = heuteIsoZuerich()
+          // Fehlt der Beschrieb, wird die Detailseite JETZT gelesen, statt die
+          // Meldung zu verweigern: ein Dauerangebot kann vorgelegt worden
+          // sein, bevor der Lauf sein Detailbudget dorthin verteilt hat — und
+          // „Jetzt vorschlagen" hat gar keinen Lauf dazwischen. Erst wenn auch
+          // das nichts bringt, ist die Absage die ehrliche Antwort.
+          if (!hatAnlassMaterial(anlassFakten(zeile, heute))) {
+            await lieseAnlassNach(zeile, heute)
+            zeile = await ladeAnlassZeile(id, req.accountability)
+          }
           const fakten = anlassFakten(zeile, heute)
-          const hatDokumenttext = fakten.dokumente.some(
-            (d) => d.gelesen && (d.text ?? '').trim() !== ''
-          )
-          if (
-            fakten.beschreibung.trim() === '' &&
-            !hatDokumenttext &&
-            fakten.traktanden.length === 0
-          )
-            throw new AnlassOhneText()
+          if (!hatAnlassMaterial(fakten)) throw new AnlassOhneText()
 
           const { bericht, warnungen } = await anlassMitChecks(
             fakten,

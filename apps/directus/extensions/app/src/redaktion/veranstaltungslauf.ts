@@ -26,6 +26,7 @@ import { ladeVeranstaltungSignale, LERN_FENSTER } from './lernsignale'
 import {
   aufraeumAnlass,
   auszugVon,
+  datumDeutsch,
   lernDigest,
   NEWS_KONTEXT_TAGE,
   parseSichtung,
@@ -508,6 +509,65 @@ export function detailPayload(
   }
 }
 
+/**
+ * Die Fakten einer NACHGELESENEN Detailseite — ohne den Anker anzufassen.
+ *
+ * Der Lauf rechnet den Anker beim Lesen neu (`detailPayload`), weil sich mit
+ * dem Text auch Rhythmus und Frist aendern koennen. Beim Nachlesen auf Klick
+ * waere das falsch: die Redaktion hat sich zu diesem Anker eben entschieden
+ * und will ihren Artikel, keine neue Einordnung.
+ *
+ * Gebraucht wird das, weil ein Dauerangebot vorgelegt werden kann, bevor
+ * seine Seite je gelesen wurde: der Lauf verteilt sein Detailbudget, BEVOR er
+ * die Routinen zu Dauerangeboten macht, und „Jetzt vorschlagen" hat gar
+ * keinen Lauf dazwischen. Gemessen am 21. September 2026 an „MidnightSports
+ * Riehen", das auf Knopfdruck mit „Der Beschrieb des Anlasses liegt nicht
+ * vor" antwortete.
+ */
+export function nachgelesenePayload(
+  gelesen: GeleseneAnlass,
+  gemeinde: string,
+  heute: string,
+  bisher: { ort: string | null }
+): Record<string, unknown> {
+  const d = gelesen.detail
+  const beschreibung = kappe(d.beschreibung.trim(), TEXT_MAX_ZEICHEN)
+  const ort = d.ort ?? bisher.ort
+  const hinweise: string[] = []
+  if (beschreibung.abgeschnitten) hinweise.push('Text gekürzt.')
+  const ungelesen = gelesen.anhaenge.filter((a) => !a.gelesen).length
+  if (ungelesen > 0) hinweise.push(`${ungelesen} Dokumente nicht gelesen.`)
+  if (gelesen.traktanden?.abgeschnitten === true)
+    hinweise.push('Traktanden gekürzt.')
+  if (gelesen.transport === 'crawler') hinweise.push('Über den Crawler gelesen')
+
+  const gekuerzt = kuerzeFelder({
+    zeit: d.zeit,
+    lokalitaet: d.lokalitaet,
+    adresse: d.adresse,
+    ort,
+    veranstalter: d.veranstalter,
+    kategorie: d.kategorie,
+    preis: d.preis
+  })
+  hinweise.push(...gekuerzt.hinweise)
+
+  return {
+    ...gekuerzt.felder,
+    ort_ausserhalb: ortAusserhalb(ort, gemeinde),
+    anmeldung: d.anmeldung,
+    beschreibung: beschreibung.text,
+    text_abgeschnitten: beschreibung.abgeschnitten,
+    dokumente: gelesen.anhaenge,
+    traktanden: gelesen.traktanden?.liste ?? null,
+    traktanden_url: gelesen.traktanden?.url ?? null,
+    url_kanonisch: d.kanonisch,
+    gelesen_am: new Date().toISOString(),
+    hinweise,
+    zuletzt_gesehen_am: heute
+  }
+}
+
 /** A row the Sichtung has not judged for its current anchor, inside the window. */
 export function sichtungsKandidat(
   zeile: {
@@ -515,13 +575,42 @@ export function sichtungsKandidat(
     anker_am: string | null
     vorschlag: boolean | null
     entscheid: string
+    frist_am?: string | null
+    zugang?: Zugang
   },
   heute: string,
   vorschlagTage: number
 ): boolean {
   if (zeile.entscheid !== 'offen' || zeile.vorschlag !== null) return false
   if (zeile.anker === null || OHNE_TISCH.has(zeile.anker)) return false
+  if (verpassteAnmeldung(zeile, heute) !== null) return false
   return imVorschlagsfenster(zeile.anker_am, heute, vorschlagTage)
+}
+
+/**
+ * Eine verpasste Anmeldefrist macht den Hinweis unbrauchbar — dann sagt die
+ * Zeile, warum sie kein Vorschlag ist.
+ *
+ * Die Redaktion am 21. September 2026: ist die Frist vorbei UND die Anmeldung
+ * zwingend, kann niemand mehr hin, und der Anlass gehoert unter „Weitere mit
+ * Anker". Bisher war eine verstrichene Frist bloss eine Tatsache auf der
+ * Zeile — richtig fuer einen Anlass, zu dem man auch spontan gehen kann,
+ * falsch fuer einen Kurs.
+ *
+ * `zugang: 'offen'` ist darum die Ausnahme: wo man an einem beliebigen Tag
+ * hingehen kann, ist die Anmeldung ein Angebot und kein Tor. Bei `programm`
+ * und bei `unbekannt` wird herabgestuft — ein `frist_am` entsteht nur aus
+ * einem Satz, der „Anmeldung … bis" sagt, und geworfen wird nichts: die Zeile
+ * steht weiter auf dem Tisch, einen Klick entfernt, mit ihrem Grund.
+ */
+export function verpassteAnmeldung(
+  zeile: { frist_am?: string | null; zugang?: Zugang },
+  heute: string
+): string | null {
+  const frist = zeile.frist_am ?? null
+  if (frist === null || frist >= heute) return null
+  if (zeile.zugang === 'offen') return null
+  return `Anmeldefrist am ${datumDeutsch(frist)} abgelaufen — ohne Anmeldung kein Besuch.`
 }
 
 export interface RoutineFuerDauerangebot {

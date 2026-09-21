@@ -600,7 +600,15 @@ them is wrong even if it works.
    the row says „Traktanden nicht verlinkt"). An **Anmeldefrist** is an anchor
    and it comes BEFORE the date: a Bastelnachmittag whose registration closes
    on Monday belongs on the desk the Friday before, the same arithmetic
-   `planeErinnerungen` does on the Entsorgung desk. The **Vorschlagsfenster**
+   `planeErinnerungen` does on the Entsorgung desk. **And once that deadline
+   has passed, the tip is no longer usable** (`verpassteAnmeldung`, the
+   newsroom's refinement of 21 September 2026): nobody can register any more,
+   so the row stops being a proposal and moves to „Weitere mit Anker" with its
+   reason on it. `zugang: 'offen'` is the exception — where one can turn up on
+   any day, a registration is an offer and not a gate. At `programm` and at
+   `unbekannt` it demotes, because a `frist_am` only ever comes from a
+   sentence that says „Anmeldung … bis", and nothing is thrown away: the row
+   stays a click away and the run counts it (`fristVerpasst`). The **Vorschlagsfenster**
    is ten days (`VORSCHLAGSFENSTER_TAGE`), measured: less and a Tuesday
    evening event reaches the desk on Monday at one.
    **The first run over all ten calendars (20 September 2026) read nine of
@@ -650,7 +658,17 @@ them is wrong even if it works.
    between „it starts" and „it ends", not between kinds of event.
    The item's identity inside a calendar is its series key; the detail page is
    read ONCE per Anlass out of the host's shared budget, plus up to three
-   same-site PDFs and, for a Gremium, the sessions page. A place outside the
+   same-site PDFs and, for a Gremium, the sessions page. **A row can be put
+   forward before its page was ever read**, and that cost an article on 21
+   September 2026: the run hands out its detail budget BEFORE it turns
+   routines into Dauerangebote, and „Jetzt vorschlagen" has no run in between
+   at all — so „MidnightSports Riehen" answered a click with „Der Beschrieb
+   des Anlasses liegt nicht vor". The writing endpoint therefore reads the
+   detail page ON DEMAND when the row carries no text, with the same reader
+   and the same manners as the run and WITHOUT recomputing the anchor
+   (`nachgelesenePayload`) — the editor has just decided on that anchor and
+   wants her article, not a new classification. Only if that read brings
+   nothing either is the refusal the honest answer. A place outside the
    municipality is DECLARED (`ort_ausserhalb`), never a silent exclusion —
    Binningen's Suppentag is in Bottmingen and is still Binningen's village
    life. The Sichtung is ONE Sonnet call per municipality and run, over the
