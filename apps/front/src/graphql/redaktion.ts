@@ -123,6 +123,18 @@ export interface MeldungFelder {
    * nothing to report.
    */
   revision_hinweis: string | null
+  /**
+   * Wann die Meldung fuer die Leserin zaehlt — was der Dorfkoenig als
+   * `termin` bekommt: ideal, ende, auftritte (JJJJ-MM-TT). Von der Redaktion
+   * aenderbar; nie Teil des Texts.
+   */
+  termin: { ideal: string; ende: string; auftritte: string[] } | null
+  /** Der Termin, wie der Lauf ihn vorschlug — unveraendert. */
+  termin_vorschlag: { ideal: string; ende: string; auftritte: string[] } | null
+  /** Wichtiger Anlass: frueh ankuendigen, mehrere Auftritte. Das Urteil der Redaktion. */
+  wichtig: boolean | null
+  /** Ob der Lauf den Anlass als wichtig einstufte. */
+  wichtig_vorschlag: boolean | null
   gemeinde: { id: string; name: string; bezirk: string } | null
 }
 
@@ -192,6 +204,10 @@ export const MELDUNGEN_QUERY = gql`
       publiziert_am
       publiziert_durch
       revision_hinweis
+      termin
+      termin_vorschlag
+      wichtig
+      wichtig_vorschlag
       gemeinde {
         id
         name
@@ -229,6 +245,18 @@ export interface AlleMeldungFelder {
    * nothing to report.
    */
   revision_hinweis: string | null
+  /**
+   * Wann die Meldung fuer die Leserin zaehlt — was der Dorfkoenig als
+   * `termin` bekommt: ideal, ende, auftritte (JJJJ-MM-TT). Von der Redaktion
+   * aenderbar; nie Teil des Texts.
+   */
+  termin: { ideal: string; ende: string; auftritte: string[] } | null
+  /** Der Termin, wie der Lauf ihn vorschlug — unveraendert. */
+  termin_vorschlag: { ideal: string; ende: string; auftritte: string[] } | null
+  /** Wichtiger Anlass: frueh ankuendigen, mehrere Auftritte. Das Urteil der Redaktion. */
+  wichtig: boolean | null
+  /** Ob der Lauf den Anlass als wichtig einstufte. */
+  wichtig_vorschlag: boolean | null
   /** Only set on waste-collection reminders: the newsletter day they belong to. */
   erscheint_am: string | null
   date_created: string | null
@@ -278,6 +306,10 @@ export const ALLE_MELDUNGEN_QUERY = gql`
       publiziert_am
       publiziert_durch
       revision_hinweis
+      termin
+      termin_vorschlag
+      wichtig
+      wichtig_vorschlag
       erscheint_am
       date_created
       gemeinde {

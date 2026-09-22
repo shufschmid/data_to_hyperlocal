@@ -23,7 +23,7 @@ export const ERLAUBT: RegExp[] = [
   /^ankuendigungen$/i,
   /^datensaetze\/[0-9a-f-]{36}\/lauf$/i,
   /^laeufe\/[0-9a-f-]{36}\/(chat|publizieren|pruefung|verwerfen)$/i,
-  /^meldungen\/[0-9a-f-]{36}\/(chat|publizieren|pruefung|verwerfen|freigeben)$/i,
+  /^meldungen\/[0-9a-f-]{36}\/(chat|publizieren|pruefung|verwerfen|freigeben|termin)$/i,
   /^entsorgung\/kalender$/i,
   /^entsorgung\/kalender\/[0-9a-f-]{36}\/(extrahieren|pruefen|meldungen|freigeben)$/i,
   /^quellen\/lauf$/i,

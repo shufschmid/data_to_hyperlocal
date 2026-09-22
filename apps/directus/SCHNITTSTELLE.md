@@ -93,6 +93,7 @@ Abnehmer, dass er zu weit ist.
 | `quelle_name`   | string \| null | Name der Direktquelle                                                                      |
 | `quelle_url`    | string \| null | Adresse der Direktquelle, oder `null`                                                      |
 | `sport`         | object \| null | nur bei `rubrik: "sport"`: `sportart, wettbewerb, heim, gast, tore_heim, tore_gast, datum` |
+| `termin`        | object \| null | wann der Beitrag zählt und an welchen Tagen er ins Briefing soll — siehe unten (1.4.0)     |
 | `medium`        | string         | die Kennung des Hauses, das spricht (`bajour`); ohne Konfiguration `unbenannt`             |
 | `pruefsiegel`   | object         | was geprüft wurde, wer unterschrieb, woher die Fakten kommen — siehe unten                 |
 
@@ -106,6 +107,57 @@ diesen einen Tag; die Adresse steht ohnehin in `quelle_url`.
 **Nicht geliefert** wird `datengrundlage` — das Arbeitsmaterial der Redaktion
 (bei einem Statistik-Beitrag bis zu sechzig Rohzeilen des Datensatzes). Ebenso
 nichts Unfertiges: der Filter ist fest auf `status = publiziert` verdrahtet.
+
+### Termin und Auftritte (seit 1.4.0)
+
+Ein optionales Objekt je Beitrag, nach dem Vorschlag des Dorfkönigs vom 21. September 2026. Fehlt es oder ist es `null`, verhält sich alles wie bisher:
+der Dorfkönig liest das Datum aus dem Text und bringt den Beitrag einmal, am
+Werktag vor dem Termin.
+
+```json
+"termin": {
+  "ideal": "2026-10-17",
+  "ende": "2026-10-17",
+  "auftritte": ["2026-09-25", "2026-10-17"]
+}
+```
+
+| Feld        | Pflicht           | Typ             | Bedeutung                                                                                                                                                                       |
+| ----------- | ----------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ideal`     | ja, wenn `termin` | `JJJJ-MM-TT`    | der ideale Tag: der Anmeldeschluss, der erste Tag der Durchführung, der Tag der Sperrung                                                                                        |
+| `ende`      | ja                | `JJJJ-MM-TT`    | der letzte Tag, an dem der Beitrag noch Sinn hat; nie vor `ideal`. Wir liefern ihn immer — ohne eigenes Ende ist er gleich `ideal`                                              |
+| `auftritte` | nein              | Liste von Tagen | die Lesetage im Briefing, höchstens fünf, jeder auf oder vor `ende`, sortiert, ohne Doppelte. **Fehlt die Liste, gilt die Standardregel** (ein Auftritt am Werktag vor `ideal`) |
+
+Alle Tage sind Kalendertage in der Schweiz, ohne Uhrzeit und ohne Zone.
+
+**Was die Redaktion damit sagt.** Der Termin wird für Beiträge der Rubriken
+`gemeinde` und `veranstaltung` vorgeschlagen und von der Redaktion gesetzt; er
+erscheint nie im Text. Bei einem Anlass kommt `ideal` aus dessen eigenen
+Angaben (Anmeldeschluss vor Datum, sonst der Tag, um den es geht), bei einer
+Gemeindemitteilung aus dem Wortlaut („gesperrt ab 2. November"), und ein Tag,
+der nicht im Wortlaut steht, wird nicht geliefert. **Ein wichtiger Anlass** —
+Dorffest, Gemeindeversammlung, Strassensperrung, Unterbruch der Versorgung —
+bekommt mehrere Auftritte: der erste ist **der erste Lesetag nach der
+Publikation** (Montag bis Freitag, kein Basler Feiertag), dann der Termin
+selbst; eine offen zugängliche Ausstellung, die eine Woche oder länger läuft,
+zusätzlich ihren letzten Tag. Der erste Lesetag wird bei der Auslieferung aus
+`publiziert_am` gerechnet, nicht beim Schreiben — ein Beitrag liegt oft Tage
+auf dem Tisch, bevor er hinausgeht. Ein Anlass, der nicht als wichtig gilt,
+bekommt keine Liste, und der Dorfkönig bringt ihn wie bisher am Werktag davor.
+
+**Was sich ändern kann.** Die Redaktion ändert Termin, Ende, Auftritte und die
+Einstufung als wichtig auch nach der Publikation. `GET /api/v1/artikel/{id}`
+liefert immer den aktuellen Stand; der tägliche Abgleich des Dorfkönigs ist
+damit gedeckt. Ein zurückgezogener Beitrag erscheint weiter unter
+`/korrekturen` und verliert damit seine Auftritte.
+
+**Antworten auf die drei Fragen des Dorfkönigs.** Erstens: wir nennen die
+Lesetage selbst, kein Kürzel — explizite Tage sind ehrlicher, und die
+Redaktion sieht auf der Karte genau, was hinausgeht. Zweitens: `?seit=`
+filtert auf `publiziert_am`, die Publikation, nicht auf die letzte Änderung.
+Drittens: jede Zeile der Schnittstelle ist ein Beitrag für genau eine
+Gemeinde; ein Thema, das mehrere Gemeinden betrifft, sind mehrere Beiträge,
+und jeder trägt seinen eigenen `termin`.
 
 ### Das Prüfsiegel
 
@@ -380,4 +432,9 @@ Felder und neue Wege, kein Bruch — wer sie nicht liest, merkt nichts.
 Am 18. September 2026 geprüft und unverändert: die Veranstaltungen der
 Gemeinden kamen als Rubrik `gemeinde` durch dieselbe Tür. Version 1.3.0 am 20. September 2026: Rubrik `veranstaltung` mit dem Kalender als
 `quelle_name`, ein neunter Tisch `veranstaltung` in der Bilanz — ein neuer
-Wert je Enum, keine neue Form._
+Wert je Enum, keine neue Form. Version 1.4.0 am 22. September 2026: das Feld
+`termin` je Beitrag (ideal, ende, auftritte), nach dem Vorschlag des Dorfkönigs
+vom 21. September — optional, rückwärtskompatibel; wer es nicht liest, merkt
+nichts. Die Versionsnummer in `/v1/beschreibung` und `/v1/openapi.json` sprang
+dabei von 1.2.0 auf 1.4.0: 1.3.0 war im Vertrag dokumentiert, aber im Code nie
+gestempelt._

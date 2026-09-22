@@ -33,6 +33,8 @@ export interface AnlassRohzeile {
   traktanden: string[] | null
   traktanden_url: string | null
   anker: Anker | null
+  /** The day the anchor points at — the ideal day of a termin, where there is no deadline. */
+  anker_am: string | null
   zugang: Zugang
   url: string
   url_kanonisch: string | null
@@ -66,6 +68,7 @@ export const ANLASS_FELDER = [
   'traktanden',
   'traktanden_url',
   'anker',
+  'anker_am',
   'zugang',
   'url',
   'url_kanonisch',

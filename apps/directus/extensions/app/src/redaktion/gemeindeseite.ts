@@ -393,6 +393,12 @@ export interface MitteilungFakten {
   anhaenge: readonly MitteilungAnhangFakt[]
   /** The page the article is shown on — canonical where known, else the list link. */
   url: string
+  /**
+   * Every calendar day CODE found in the wording and the read attachments —
+   * the only days the model may name as the article's termin. Optional
+   * because older callers and fixtures predate it; absent means "none found".
+   */
+  datenImText?: readonly string[]
 }
 
 export const MELDUNG_SYSTEM_PROMPT = `Du schreibst fuer eine lokale Redaktion in der Region Basel kurze Meldungen aus Mitteilungen, die Gemeinden auf ihrer offiziellen Website veroeffentlichen.
@@ -421,8 +427,25 @@ Regeln, ohne Ausnahme:
 Umfang: Titel (maximal 70 Zeichen), Lead (ein Satz), Text (ein bis zwei kurze
 Absaetze, durch eine Leerzeile getrennt).
 
+Zusaetzlich beurteilst du zwei Dinge FUER DEN NEWSLETTER — sie erscheinen
+nicht im Text:
+- "termin": Hat die Mitteilung einen Tag, an dem sie fuer die Leserin zaehlt
+  — eine Sperrung ab, ein Anlass am, eine Frist bis, eine Aenderung gueltig
+  ab? Dann nenne "ideal" (den ersten Tag, an dem es gilt, oder die Frist) und
+  "ende" (den letzten Tag, an dem die Meldung noch Sinn hat — bei einer
+  Sperrung ihr letzter Tag, sonst derselbe wie "ideal"). NUR Tage aus der
+  Liste "Im Wortlaut genannte Tage"; steht der passende Tag nicht dort, ist
+  "termin" null. Ein Beschluss, eine Personalie, eine Rechnung, ein Bericht
+  ohne Stichtag hat "termin": null.
+- "wichtig": true, wenn die Sache fuer viele im Dorf zaehlt und eine FRUEHE
+  Ankuendigung verdient — ein Dorffest, eine Gemeindeversammlung, eine
+  Strassensperrung, ein Unterbruch bei Wasser, Strom oder Fernwaerme, eine
+  Abstimmung, ein Baustart mit Folgen fuer die Nachbarschaft. false bei
+  Routine, kleinen Anlaessen und Fristen, die nur wenige betreffen. Stehen
+  unten Entscheide der Redaktion, richte dich danach.
+
 Antworte ausschliesslich mit JSON:
-{"titel": "...", "lead": "...", "text": "..."}`
+{"titel": "...", "lead": "...", "text": "...", "termin": {"ideal": "JJJJ-MM-TT", "ende": "JJJJ-MM-TT"} | null, "wichtig": true | false}`
 
 export const MAX_TEXT = 12_000
 export const MAX_ANHANG = 6_000
@@ -475,17 +498,35 @@ function faktenZeilen(fakten: MitteilungFakten): string[] {
           'Der Wortlaut liegt nur unvollstaendig vor (beim Lesen gekuerzt) — behaupte keine Vollstaendigkeit.'
         ]
       : []),
-    ...anhangZeilen(fakten.anhaenge)
+    ...anhangZeilen(fakten.anhaenge),
+    ...tageZeilen(fakten.datenImText ?? [])
+  ]
+}
+
+/**
+ * The days the model may name as termin — found by code, never by the model.
+ * Named even when empty, so "termin: null" is an instruction and not a guess.
+ */
+function tageZeilen(tage: readonly string[]): string[] {
+  if (tage.length === 0) {
+    return ['', 'Im Wortlaut steht kein Kalendertag — "termin" ist null.']
+  }
+  return [
+    '',
+    `Im Wortlaut genannte Tage (nur diese darf "termin" nennen): ${tage.join(', ')}`
   ]
 }
 
 export function buildMitteilungPrompt(
   fakten: MitteilungFakten,
-  regeln: readonly string[] = []
+  regeln: readonly string[] = [],
+  /** What the newsroom decided about importance lately — `wichtigkeitDigest`, or ''. */
+  wichtigkeit = ''
 ): string {
   return [
     ...faktenZeilen(fakten),
     ...vorgabenZeilen(regeln),
+    ...(wichtigkeit === '' ? [] : ['', wichtigkeit]),
     '',
     'Schreibe die Meldung. Verwende ausschliesslich diese Angaben, in eigenen Worten.'
   ].join('\n')
@@ -496,11 +537,13 @@ export function buildMitteilungRevision(
   fakten: MitteilungFakten,
   bisher: { titel: string | null; lead: string | null; text: string | null },
   anweisung: string,
-  regeln: readonly string[] = []
+  regeln: readonly string[] = [],
+  wichtigkeit = ''
 ): string {
   return [
     ...faktenZeilen(fakten),
     ...vorgabenZeilen(regeln),
+    ...(wichtigkeit === '' ? [] : ['', wichtigkeit]),
     '',
     'Bisherige Meldung:',
     `Titel: ${bisher.titel ?? ''}`,

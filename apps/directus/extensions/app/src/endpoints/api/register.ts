@@ -17,7 +17,7 @@ export const KONVENTION = 'wepublish-rest/1'
  * crosses the TypeScript `rootDir` and depends on how the extension bundler
  * inlines JSON. One string is not worth that risk.
  */
-export const VERSION = '1.2.0'
+export const VERSION = '1.4.0'
 
 /** Everything this API serves is public — see R4a and `BLOG_API_OFFEN`. */
 export const MERKMAL = 'keines'

@@ -14,8 +14,16 @@
 // Lernsignal dieses Tischs; ein Artikel, den der Lauf schreibt, ist keiner.
 // Darum steht hier kein `lerne(…)` — und darum bleiben Ablehnen und
 // Weiterreichen auf der Zeile stehen, auch wenn der Artikel schon dasteht.
+//
+// **Seit dem 22. September 2026 traegt jede Meldung ihren TERMIN** — wann sie
+// fuer die Leserin zaehlt, und ob der Anlass wichtig genug ist, frueh
+// angekuendigt zu werden (`redaktion/termin.ts`). Der Schreiber nennt beides
+// in derselben Antwort; die Tage darf er nur aus denen waehlen, die der Code
+// im Wortlaut fand, und der Code bindet ihn daran.
 
 import { completeJson, ClaudeFormatError } from '../shared/claude'
+import { alleDaten, heuteAus } from '../shared/gemeindeseite/datum'
+import { heuteIso } from './feiertage'
 import {
   attributionsWarnung,
   buildMitteilungPrompt,
@@ -30,6 +38,13 @@ import {
   linkWarnungen,
   type MitteilungFakten
 } from './gemeindeseite'
+import {
+  planeMitteilungTermin,
+  terminVorschlagAus,
+  wichtigAus,
+  type Termin
+} from './termin'
+import { ladeWichtigkeitSignale, wichtigkeitDigest } from './wichtigkeit'
 
 /** Wie viele Meldungen ein Lauf schreibt. Ein Modellaufruf je Stueck. */
 export const GEMEINDE_MELDUNGEN_JE_LAUF = 20
@@ -78,7 +93,31 @@ export const MITTEILUNG_FELDER = [
   'gemeinde.name'
 ]
 
-export function mitteilungFakten(zeile: MitteilungRohzeile): MitteilungFakten {
+/**
+ * The facts the writer works from. `heute` anchors the year of dates the
+ * wording prints without one („ab 2. November") — today, unless a caller
+ * replays a day.
+ */
+export function mitteilungFakten(
+  zeile: MitteilungRohzeile,
+  heute: string = heuteIso()
+): MitteilungFakten {
+  const anhaenge = (zeile.anhaenge ?? []).map((a) => ({
+    bezeichnung: a.bezeichnung,
+    url: a.url,
+    typ: a.typ,
+    gelesen: a.gelesen,
+    text: a.text ?? null,
+    grund: a.grund ?? null
+  }))
+  // Every calendar day in the wording and the read attachments — the only
+  // days the model may name as termin.
+  const material = [
+    zeile.titel,
+    zeile.teaser ?? '',
+    zeile.text ?? '',
+    ...anhaenge.map((a) => (a.gelesen ? (a.text ?? '') : ''))
+  ].join('\n')
   return {
     gemeinde: zeile.gemeinde.name,
     titel: zeile.titel,
@@ -88,16 +127,10 @@ export function mitteilungFakten(zeile: MitteilungRohzeile): MitteilungFakten {
     kategorie: zeile.kategorie,
     text: zeile.text ?? '',
     textAbgeschnitten: zeile.text_abgeschnitten,
-    anhaenge: (zeile.anhaenge ?? []).map((a) => ({
-      bezeichnung: a.bezeichnung,
-      url: a.url,
-      typ: a.typ,
-      gelesen: a.gelesen,
-      text: a.text ?? null,
-      grund: a.grund ?? null
-    })),
+    anhaenge,
     // The page the article is shown on — canonical where known.
-    url: zeile.url_kanonisch ?? zeile.url
+    url: zeile.url_kanonisch ?? zeile.url,
+    datenImText: alleDaten(material, heuteAus(heute))
   }
 }
 
@@ -142,40 +175,56 @@ async function schreibeEinmalMitNachfassen(prompt: string): Promise<unknown> {
   }
 }
 
+export interface GeschriebeneMitteilung {
+  bericht: { titel: string; lead: string; text: string }
+  warnungen: string[]
+  /** When the article counts for the reader — null where the wording names no such day. */
+  termin: Termin | null
+  /** Whether the model judged this important enough for an early announcement. */
+  wichtig: boolean
+}
+
 /**
  * The article, with the checks that make its rules real: attribution to
  * the municipality (retried once), digits against the handed material,
  * absolute dates, no self-written links, and the verbatim-overlap check
  * against the municipality's own text — a Meldung in the municipality's
  * words is its press release, not our reporting.
+ *
+ * The termin rides in the same answer and is bound to the material the same
+ * way: a day the code did not find in the wording is dropped, with a warning.
  */
 export async function mitteilungMitChecks(
   fakten: MitteilungFakten,
   prompt: string
-): Promise<{
-  bericht: { titel: string; lead: string; text: string }
-  warnungen: string[]
-}> {
-  let bericht = parseMitteilung(await schreibeEinmalMitNachfassen(prompt))
+): Promise<GeschriebeneMitteilung> {
+  let antwort = await schreibeEinmalMitNachfassen(prompt)
+  let bericht = parseMitteilung(antwort)
 
   let attribution = attributionsWarnung(
     `${bericht.lead} ${bericht.text}`,
     fakten
   )
   if (attribution !== null) {
-    bericht = parseMitteilung(
-      await completeJson<unknown>({
-        system: MELDUNG_SYSTEM_PROMPT,
-        prompt: buildMitteilungRevision(
-          fakten,
-          bericht,
-          `Nenne die Quelle im Fliesstext: "wie die Gemeinde ${fakten.gemeinde} mitteilt".`
-        ),
-        maxTokens: 1500
-      })
-    )
+    antwort = await completeJson<unknown>({
+      system: MELDUNG_SYSTEM_PROMPT,
+      prompt: buildMitteilungRevision(
+        fakten,
+        bericht,
+        `Nenne die Quelle im Fliesstext: "wie die Gemeinde ${fakten.gemeinde} mitteilt".`
+      ),
+      maxTokens: 1500
+    })
+    bericht = parseMitteilung(antwort)
     attribution = attributionsWarnung(`${bericht.lead} ${bericht.text}`, fakten)
   }
+
+  const wichtig = wichtigAus(antwort)
+  const geplant = planeMitteilungTermin(
+    terminVorschlagAus((antwort as Record<string, unknown>)['termin']),
+    fakten.datenImText ?? [],
+    wichtig
+  )
 
   const alles = `${bericht.titel} ${bericht.lead} ${bericht.text}`
   const warnungen = [
@@ -186,10 +235,11 @@ export async function mitteilungMitChecks(
       `${bericht.lead} ${bericht.text}`,
       volltextVon(fakten)
     ).map((w) => w.replace('aus dem Blatt', 'aus der Mitteilung')),
-    ...(attribution === null ? [] : [attribution])
+    ...(attribution === null ? [] : [attribution]),
+    ...(geplant.warnung === null ? [] : [geplant.warnung])
   ]
 
-  return { bericht, warnungen }
+  return { bericht, warnungen, termin: geplant.termin, wichtig }
 }
 
 /** Was der Artikel dem Dorfkoenig ohne Join mitgibt. */
@@ -232,6 +282,8 @@ export interface GemeindeMeldungKontext {
   mitteilungen: ItemsServiceLike
   meldungen: ItemsServiceLike
   regeln: readonly string[]
+  /** `wichtigkeitDigest` of the desk — what the newsroom decided lately; '' when nothing yet. */
+  wichtigkeit?: string
   logger: { info: (text: string) => void; warn: (...args: unknown[]) => void }
 }
 
@@ -239,14 +291,14 @@ export interface GemeindeMeldungKontext {
 export async function schreibeGemeindeMeldung(
   kontext: Pick<
     GemeindeMeldungKontext,
-    'mitteilungen' | 'meldungen' | 'regeln'
+    'mitteilungen' | 'meldungen' | 'regeln' | 'wichtigkeit'
   >,
   zeile: MitteilungRohzeile
 ): Promise<{ meldung: string; warnungen: string[] }> {
   const fakten = mitteilungFakten(zeile)
-  const { bericht, warnungen } = await mitteilungMitChecks(
+  const { bericht, warnungen, termin, wichtig } = await mitteilungMitChecks(
     fakten,
-    buildMitteilungPrompt(fakten, kontext.regeln)
+    buildMitteilungPrompt(fakten, kontext.regeln, kontext.wichtigkeit ?? '')
   )
 
   const meldungId = (await kontext.meldungen.createOne({
@@ -258,6 +310,12 @@ export async function schreibeGemeindeMeldung(
     status: 'entwurf',
     verarbeitung: 'idle',
     zeit_warnungen: warnungen.length > 0 ? warnungen : null,
+    // The proposal is kept twice: once to edit, once to remember. The
+    // newsroom's deviation from the second is the learning signal.
+    termin,
+    termin_vorschlag: termin,
+    wichtig,
+    wichtig_vorschlag: wichtig,
     datengrundlage: datengrundlageVon(zeile, fakten)
   })) as string
 
@@ -318,6 +376,15 @@ export async function schreibeGemeindeMeldungen(
   const offen = vorschlaege.filter((z) => !schonBeschrieben.has(z.id))
   const dran = offen.slice(0, hoechstens)
   ergebnis.wartend = offen.length - dran.length
+  if (dran.length === 0) return ergebnis
+
+  // Loaded once per run, not per article: what the newsroom decided about
+  // importance is the same for every article of the desk.
+  const wichtigkeit =
+    kontext.wichtigkeit ??
+    wichtigkeitDigest(
+      await ladeWichtigkeitSignale(kontext.meldungen, 'gemeindemitteilung')
+    )
 
   for (const zeile of dran) {
     if (!hatMaterial(mitteilungFakten(zeile))) {
@@ -325,7 +392,7 @@ export async function schreibeGemeindeMeldungen(
       continue
     }
     try {
-      await schreibeGemeindeMeldung(kontext, zeile)
+      await schreibeGemeindeMeldung({ ...kontext, wichtigkeit }, zeile)
       ergebnis.geschrieben += 1
     } catch (fehler) {
       kontext.logger.warn(

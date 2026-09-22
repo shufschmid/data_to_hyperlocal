@@ -45,6 +45,10 @@ function meldung(ueber: Partial<MeldungFelder> = {}): MeldungFelder {
     fehler: null,
     publiziert_am: null,
     publiziert_durch: null,
+    termin: null,
+    termin_vorschlag: null,
+    wichtig: null,
+    wichtig_vorschlag: null,
     revision_hinweis: null,
     gemeinde: { id: 'g1', name: 'Aesch', bezirk: 'Arlesheim' },
     ...ueber

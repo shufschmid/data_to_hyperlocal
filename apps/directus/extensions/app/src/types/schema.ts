@@ -299,6 +299,18 @@ export interface Meldung {
    * Unpublished never carries a Perle.
    */
   perle: boolean | null
+  /**
+   * When the article counts for the reader, for the Dorfkoenig's briefing:
+   * `{ideal, ende, auftritte}` as ISO days (SCHNITTSTELLE.md, „Termin und
+   * Auftritte"). Editable by the newsroom; never part of the text.
+   */
+  termin: { ideal: string; ende: string; auftritte: string[] } | null
+  /** The termin as the run proposed it — kept unchanged so a deviation stays measurable. */
+  termin_vorschlag: { ideal: string; ende: string; auftritte: string[] } | null
+  /** The newsroom's verdict: an important event, announced early and brought more than once. */
+  wichtig: boolean | null
+  /** The run's verdict on the same question — what the learning measures the newsroom against. */
+  wichtig_vorschlag: boolean | null
   /** The optional reason an editor gave when discarding — a lesson for the origin desk. */
   verwerfungsgrund: string | null
   gemeinde: string

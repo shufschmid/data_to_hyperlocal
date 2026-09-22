@@ -18,7 +18,9 @@ const { completeJson, antwort, FormatFehler } = vi.hoisted(() => {
   const antwort = {
     titel: 'Aesch saniert den Kindergarten',
     lead: 'Wie die Gemeinde Aesch mitteilt, wird saniert.',
-    text: 'Der Gemeinderat hat die Sanierung beschlossen.'
+    text: 'Der Gemeinderat hat die Sanierung beschlossen.',
+    termin: { ideal: '2026-11-02', ende: '2026-11-13' },
+    wichtig: true
   }
   return { completeJson: vi.fn(async () => antwort), antwort, FormatFehler }
 })
@@ -40,7 +42,7 @@ const zeile = (
   publiziert_am: '2026-09-20',
   veranstaltung_am: null,
   kategorie: 'politik_info',
-  text: 'Der Gemeinderat hat die Sanierung des Kindergartens beschlossen.',
+  text: 'Der Gemeinderat hat die Sanierung des Kindergartens beschlossen. Die Schulstrasse ist vom 2. November 2026 bis 13. November 2026 gesperrt.',
   text_abgeschnitten: false,
   anhaenge: null,
   entscheid: 'offen',
@@ -240,5 +242,45 @@ describe('schreibeGemeindeMeldungen', () => {
     const ergebnis = await schreibeGemeindeMeldungen(d, 10)
     expect(ergebnis.geschrieben).toBe(0)
     expect(completeJson).toHaveBeenCalledTimes(1)
+  })
+
+  // Seit dem 22. September 2026 traegt jede Meldung ihren Termin — und der
+  // Vorschlag bleibt neben dem, was die Redaktion daraus macht.
+  it('legt Termin und Wichtigkeit zweimal ab: zum Aendern und zum Erinnern', async () => {
+    const d = dienste([zeile()])
+    completeJson.mockReset()
+    completeJson.mockResolvedValue(antwort)
+
+    await schreibeGemeindeMeldungen(d, 10)
+    const termin = {
+      ideal: '2026-11-02',
+      ende: '2026-11-13',
+      auftritte: ['2026-11-02']
+    }
+    expect(d.erstellt[0]).toMatchObject({
+      termin,
+      termin_vorschlag: termin,
+      wichtig: true,
+      wichtig_vorschlag: true
+    })
+  })
+
+  // Das Modell darf nur Tage nennen, die der Code im Wortlaut fand.
+  it('verwirft einen Termin, dessen Tag nicht im Wortlaut steht — mit Warnung', async () => {
+    const d = dienste([zeile()])
+    completeJson.mockReset()
+    completeJson.mockResolvedValue({
+      ...antwort,
+      termin: { ideal: '2026-11-03', ende: null }
+    })
+
+    await schreibeGemeindeMeldungen(d, 10)
+    expect(d.erstellt[0]).toMatchObject({
+      termin: null,
+      termin_vorschlag: null
+    })
+    expect(String(d.erstellt[0]?.['zeit_warnungen'])).toContain(
+      'Termin nicht uebernommen'
+    )
   })
 })

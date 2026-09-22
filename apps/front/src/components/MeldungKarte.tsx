@@ -19,6 +19,8 @@ import { pruefsiegelText, statusFarbe, statusText, warnungen } from '@/lib/redak
 import { hatRevision } from '@/lib/revision'
 import { langesDatum } from '@/lib/entsorgung'
 import { Artikeltext } from './Artikeltext'
+import { TerminZeile } from './TerminZeile'
+import type { TerminEingabe } from '@/lib/termin'
 
 // One article. Presentational: props in, callbacks out, so it can be tested
 // without a network or a router.
@@ -56,6 +58,12 @@ export interface MeldungKarteProps {
    * die Karte rueckt enger zusammen. Chat und Aktionen bleiben vollstaendig.
    */
   kompakt?: boolean
+  /**
+   * Der Termin der Meldung — wann sie fuer die Leserin zaehlt, und ob der
+   * Anlass frueh angekuendigt wird. Nur die Tische reichen ihn durch, deren
+   * Lauf einen vorschlaegt; ohne Handler zeigt die Karte keine Zeile.
+   */
+  onTermin?: (id: string, eingabe: TerminEingabe) => Promise<void>
 }
 
 export function MeldungKarte({
@@ -65,7 +73,8 @@ export function MeldungKarte({
   laeuft = false,
   erscheintAm = null,
   sofortPublizierbar = false,
-  kompakt = false
+  kompakt = false,
+  onTermin
 }: MeldungKarteProps) {
   const [anweisung, setAnweisung] = useState('')
   const [verwerfen, setVerwerfen] = useState(false)
@@ -191,6 +200,19 @@ export function MeldungKarte({
             )}
             <Artikeltext text={meldung.text} abstand={0} />
           </>
+        )}
+
+        {/* Der Termin steht ueber den Aktionen: wer publiziert, sieht vorher,
+            an welchen Tagen der Dorfkoenig die Meldung bringen wird. */}
+        {onTermin !== undefined && (
+          <TerminZeile
+            termin={meldung.termin}
+            terminVorschlag={meldung.termin_vorschlag}
+            wichtig={meldung.wichtig}
+            wichtigVorschlag={meldung.wichtig_vorschlag}
+            disabled={beschaeftigt}
+            onSpeichern={(eingabe) => onTermin(meldung.id, eingabe)}
+          />
         )}
 
         <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>

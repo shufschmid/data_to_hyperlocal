@@ -27,6 +27,7 @@ import type {
   VeranstaltungFelder,
   VeranstaltungsquelleFelder
 } from '@/graphql/redaktion'
+import type { TerminEingabe } from '@/lib/termin'
 import { MeldungKarte, type MeldungAktion, type MeldungAktionKoerper } from './MeldungKarte'
 import { Originaltext } from './Presseschau'
 import { anhangHinweis } from '@/lib/gemeindeseiten'
@@ -63,6 +64,8 @@ export interface VeranstaltungenProps {
   lauf?: GemeindeseitenLaufStatus | null
   onChat?: (id: string, anweisung: string) => Promise<void>
   onAktion?: (id: string, aktion: MeldungAktion, koerper?: MeldungAktionKoerper) => Promise<void>
+  /** Der Termin der Meldung fuer den Dorfkoenig — siehe `MeldungKarte`. */
+  onTermin?: (id: string, eingabe: TerminEingabe) => Promise<void>
   onLauf?: () => Promise<void> | void
   onUebernehmen?: (id: string) => Promise<void> | void
   onAblehnen?: (id: string, grund: string, kommentar: string | null) => Promise<void> | void
@@ -95,6 +98,7 @@ export function Veranstaltungen({
   lauf = null,
   onChat,
   onAktion,
+  onTermin,
   onLauf,
   onUebernehmen,
   onAblehnen,
@@ -275,6 +279,7 @@ export function Veranstaltungen({
               meldung={meldung}
               onChat={onChat ?? (async () => {})}
               onAktion={onAktion ?? (async () => {})}
+              onTermin={onTermin}
               laeuft={laeuft}
             />
           ) : (

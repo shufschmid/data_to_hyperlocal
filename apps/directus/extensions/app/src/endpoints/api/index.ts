@@ -33,6 +33,10 @@ const FELDER = [
   'publiziert_am',
   'erscheint_am',
   'perle',
+  // When the article counts, and whether it is announced early — the two
+  // fields `termin` is computed from on the way out.
+  'termin',
+  'wichtig',
   // The dataset behind a statistics run — that is where its source address is
   // derived from (`statistikUrl`). The article's own text often carries none.
   'lauf.datensatz.externe_id',

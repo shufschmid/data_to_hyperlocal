@@ -490,6 +490,24 @@ the template of its own news page. The events window runs FORWARD — a news ite
 is past, an event lies ahead — and the event date never shares a column with a
 publication date.
 
+### The termin of an article, and what „wichtig" teaches
+
+Since 22 September 2026 an article of the Gemeindeseiten and Veranstaltungen
+desks carries a `termin` (`{ideal, ende, auftritte}`) and a `wichtig` flag —
+what the Dorfkönig receives as SCHNITTSTELLE 1.4.0 (`redaktion/termin.ts`).
+The run proposes both in the same call that writes the article and keeps the
+proposal in `termin_vorschlag`/`wichtig_vorschlag`; the newsroom edits through
+`POST /redaktion/meldungen/:id/termin` (validated with `pruefeTermin`, the same
+check the Dorfkönig would apply; allowed on a published article, because the
+Dorfkönig re-reads `/api/v1/artikel/{id}` daily). The LEARNING here is the
+examples layer only: `redaktion/wichtigkeit.ts` loads the last twenty verdicts
+of the desk — deviations first, desk-wide because taste is the newsroom's —
+into the writer's user turn. It deliberately does NOT go through
+`lerneAusEntscheid`: that learner distils `stufe: sichtung` rules, and
+importance is a `text`-level judgement. A standing rule is typed by hand in
+„Gelerntes" with `stufe: text` until the flips are numerous enough to justify
+a learner of their own.
+
 ## Environment variables
 
 `.env` locally (from `.env.example`), the `directus` service in the root

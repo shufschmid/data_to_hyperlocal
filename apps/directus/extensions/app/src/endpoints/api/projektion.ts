@@ -17,6 +17,7 @@
 // material of the newsroom, not part of a published article.
 
 import { AMT, quellenlink, type Quellenlink } from '../../redaktion/quelle'
+import { apiTermin, terminAus, type ApiTermin } from '../../redaktion/termin'
 import { lesePortalKonfiguration } from '../../redaktion/portale'
 import { istZahlwarnung, istZeitwarnung } from '../../redaktion/warnungen'
 import { seitenLink } from '../../shared/wochenblatt/parse'
@@ -42,6 +43,15 @@ export interface Rohzeile {
   publiziert_am: string | null
   erscheint_am: string | null
   perle: boolean | null
+  /**
+   * When the article counts for the reader — `{ideal, ende, auftritte}` as
+   * the newsroom last set it. Read raw and validated on the way out
+   * (`terminAus`): a row an administrator edited by hand must not break the
+   * whole list. Absent on rows written before the field existed.
+   */
+  termin?: unknown
+  /** The newsroom's verdict: an important event, announced early. */
+  wichtig?: boolean | null
   /**
    * The statistics run, with the dataset behind it — that is where a statistics
    * article's address comes from. Read as a relation rather than fished out of
@@ -122,6 +132,12 @@ export interface ApiArtikel {
   quelle_name: string | null
   quelle_url: string | null
   sport: ApiSport | null
+  /**
+   * When the Dorfkoenig should bring the article — SCHNITTSTELLE.md, „Termin
+   * und Auftritte". Null where the newsroom set none, and then everything
+   * behaves as before.
+   */
+  termin: ApiTermin | null
   pruefsiegel: Pruefsiegel
 }
 
@@ -532,6 +548,14 @@ export function projektion(zeile: Rohzeile): ApiArtikel {
             datum: alsUtc(zeile.spiel.datum)
           }
         : null,
+    // The Lesetage are computed HERE, not stored: „sofort" is the first
+    // reading day after the publication, and that is only known once the
+    // article is out.
+    termin: apiTermin(
+      terminAus(zeile.termin ?? null),
+      zeile.wichtig ?? null,
+      zeile.publiziert_am
+    ),
     pruefsiegel: pruefsiegel(zeile)
   }
 }

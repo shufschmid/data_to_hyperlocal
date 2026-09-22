@@ -817,3 +817,50 @@ describe('eine Abstimmungsmeldung fuer den Dorfkoenig', () => {
     })
   })
 })
+
+// Termin und Auftritte — SCHNITTSTELLE 1.4.0, vom Dorfkoenig am 21. September
+// 2026 vorgeschlagen. Die Lesetage werden HIER gerechnet, nicht gespeichert:
+// „sofort" ist der erste Lesetag nach der Publikation.
+describe('termin', () => {
+  it('liefert null, wo die Redaktion keinen setzte — alles wie bisher', () => {
+    expect(projektion(zeile()).termin).toBeNull()
+    expect(projektion(zeile({ termin: null, wichtig: null })).termin).toBeNull()
+  })
+
+  it('liefert ideal und ende, und bei einem wichtigen Anlass die Lesetage mit „sofort"', () => {
+    const artikel = projektion(
+      zeile({
+        publiziert_am: '2026-09-24T10:00:00.000Z',
+        termin: {
+          ideal: '2026-10-17',
+          ende: '2026-10-17',
+          auftritte: ['2026-10-17']
+        },
+        wichtig: true
+      })
+    )
+    expect(artikel.termin).toEqual({
+      ideal: '2026-10-17',
+      ende: '2026-10-17',
+      auftritte: ['2026-09-25', '2026-10-17']
+    })
+  })
+
+  it('laesst ohne Auftritte die Liste weg, damit die Standardregel gilt', () => {
+    const artikel = projektion(
+      zeile({
+        termin: { ideal: '2026-10-09', ende: '2026-10-09', auftritte: [] },
+        wichtig: false
+      })
+    )
+    expect(artikel.termin).toEqual({ ideal: '2026-10-09', ende: '2026-10-09' })
+  })
+
+  // Eine von Hand verbogene Zeile darf nicht die ganze Liste kosten.
+  it('uebergeht einen unlesbaren Termin statt zu scheitern', () => {
+    expect(
+      projektion(zeile({ termin: { ideal: '17.10.2026' }, wichtig: true }))
+        .termin
+    ).toBeNull()
+  })
+})

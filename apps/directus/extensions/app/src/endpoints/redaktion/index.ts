@@ -157,6 +157,15 @@ import {
 } from '../../redaktion/gemeindemeldungen'
 import { verwirfEntwurfZu } from '../../redaktion/entwurf'
 import {
+  planeAnlassTermin,
+  pruefeTermin,
+  wichtigAus
+} from '../../redaktion/termin'
+import {
+  ladeWichtigkeitSignale,
+  wichtigkeitDigest
+} from '../../redaktion/wichtigkeit'
+import {
   ladeRegeln,
   lerneAusEntscheid,
   merkeWissenAus,
@@ -415,6 +424,11 @@ const UngueltigerAblehnungsgrund = createError(
 )
 const UngueltigeRegel = createError<{ reason: string }>(
   'INVALID_RULE',
+  ({ reason }) => reason,
+  400
+)
+const UngueltigerTermin = createError<{ reason: string }>(
+  'INVALID_TERMIN',
   ({ reason }) => reason,
   400
 )
@@ -2697,7 +2711,13 @@ export default defineEndpoint(
               {
                 mitteilungen,
                 meldungen: meldungenService,
-                regeln: await regelnFuer('gemeinde', 'text')
+                regeln: await regelnFuer('gemeinde', 'text'),
+                wichtigkeit: wichtigkeitDigest(
+                  await ladeWichtigkeitSignale(
+                    meldungenService,
+                    'gemeindemitteilung'
+                  )
+                )
               },
               zeile
             )
@@ -2872,30 +2892,30 @@ export default defineEndpoint(
     ): Promise<{
       bericht: { titel: string; lead: string; text: string }
       warnungen: string[]
+      /** Whether the model judged the Anlass important enough for an early announcement. */
+      wichtig: boolean
     }> {
-      let bericht = parseAnlassMeldung(
-        await completeJson<unknown>({
-          system: ANLASS_SYSTEM_PROMPT,
-          prompt,
-          maxTokens: 1500
-        })
-      )
+      let antwort = await completeJson<unknown>({
+        system: ANLASS_SYSTEM_PROMPT,
+        prompt,
+        maxTokens: 1500
+      })
+      let bericht = parseAnlassMeldung(antwort)
       let attribution = anlassAttributionsWarnung(
         `${bericht.lead} ${bericht.text}`,
         fakten
       )
       if (attribution !== null) {
-        bericht = parseAnlassMeldung(
-          await completeJson<unknown>({
-            system: ANLASS_SYSTEM_PROMPT,
-            prompt: buildAnlassRevision(
-              fakten,
-              bericht,
-              `Nenne die Quelle im Fliesstext: "laut dem ${fakten.quelleName}".`
-            ),
-            maxTokens: 1500
-          })
-        )
+        antwort = await completeJson<unknown>({
+          system: ANLASS_SYSTEM_PROMPT,
+          prompt: buildAnlassRevision(
+            fakten,
+            bericht,
+            `Nenne die Quelle im Fliesstext: "laut dem ${fakten.quelleName}".`
+          ),
+          maxTokens: 1500
+        })
+        bericht = parseAnlassMeldung(antwort)
         attribution = anlassAttributionsWarnung(
           `${bericht.lead} ${bericht.text}`,
           fakten
@@ -2912,7 +2932,7 @@ export default defineEndpoint(
         ).map((w) => w.replace('aus dem Blatt', 'aus dem Kalender')),
         ...(attribution === null ? [] : [attribution])
       ]
-      return { bericht, warnungen }
+      return { bericht, warnungen, wichtig: wichtigAus(antwort) }
     }
 
     async function ueberarbeiteAnlass(
@@ -3039,13 +3059,39 @@ export default defineEndpoint(
           const fakten = anlassFakten(zeile, heute)
           if (!hatAnlassMaterial(fakten)) throw new AnlassOhneText()
 
-          const { bericht, warnungen } = await anlassMitChecks(
+          const { bericht, warnungen, wichtig } = await anlassMitChecks(
             fakten,
-            buildAnlassPrompt(fakten, await regelnFuer('veranstaltung', 'text'))
+            buildAnlassPrompt(
+              fakten,
+              await regelnFuer('veranstaltung', 'text'),
+              wichtigkeitDigest(
+                await ladeWichtigkeitSignale(meldungenService, 'veranstaltung')
+              )
+            )
+          )
+          // The termin is CODE, from the row's own fields: the deadline before
+          // the day, the anchor's day, the last known day. Only the judgement
+          // whether it is important comes from the model — and that is what
+          // the newsroom's edit teaches (`redaktion/termin.ts`).
+          const termin = planeAnlassTermin(
+            {
+              anker: zeile.anker,
+              anker_am: zeile.anker_am,
+              frist_am: zeile.frist_am,
+              von: zeile.von,
+              bis: zeile.bis,
+              termine: zeile.termine,
+              zugang: zeile.zugang
+            },
+            wichtig
           )
           const meldungId = (await meldungenService.createOne({
             veranstaltung: id,
             gemeinde: zeile.gemeinde.id,
+            termin,
+            termin_vorschlag: termin,
+            wichtig,
+            wichtig_vorschlag: wichtig,
             titel: bericht.titel,
             lead: bericht.lead,
             text: mitAnlassQuelle(bericht.text, fakten),
@@ -5171,6 +5217,59 @@ export default defineEndpoint(
               status: ziel,
               ...(zustellung === null ? {} : { zustellung })
             }
+          })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    // --- the termin: when the article counts, and whether it is announced early ---
+    //
+    // The run proposes it, the newsroom sets it. Stored as it comes, after the
+    // same check the Dorfkoenig would apply (`pruefeTermin`), so nothing goes
+    // out that it would have to log and ignore. Works on a published article
+    // too: the Dorfkoenig re-reads `/api/v1/artikel/{id}` daily for exactly
+    // that. `wichtig` is the newsroom's verdict; the run's own stays in
+    // `wichtig_vorschlag`, and the difference is what the next articles learn
+    // from (`redaktion/wichtigkeit.ts`).
+    router.post(
+      '/meldungen/:id/termin',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        try {
+          const id = pruefeId(req.params['id'])
+          const koerper = (req.body ?? {}) as {
+            ideal?: unknown
+            ende?: unknown
+            auftritte?: unknown
+            wichtig?: unknown
+          }
+          const geprueft = pruefeTermin(
+            koerper.ideal === null || koerper.ideal === undefined
+              ? null
+              : {
+                  ideal: koerper.ideal,
+                  ende: koerper.ende ?? null,
+                  auftritte: koerper.auftritte ?? []
+                }
+          )
+          if (geprueft.fehler !== null) {
+            return next(new UngueltigerTermin({ reason: geprueft.fehler }))
+          }
+          const wichtig =
+            typeof koerper.wichtig === 'boolean' ? koerper.wichtig : null
+
+          const meldungen = new ItemsService('meldungen', {
+            schema: await getSchema(),
+            accountability: req.accountability
+          })
+          await meldungen.updateOne(id, {
+            termin: geprueft.termin,
+            wichtig
+          })
+          return res.json({
+            data: { id, termin: geprueft.termin, wichtig }
           })
         } catch (error) {
           return next(uebersetze(error))

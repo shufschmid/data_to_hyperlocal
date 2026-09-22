@@ -413,8 +413,17 @@ Regeln, ohne Ausnahme:
 Umfang: Titel (maximal 70 Zeichen), Lead (ein Satz), Text (ein bis zwei kurze
 Absaetze, durch eine Leerzeile getrennt).
 
+Zusaetzlich beurteilst du FUER DEN NEWSLETTER, ob der Anlass WICHTIG ist —
+das erscheint nicht im Text: "wichtig": true, wenn er fuer viele im Dorf
+zaehlt und eine FRUEHE Ankuendigung verdient — ein Dorffest, ein Jahrmarkt,
+eine Gemeindeversammlung oder Einwohnerratssitzung, eine Abstimmung, ein
+grosses Konzert oder Fest im Dorf, eine Ausstellung, die Wochen laeuft. false
+bei einem gewoehnlichen Vereinsanlass, einem Kurs, einem Treff, einem Anlass
+fuer ein geschlossenes Publikum. Stehen unten Entscheide der Redaktion, richte
+dich danach.
+
 Antworte ausschliesslich mit JSON:
-{"titel": "...", "lead": "...", "text": "..."}`
+{"titel": "...", "lead": "...", "text": "...", "wichtig": true | false}`
 
 export const MAX_TEXT = 12_000
 export const MAX_DOKUMENT = 6_000
@@ -520,11 +529,14 @@ function faktenZeilen(f: AnlassFakten): string[] {
 
 export function buildMeldungPrompt(
   fakten: AnlassFakten,
-  regeln: readonly string[] = []
+  regeln: readonly string[] = [],
+  /** What the newsroom decided about importance lately — `wichtigkeitDigest`, or ''. */
+  wichtigkeit = ''
 ): string {
   return [
     ...faktenZeilen(fakten),
     ...vorgabenZeilen(regeln),
+    ...(wichtigkeit === '' ? [] : ['', wichtigkeit]),
     '',
     'Schreibe die Meldung. Verwende ausschliesslich diese Angaben, in eigenen Worten.'
   ].join('\n')
@@ -535,11 +547,13 @@ export function buildMeldungRevision(
   fakten: AnlassFakten,
   bisher: { titel: string | null; lead: string | null; text: string | null },
   anweisung: string,
-  regeln: readonly string[] = []
+  regeln: readonly string[] = [],
+  wichtigkeit = ''
 ): string {
   return [
     ...faktenZeilen(fakten),
     ...vorgabenZeilen(regeln),
+    ...(wichtigkeit === '' ? [] : ['', wichtigkeit]),
     '',
     'Bisherige Meldung:',
     `Titel: ${bisher.titel ?? ''}`,

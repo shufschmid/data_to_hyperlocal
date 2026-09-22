@@ -41,6 +41,7 @@ const zeile = (ueber: Partial<AnlassRohzeile> = {}): AnlassRohzeile => ({
   traktanden: null,
   traktanden_url: null,
   anker: 'einmalig',
+  anker_am: '2026-10-17',
   zugang: 'offen',
   url: 'https://www.pratteln.ch/_rte/anlass/7353004',
   url_kanonisch: null,

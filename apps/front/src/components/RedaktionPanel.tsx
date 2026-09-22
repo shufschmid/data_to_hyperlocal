@@ -1381,6 +1381,9 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             onAktion={async (id, was, koerper) => {
               await fuehreAus(`meldungen/${id}/${was}`, koerper)
             }}
+            onTermin={async (id, eingabe) => {
+              await fuehreAus(`meldungen/${id}/termin`, eingabe)
+            }}
             heute={new Date().toISOString().slice(0, 10)}
             laeuft={sendet}
             onLauf={async () => {
@@ -1428,6 +1431,9 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             }}
             onAktion={async (id, was, koerper) => {
               await fuehreAus(`meldungen/${id}/${was}`, koerper)
+            }}
+            onTermin={async (id, eingabe) => {
+              await fuehreAus(`meldungen/${id}/termin`, eingabe)
             }}
             onLauf={async () => {
               await fuehreAus('gemeindeseiten/pruefen')
