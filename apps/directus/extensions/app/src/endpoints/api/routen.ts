@@ -15,12 +15,26 @@ import {
   type FehlerCode
 } from './parameter'
 import {
+  ABNEHMER_KOPF,
   buildBeschreibung,
   buildGesundheit,
   buildOpenapi,
+  erlaubteMethoden,
   GRENZE_HOECHST,
   REGISTER
 } from './register'
+import {
+  abholungVon,
+  abnehmerStand,
+  istAbnehmerKennung,
+  leseAbnehmer,
+  leseStand,
+  standVon,
+  zeileAus,
+  type AbnehmerZeile,
+  type Stand
+} from './abholung'
+import { pruefeZugang } from '../../shared/schluessel'
 import { redaktionsbilanz, type BilanzZeile } from '../../redaktion/bilanz'
 import {
   buildSlugMap,
@@ -61,6 +75,10 @@ export interface AntwortLike {
 export interface AnfrageLike {
   query: Record<string, unknown>
   params: Record<string, string | undefined>
+  /** Express lower-cases header names; the confirmation reads its key here. */
+  headers?: Record<string, unknown>
+  /** The parsed JSON body — Directus mounts a JSON parser in front of every endpoint. */
+  body?: unknown
 }
 
 type Handler = (
@@ -72,6 +90,7 @@ type Handler = (
 export interface RouterLike {
   use(...handler: unknown[]): unknown
   get(pfad: string, ...handler: Handler[]): unknown
+  post(pfad: string, ...handler: Handler[]): unknown
   all(pfad: string, ...handler: Handler[]): unknown
 }
 
@@ -81,6 +100,14 @@ export interface Abfrage {
   grenze: number
   versatz: number
   id?: string
+  /**
+   * Only what lies strictly behind this Stand in `(publiziert_am, id)` order
+   * — the consumer's bookmark. Set together with `aufsteigend`, because a
+   * bookmark is walked forward.
+   */
+  nach?: Stand
+  /** Oldest first, so the last row of a page is the next Stand. */
+  aufsteigend?: boolean
 }
 
 export interface Deps {
@@ -101,6 +128,15 @@ export interface Deps {
    */
   ladeBilanzZeilen(fensterTage: number): Promise<BilanzZeile[]>
   datenbankBereit(): Promise<boolean>
+  /** The consumer's bookmark, or null before its first confirmation. */
+  ladeAbnehmer(kennung: string): Promise<AbnehmerZeile | null>
+  /** Upsert by `kennung` — one row per consumer, whatever the order of arrival. */
+  speichereAbnehmer(zeile: AbnehmerZeile): Promise<void>
+  /**
+   * `BLOG_API_ABNEHMER_KEY`, read per request. Empty means the confirmation
+   * door is not configured, and it says so (503) rather than accepting anyone.
+   */
+  abnehmerSchluessel(): string
   /** Read per request, so flipping the switch needs no code change. */
   istOffen(): boolean
   /** The medium this instance speaks for — an instance property, not a row's. */
@@ -177,11 +213,34 @@ function leseBlaettern(req: AnfrageLike, res: AntwortLike): Abfrage | null {
   return abfrage
 }
 
+/** Who is asking with a bookmark, and where that bookmark stood before this call. */
+interface Abholer {
+  kennung: string
+  zeile: AbnehmerZeile | null
+}
+
+/**
+ * The stored bookmark as a query condition. A row that cannot be read back
+ * is an administrator's edit in the admin UI, and that is a loud failure —
+ * silently serving everything again is exactly the flood the bookmark exists
+ * to prevent.
+ */
+function nachVon(zeile: AbnehmerZeile | null): Stand | undefined {
+  const stand = standVon(zeile)
+  if (stand === null) return undefined
+  const gelesen = leseStand(stand)
+  if (!gelesen.ok)
+    throw new Error(
+      `Der gespeicherte Stand des Abnehmers «${zeile?.kennung ?? '?'}» ist nicht lesbar: ${stand}`
+    )
+  return gelesen.wert
+}
+
 async function leseAbfrage(
   req: AnfrageLike,
   res: AntwortLike,
   deps: Deps
-): Promise<Abfrage | null> {
+): Promise<{ abfrage: Abfrage; abholer: Abholer | null } | null> {
   const abfrage = leseBlaettern(req, res)
   if (abfrage === null) return null
 
@@ -201,21 +260,70 @@ async function leseAbfrage(
     abfrage.gemeinde = treffer
   }
 
-  return abfrage
+  const abnehmer = leseAbnehmer(req.query['abnehmer'])
+  if (!abnehmer.ok) {
+    sendeFehler(res, 400, 'ungueltige_eingabe', abnehmer.meldung)
+    return null
+  }
+  if (abnehmer.wert === null) return { abfrage, abholer: null }
+
+  // A bookmark is one position in ONE ordered list. Anything that would make
+  // the confirmed Stand mean less than «everything up to here» is refused
+  // out loud: a municipality filter would let the Stand skip the other
+  // municipalities, and paging by offset on a list whose start moves with
+  // every confirmation would skip a page per page.
+  if (abfrage.gemeinde !== undefined) {
+    sendeFehler(
+      res,
+      400,
+      'ungueltige_eingabe',
+      'Mit «abnehmer» gibt es keinen Gemeindefilter: der bestaetigte Stand gilt fuer alle Gemeinden, und ein gefilterter Stand liesse die anderen aus.'
+    )
+    return null
+  }
+  if (abfrage.versatz !== 0) {
+    sendeFehler(
+      res,
+      400,
+      'ungueltige_eingabe',
+      'Mit «abnehmer» wird nicht mit «versatz» geblaettert: bestaetige den Stand der gespeicherten Seite, dann ist die naechste Seite die erste.'
+    )
+    return null
+  }
+
+  const zeile = await deps.ladeAbnehmer(abnehmer.wert)
+  const nach = nachVon(zeile)
+  if (nach !== undefined) {
+    // `seit` is the floor for the FIRST contact — where a consumer starts. Once
+    // a Stand exists it would only ever skip articles between the Stand and
+    // the day, and a skip nobody asked for is the one thing this list must
+    // never do.
+    if (abfrage.seit !== undefined) {
+      sendeFehler(
+        res,
+        400,
+        'ungueltige_eingabe',
+        `Fuer «${abnehmer.wert}» gibt es schon einen bestaetigten Stand; «seit» gilt nur vor der ersten Bestaetigung. Lass den Parameter weg — die Liste beginnt hinter dem Stand.`
+      )
+      return null
+    }
+    abfrage.nach = nach
+  }
+  abfrage.aufsteigend = true
+  return { abfrage, abholer: { kennung: abnehmer.wert, zeile } }
 }
 
 function artikelListe(deps: Deps): Handler {
   return async (req, res) => {
-    const abfrage = await leseAbfrage(req, res, deps)
-    if (abfrage === null) return
+    const gelesen = await leseAbfrage(req, res, deps)
+    if (gelesen === null) return
+    const { abfrage, abholer } = gelesen
     const [zeilen, gesamt] = await Promise.all([
       deps.ladeArtikel(abfrage),
       deps.zaehleArtikel(abfrage)
     ])
-    sende(
-      res,
-      200,
-      liste(
+    sende(res, 200, {
+      ...liste(
         'artikel',
         zeilen.map((z) => mitMedium(z, deps.medium())),
         {
@@ -223,8 +331,106 @@ function artikelListe(deps: Deps): Handler {
           versatz: abfrage.versatz,
           grenze: abfrage.grenze
         }
-      )
+      ),
+      ...(abholer === null
+        ? {}
+        : { abholung: abholungVon(abholer.kennung, abholer.zeile, zeilen) })
+    })
+  }
+}
+
+// --- the consumer's bookmark ---------------------------------------------------
+
+const KENNUNG_FEHLT =
+  'Die Kennung des Abnehmers besteht aus Kleinbuchstaben, Ziffern und Bindestrichen (2 bis 40 Zeichen), etwa «dorfkoenig».'
+
+/** How many published articles lie behind a Stand — what the next list would offer. */
+async function zaehleOffen(
+  deps: Deps,
+  nach: Stand | undefined
+): Promise<number> {
+  const abfrage: Abfrage = { grenze: 1, versatz: 0 }
+  if (nach !== undefined) abfrage.nach = nach
+  return deps.zaehleArtikel(abfrage)
+}
+
+/**
+ * Where a consumer stands. Public like the rest: the bookmark reveals nothing
+ * the list does not, and a consumer's own monitor should be able to see it
+ * without a key.
+ */
+function abnehmerAuskunft(deps: Deps): Handler {
+  return async (req, res) => {
+    const kennung = req.params['kennung']
+    if (!istAbnehmerKennung(kennung)) {
+      sendeFehler(res, 400, 'ungueltige_eingabe', KENNUNG_FEHLT)
+      return
+    }
+    const zeile = await deps.ladeAbnehmer(kennung)
+    const offen = await zaehleOffen(deps, nachVon(zeile))
+    sende(res, 200, abnehmerStand(kennung, zeile, offen))
+  }
+}
+
+/**
+ * The one write on this API: the consumer confirms the Stand of the last
+ * article it stored. Behind the switch like every content route, and behind
+ * a key of its own, because it changes what the next reader is offered.
+ *
+ * The Stand is taken as given — including one OLDER than the current, which
+ * moves the bookmark back and re-delivers. That is deliberate: a consumer
+ * that lost data has no other way to ask for it again, and the previous
+ * Stand is echoed as `vorher` so the step is visible.
+ */
+function abgeholt(deps: Deps): Handler {
+  return async (req, res) => {
+    const kennung = req.params['kennung']
+    if (!istAbnehmerKennung(kennung)) {
+      sendeFehler(res, 400, 'ungueltige_eingabe', KENNUNG_FEHLT)
+      return
+    }
+    const zugang = pruefeZugang(
+      req.headers?.[ABNEHMER_KOPF.toLowerCase()],
+      deps.abnehmerSchluessel()
     )
+    if (zugang === 'nicht_konfiguriert') {
+      sendeFehler(
+        res,
+        503,
+        'nicht_konfiguriert',
+        'Die Bestaetigung ist nicht konfiguriert: BLOG_API_ABNEHMER_KEY fehlt in der Umgebung der Redaktion.'
+      )
+      return
+    }
+    if (zugang === 'verweigert') {
+      sendeFehler(
+        res,
+        401,
+        'nicht_berechtigt',
+        `Der Schluessel in ${ABNEHMER_KOPF} fehlt oder stimmt nicht.`
+      )
+      return
+    }
+
+    const koerper = req.body
+    const roh =
+      typeof koerper === 'object' && koerper !== null
+        ? (koerper as { stand?: unknown }).stand
+        : undefined
+    const stand = leseStand(roh)
+    if (!stand.ok) {
+      sendeFehler(res, 400, 'ungueltige_eingabe', stand.meldung)
+      return
+    }
+
+    const vorher = await deps.ladeAbnehmer(kennung)
+    const neu = zeileAus(kennung, stand.wert, deps.jetzt())
+    await deps.speichereAbnehmer(neu)
+    const offen = await zaehleOffen(deps, stand.wert)
+    sende(res, 200, {
+      ...abnehmerStand(kennung, neu, offen),
+      vorher: standVon(vorher)
+    })
   }
 }
 
@@ -352,7 +558,9 @@ const HANDLER: Record<string, (deps: Deps) => Handler> = {
   '/v1/artikel/:id': artikelEinzeln,
   '/v1/korrekturen': korrekturenListe,
   '/v1/bilanz': bilanz,
-  '/v1/gemeinden': gemeindenListe
+  '/v1/gemeinden': gemeindenListe,
+  '/v1/abnehmer/:kennung': abnehmerAuskunft,
+  '/v1/abnehmer/:kennung/abgeholt': abgeholt
 }
 
 /**
@@ -391,17 +599,20 @@ export function verdrahte(router: RouterLike, deps: Deps): void {
       throw new Error(`Kein Handler fuer ${eintrag.pfad} registriert.`)
 
     const handler = bauen(deps)
-    if (eintrag.inhalt) router.get(eintrag.pfad, tor(deps), handler)
-    else router.get(eintrag.pfad, handler)
+    const kette = eintrag.inhalt ? [tor(deps), handler] : [handler]
+    for (const methode of eintrag.methoden) {
+      if (methode === 'POST') router.post(eintrag.pfad, ...kette)
+      else router.get(eintrag.pfad, ...kette)
+    }
 
-    // Anything but GET on a path that exists — R2/R7. Registered after the GET,
-    // so it only ever catches the other methods.
+    // Any other method on a path that exists — R2/R7. Registered after the
+    // real ones, so it only ever catches the rest.
     router.all(eintrag.pfad, (_req, res) =>
       sendeFehler(
         res,
         405,
         'methode_nicht_erlaubt',
-        'Diese Schnittstelle liest nur. Erlaubt ist GET.'
+        `Diese Methode gibt es hier nicht. Erlaubt ist ${erlaubteMethoden(eintrag)}.`
       )
     )
   }

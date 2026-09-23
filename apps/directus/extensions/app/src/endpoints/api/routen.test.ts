@@ -17,7 +17,7 @@ import type { Korrekturzeile, Rohzeile } from './projektion'
 // haeufigste Fehler dieser Art.
 
 interface Aufzeichnung {
-  methode: 'get' | 'all' | 'use'
+  methode: 'get' | 'post' | 'all' | 'use'
   pfad: string | null
   handler: unknown[]
 }
@@ -29,6 +29,8 @@ function fakeRouter() {
       eintraege.push({ methode: 'use', pfad: null, handler }),
     get: (pfad, ...handler) =>
       eintraege.push({ methode: 'get', pfad, handler }),
+    post: (pfad, ...handler) =>
+      eintraege.push({ methode: 'post', pfad, handler }),
     all: (pfad, ...handler) => eintraege.push({ methode: 'all', pfad, handler })
   }
   return { router, eintraege }
@@ -62,6 +64,20 @@ function anfrage(
   params: Record<string, string | undefined> = {}
 ): AnfrageLike {
   return { query, params }
+}
+
+/** Eine Bestaetigung des Abnehmers: Kennung im Pfad, Schluessel im Kopf, Stand im Koerper. */
+function bestaetigung(
+  stand: unknown,
+  schluessel: string | null = 'geheim',
+  kennung = 'dorfkoenig'
+): AnfrageLike {
+  return {
+    query: {},
+    params: { kennung },
+    headers: schluessel === null ? {} : { 'x-abnehmer-key': schluessel },
+    body: { stand }
+  }
 }
 
 const ZEILE: Rohzeile = {
@@ -114,6 +130,9 @@ function stubDeps(ueber: Partial<Deps> = {}): Deps {
     ]),
     ladeBilanzZeilen: vi.fn().mockResolvedValue([BILANZZEILE]),
     datenbankBereit: vi.fn().mockResolvedValue(true),
+    ladeAbnehmer: vi.fn().mockResolvedValue(null),
+    speichereAbnehmer: vi.fn().mockResolvedValue(undefined),
+    abnehmerSchluessel: () => 'geheim',
     istOffen: () => true,
     medium: () => 'bajour',
     jetzt: () => '2026-09-03T12:00:00.000Z',
@@ -139,11 +158,12 @@ const BILANZZEILE = {
   zurueckgezogen_am: null
 }
 
-/** Ruft die verdrahtete GET-Route eines Pfades auf. */
+/** Ruft die verdrahtete Route eines Pfades auf — GET, wo nichts anderes gesagt ist. */
 async function rufe(
   pfad: string,
   deps: Deps,
-  req: AnfrageLike = anfrage()
+  req: AnfrageLike = anfrage(),
+  methode: 'get' | 'post' = 'get'
 ): Promise<{ status: number; koerper: unknown; kopf: Record<string, string> }> {
   const { router, eintraege } = fakeRouter()
   verdrahte(router, deps)
@@ -155,7 +175,7 @@ async function rufe(
     .handler[0] as (r: AnfrageLike, s: AntwortLike, n: () => void) => void
   kopfMiddleware(req, res, () => {})
 
-  const route = eintraege.find((e) => e.methode === 'get' && e.pfad === pfad)!
+  const route = eintraege.find((e) => e.methode === methode && e.pfad === pfad)!
   // Bei Inhaltsrouten steht das Tor vor dem Handler: durchlaufen, wie Express.
   let weiter = false
   for (const handler of route.handler) {
@@ -234,7 +254,8 @@ describe('der Schalter', () => {
       const antwort = await rufe(
         eintrag.pfad,
         deps,
-        anfrage({}, { id: ZEILE.id })
+        anfrage({}, { id: ZEILE.id, kennung: 'dorfkoenig' }),
+        eintrag.methoden[0] === 'POST' ? 'post' : 'get'
       )
       expect(antwort.status, eintrag.pfad).toBe(503)
       expect(antwort.koerper, eintrag.pfad).toEqual({
@@ -264,8 +285,10 @@ describe('der Schalter', () => {
     const deps = stubDeps()
     const antwort = await rufe('/v1/artikel', deps)
     expect(antwort.status).toBe(200)
-    // Kein Handler dieser Datei bekommt die Koepfe ueberhaupt zu sehen:
-    // AnfrageLike hat kein `headers`-Feld.
+    // Kein LESENDER Handler dieser Datei schaut in die Koepfe: die Anfrage
+    // hier hat keine, und die Antwort ist trotzdem vollstaendig. Der eine
+    // Kopf, der gelesen wird, ist X-Abnehmer-Key auf der Bestaetigung — und
+    // der oeffnet eine Schreibtuer, keine Lesetuer.
     expect(Object.keys(anfrage())).toEqual(['query', 'params'])
   })
 })
@@ -468,7 +491,20 @@ describe('Register und Verdrahtung', () => {
       .filter((e) => e.methode === 'get')
       .map((e) => e.pfad)
       .sort()
-    expect(gets).toEqual(REGISTER.map((r) => r.pfad).sort())
+    expect(gets).toEqual(
+      REGISTER.filter((r) => r.methoden.includes('GET'))
+        .map((r) => r.pfad)
+        .sort()
+    )
+    const posts = eintraege
+      .filter((e) => e.methode === 'post')
+      .map((e) => e.pfad)
+      .sort()
+    expect(posts).toEqual(
+      REGISTER.filter((r) => r.methoden.includes('POST'))
+        .map((r) => r.pfad)
+        .sort()
+    )
 
     // Und jede Route hat ihre 405-Absicherung.
     const alls = eintraege
@@ -482,10 +518,12 @@ describe('Register und Verdrahtung', () => {
     const { router, eintraege } = fakeRouter()
     verdrahte(router, stubDeps())
     for (const eintrag of REGISTER) {
-      const route = eintraege.find(
-        (e) => e.methode === 'get' && e.pfad === eintrag.pfad
-      )!
-      expect(route.handler.length, eintrag.pfad).toBe(eintrag.inhalt ? 2 : 1)
+      for (const methode of eintrag.methoden) {
+        const route = eintraege.find(
+          (e) => e.methode === methode.toLowerCase() && e.pfad === eintrag.pfad
+        )!
+        expect(route.handler.length, eintrag.pfad).toBe(eintrag.inhalt ? 2 : 1)
+      }
     }
   })
 
@@ -494,7 +532,8 @@ describe('Register und Verdrahtung', () => {
       const antwort = await rufe(
         eintrag.pfad,
         stubDeps(),
-        anfrage({}, { id: ZEILE.id })
+        anfrage({}, { id: ZEILE.id, kennung: 'dorfkoenig' }),
+        eintrag.methoden[0] === 'POST' ? 'post' : 'get'
       )
       expect(antwort.kopf['X-Robots-Tag'], eintrag.pfad).toBe('noindex')
     }
@@ -671,5 +710,255 @@ describe('/v1/bilanz', () => {
       stubDeps({ istOffen: () => false })
     )
     expect(antwort.status).toBe(503)
+  })
+})
+
+// --- der Stand des Abnehmers ---------------------------------------------------
+
+describe('/v1/artikel?abnehmer=', () => {
+  const STAND_A = `2026-09-02T06:00:00.000Z|${ZEILE.id}`
+  const GESPEICHERT = {
+    kennung: 'dorfkoenig',
+    abgeholt_bis: '2026-09-02T06:00:00.000Z',
+    abgeholt_id: ZEILE.id,
+    abgeholt_am: '2026-09-02T07:00:00.000Z'
+  }
+
+  it('liest beim ersten Kontakt alles, aelteste zuerst, und nennt den Stand zum Bestaetigen', async () => {
+    const deps = stubDeps()
+    const antwort = await rufe(
+      '/v1/artikel',
+      deps,
+      anfrage({ abnehmer: 'dorfkoenig' })
+    )
+    expect(antwort.status).toBe(200)
+    expect(deps.ladeArtikel).toHaveBeenCalledWith(
+      expect.objectContaining({ aufsteigend: true })
+    )
+    expect(deps.ladeArtikel).toHaveBeenCalledWith(
+      expect.not.objectContaining({ nach: expect.anything() })
+    )
+    const koerper = antwort.koerper as { abholung: unknown; anzahl: number }
+    expect(koerper.anzahl).toBe(1)
+    expect(koerper.abholung).toEqual({
+      abnehmer: 'dorfkoenig',
+      bisher: null,
+      stand: STAND_A
+    })
+  })
+
+  it('beginnt hinter dem bestaetigten Stand', async () => {
+    const deps = stubDeps({
+      ladeAbnehmer: vi.fn().mockResolvedValue(GESPEICHERT),
+      ladeArtikel: vi.fn().mockResolvedValue([])
+    })
+    const antwort = await rufe(
+      '/v1/artikel',
+      deps,
+      anfrage({ abnehmer: 'dorfkoenig' })
+    )
+    expect(deps.ladeArtikel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        aufsteigend: true,
+        nach: { publiziert_am: '2026-09-02T06:00:00.000Z', id: ZEILE.id }
+      })
+    )
+    expect((antwort.koerper as { abholung: unknown }).abholung).toEqual({
+      abnehmer: 'dorfkoenig',
+      bisher: STAND_A,
+      stand: null
+    })
+  })
+
+  it('erlaubt «seit» als Einstieg, aber nicht mehr, sobald ein Stand da ist', async () => {
+    const erste = await rufe(
+      '/v1/artikel',
+      stubDeps(),
+      anfrage({ abnehmer: 'dorfkoenig', seit: '2026-09-01' })
+    )
+    expect(erste.status).toBe(200)
+
+    const spaeter = await rufe(
+      '/v1/artikel',
+      stubDeps({ ladeAbnehmer: vi.fn().mockResolvedValue(GESPEICHERT) }),
+      anfrage({ abnehmer: 'dorfkoenig', seit: '2026-09-01' })
+    )
+    expect(spaeter.status).toBe(400)
+    expect(
+      (spaeter.koerper as { fehler: { meldung: string } }).fehler.meldung
+    ).toContain('seit')
+  })
+
+  it('weist Gemeindefilter, Versatz und eine krumme Kennung ab — laut, nie still', async () => {
+    for (const query of [
+      { abnehmer: 'dorfkoenig', gemeinde: 'muenchenstein' },
+      { abnehmer: 'dorfkoenig', versatz: '100' },
+      { abnehmer: 'Dorf König' }
+    ]) {
+      const deps = stubDeps()
+      const antwort = await rufe('/v1/artikel', deps, anfrage(query))
+      expect(antwort.status, JSON.stringify(query)).toBe(400)
+      expect(
+        (antwort.koerper as { fehler: { code: string } }).fehler.code
+      ).toBe('ungueltige_eingabe')
+      expect(deps.ladeArtikel).not.toHaveBeenCalled()
+    }
+  })
+
+  it('bleibt ohne den Parameter die alte Liste, neueste zuerst', async () => {
+    const deps = stubDeps()
+    const antwort = await rufe('/v1/artikel', deps)
+    expect(deps.ladeArtikel).toHaveBeenCalledWith(
+      expect.not.objectContaining({ aufsteigend: true })
+    )
+    expect(antwort.koerper).not.toHaveProperty('abholung')
+  })
+})
+
+describe('/v1/abnehmer/:kennung/abgeholt', () => {
+  const STAND = `2026-09-02T06:00:00.000Z|${ZEILE.id}`
+
+  it('speichert den Stand, nennt den vorigen und wie viel dahinter offen ist', async () => {
+    const deps = stubDeps({ zaehleArtikel: vi.fn().mockResolvedValue(4) })
+    const antwort = await rufe(
+      '/v1/abnehmer/:kennung/abgeholt',
+      deps,
+      bestaetigung(STAND),
+      'post'
+    )
+    expect(antwort.status).toBe(200)
+    expect(deps.speichereAbnehmer).toHaveBeenCalledWith({
+      kennung: 'dorfkoenig',
+      abgeholt_bis: '2026-09-02T06:00:00.000Z',
+      abgeholt_id: ZEILE.id,
+      abgeholt_am: '2026-09-03T12:00:00.000Z'
+    })
+    expect(deps.zaehleArtikel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nach: { publiziert_am: '2026-09-02T06:00:00.000Z', id: ZEILE.id }
+      })
+    )
+    expect(antwort.koerper).toEqual({
+      abnehmer: 'dorfkoenig',
+      stand: STAND,
+      abgeholt_bis: '2026-09-02T06:00:00.000Z',
+      abgeholt_am: '2026-09-03T12:00:00.000Z',
+      offen: 4,
+      vorher: null
+    })
+  })
+
+  it('verlangt den Schluessel — und sagt, wenn keiner konfiguriert ist', async () => {
+    const falsch = await rufe(
+      '/v1/abnehmer/:kennung/abgeholt',
+      stubDeps(),
+      bestaetigung(STAND, 'falsch'),
+      'post'
+    )
+    expect(falsch.status).toBe(401)
+    expect((falsch.koerper as { fehler: { code: string } }).fehler.code).toBe(
+      'nicht_berechtigt'
+    )
+
+    const ohne = await rufe(
+      '/v1/abnehmer/:kennung/abgeholt',
+      stubDeps(),
+      bestaetigung(STAND, null),
+      'post'
+    )
+    expect(ohne.status).toBe(401)
+
+    const deps = stubDeps({ abnehmerSchluessel: () => '' })
+    const unkonfiguriert = await rufe(
+      '/v1/abnehmer/:kennung/abgeholt',
+      deps,
+      bestaetigung(STAND),
+      'post'
+    )
+    expect(unkonfiguriert.status).toBe(503)
+    expect(
+      (unkonfiguriert.koerper as { fehler: { code: string } }).fehler.code
+    ).toBe('nicht_konfiguriert')
+    expect(deps.speichereAbnehmer).not.toHaveBeenCalled()
+  })
+
+  it('weist einen Stand ab, der keiner ist — auch die blosse Uhrzeit des Abnehmers', async () => {
+    for (const stand of [undefined, '2026-09-03T12:00:00.000Z', 'gestern', 7]) {
+      const deps = stubDeps()
+      const antwort = await rufe(
+        '/v1/abnehmer/:kennung/abgeholt',
+        deps,
+        bestaetigung(stand),
+        'post'
+      )
+      expect(antwort.status, String(stand)).toBe(400)
+      expect(deps.speichereAbnehmer).not.toHaveBeenCalled()
+    }
+  })
+
+  it('weist eine krumme Kennung ab, bevor es den Schluessel prueft', async () => {
+    const antwort = await rufe(
+      '/v1/abnehmer/:kennung/abgeholt',
+      stubDeps({ abnehmerSchluessel: () => '' }),
+      bestaetigung(STAND, 'geheim', 'Dorf König'),
+      'post'
+    )
+    expect(antwort.status).toBe(400)
+  })
+
+  it('haengt hinter dem Schalter wie jede andere Inhaltsroute', async () => {
+    const antwort = await rufe(
+      '/v1/abnehmer/:kennung/abgeholt',
+      stubDeps({ istOffen: () => false }),
+      bestaetigung(STAND),
+      'post'
+    )
+    expect(antwort.status).toBe(503)
+  })
+})
+
+describe('/v1/abnehmer/:kennung', () => {
+  it('sagt, wo der Abnehmer steht und wie viel offen ist', async () => {
+    const deps = stubDeps({
+      ladeAbnehmer: vi.fn().mockResolvedValue({
+        kennung: 'dorfkoenig',
+        abgeholt_bis: '2026-09-02T06:00:00.000Z',
+        abgeholt_id: ZEILE.id,
+        abgeholt_am: '2026-09-02T07:00:00.000Z'
+      }),
+      zaehleArtikel: vi.fn().mockResolvedValue(2)
+    })
+    const antwort = await rufe(
+      '/v1/abnehmer/:kennung',
+      deps,
+      anfrage({}, { kennung: 'dorfkoenig' })
+    )
+    expect(antwort.status).toBe(200)
+    expect(antwort.koerper).toEqual({
+      abnehmer: 'dorfkoenig',
+      stand: `2026-09-02T06:00:00.000Z|${ZEILE.id}`,
+      abgeholt_bis: '2026-09-02T06:00:00.000Z',
+      abgeholt_am: '2026-09-02T07:00:00.000Z',
+      offen: 2
+    })
+  })
+
+  it('kennt einen Abnehmer ohne Bestaetigung als einen, fuer den alles offen ist', async () => {
+    const deps = stubDeps({ zaehleArtikel: vi.fn().mockResolvedValue(170) })
+    const antwort = await rufe(
+      '/v1/abnehmer/:kennung',
+      deps,
+      anfrage({}, { kennung: 'neu' })
+    )
+    expect(antwort.koerper).toEqual({
+      abnehmer: 'neu',
+      stand: null,
+      abgeholt_bis: null,
+      abgeholt_am: null,
+      offen: 170
+    })
+    expect(deps.zaehleArtikel).toHaveBeenCalledWith(
+      expect.not.objectContaining({ nach: expect.anything() })
+    )
   })
 })

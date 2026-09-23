@@ -20,6 +20,7 @@ export type FehlerCode =
   | 'methode_nicht_erlaubt'
   | 'interner_fehler'
   | 'schnittstelle_abgeschaltet'
+  | 'nicht_konfiguriert'
 
 export interface FehlerKoerper {
   fehler: { code: FehlerCode; meldung: string }

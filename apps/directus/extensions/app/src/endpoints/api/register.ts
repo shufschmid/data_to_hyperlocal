@@ -17,10 +17,18 @@ export const KONVENTION = 'wepublish-rest/1'
  * crosses the TypeScript `rootDir` and depends on how the extension bundler
  * inlines JSON. One string is not worth that risk.
  */
-export const VERSION = '1.4.0'
+export const VERSION = '1.5.0'
 
 /** Everything this API serves is public — see R4a and `BLOG_API_OFFEN`. */
 export const MERKMAL = 'keines'
+
+/**
+ * The one write on this API — a consumer confirming where it got to — needs
+ * a key, because it changes what the next reader is offered. It travels in a
+ * header of its own, never in `Authorization` (Directus owns that one).
+ */
+export const ABNEHMER_KOPF = 'X-Abnehmer-Key'
+export const ABNEHMER_MERKMAL = 'X-Abnehmer-Key (BLOG_API_ABNEHMER_KEY)'
 
 /** Paging bounds, documented in the contract and enforced in `parameter.ts`. */
 export const GRENZE_VORGABE = 100
@@ -36,9 +44,12 @@ export const GRENZE_HOECHST = 500
 export const FENSTER_VORGABE = 7
 export const FENSTER_HOECHST = 365
 
+export type Methode = 'GET' | 'POST'
+
 export interface ParameterDoku {
   name: string
-  ort: 'query' | 'pfad'
+  /** Where it travels: the query, the path, a header, or the JSON body. */
+  ort: 'query' | 'pfad' | 'kopf' | 'koerper'
   typ: string
   beschreibung: string
   obligatorisch: boolean
@@ -47,9 +58,9 @@ export interface ParameterDoku {
 export interface RouteEintrag {
   /** Express form, relative to the endpoint mount: `/v1/artikel/:id`. */
   pfad: string
-  methoden: readonly ['GET']
+  methoden: readonly Methode[]
   zweck: string
-  merkmal_noetig: 'keines'
+  merkmal_noetig: typeof MERKMAL | typeof ABNEHMER_MERKMAL
   /**
    * Whether this route serves CONTENT. The three open ways of R3 do not, which
    * is why they answer even while the API is switched off — a monitor has to be
@@ -75,6 +86,15 @@ const BLAETTERN: readonly ParameterDoku[] = [
     obligatorisch: false
   }
 ]
+
+const KENNUNG: ParameterDoku = {
+  name: 'kennung',
+  ort: 'pfad',
+  typ: 'string',
+  beschreibung:
+    'Die Kennung des Abnehmers: Kleinbuchstaben, Ziffern, Bindestriche, 2 bis 40 Zeichen. Der Dorfkoenig ist «dorfkoenig».',
+  obligatorisch: true
+}
 
 export const REGISTER: readonly RouteEintrag[] = [
   {
@@ -122,7 +142,15 @@ export const REGISTER: readonly RouteEintrag[] = [
         ort: 'query',
         typ: 'string (JJJJ-MM-TT)',
         beschreibung:
-          'Nur Beitraege, die an diesem Tag oder danach publiziert wurden. Einschliesslich, ab 00:00 UTC.',
+          'Nur Beitraege, die an diesem Tag oder danach publiziert wurden. Einschliesslich, ab 00:00 UTC. Mit «abnehmer» nur vor der ersten Bestaetigung erlaubt.',
+        obligatorisch: false
+      },
+      {
+        name: 'abnehmer',
+        ort: 'query',
+        typ: 'string (Kennung)',
+        beschreibung:
+          'Die Kennung des Abnehmers, etwa «dorfkoenig». Dann kommen nur Beitraege, die hinter seinem bestaetigten Stand liegen — aelteste zuerst, ohne «gemeinde» und ohne «versatz» — und die Antwort traegt unter «abholung.stand», was nach dem Speichern zu bestaetigen ist (POST /api/v1/abnehmer/{kennung}/abgeholt).',
         obligatorisch: false
       },
       ...BLAETTERN
@@ -194,6 +222,42 @@ export const REGISTER: readonly RouteEintrag[] = [
     merkmal_noetig: 'keines',
     inhalt: true,
     parameter: []
+  },
+  {
+    pfad: '/v1/abnehmer/:kennung',
+    methoden: ['GET'],
+    zweck:
+      'Wo ein Abnehmer steht: sein bestaetigter Stand, wann er ihn bestaetigt hat und wie viele Beitraege dahinter liegen. Ohne Bestaetigung sind alle Werte null und alles ist offen.',
+    merkmal_noetig: 'keines',
+    inhalt: true,
+    parameter: [KENNUNG]
+  },
+  {
+    pfad: '/v1/abnehmer/:kennung/abgeholt',
+    methoden: ['POST'],
+    zweck:
+      'Der Abnehmer bestaetigt, bis wohin er die Beitraege gespeichert hat. Von da an bietet ihm /v1/artikel?abnehmer=… nur noch, was danach kam. Ein aelterer Stand setzt ihn zurueck und liefert erneut — das ist der Weg, einen Verlust auf seiner Seite zu heilen.',
+    merkmal_noetig: ABNEHMER_MERKMAL,
+    inhalt: true,
+    parameter: [
+      KENNUNG,
+      {
+        name: ABNEHMER_KOPF,
+        ort: 'kopf',
+        typ: 'string',
+        beschreibung:
+          'Der Schluessel des Abnehmers (BLOG_API_ABNEHMER_KEY auf der Seite der Redaktion). Fehlt der Schluessel in der Umgebung, antwortet der Weg 503 nicht_konfiguriert; stimmt er nicht, 401 nicht_berechtigt.',
+        obligatorisch: true
+      },
+      {
+        name: 'stand',
+        ort: 'koerper',
+        typ: 'string',
+        beschreibung:
+          'Genau der Wert aus «abholung.stand» der zuletzt gespeicherten Seite — «<publiziert_am>|<id>». Nie selbst gebaut, nie die eigene Uhr.',
+        obligatorisch: true
+      }
+    ]
   }
 ] as const
 
@@ -205,6 +269,11 @@ export const REGISTER: readonly RouteEintrag[] = [
  */
 export function dokuPfad(pfad: string): string {
   return `/api${pfad.replace(/:([a-z_]+)/gi, '{$1}')}`
+}
+
+/** What a caller may send on this path — the 405 message names it. */
+export function erlaubteMethoden(eintrag: RouteEintrag): string {
+  return eintrag.methoden.join(', ')
 }
 
 export interface Gesundheit {
@@ -274,38 +343,83 @@ export function buildBeschreibung(): Record<string, unknown> {
   }
 }
 
+const OPENAPI_ORT: Record<ParameterDoku['ort'], string> = {
+  query: 'query',
+  pfad: 'path',
+  kopf: 'header',
+  koerper: 'body'
+}
+
 function openapiParameter(p: ParameterDoku): Record<string, unknown> {
   return {
     name: p.name,
-    in: p.ort === 'pfad' ? 'path' : 'query',
+    in: OPENAPI_ORT[p.ort],
     required: p.obligatorisch,
     description: p.beschreibung,
     schema: { type: p.typ.startsWith('integer') ? 'integer' : 'string' }
   }
 }
 
-export function buildOpenapi(): Record<string, unknown> {
-  const paths: Record<string, unknown> = {}
-  for (const eintrag of REGISTER) {
-    paths[dokuPfad(eintrag.pfad)] = {
-      get: {
-        summary: eintrag.zweck,
-        ...(eintrag.parameter.length === 0
-          ? {}
-          : { parameters: eintrag.parameter.map(openapiParameter) }),
-        responses: {
-          '200': { description: 'ok' },
-          ...(eintrag.inhalt
-            ? {
-                '503': {
-                  description:
-                    'Die Schnittstelle ist abgeschaltet (BLOG_API_OFFEN).'
-                }
-              }
-            : {})
+/** Body fields are not OpenAPI parameters; they become the request body. */
+function openapiKoerper(
+  felder: readonly ParameterDoku[]
+): Record<string, unknown> {
+  const properties: Record<string, unknown> = {}
+  for (const p of felder)
+    properties[p.name] = { type: 'string', description: p.beschreibung }
+  return {
+    required: true,
+    content: {
+      'application/json': {
+        schema: {
+          type: 'object',
+          required: felder.filter((p) => p.obligatorisch).map((p) => p.name),
+          properties
         }
       }
     }
+  }
+}
+
+function openapiOperation(eintrag: RouteEintrag): Record<string, unknown> {
+  const parameter = eintrag.parameter.filter((p) => p.ort !== 'koerper')
+  const koerper = eintrag.parameter.filter((p) => p.ort === 'koerper')
+  const geschuetzt = eintrag.merkmal_noetig !== MERKMAL
+  return {
+    summary: eintrag.zweck,
+    ...(parameter.length === 0
+      ? {}
+      : { parameters: parameter.map(openapiParameter) }),
+    ...(koerper.length === 0 ? {} : { requestBody: openapiKoerper(koerper) }),
+    responses: {
+      '200': { description: 'ok' },
+      ...(geschuetzt
+        ? {
+            '401': { description: 'Der Schluessel stimmt nicht.' },
+            '503': {
+              description:
+                'Die Schnittstelle ist abgeschaltet (BLOG_API_OFFEN) oder der Schluessel ist nicht konfiguriert (BLOG_API_ABNEHMER_KEY).'
+            }
+          }
+        : eintrag.inhalt
+          ? {
+              '503': {
+                description:
+                  'Die Schnittstelle ist abgeschaltet (BLOG_API_OFFEN).'
+              }
+            }
+          : {})
+    }
+  }
+}
+
+export function buildOpenapi(): Record<string, unknown> {
+  const paths: Record<string, unknown> = {}
+  for (const eintrag of REGISTER) {
+    const operationen: Record<string, unknown> = {}
+    for (const methode of eintrag.methoden)
+      operationen[methode.toLowerCase()] = openapiOperation(eintrag)
+    paths[dokuPfad(eintrag.pfad)] = operationen
   }
 
   return {

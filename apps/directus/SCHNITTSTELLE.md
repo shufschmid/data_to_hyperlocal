@@ -12,14 +12,14 @@ dorthin bekommt eine HTML-404-Seite und nie diese Schnittstelle.
 
 ## Adresse und Modus
 
-|             |                                                     |
-| ----------- | --------------------------------------------------- |
-| **Adresse** | **`https://redaktion-admin.apps.bajour.ch/api/v1`** |
-| Lokal       | `http://localhost:8055/api/v1`                      |
-| Merkmal     | **keines** (offener Modus, R4a)                     |
-| Schalter    | `BLOG_API_OFFEN=ja` in der Umgebung von Directus    |
-| Methoden    | nur `GET` (R2); alles andere `405`                  |
-| Kopfzeile   | jede Antwort trägt `X-Robots-Tag: noindex`          |
+|             |                                                                                        |
+| ----------- | -------------------------------------------------------------------------------------- |
+| **Adresse** | **`https://redaktion-admin.apps.bajour.ch/api/v1`**                                    |
+| Lokal       | `http://localhost:8055/api/v1`                                                         |
+| Merkmal     | **keines** (offener Modus, R4a)                                                        |
+| Schalter    | `BLOG_API_OFFEN=ja` in der Umgebung von Directus                                       |
+| Methoden    | `GET` (R2); dazu EIN `POST`, die Bestätigung des Abnehmers (1.5.0); alles andere `405` |
+| Kopfzeile   | jede Antwort trägt `X-Robots-Tag: noindex`                                             |
 
 Warum ohne Schlüssel: Alles, was diese Schnittstelle liefert, steht ohnehin
 öffentlich im Blog — ein Schlüssel schützte nichts. Der Schalter ist trotzdem
@@ -38,31 +38,34 @@ Byte für Byte dieselbe Antwort wie ohne. **Empfehlung für Abnehmer: keinen
 
 ## Endpunkte
 
-| Pfad                       | Zweck                                         | Bestand |
-| -------------------------- | --------------------------------------------- | ------- |
-| `GET /api/v1/gesundheit`   | Trägt der Dienst, ist die Schnittstelle offen | nein    |
-| `GET /api/v1/beschreibung` | Jeder Endpunkt mit Zweck und Parametern       | nein    |
-| `GET /api/v1/openapi.json` | Das maschinenlesbare Schema                   | nein    |
-| `GET /api/v1/artikel`      | Die publizierten Beiträge, neueste zuerst     | ja      |
-| `GET /api/v1/artikel/{id}` | Ein Beitrag, gleiche Form wie in der Liste    | ja      |
-| `GET /api/v1/korrekturen`  | Beiträge, die zurückgezogen wurden            | ja      |
-| `GET /api/v1/bilanz`       | Wie viel auf welchem Tisch liegt, in Zahlen   | ja      |
-| `GET /api/v1/gemeinden`    | Die bespielten Gemeinden mit ihren Kennungen  | ja      |
+| Pfad                                       | Zweck                                                                        | Bestand |
+| ------------------------------------------ | ---------------------------------------------------------------------------- | ------- |
+| `GET /api/v1/gesundheit`                   | Trägt der Dienst, ist die Schnittstelle offen                                | nein    |
+| `GET /api/v1/beschreibung`                 | Jeder Endpunkt mit Zweck und Parametern                                      | nein    |
+| `GET /api/v1/openapi.json`                 | Das maschinenlesbare Schema                                                  | nein    |
+| `GET /api/v1/artikel`                      | Die publizierten Beiträge, neueste zuerst                                    | ja      |
+| `GET /api/v1/artikel/{id}`                 | Ein Beitrag, gleiche Form wie in der Liste                                   | ja      |
+| `GET /api/v1/korrekturen`                  | Beiträge, die zurückgezogen wurden                                           | ja      |
+| `GET /api/v1/bilanz`                       | Wie viel auf welchem Tisch liegt, in Zahlen                                  | ja      |
+| `GET /api/v1/gemeinden`                    | Die bespielten Gemeinden mit ihren Kennungen                                 | ja      |
+| `GET /api/v1/abnehmer/{kennung}`           | Wo ein Abnehmer steht: sein Stand, wann bestätigt, wie viel offen (1.5.0)    | ja      |
+| `POST /api/v1/abnehmer/{kennung}/abgeholt` | Der Abnehmer bestätigt, bis wohin er gespeichert hat — mit Schlüssel (1.5.0) | ja      |
 
 Die drei ersten antworten auch bei abgeschalteter Schnittstelle — ein Wächter
 muss sehen können, was fehlt.
 
 ### Parameter von `/artikel`
 
-| Name       | Form         | Bedeutung                                                                               |
-| ---------- | ------------ | --------------------------------------------------------------------------------------- |
-| `gemeinde` | Slug         | z. B. `muenchenstein`. Unbekannt → `404`. Die gültigen Werte nennt `/api/v1/gemeinden`. |
-| `seit`     | `JJJJ-MM-TT` | Nur ab diesem Tag publiziert. **Einschliesslich, ab 00:00 UTC.**                        |
-| `grenze`   | 1 … 500      | Vorgabe 100.                                                                            |
-| `versatz`  | ab 0         | Vorgabe 0.                                                                              |
+| Name       | Form         | Bedeutung                                                                                                       |
+| ---------- | ------------ | --------------------------------------------------------------------------------------------------------------- |
+| `gemeinde` | Slug         | z. B. `muenchenstein`. Unbekannt → `404`. Die gültigen Werte nennt `/api/v1/gemeinden`.                         |
+| `seit`     | `JJJJ-MM-TT` | Nur ab diesem Tag publiziert. **Einschliesslich, ab 00:00 UTC.** Mit `abnehmer` nur vor der ersten Bestätigung. |
+| `abnehmer` | Kennung      | z. B. `dorfkoenig`. Nur Beiträge hinter dem bestätigten Stand, älteste zuerst — siehe „Abholen ohne Doppel".    |
+| `grenze`   | 1 … 500      | Vorgabe 100.                                                                                                    |
+| `versatz`  | ab 0         | Vorgabe 0. Mit `abnehmer` nicht erlaubt.                                                                        |
 
-Unbekannte Parameter werden ignoriert. Sortierung immer `publiziert_am`
-absteigend.
+Unbekannte Parameter werden ignoriert. Sortierung `publiziert_am` absteigend,
+bei gleichem Zeitpunkt `id` absteigend — mit `abnehmer` beides aufsteigend.
 
 ### Listenform (R8)
 
@@ -73,7 +76,8 @@ absteigend.
 
 Geblättert wird, bis `weitere` false ist (oder `versatz + anzahl >= gesamt`).
 Hinter dem Ende bleibt `gesamt` stehen, `anzahl` ist 0 — daran erkennt ein
-Abnehmer, dass er zu weit ist.
+Abnehmer, dass er zu weit ist. Mit `abnehmer` trägt der Umschlag zusätzlich
+einen Block `abholung` (unten).
 
 ## Ein Beitrag
 
@@ -192,6 +196,92 @@ erfundene Stufe.
 
 Das Siegel trägt **keinen Text** des Beitrags und kein Arbeitsmaterial — nur
 Warnungslisten, drei Zeitpunkte und die Herkunft, die der Beitrag ohnehin nennt.
+
+## Abholen ohne Doppel (seit 1.5.0)
+
+Der Dorfkönig erzeugte Mehrfacheinträge (gemessen am 23. September 2026).
+Der Grund liegt in der Abfrage: `?seit=` ist auf den **Tag** einschliesslich,
+ein um 09:00 publizierter Beitrag kommt bei jedem Aufruf desselben Tages
+wieder, und wer sich merken muss, was er schon hat, vergisst es irgendwann.
+Seit 1.5.0 merkt sich die Schnittstelle das selbst — je Abnehmer, unter
+seiner Kennung.
+
+**Der Ablauf, drei Schritte, immer dieselben:**
+
+1. `GET /api/v1/artikel?abnehmer=dorfkoenig&grenze=100` — nur Beiträge
+   **hinter** dem bestätigten Stand, **älteste zuerst**. Der Umschlag trägt
+   zusätzlich:
+
+   ```json
+   "abholung": {
+     "abnehmer": "dorfkoenig",
+     "bisher": "2026-09-22T14:03:11.412Z|3f9c…",
+     "stand":  "2026-09-23T07:41:02.118Z|8a10…"
+   }
+   ```
+
+   `bisher` ist der Stand vor diesem Aufruf (null beim ersten Kontakt),
+   `stand` der Stand des **letzten Beitrags dieser Seite** (null, wenn die
+   Seite leer ist).
+
+2. Die Beiträge speichern.
+3. `POST /api/v1/abnehmer/dorfkoenig/abgeholt` mit der Kopfzeile
+   `X-Abnehmer-Key: <Schlüssel>` und dem Körper
+   `{"stand": "<genau der Wert aus abholung.stand>"}`. Antwort:
+
+   ```json
+   {
+     "abnehmer": "dorfkoenig",
+     "stand": "2026-09-23T07:41:02.118Z|8a10…",
+     "abgeholt_bis": "2026-09-23T07:41:02.118Z",
+     "abgeholt_am": "2026-09-23T09:00:04.512Z",
+     "offen": 0,
+     "vorher": "2026-09-22T14:03:11.412Z|3f9c…"
+   }
+   ```
+
+   `offen` sagt, wie viele Beiträge noch hinter dem neuen Stand liegen.
+
+Solange `weitere` true ist: zurück zu 1. Eine Seite, die nicht bestätigt
+wurde, kommt beim nächsten Aufruf **unverändert wieder** — das ist die
+Garantie gegen Verlust. Die Bestätigung ist die Garantie gegen Doppel.
+
+**Was der Stand ist.** `<publiziert_am>|<id>` des letzten Beitrags der
+Seite: lesbar, damit ein Mensch weiss, welcher es war — aber **nie selbst
+gebaut und nie die eigene Uhr**. Ein Beitrag, der zwischen Abruf und
+Bestätigung publiziert wird, fiele sonst durch. Die Liste beginnt strikt
+**nach dem Zeitpunkt** des Stands. Beiträge, die denselben Zeitpunkt teilen,
+werden nie über zwei Seiten verteilt: eine Seite kann darum ein, zwei
+Beiträge **kürzer** als `grenze` sein (die Gruppe kommt ganz auf der
+nächsten) oder in einem seltenen Fall **länger** (eine Gruppe, die grösser als
+`grenze` ist, kommt ganz). `anzahl` sagt, was kam; `weitere` bleibt wahr.
+
+**Regeln.**
+
+- `gemeinde` und `versatz` sind mit `abnehmer` nicht erlaubt (`400`): der
+  Stand gilt für alle Gemeinden, geblättert wird über die Bestätigung.
+- `seit` ist mit `abnehmer` nur erlaubt, solange **kein** Stand bestätigt ist —
+  der Einstieg. Danach `400`; den Parameter weglassen.
+- Ein **älterer** Stand setzt zurück und liefert erneut. Das ist gewollt: der
+  einzige Weg, einen Verlust auf der Abnehmerseite zu heilen. `vorher` zeigt
+  den Schritt.
+- `GET /api/v1/abnehmer/dorfkoenig` zeigt jederzeit Stand, Zeitpunkt der
+  Bestätigung und `offen`. Ohne Bestätigung: alles null, `offen` = alle
+  publizierten Beiträge. Ohne Schlüssel lesbar wie alles andere.
+- Der Schlüssel (`BLOG_API_ABNEHMER_KEY`) kommt von der Redaktion. Fehlt er in
+  deren Umgebung, antwortet die Bestätigung `503 nicht_konfiguriert`; stimmt
+  er nicht, `401 nicht_berechtigt`. Nicht als `Authorization` schicken — die
+  Kopfzeile gehört Directus.
+- Ein zurückgezogener und wieder publizierter Beitrag behält sein
+  `publiziert_am` und kommt darum **nicht** ein zweites Mal — er war schon da.
+  `/korrekturen` meldet den Rückzug, `/artikel/{id}` das Wiedererscheinen.
+- `/artikel/{id}` und `/korrekturen` sind unverändert. Das tägliche Nachlesen
+  eines Beitrags (Termin, Text) läuft weiter darüber.
+
+**Umstellung.** Einmal
+`GET /api/v1/artikel?abnehmer=dorfkoenig&seit=<Tag, ab dem noch nichts
+gespeichert ist>`, speichern, bestätigen. Ab dann ohne `seit`. Die alte
+Abfrage mit `?seit=` funktioniert weiter — nur ohne Gedächtnis.
 
 ## Korrekturen
 
@@ -363,13 +453,15 @@ Jede Antwort ausser 2xx ist:
 `code` ist stabiles ASCII zum Verzweigen, `meldung` ist deutsche Prosa und darf
 sich ändern.
 
-| Status | `code`                       | Wann                                                                                          |
-| ------ | ---------------------------- | --------------------------------------------------------------------------------------------- |
-| 400    | `ungueltige_eingabe`         | Parameter fehlt, unlesbar oder ausserhalb des Erlaubten                                       |
-| 404    | `nicht_gefunden`             | unbekannter Pfad, unbekannte Gemeinde, unbekannte, unpublizierte oder krumme Beitrags-Kennung |
-| 405    | `methode_nicht_erlaubt`      | alles ausser GET                                                                              |
-| 500    | `interner_fehler`            | die Anwendung ist gestolpert; die Meldung nennt den Fehlertyp, nie einen Stacktrace           |
-| 503    | `schnittstelle_abgeschaltet` | `BLOG_API_OFFEN` ist nicht gesetzt                                                            |
+| Status | `code`                       | Wann                                                                                                                                                               |
+| ------ | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 400    | `ungueltige_eingabe`         | Parameter fehlt, unlesbar oder ausserhalb des Erlaubten; ein Stand, der keiner ist; `abnehmer` mit `gemeinde`, `versatz` oder (nach der ersten Bestätigung) `seit` |
+| 401    | `nicht_berechtigt`           | nur auf der Bestätigung: `X-Abnehmer-Key` fehlt oder stimmt nicht                                                                                                  |
+| 404    | `nicht_gefunden`             | unbekannter Pfad, unbekannte Gemeinde, unbekannte, unpublizierte oder krumme Beitrags-Kennung                                                                      |
+| 405    | `methode_nicht_erlaubt`      | eine andere Methode als die des Pfads; die Meldung nennt die erlaubte                                                                                              |
+| 500    | `interner_fehler`            | die Anwendung ist gestolpert; die Meldung nennt den Fehlertyp, nie einen Stacktrace                                                                                |
+| 503    | `schnittstelle_abgeschaltet` | `BLOG_API_OFFEN` ist nicht gesetzt                                                                                                                                 |
+| 503    | `nicht_konfiguriert`         | nur auf der Bestätigung: `BLOG_API_ABNEHMER_KEY` ist bei der Redaktion nicht gesetzt                                                                               |
 
 **Eine Ausnahme:** `/gesundheit` antwortet auch im Fehlerfall (503) mit ihrem
 eigenen Körper statt mit diesem Umschlag — R3 verlangt denselben Körper, damit
@@ -387,6 +479,11 @@ nicht.
    Token nicht erreichbar (die Public-Policy hat keine Rechte), und diese
    Schnittstelle erzwingt ihre `grenze` selbst.
 2. **Ungültiges Merkmal → 401** statt ignoriert, siehe oben. Plattformverhalten.
+3. **Ein `POST` auf einer lesenden Schnittstelle** (R2): die Bestätigung des
+   Abnehmers. Sie ändert keinen Beitrag, nur, was demselben Abnehmer als
+   Nächstes angeboten wird — und sie braucht deshalb einen Schlüssel, wo alles
+   Lesende keinen braucht. Die Alternative, dass sich jeder Abnehmer selbst
+   merkt, was er schon hat, ist die, die Doppel erzeugt hat.
 
 ## Abnahme
 
@@ -397,6 +494,10 @@ curl -s $A/gemeinden | python3 -m json.tool           # die gueltigen Kennungen
 curl -s "$A/artikel?gemeinde=muenchenstein&seit=2026-08-01&grenze=5" | python3 -m json.tool
 curl -s "$A/artikel?grenze=501"                       # 400 ungueltige_eingabe
 curl -s $A/quatsch                                    # 404 im eigenen Umschlag, nie HTML
+curl -s "$A/artikel?abnehmer=dorfkoenig&grenze=3"     # aelteste zuerst, mit abholung.stand
+curl -s -X POST "$A/abnehmer/dorfkoenig/abgeholt" -H "X-Abnehmer-Key: $KEY" \
+  -H 'Content-Type: application/json' -d '{"stand":"<abholung.stand>"}'   # offen, vorher
+curl -s $A/abnehmer/dorfkoenig                        # der Stand, jederzeit
 ```
 
 Gegen die Live-Instanz durchlaufen am 3. September 2026: 72 publizierte
@@ -437,4 +538,8 @@ Wert je Enum, keine neue Form. Version 1.4.0 am 22. September 2026: das Feld
 vom 21. September — optional, rückwärtskompatibel; wer es nicht liest, merkt
 nichts. Die Versionsnummer in `/v1/beschreibung` und `/v1/openapi.json` sprang
 dabei von 1.2.0 auf 1.4.0: 1.3.0 war im Vertrag dokumentiert, aber im Code nie
-gestempelt._
+gestempelt. Version 1.5.0 am 23. September 2026: der Stand je Abnehmer
+(`?abnehmer=`, `abholung` im Umschlag, `GET /abnehmer/{kennung}`,
+`POST /abnehmer/{kennung}/abgeholt` mit Schlüssel) gegen die Mehrfacheinträge
+des Dorfkönigs; die Liste ohne `abnehmer` ist unverändert, nur die Sortierung
+hat bei gleichem Zeitpunkt jetzt die `id` als zweiten Schlüssel._

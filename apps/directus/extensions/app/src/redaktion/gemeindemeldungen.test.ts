@@ -271,7 +271,7 @@ describe('schreibeGemeindeMeldungen', () => {
     completeJson.mockReset()
     completeJson.mockResolvedValue({
       ...antwort,
-      termin: { ideal: '2026-11-03', ende: null }
+      termin: { ideal: '2026-11-03', ende: '2026-11-03' }
     })
 
     await schreibeGemeindeMeldungen(d, 10)

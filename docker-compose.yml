@@ -104,6 +104,12 @@ services:
       # Absicht offen ist, ist es zu unrecht. "ja" schaltet sie ein.
       BLOG_API_OFFEN: ${BLOG_API_OFFEN:-}
 
+      # Der Schluessel, mit dem ein Abnehmer (der Dorfkoenig) seinen Stand
+      # bestaetigt (POST /api/v1/abnehmer/<kennung>/abgeholt, Kopfzeile
+      # "X-Abnehmer-Key"); danach liefert ?abnehmer=… nur noch Neues. Leer
+      # heisst: die Bestaetigung antwortet 503, die Liste bleibt lesbar.
+      BLOG_API_ABNEHMER_KEY: ${BLOG_API_ABNEHMER_KEY:-}
+
       # Die Kennung des Mediums, das diese Instanz traegt. Der Dorfkoenig liest
       # mehrere Redaktionen und muss wissen, wer spricht; sie steht in
       # /api/v1/gesundheit und auf jedem Beitrag. Ohne Wert bleibt das Haus

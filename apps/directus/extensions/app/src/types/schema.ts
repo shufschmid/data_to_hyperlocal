@@ -861,6 +861,30 @@ export interface Schema {
   abstimmungen: Abstimmung[]
   veranstaltungsquellen: Veranstaltungsquelle[]
   veranstaltungen: Veranstaltung[]
+  abnehmer: Abnehmer[]
+}
+
+/**
+ * A consumer of the public API and where it got to — one row per consumer.
+ *
+ * Written only through `POST /api/v1/abnehmer/:kennung/abgeholt`: the consumer
+ * confirms the Stand of the last article it stored, and `/api/v1/artikel?abnehmer=`
+ * then starts strictly behind it. The Stand is the pair `(abgeholt_bis,
+ * abgeholt_id)`, because two articles can share an instant and a time alone
+ * would repeat or lose one at a page boundary (`endpoints/api/abholung.ts`).
+ */
+export interface Abnehmer {
+  id: string
+  /** The consumer's name in path and query — `dorfkoenig`. Unique. */
+  kennung: string
+  /** `publiziert_am` of the last article the consumer confirmed. */
+  abgeholt_bis: string | null
+  /** Its id — the tiebreak of the keyset. Kept as text so a deleted article cannot null it. */
+  abgeholt_id: string | null
+  /** When the confirmation arrived, by this server's clock. */
+  abgeholt_am: string | null
+  date_created: string | null
+  date_updated: string | null
 }
 
 export type MitteilungsPlattform =

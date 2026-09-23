@@ -213,6 +213,17 @@ export default defineEndpoint((router, { services, getSchema, logger }) => {
   the same, because how much unpublished work lies inside is not less private
   than what has already gone out. A monitor that only needs to know whether the
   service carries asks `/api/v1/gesundheit`, which answers either way.
+  Since 23 September 2026 it also carries the ONE write of this API: a
+  consumer confirming where it got to (`POST /v1/abnehmer/:kennung/abgeholt`,
+  rules in `abholung.ts`, row in `abnehmer`), behind `BLOG_API_ABNEHMER_KEY`
+  in `X-Abnehmer-Key` — the Sokrates gate, now shared as
+  `shared/schluessel.ts`. Two things measured while building it: Directus
+  allows no `_gt` on a uuid field, and the refusal escaped as an UNCAUGHT
+  crash of the whole process (thrown inside knex's compile callback), so the
+  cursor filters on the instant alone and cuts pages along whole instants
+  (`schneideSeite`) rather than keying on `(publiziert_am, id)`; and
+  `publiziert_am` carries no microseconds anywhere, because every writer is
+  JavaScript — which is what makes millisecond equality safe.
   Contract for consumers: [SCHNITTSTELLE.md](SCHNITTSTELLE.md).
 - **The one endpoint that trades a foreign token for a session:**
   `POST /redaktion/editor-zugang` (`src/endpoints/redaktion/editorzugang.ts`,
@@ -523,6 +534,12 @@ names itself, never a silent yes. `EDITOR_HERKUNFT` must be the NAKED origin —
 the editor mints the token with `audience: app.url` and its own `userinfo`
 compares that against `new URL(app.url).origin`, so an External App registered
 with a path (or a trailing slash) can never authenticate at all.
+
+`BLOG_API_ABNEHMER_KEY` (23 September 2026) is the newest and follows
+`SOKRATES_API_KEY`: `optionalEnv`, empty means the consumer's confirmation
+answers 503 `nicht_konfiguriert` and every read stays open. It is a shared
+secret with the Dorfkönig, travels in `X-Abnehmer-Key`, and is compared
+timing-safe in `shared/schluessel.ts`.
 
 **Not everything configurable is a variable.** Which statistics portals are read
 lives in `quellen` — one row per portal, `basis_url` for the address and

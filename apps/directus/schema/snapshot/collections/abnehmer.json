@@ -1,0 +1,28 @@
+{
+  "collection": "abnehmer",
+  "meta": {
+    "accountability": "all",
+    "archive_app_filter": true,
+    "archive_field": null,
+    "archive_value": null,
+    "collapse": "open",
+    "collection": "abnehmer",
+    "color": null,
+    "display_template": "{{kennung}}",
+    "group": null,
+    "hidden": false,
+    "icon": "bookmark",
+    "item_duplication_fields": null,
+    "note": "Ein Abnehmer der oeffentlichen Schnittstelle je Zeile (der Dorfkoenig ist \"dorfkoenig\") und wo er steht: der Stand des letzten Beitrags, den er bestaetigt hat. Geschrieben nur ueber POST /api/v1/abnehmer/:kennung/abgeholt; /api/v1/artikel?abnehmer=… beginnt dahinter. Von Hand nur zuruecksetzen, nie vorstellen — ein vorgestellter Stand ueberspringt Beitraege.",
+    "preview_url": null,
+    "singleton": false,
+    "sort": null,
+    "sort_field": null,
+    "translations": null,
+    "unarchive_value": null,
+    "versioning": false
+  },
+  "schema": {
+    "name": "abnehmer"
+  }
+}

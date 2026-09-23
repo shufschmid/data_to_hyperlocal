@@ -250,6 +250,32 @@ them is wrong even if it works.
    the flips are numerous enough to measure. Measured on the first real
    article (22 September 2026): Münchenstein's Gemeindeversammlung came back
    `wichtig` with its day as the appearance — the Dorfkönig's own example.
+   **Since 23 September 2026 the API also holds each consumer's BOOKMARK**
+   (`endpoints/api/abholung.ts`, contract 1.5.0), because the Dorfkönig
+   generated duplicate entries: `?seit=` is inclusive on a DAY, and a consumer
+   that has to remember what it already has eventually forgets.
+   `GET /api/v1/artikel?abnehmer=dorfkoenig` serves only what lies behind the
+   consumer's confirmed Stand, oldest first, and the consumer confirms the
+   last article of a stored page with `POST /api/v1/abnehmer/:kennung/abgeholt`
+   — the one WRITE on this API, behind `BLOG_API_ABNEHMER_KEY` in
+   `X-Abnehmer-Key` (the Sokrates pattern; `shared/schluessel.ts` is the gate
+   both doors use now). Four things measured or decided. The Stand is
+   `<publiziert_am>|<id>` of the last article, copied from the answer and
+   never built from the consumer's clock. The cursor filters on the INSTANT
+   alone: Directus allows no `_gt` on a uuid field, and the refusal took the
+   whole process down (an uncaught throw inside knex's compile callback) — so
+   a page is cut along whole instants instead (`schneideSeite`): one row over
+   `grenze` is read to see whether the boundary falls inside a
+   same-millisecond group, and such a group is held back whole or, when it is
+   the entire page, delivered whole and declared by `anzahl`. Millisecond
+   equality is safe because every writer of `publiziert_am` is JavaScript
+   (checked on the live rows). `gemeinde` and `versatz` are refused together
+   with `abnehmer`, `seit` only before the first confirmation — each would let
+   the Stand skip rows, and a skip nobody asked for is the one thing the list
+   must not do. An older Stand moves the bookmark back and re-delivers,
+   deliberately: it is the consumer's only way to recover a loss. The row
+   lives in `abnehmer` (`kennung` unique), read and written by this endpoint
+   alone.
    The tab values are NAMES, not indices (`reiter === 'amtsblatt'`): the order
    was renumbered twice, and each time every `reiter === N` had to move with it. „Sportresultate" is the second feed and works
    the same way as the first: a source that publishes on its own schedule, watched
@@ -1067,6 +1093,7 @@ them is wrong even if it works.
 | which municipalities a weekly paper covers                      | „Gemeinden" → die Karte → „Zuordnung ändern"; ein NEUES Blatt weiterhin im Reiter „Wochenblätter"                                                                                                                                                                                  |
 | a change to what the Dorfkönig reads                            | `endpoints/api/` in the bundle — the register drives the routes AND the docs; contract in [apps/directus/SCHNITTSTELLE.md](apps/directus/SCHNITTSTELLE.md)                                                                                                                         |
 | what counts as an important event, or how its termin is planned | `redaktion/termin.ts` (the plan: ideal, ende, which appearances) and the two writers' prompts; the newsroom's verdicts feed back through `redaktion/wichtigkeit.ts`. A standing rule goes into „Gelerntes" → „Regel erfassen" with `stufe: text`                                   |
+| a consumer of the API that gets duplicates, or a new consumer   | nothing to build: it asks with `?abnehmer=<kennung>` and confirms with `POST /api/v1/abnehmer/<kennung>/abgeholt` (SCHNITTSTELLE.md 1.5.0, rules in `endpoints/api/abholung.ts`); its row appears in `abnehmer` by itself. The key is `BLOG_API_ABNEHMER_KEY`                      |
 | who may enter from the We.Publish editor                        | `redaktion/editorzugang.ts` — `rolleFuer` (which editor permission opens the door) and `pruefeToken` (whose token is accepted); the Directus user itself is created by hand in the admin UI, never here                                                                            |
 | a second medium, or a second statistics portal                  | [apps/directus/MEDIUM_ANLEGEN.md](apps/directus/MEDIUM_ANLEGEN.md) — a portal is a ROW in `quellen` (`basis_url` + `konfiguration`), never a constant and never an environment variable                                                                                            |
 | which municipalities lie under the south approach               | „Gemeinden" → die Karte → `gemeinden.suedanflug`; die Quote gilt für den FLUGHAFEN, wer betroffen ist, entscheidet die Redaktion. Leer heisst: die Monatszeile steht da und sagt, dass niemand erfasst ist                                                                         |
@@ -1904,6 +1931,11 @@ checked rather than assumed, and there is a test.
   Dorfkönig gets (`apiTermin`); the second never changes, so the difference
   stays measurable, and `ladeWichtigkeitSignale` turns it into the examples
   the next articles are written with. Per desk, not per municipality.
+- `abnehmer` — where each consumer of the public API stands: `abgeholt_bis` +
+  `abgeholt_id` (the Stand of the last article it confirmed) and
+  `abgeholt_am`. Written by the consumer's own confirmation and by nothing
+  else; an administrator may set it BACK to re-deliver, never forward — a
+  forwarded Stand skips articles nobody saw.
 - `sendungskandidaten.entscheid` + `ablehnungsgrund` — the broadcast feed's
   memory, scoped PER SHOW rather than per municipality: what counts as "only
   mentioned" is a property of how a programme talks, and the two talk very

@@ -1,4 +1,3 @@
-import { createHash, timingSafeEqual } from 'node:crypto'
 import { beitraegeAusEdition } from '../../redaktion/sendunglauf'
 import type { ExtraTopic, TranscriptParagraph } from '../../types/schema'
 
@@ -11,31 +10,10 @@ import type { ExtraTopic, TranscriptParagraph } from '../../types/schema'
 // Abschnitte the Sichtung judges (`beitraegeAusEdition`), plus the whole
 // transcript.
 
-export type Zugang = 'ok' | 'nicht_konfiguriert' | 'verweigert'
-
-/**
- * The gate. An empty key means the door is not configured — 503, never a
- * silent yes (the same stance as `BLOG_API_OFFEN`). A configured key is
- * compared timing-safe: both sides are hashed to a fixed length first, so
- * neither content nor length leaks through the comparison time.
- *
- * The key travels in `X-Sokrates-Key`, NOT in `Authorization` — measured on
- * the running instance: Directus' own auth middleware runs before every custom
- * endpoint and rejects any Bearer token it cannot resolve as one of its own,
- * so a foreign key in that header never reaches this code (401
- * INVALID_CREDENTIALS from Directus itself).
- */
-export function pruefeZugang(kopfzeile: unknown, schluessel: string): Zugang {
-  if (schluessel === '') return 'nicht_konfiguriert'
-  if (typeof kopfzeile !== 'string' || kopfzeile === '') return 'verweigert'
-  return gleich(kopfzeile.trim(), schluessel) ? 'ok' : 'verweigert'
-}
-
-function gleich(a: string, b: string): boolean {
-  const ha = createHash('sha256').update(a).digest()
-  const hb = createHash('sha256').update(b).digest()
-  return timingSafeEqual(ha, hb)
-}
+// The gate itself lives in shared/schluessel.ts since the public API grew a
+// confirmation door of its own; re-exported here so the callers and the
+// tests of this module keep their address.
+export { pruefeZugang, type Zugang } from '../../shared/schluessel'
 
 export interface SokratesAbfrage {
   /** Only Sendungen broadcast on or after this day, `YYYY-MM-DD`. */

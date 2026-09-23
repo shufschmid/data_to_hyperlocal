@@ -35,13 +35,18 @@ describe('buildBeschreibung', () => {
     expect(endpunkte.map((e) => e.pfad)).toEqual(
       REGISTER.map((r) => dokuPfad(r.pfad))
     )
-    for (const e of endpunkte) {
-      expect(e.methoden).toEqual(['GET'])
+    for (const [i, e] of endpunkte.entries()) {
+      expect(e.methoden).toEqual([...REGISTER[i]!.methoden])
       expect(e.zweck.length).toBeGreaterThan(10)
     }
+    // Genau ein Weg schreibt: die Bestaetigung des Abnehmers, mit Schluessel.
+    const schreibend = endpunkte.filter((e) => e.methoden.includes('POST'))
+    expect(schreibend.map((e) => e.pfad)).toEqual([
+      '/api/v1/abnehmer/{kennung}/abgeholt'
+    ])
     // Die Liste fuehrt ihre Parameter, die Gesundheit hat keine.
     const artikel = endpunkte.find((e) => e.pfad === '/api/v1/artikel')!
-    expect(artikel.parameter).toHaveLength(4)
+    expect(artikel.parameter).toHaveLength(5)
     expect(
       endpunkte.find((e) => e.pfad === '/api/v1/gesundheit')!.parameter
     ).toBeUndefined()
@@ -75,6 +80,31 @@ describe('buildOpenapi', () => {
     >
     expect(paths['/api/v1/artikel']!.get.responses['503']).toBeDefined()
     expect(paths['/api/v1/gesundheit']!.get.responses['503']).toBeUndefined()
+  })
+
+  it('beschreibt die Bestaetigung als POST mit Kopfzeile, Koerper und 401', () => {
+    const paths = buildOpenapi()['paths'] as Record<
+      string,
+      Record<string, unknown>
+    >
+    const weg = paths['/api/v1/abnehmer/{kennung}/abgeholt']!
+    expect(Object.keys(weg)).toEqual(['post'])
+    const post = weg['post'] as {
+      parameters: { name: string; in: string }[]
+      requestBody: {
+        content: Record<string, { schema: { required: string[] } }>
+      }
+      responses: Record<string, unknown>
+    }
+    expect(post.parameters.map((p) => `${p.in}:${p.name}`)).toEqual([
+      'path:kennung',
+      'header:X-Abnehmer-Key'
+    ])
+    expect(
+      post.requestBody.content['application/json']!.schema.required
+    ).toEqual(['stand'])
+    expect(post.responses['401']).toBeDefined()
+    expect(post.responses['503']).toBeDefined()
   })
 })
 

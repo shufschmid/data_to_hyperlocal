@@ -4,6 +4,7 @@ import { envFlag, optionalEnv } from '../../shared/env'
 import { verdrahte, type Deps, type RouterLike } from './routen'
 import type { Abfrage } from './routen'
 import type { GemeindeZeile, Korrekturzeile, Rohzeile } from './projektion'
+import { schneideSeite, standFilter, type AbnehmerZeile } from './abholung'
 import type { BilanzZeile } from '../../redaktion/bilanz'
 
 // The public read-only API for the published articles, mounted at `/api/v1/…`.
@@ -93,6 +94,10 @@ export default defineEndpoint(
         filter['gemeinde'] = { _eq: abfrage.gemeinde.id }
       if (abfrage.seit !== undefined)
         filter['publiziert_am'] = { _gte: abfrage.seit }
+      // The consumer's bookmark: strictly after its instant. `seit` cannot be
+      // set at the same time — the route refuses the combination.
+      if (abfrage.nach !== undefined)
+        filter['publiziert_am'] = standFilter(abfrage.nach).publiziert_am
       return filter
     }
 
@@ -146,16 +151,61 @@ export default defineEndpoint(
       return new ItemsService('meldungen', { schema: await getSchema() })
     }
 
+    /**
+     * One page. The id is the tiebreak in the ORDER, both ways: two articles
+     * can share an instant, and a page boundary between them must be the
+     * same boundary on the next call. (It cannot be part of a cursor
+     * FILTER — Directus allows no `_gt` on a uuid — which is what the cut
+     * below is for.)
+     */
+    async function leseSeite(
+      filter: Filter,
+      aufsteigend: boolean,
+      limit: number,
+      offset: number
+    ): Promise<Rohzeile[]> {
+      const dienst = await meldungen()
+      return (await dienst.readByQuery({
+        filter,
+        fields: [...FELDER],
+        sort: aufsteigend ? ['publiziert_am', 'id'] : ['-publiziert_am', '-id'],
+        limit,
+        offset
+      })) as unknown as Rohzeile[]
+    }
+
     const deps: Deps = {
       async ladeArtikel(abfrage) {
-        const dienst = await meldungen()
-        return (await dienst.readByQuery({
-          filter: filterVon(abfrage),
-          fields: [...FELDER],
-          sort: ['-publiziert_am'],
-          limit: abfrage.grenze,
-          offset: abfrage.versatz
-        })) as unknown as Rohzeile[]
+        const aufsteigend = abfrage.aufsteigend === true
+        if (abfrage.nach === undefined)
+          return leseSeite(
+            filterVon(abfrage),
+            aufsteigend,
+            abfrage.grenze,
+            abfrage.versatz
+          )
+
+        // Behind a bookmark the page is cut along whole instants, so a group
+        // of articles published in the same millisecond never straddles the
+        // boundary the consumer will confirm. One row more than asked tells
+        // whether the boundary falls inside such a group.
+        const roh = await leseSeite(
+          filterVon(abfrage),
+          aufsteigend,
+          abfrage.grenze + 1,
+          0
+        )
+        const { seite, ganzeGruppe } = schneideSeite(roh, abfrage.grenze)
+        if (ganzeGruppe === null) return seite
+        // The page is one instant with more rows than the limit: deliver the
+        // instant whole. Longer than `grenze`, and declared by `anzahl` —
+        // holding it back would hold it back for ever.
+        return leseSeite(
+          { ...filterVon(abfrage), publiziert_am: { _eq: ganzeGruppe } },
+          aufsteigend,
+          -1,
+          0
+        )
       },
 
       async zaehleArtikel(abfrage) {
@@ -252,6 +302,37 @@ export default defineEndpoint(
           return false
         }
       },
+
+      async ladeAbnehmer(kennung) {
+        const dienst = new ItemsService('abnehmer', {
+          schema: await getSchema()
+        })
+        const zeilen = (await dienst.readByQuery({
+          filter: { kennung: { _eq: kennung } },
+          fields: ['kennung', 'abgeholt_bis', 'abgeholt_id', 'abgeholt_am'],
+          limit: 1
+        })) as unknown as AbnehmerZeile[]
+        return zeilen[0] ?? null
+      },
+
+      async speichereAbnehmer(zeile) {
+        const dienst = new ItemsService('abnehmer', {
+          schema: await getSchema()
+        })
+        const vorhanden = (await dienst.readByQuery({
+          filter: { kennung: { _eq: zeile.kennung } },
+          fields: ['id'],
+          limit: 1
+        })) as unknown as { id: string }[]
+        const erste = vorhanden[0]
+        // `kennung` is unique in the schema, so a race between two first
+        // confirmations fails loudly on the second insert instead of
+        // producing two bookmarks for one consumer.
+        if (erste === undefined) await dienst.createOne(zeile)
+        else await dienst.updateOne(erste.id, zeile)
+      },
+
+      abnehmerSchluessel: () => optionalEnv('BLOG_API_ABNEHMER_KEY', ''),
 
       // Read per request: switching the API on or off is an environment change
       // and a restart, never a code change.
