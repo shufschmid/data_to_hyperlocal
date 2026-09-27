@@ -388,6 +388,41 @@ export interface AnlassFakten {
   url: string
   /** Today, ISO — the "Stand" line of a Dauerangebot names it. */
   heute: string
+  /**
+   * The page was read and names only the key facts — no description, no
+   * document. The writer may then write from title and fields alone, but only
+   * where the title itself says what takes place (27.09.2026: «Sonntagsbrunch
+   * im Restaurant Piazza» does, «Kultur am Sunntig mit Almi» does not).
+   */
+  nurEckdaten?: boolean
+}
+
+/**
+ * Whether the key facts are there at all: a day, and a time or a place. Below
+ * that even a self-explanatory title leaves nothing to report.
+ */
+export function hatEckdaten(
+  f: Pick<AnlassFakten, 'von' | 'zeit' | 'lokalitaet' | 'adresse' | 'ort'>
+): boolean {
+  if (typeof f.von !== 'string' || f.von === '') return false
+  const text = (w: string | null) => w !== null && w.trim() !== ''
+  return text(f.zeit) || text(f.lokalitaet) || text(f.adresse) || text(f.ort)
+}
+
+/** What the card says about an article written from the key facts alone. */
+export const NUR_ECKDATEN_HINWEIS =
+  'Nur aus den Eckdaten geschrieben — die Seite des Anlasses hat keinen Beschrieb.'
+
+/**
+ * The writer's refusal in Eckdaten mode: `{"genuegt": false}`. Anything else
+ * is an article and goes through the ordinary parser and checks.
+ */
+export function eckdatenGenuegenNicht(antwort: unknown): boolean {
+  return (
+    typeof antwort === 'object' &&
+    antwort !== null &&
+    (antwort as { genuegt?: unknown }).genuegt === false
+  )
 }
 
 export const MELDUNG_SYSTEM_PROMPT = `Du schreibst fuer eine lokale Redaktion in der Region Basel kurze Meldungen ueber Anlaesse aus dem Veranstaltungskalender einer Gemeinde.
@@ -438,7 +473,16 @@ fuer ein geschlossenes Publikum. Stehen unten Entscheide der Redaktion, richte
 dich danach.
 
 Antworte ausschliesslich mit JSON:
-{"titel": "...", "lead": "...", "text": "...", "wichtig": true | false}`
+{"titel": "...", "lead": "...", "text": "...", "wichtig": true | false}
+
+NUR ECKDATEN: Steht in den Angaben "Kein Beschrieb", hast du nur den Titel und
+die Felder. Schreibe dann NUR, wenn der Titel selbst sagt, was stattfindet
+("Sonntagsbrunch im Restaurant Piazza", "Flohmarkt auf dem Dorfplatz"): zwei
+bis drei Saetze aus Titel, Datum, Zeit, Ort und Veranstalter, nichts dazu
+erfunden, keine Vermutung, wer auftritt oder was geboten wird. Sagt der Titel
+das nicht — ein Name ohne Erklaerung ("mit Almi"), ein Sammelbegriff ("Kultur
+am Sonntag") —, schreibe nichts und antworte ausschliesslich mit:
+{"genuegt": false}`
 
 export const MAX_TEXT = 12_000
 export const MAX_DOKUMENT = 6_000
@@ -554,10 +598,16 @@ function faktenZeilen(f: AnlassFakten): string[] {
       ? ['', 'Traktanden:', ...f.traktanden.map((t) => `- ${t}`)]
       : []),
     '',
-    'Beschrieb des Veranstalters:',
-    f.beschreibung.trim() === ''
-      ? '(kein Beschrieb)'
-      : gekuerzt(f.beschreibung.trim(), MAX_TEXT),
+    ...(f.nurEckdaten === true
+      ? [
+          'Kein Beschrieb: die Seite des Anlasses nennt nur die Eckdaten oben. Schreibe nur, wenn der Titel sagt, was stattfindet — sonst {"genuegt": false}.'
+        ]
+      : [
+          'Beschrieb des Veranstalters:',
+          f.beschreibung.trim() === ''
+            ? '(kein Beschrieb)'
+            : gekuerzt(f.beschreibung.trim(), MAX_TEXT)
+        ]),
     ...(f.textAbgeschnitten
       ? [
           '',

@@ -13,6 +13,8 @@ import {
   quelleZeile,
   RUHEND_TAGE,
   SICHTUNG_SYSTEM_PROMPT,
+  eckdatenGenuegenNicht,
+  hatEckdaten,
   standZeile,
   termineText,
   volltextVon,
@@ -435,5 +437,40 @@ describe('Herabstufungsgruende der Sichtung', () => {
     expect(SICHTUNG_SYSTEM_PROMPT).not.toContain(
       'ein Kurs mit\nGebuehr und Anmeldung'
     )
+  })
+})
+
+// Seit dem 27.09.2026: ohne Beschrieb darf eine Meldung aus den Eckdaten
+// entstehen, wenn der Titel sagt, was stattfindet — der Schreiber entscheidet.
+describe('Meldung aus den Eckdaten', () => {
+  it('braucht einen Tag und dazu eine Zeit oder einen Ort', () => {
+    const e = {
+      von: '2026-10-04',
+      zeit: null,
+      lokalitaet: null,
+      adresse: null,
+      ort: null
+    }
+    expect(hatEckdaten(e)).toBe(false)
+    expect(hatEckdaten({ ...e, zeit: '10:30 Uhr - 13:00 Uhr' })).toBe(true)
+    expect(hatEckdaten({ ...e, lokalitaet: 'Restaurant Piazza' })).toBe(true)
+    expect(hatEckdaten({ ...e, von: '', ort: 'Reinach' })).toBe(false)
+  })
+
+  it('sagt dem Schreiber, dass nur die Eckdaten da sind, statt einen leeren Beschrieb zu zeigen', () => {
+    const prompt = buildMeldungPrompt({
+      ...fakten({ beschreibung: '' }),
+      nurEckdaten: true
+    })
+    expect(prompt).toContain('Kein Beschrieb')
+    expect(prompt).not.toContain('Beschrieb des Veranstalters:')
+  })
+
+  it('erkennt die Absage des Schreibers', () => {
+    expect(eckdatenGenuegenNicht({ genuegt: false })).toBe(true)
+    expect(eckdatenGenuegenNicht({ titel: 'x', lead: 'y', text: 'z' })).toBe(
+      false
+    )
+    expect(eckdatenGenuegenNicht(null)).toBe(false)
   })
 })

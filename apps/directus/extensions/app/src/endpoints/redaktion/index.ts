@@ -209,6 +209,9 @@ import {
   attributionsWarnung as anlassAttributionsWarnung,
   buildMeldungPrompt as buildAnlassPrompt,
   buildMeldungRevision as buildAnlassRevision,
+  eckdatenGenuegenNicht,
+  hatEckdaten,
+  NUR_ECKDATEN_HINWEIS,
   MELDUNG_SYSTEM_PROMPT as ANLASS_SYSTEM_PROMPT,
   mitQuelle as mitAnlassQuelle,
   parseMeldung as parseAnlassMeldung,
@@ -551,10 +554,26 @@ const AnlassSchonEntschieden = createError(
   409
 )
 
+// Three refusals, told apart (27.09.2026): «Jetzt pruefen» helps only with
+// the last one, and one message for all three sent the editor retrying pages
+// that simply carry no text.
 const AnlassOhneText = createError(
   'TEXT_FEHLT',
-  'Der Beschrieb des Anlasses liegt nicht vor — ohne ihn wird keine Meldung geschrieben. «Jetzt pruefen» liest die Detailseite nach.',
+  'Die Seite des Anlasses nennt weder Beschrieb noch Datum mit Zeit oder Ort — daraus wird keine Meldung geschrieben.',
   422
+)
+
+const AnlassNurEckdaten = createError(
+  'NUR_ECKDATEN',
+  'Die Seite des Anlasses nennt nur die Eckdaten, und der Titel sagt nicht, was stattfindet — daraus wird keine Meldung geschrieben.',
+  422
+)
+
+const AnlassNichtGelesen = createError<{ grund: string }>(
+  'DETAIL_NICHT_GELESEN',
+  ({ grund }) =>
+    `Die Detailseite des Anlasses konnte gerade nicht gelesen werden (${grund}). Später nochmals «Meldung schreiben» versuchen.`,
+  503
 )
 
 const UngueltigerDauerangebotModus = createError(
@@ -3185,6 +3204,8 @@ export default defineEndpoint(
         prompt,
         maxTokens: 1500
       })
+      if (fakten.nurEckdaten === true && eckdatenGenuegenNicht(antwort))
+        throw new AnlassNurEckdaten()
       let bericht = parseAnlassMeldung(antwort)
       let attribution = anlassAttributionsWarnung(
         `${bericht.lead} ${bericht.text}`,
@@ -3215,7 +3236,8 @@ export default defineEndpoint(
           `${bericht.lead} ${bericht.text}`,
           anlassVolltext(fakten)
         ).map((w) => w.replace('aus dem Blatt', 'aus dem Kalender')),
-        ...(attribution === null ? [] : [attribution])
+        ...(attribution === null ? [] : [attribution]),
+        ...(fakten.nurEckdaten === true ? [NUR_ECKDATEN_HINWEIS] : [])
       ]
       return { bericht, warnungen, wichtig: wichtigAus(antwort) }
     }
@@ -3274,7 +3296,7 @@ export default defineEndpoint(
     async function lieseAnlassNach(
       zeile: AnlassRohzeile,
       heute: string
-    ): Promise<void> {
+    ): Promise<{ gelesen: true } | { gelesen: false; grund: string }> {
       try {
         const leser = erstelleLeser({
           kontakt: optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch'),
@@ -3306,11 +3328,16 @@ export default defineEndpoint(
             ort: zeile.ort
           })
         )
+        return { gelesen: true }
       } catch (fehler) {
         logger.warn(
           fehler,
           `redaktion: Detailseite zu "${zeile.titel}" nicht nachgelesen.`
         )
+        return {
+          gelesen: false,
+          grund: fehler instanceof Error ? fehler.message : 'unbekannter Fehler'
+        }
       }
     }
 
@@ -3351,12 +3378,23 @@ export default defineEndpoint(
           const falschGelesen =
             zeile.url_kanonisch !== null &&
             leitetAufUebersicht(zeile.url, zeile.url_kanonisch)
+          let nachgelesen: Awaited<ReturnType<typeof lieseAnlassNach>> | null =
+            null
           if (falschGelesen || !hatAnlassMaterial(anlassFakten(zeile, heute))) {
-            await lieseAnlassNach(zeile, heute)
+            nachgelesen = await lieseAnlassNach(zeile, heute)
             zeile = await ladeAnlassZeile(id, req.accountability)
           }
-          const fakten = anlassFakten(zeile, heute)
-          if (!hatAnlassMaterial(fakten)) throw new AnlassOhneText()
+          const vorlage = anlassFakten(zeile, heute)
+          // Without a description: a failed read is a retry, a page with the
+          // key facts may still be written from them (the writer decides
+          // whether the title says what takes place), a page without them not.
+          let fakten = vorlage
+          if (!hatAnlassMaterial(vorlage)) {
+            if (nachgelesen !== null && !nachgelesen.gelesen)
+              throw new AnlassNichtGelesen({ grund: nachgelesen.grund })
+            if (!hatEckdaten(vorlage)) throw new AnlassOhneText()
+            fakten = { ...vorlage, nurEckdaten: true }
+          }
 
           const { bericht, warnungen, wichtig } = await anlassMitChecks(
             fakten,
@@ -3439,7 +3477,8 @@ export default defineEndpoint(
             status === 404 ||
             status === 400 ||
             status === 409 ||
-            status === 422
+            status === 422 ||
+            status === 503
           )
             return next(uebersetze(error))
           logger.error(

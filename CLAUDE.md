@@ -790,8 +790,18 @@ them is wrong even if it works.
    detail page ON DEMAND when the row carries no text, with the same reader
    and the same manners as the run and WITHOUT recomputing the anchor
    (`nachgelesenePayload`) — the editor has just decided on that anchor and
-   wants her article, not a new classification. Only if that read brings
-   nothing either is the refusal the honest answer. **A detail page can send the
+   wants her article, not a new classification. **And a page that carries no
+   description is not always a dead end** (27 September 2026, two WBZ
+   entries in Reinach with the same bare fields): where the title itself
+   says what takes place — „Sonntagsbrunch im Restaurant Piazza" — the writer
+   may make two or three sentences out of title, day, time, place and
+   organiser (`nurEckdaten`, the card says so), and where it does not —
+   „Kultur am Sunntig im WBZ mit Almi" — it answers `{"genuegt": false}` and
+   nothing is written. That judgement is the model's; the refusals are
+   three and told apart, because only one of them is worth a retry: the page
+   could not be read (503, try again), it names only the key facts and the
+   title says nothing (422), it names not even a day with a time or place
+   (422). **A detail page can send the
    reader UP to the calendar, and that is not the page** (measured on Reinach,
    27 September 2026): a date's page answers 302 to `../index.php` once the
    date has passed, and read as the Anlass it handed over the whole calendar
