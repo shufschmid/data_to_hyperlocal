@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
-import { fetchErfuellungsort, fetchVergabestellen, SimapFehler } from './index'
+import {
+  fetchErfuellungsort,
+  fetchVergabestellen,
+  SimapFehler,
+  vergabestellenIds
+} from './index'
 
 // The network half, with a stubbed fetch — the pagination and the manners are
 // the parts worth pinning; the shapes are covered by parse.test.ts against real
@@ -54,13 +59,18 @@ describe('fetchVergabestellen', () => {
     }) as unknown as typeof fetch
 
     const { projekte } = await fetchVergabestellen(
-      ['uuid-a', 'uuid-b'],
+      [
+        'aaaaaaaa-0000-4000-8000-00000000000a',
+        'bbbbbbbb-0000-4000-8000-00000000000b'
+      ],
       '2026-08-30',
       abruf(stub)
     )
 
     expect(projekte).toHaveLength(1)
-    expect(urls[0]).toContain('issuedByOrganizations=uuid-a%2Cuuid-b')
+    expect(urls[0]).toContain(
+      'issuedByOrganizations=aaaaaaaa-0000-4000-8000-00000000000a%2Cbbbbbbbb-0000-4000-8000-00000000000b'
+    )
     expect(urls[0]).toContain('newestPublicationFrom=2026-08-30')
     // Wir sagen, wer wir sind — dieselbe Manier wie bei den anderen Quellen.
     expect(kopfzeilen[0]!['User-Agent']).toContain('test@example.ch')
@@ -75,7 +85,7 @@ describe('fetchVergabestellen', () => {
     }) as unknown as typeof fetch
 
     const { projekte, abgeschnitten } = await fetchVergabestellen(
-      ['uuid-a'],
+      ['aaaaaaaa-0000-4000-8000-00000000000a'],
       '2026-01-01',
       abruf(stub)
     )
@@ -92,7 +102,7 @@ describe('fetchVergabestellen', () => {
       antwort([projekt(1)], '2026-09-01|1001')) as unknown as typeof fetch
 
     const { projekte, abgeschnitten } = await fetchVergabestellen(
-      ['uuid-a'],
+      ['aaaaaaaa-0000-4000-8000-00000000000a'],
       '2026-01-01',
       abruf(stub)
     )
@@ -138,8 +148,51 @@ describe('hole', () => {
     }) as unknown as typeof fetch
 
     await expect(
-      fetchVergabestellen(['uuid-a'], '2026-09-01', abruf(stub))
+      fetchVergabestellen(
+        ['aaaaaaaa-0000-4000-8000-00000000000a'],
+        '2026-09-01',
+        abruf(stub)
+      )
     ).rejects.toThrow(SimapFehler)
     expect(versuche).toBe(1)
+  })
+})
+
+// Gemessen am 27.09.2026: eine Migration schrieb Allschwils und Reinachs
+// Vergabestellen als blosse uuids. Daraus wurde ein LEERER Filter, und simap
+// antwortet auf einen leeren Filter mit der ganzen Schweiz.
+describe('vergabestellenIds', () => {
+  const A = '1c10de22-1d6a-4088-a86f-bdeb81b729b3'
+  const B = '460483e1-0f3f-4db6-9c87-f0ee170dabbb'
+
+  it('liest die Objektform und die blosse Kennung gleich', () => {
+    expect(
+      vergabestellenIds([
+        { id: A, name: 'Einwohnergemeinde Allschwil', typ: 'communal' },
+        B
+      ])
+    ).toEqual({
+      ids: [A, B],
+      unlesbar: 0
+    })
+  })
+
+  it('zaehlt, was keine Kennung ist, statt es zu schicken', () => {
+    expect(
+      vergabestellenIds([{ name: 'ohne id' }, '', 'Gemeinde Reinach', null])
+    ).toEqual({ ids: [], unlesbar: 4 })
+    expect(vergabestellenIds(null)).toEqual({ ids: [], unlesbar: 0 })
+  })
+})
+
+describe('fetchVergabestellen', () => {
+  it('schickt nie einen Filter ohne gueltige Kennung', async () => {
+    const fetchImpl = vi.fn()
+    await expect(
+      fetchVergabestellen([''], '2026-09-25', {
+        fetchImpl
+      } as unknown as Parameters<typeof fetchVergabestellen>[2])
+    ).rejects.toThrow('ohne gueltige Kennung')
+    expect(fetchImpl).not.toHaveBeenCalled()
   })
 })

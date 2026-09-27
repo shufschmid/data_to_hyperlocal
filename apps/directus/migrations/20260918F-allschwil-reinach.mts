@@ -57,17 +57,31 @@ const ALLSCHWILER_WOCHENBLATT = {
 const STAMMDATEN: ReadonlyArray<{
   bfs: number
   plz: string
-  vergabestellen: string[]
+  vergabestellen: Array<{ id: string; name: string; typ: string }>
 }> = [
   {
     bfs: ALLSCHWIL,
     plz: '4123',
-    vergabestellen: ['1c10de22-1d6a-4088-a86f-bdeb81b729b3']
+    // The column's shape is `{id, name, typ}`: bare strings here made the run
+    // send an empty filter until 20260927A repaired it.
+    vergabestellen: [
+      {
+        id: '1c10de22-1d6a-4088-a86f-bdeb81b729b3',
+        name: 'Einwohnergemeinde Allschwil',
+        typ: 'communal'
+      }
+    ]
   },
   {
     bfs: REINACH,
     plz: '4153',
-    vergabestellen: ['d1048e1d-637d-43d5-aa5d-f7019df30cf8']
+    vergabestellen: [
+      {
+        id: 'd1048e1d-637d-43d5-aa5d-f7019df30cf8',
+        name: 'Gemeinde Reinach, Technische Verwaltung',
+        typ: 'communal'
+      }
+    ]
   }
 ]
 

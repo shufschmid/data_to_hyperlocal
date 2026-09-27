@@ -58,6 +58,42 @@ const ALLE_UNTERTYPEN = [
   'request_for_information'
 ] as const
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * The procurement-office ids out of `gemeinden.simap_vergabestellen`, whatever
+ * shape the column holds, and what could not be read.
+ *
+ * Measured on 27 September 2026: `migrations/20260918F` wrote Allschwil's and
+ * Reinach's offices as bare uuid STRINGS, while the column is meant to hold
+ * `{id, name, typ}` objects. `.map((v) => v.id)` made `undefined` of each
+ * string, the join made an EMPTY filter, and simap answers an empty
+ * `issuedByOrganizations` with every publication in Switzerland — five full
+ * pages a run, filed as Allschwil's and Reinach's own tenders. So both shapes
+ * are read here, and anything that is not a uuid is named instead of sent.
+ */
+export function vergabestellenIds(roh: unknown): {
+  ids: string[]
+  unlesbar: number
+} {
+  if (!Array.isArray(roh)) return { ids: [], unlesbar: 0 }
+  const ids: string[] = []
+  let unlesbar = 0
+  for (const eintrag of roh) {
+    const wert =
+      typeof eintrag === 'string'
+        ? eintrag
+        : typeof eintrag === 'object' && eintrag !== null
+          ? (eintrag as { id?: unknown }).id
+          : undefined
+    const id = typeof wert === 'string' ? wert.trim() : ''
+    if (UUID.test(id)) {
+      if (!ids.includes(id)) ids.push(id)
+    } else unlesbar += 1
+  }
+  return { ids, unlesbar }
+}
+
 export class SimapFehler extends Error {
   constructor(
     message: string,
@@ -191,6 +227,12 @@ export async function fetchVergabestellen(
   options: AbrufOptionen
 ): Promise<SimapSuche> {
   if (vergabestellen.length === 0) return { projekte: [], abgeschnitten: false }
+  // The filter is the whole attribution: simap IGNORES an empty or broken
+  // one and answers with everything (measured 27.09.2026). Never send one.
+  if (vergabestellen.some((id) => !UUID.test(id)))
+    throw new Error(
+      `Vergabestelle ohne gueltige Kennung: ${vergabestellen.join(', ')}`
+    )
   const such = new URLSearchParams()
   such.set('issuedByOrganizations', vergabestellen.join(','))
   such.set('newestPublicationFrom', seit)

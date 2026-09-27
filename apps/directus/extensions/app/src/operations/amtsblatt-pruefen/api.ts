@@ -49,11 +49,11 @@ import {
   fetchDetail,
   fetchErfuellungsort,
   fetchVergabestellen,
+  vergabestellenIds,
   kantonVonBezirk,
   type SimapGemeinde,
   type SimapProjekt
 } from '../../shared/simap'
-import type { SimapVergabestelle } from '../../types/schema'
 
 // The 07:00 look at the official gazette portal — and at simap.ch.
 //
@@ -229,7 +229,8 @@ export default defineOperationApi<Optionen>({
       bfs_nummer: number
       bezirk: string
       plz: string[] | null
-      simap_vergabestellen: SimapVergabestelle[] | null
+      /** Meant as `{id, name, typ}[]`; a seed once wrote bare uuids — read by `vergabestellenIds`. */
+      simap_vergabestellen: unknown
     }[]
 
     // The work cap NAMES what it skips. It used to sit in the query itself:
@@ -276,9 +277,13 @@ export default defineOperationApi<Optionen>({
       const gefunden: { projekt: SimapProjekt; gemeinde: SimapGemeinde }[] = []
 
       for (const gemeinde of gemeinden) {
-        const stellen = (gemeinde.simap_vergabestellen ?? [])
-          .map((v) => v.id)
-          .filter((id) => id !== '')
+        const { ids: stellen, unlesbar } = vergabestellenIds(
+          gemeinde.simap_vergabestellen
+        )
+        if (unlesbar > 0)
+          ergebnis.fehler.push(
+            `simap.ch: ${unlesbar} Vergabestelle(n) von ${gemeinde.name} ohne lesbare Kennung — in der Gemeindekarte pruefen.`
+          )
         if (stellen.length === 0) {
           ergebnis.ohneVergabestellen.push(gemeinde.name)
           continue

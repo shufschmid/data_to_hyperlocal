@@ -440,7 +440,17 @@ them is wrong even if it works.
    silently; the place-of-performance match must therefore anchor on the
    postcode, never the city name (Reinach AG 5734 vs. Reinach BL 4153);
    and the search REFUSES a filter-only request, which is why the second query
-   carries the full `projectSubTypes` list as its quick filter.
+   carries the full `projectSubTypes` list as its quick filter. **And an EMPTY
+   office filter is ignored, not refused** (measured 27 September 2026): simap
+   answers `issuedByOrganizations=` with every publication in Switzerland.
+   `20260918F` had seeded Allschwil's and Reinach's offices as bare uuid
+   strings where the column holds `{id, name, typ}`, the run read `.id` off a
+   string, and for nine days both desks received five pages of foreign
+   tenders as their own. `vergabestellenIds` now reads both shapes and names
+   what it cannot read, `fetchVergabestellen` refuses anything that is not a
+   uuid before a request goes out, and `20260927A` put the data right and
+   removed the untouched foreign rows (those naming neither the municipality
+   nor its postcode).
    Volume was measured, and it decides the design: **12 publications a day over
    seven municipalities, eight of them commercial-register routine**. So one
    Sonnet call per municipality per run TRIAGES the day's titles — it SORTS,
