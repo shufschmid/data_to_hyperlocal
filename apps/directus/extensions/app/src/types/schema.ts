@@ -1322,6 +1322,8 @@ export interface Abstimmung {
   /** `cast-json`: the previous vote day's turnout per covered municipality. */
   vergleich: Abstimmungsvergleich | null
   quelle_url: string | null
+  /** `cast-json`: the Bund's outcome of a federal Vorlage — the yardstick of a deviation, never a figure for the text. */
+  bund: { angenommen: boolean | null; beendet: boolean } | null
   stand: string | null
   /** `cast-json`: what the run could not read. A gap is never silent. */
   hinweise: string[] | null

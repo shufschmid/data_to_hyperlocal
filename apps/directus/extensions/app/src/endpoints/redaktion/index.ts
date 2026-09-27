@@ -10,9 +10,7 @@ import {
 } from './editorzugang'
 import { ADRESSFELDER, speichereAdresse } from './gemeindeseitenadresse'
 import {
-  buildAbstimmungsPrompt,
   buildAbstimmungsRevision,
-  datengrundlageAbstimmung,
   faktenFuer as abstimmungsFaktenFuer,
   MeldungSchonDa as AbstimmungsmeldungSchonDa,
   meldungsfelder as abstimmungsMeldungsfelder,
@@ -21,6 +19,15 @@ import {
   type Abstimmungszeile
 } from './abstimmung'
 import type { AbstimmungsFakten } from '../../redaktion/abstimmung'
+import {
+  ladeTag,
+  legeTagesmeldungAn,
+  schreibeTagesmeldung,
+  tagesFaktenAus,
+  tagesMeldungsfelder,
+  vorhandeneTagesmeldung
+} from '../../redaktion/abstimmungsmeldungen'
+import { buildTagesRevision } from '../../redaktion/abstimmungstag'
 import {
   buildSuedanflugPrompt,
   buildSuedanflugRevision,
@@ -4003,6 +4010,40 @@ export default defineEndpoint(
         schema: await getSchema()
       })
 
+      // Since 27 September 2026 a vote article is the DAY's summary for the
+      // municipality; it is revised from the whole day, which is also where
+      // the editor names the most interesting Vorlagen. An older per-Vorlage
+      // article keeps its own path.
+      const gespeichert = (await meldungen.readOne(meldung.id, {
+        fields: ['datengrundlage']
+      })) as { datengrundlage: { quelle?: unknown } | null }
+      if (gespeichert.datengrundlage?.quelle === 'abstimmungstag') {
+        const schema = await getSchema()
+        const abstimmungen = new ItemsService('abstimmungen', { schema })
+        const gemeinden = new ItemsService('gemeinden', { schema })
+        const zeile = (await abstimmungen.readOne(abstimmungId, {
+          fields: ['datum']
+        })) as { datum: string }
+        const gemeinde = (await gemeinden.readOne(gemeindeId, {
+          fields: ['id', 'name', 'bfs_nummer']
+        })) as Pick<Gemeinde, 'id' | 'name' | 'bfs_nummer'>
+        const tag = tagesFaktenAus(
+          await ladeTag(abstimmungen, zeile.datum),
+          gemeinde
+        )
+        const entwurf = await schreibeTagesmeldung(
+          tag,
+          buildTagesRevision(
+            tag,
+            { ...meldung, text: ohneAbstimmungsQuelle(meldung.text) },
+            anweisung,
+            await regelnFuer('abstimmung', 'text')
+          )
+        )
+        await meldungen.updateOne(meldung.id, tagesMeldungsfelder(entwurf, tag))
+        return entwurf.warnungen
+      }
+
       const fakten = await ladeAbstimmungsMaterial(
         abstimmungId,
         gemeindeId,
@@ -4049,44 +4090,47 @@ export default defineEndpoint(
             accountability: req.accountability
           })
 
-          // One article per municipality and Vorlage. A second click, or two
-          // tabs racing, must not produce two pieces about the same result.
-          const vorhandene = (await meldungenService.readByQuery({
-            filter: {
-              abstimmung: { _eq: abstimmungId },
-              gemeinde: { _eq: gemeindeId },
-              status: { _neq: 'verworfen' }
-            },
-            fields: ['id'],
-            limit: 1
-          })) as { id: string }[]
-          if (vorhandene.length > 0)
+          // ONE article per municipality and vote DAY since 27 September 2026:
+          // whichever Vorlage of the day the button names, the summary covers
+          // all of them and hangs on the day's first row. A second click, or
+          // the Sunday run having written it already, must not produce a
+          // second piece.
+          const abstimmungen = new ItemsService('abstimmungen', {
+            schema,
+            accountability: req.accountability
+          })
+          const gemeinden = new ItemsService('gemeinden', {
+            schema,
+            accountability: req.accountability
+          })
+          const zeile = (await abstimmungen.readOne(abstimmungId, {
+            fields: ['datum']
+          })) as { datum: string }
+          const tag = await ladeTag(abstimmungen, zeile.datum)
+          if (
+            (await vorhandeneTagesmeldung(
+              meldungenService,
+              tag,
+              gemeindeId
+            )) !== null
+          )
             return next(new AbstimmungsmeldungSchonDa())
 
-          const fakten = await ladeAbstimmungsMaterial(
-            abstimmungId,
-            gemeindeId,
-            req.accountability
-          )
-          const entwurf = await schreibeAbstimmungsmeldung(
-            fakten,
-            buildAbstimmungsPrompt(
-              fakten,
-              await regelnFuer('abstimmung', 'text')
-            )
+          const gemeinde = (await gemeinden.readOne(gemeindeId, {
+            fields: ['id', 'name', 'bfs_nummer']
+          })) as Pick<Gemeinde, 'id' | 'name' | 'bfs_nummer'>
+          const angelegt = await legeTagesmeldungAn(
+            {
+              abstimmungen,
+              gemeinden,
+              meldungen: meldungenService,
+              regeln: await regelnFuer('abstimmung', 'text')
+            },
+            tag,
+            gemeinde
           )
 
-          const meldungId = (await meldungenService.createOne({
-            abstimmung: abstimmungId,
-            gemeinde: gemeindeId,
-            status: 'entwurf',
-            ...abstimmungsMeldungsfelder(entwurf, fakten),
-            datengrundlage: datengrundlageAbstimmung(fakten)
-          })) as string
-
-          return res.json({
-            data: { meldung: meldungId, warnungen: entwurf.warnungen }
-          })
+          return res.json({ data: angelegt })
         } catch (error) {
           const status = (error as { status?: unknown }).status
           if (

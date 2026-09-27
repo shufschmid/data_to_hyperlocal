@@ -1,14 +1,19 @@
 import { defineOperationApi } from '@directus/extensions-sdk'
 import { defaultFetch } from '../../shared/ods'
 import {
+  bundFuer,
+  liesBund,
   liesAbstimmungen,
   liesGemeindezahlen,
   liesVework,
   liesVorherigesDatum,
   waehleZeilen,
   type Abstimmungszeile,
+  type BundVorlage,
   type Leseergebnis
 } from '../../shared/abstimmung'
+import { ladeRegeln } from '../../redaktion/gedaechtnis'
+import { schreibeTagesmeldungen } from '../../redaktion/abstimmungsmeldungen'
 import { heuteIso } from '../../redaktion/feiertage'
 import {
   gemeindeStand,
@@ -52,6 +57,8 @@ interface Ergebnis {
   /** Active portals without a dataset in their configuration. Named, not logged. */
   ohneDatensatz: string[]
   vorlagen: number
+  /** Summary drafts written by this run. */
+  meldungen: number
   gemeindenAusgezaehlt: number
   gemeindenOffen: number
   /** German sentences: counting in progress is not an error and must not read like one. */
@@ -74,6 +81,32 @@ function liveAus(konfiguration: unknown): string | null {
   return typeof wert === 'string' && /^https:\/\//.test(wert.trim())
     ? wert.trim().replace(/\/$/, '')
     : null
+}
+
+/** The Bund's vote-day files, where a portal names them (`konfiguration.abstimmungen_bund`). */
+function bundAus(konfiguration: unknown): string | null {
+  if (typeof konfiguration !== 'object' || konfiguration === null) return null
+  const wert = (konfiguration as Record<string, unknown>)['abstimmungen_bund']
+  return typeof wert === 'string' && /^https:\/\//.test(wert.trim())
+    ? wert.trim().replace(/\/$/, '')
+    : null
+}
+
+/**
+ * Whether the day is ready for the drafts: every covered municipality counted
+ * in every Vorlage, and the Bund final for each federal one — or the last
+ * scheduled run of the evening, when a draft without the national yardstick
+ * is better than none for the Monday briefing.
+ */
+export function tagBereit(eingabe: {
+  unsereBfs: readonly string[]
+  stand: ReadonlyArray<{ bfs: string; ausgezaehlt: boolean }>
+  bundOffen: number
+  letzterLauf: boolean
+}): boolean {
+  const unsere = eingabe.stand.filter((s) => eingabe.unsereBfs.includes(s.bfs))
+  if (unsere.length === 0 || unsere.some((s) => !s.ausgezaehlt)) return false
+  return eingabe.bundOffen === 0 || eingabe.letzterLauf
 }
 
 /** The dataset a portal carries its votes in — a row, never a constant. */
@@ -101,6 +134,7 @@ export default defineOperationApi<Optionen>({
       datum,
       quellen: 0,
       ohneDatensatz: [],
+      meldungen: 0,
       vorlagen: 0,
       gemeindenAusgezaehlt: 0,
       gemeindenOffen: 0,
@@ -140,7 +174,12 @@ export default defineOperationApi<Optionen>({
       ergebnis.quellen += 1
 
       try {
-        await holeQuelle(quelle, datensatz, liveAus(quelle.konfiguration))
+        await holeQuelle(
+          quelle,
+          datensatz,
+          liveAus(quelle.konfiguration),
+          bundAus(quelle.konfiguration)
+        )
       } catch (error) {
         // One unreachable portal must not stop the others.
         logger.error(error, `abstimmungen-holen: ${quelle.name} fehlgeschlagen`)
@@ -153,7 +192,8 @@ export default defineOperationApi<Optionen>({
     async function holeQuelle(
       quelle: Pick<Quelle, 'id' | 'name' | 'basis_url'>,
       datensatz: string,
-      live: string | null
+      live: string | null,
+      bundBasis: string | null
     ): Promise<void> {
       // The one request of an ordinary Sunday. No rows for today means no
       // ballot today, and the run is over.
@@ -208,6 +248,21 @@ export default defineOperationApi<Optionen>({
       const jetzt = new Date().toISOString()
       const vergleich = await holeVergleich(quelle, datensatz)
 
+      // The Bund's outcome of the federal Vorlagen — only whether each was
+      // accepted, the yardstick of «anders als die Schweiz». A failure is said
+      // and costs the comparison, never the day.
+      let bund: BundVorlage[] | null = null
+      if (bundBasis !== null && vorlagen.some((v) => v.ebene === 'bund')) {
+        try {
+          bund = await liesBund(bundBasis, datum, defaultFetch)
+        } catch (error) {
+          ergebnis.hinweise.push(
+            `${quelle.name}: das Ergebnis des Bundes konnte nicht gelesen werden (${fehlerText(error)}) — der Vergleich mit der Schweiz fehlt.`
+          )
+        }
+      }
+      let bundOffen = 0
+
       for (const vorlage of vorlagen.slice(0, hoechstens)) {
         const vorhandene = (await abstimmungenService.readByQuery({
           filter: { vote_id: { _eq: vorlage.voteId } },
@@ -229,6 +284,19 @@ export default defineOperationApi<Optionen>({
               : null
         })
 
+        if (vorlage.ebene === 'bund') {
+          const eigene = bund === null ? null : bundFuer(vorlage.titel, bund)
+          if (eigene === null || !eigene.beendet) bundOffen += 1
+          if (bund !== null && eigene === null)
+            ergebnis.hinweise.push(
+              `${quelle.name}: «${vorlage.titel}» steht nicht im Ergebnis des Bundes — kein Vergleich mit der Schweiz.`
+            )
+          felder['bund'] =
+            eigene === null
+              ? null
+              : { angenommen: eigene.angenommen, beendet: eigene.beendet }
+        }
+
         const bestehende = vorhandene[0]
         if (bestehende === undefined) {
           await abstimmungenService.createOne(felder)
@@ -237,6 +305,60 @@ export default defineOperationApi<Optionen>({
         }
         ergebnis.vorlagen += 1
       }
+
+      // The drafts, once the day is there: one summary per covered
+      // municipality (the newsroom's words of 27 September 2026 — the
+      // newsroom fetches the data itself, and when it is there it generates
+      // the proposals). Ready means every covered municipality counted and the
+      // Bund final; the evening's last run writes without the Bund rather
+      // than leaving the Monday briefing empty.
+      const stunde = Number(
+        new Intl.DateTimeFormat('de-CH', {
+          timeZone: 'Europe/Zurich',
+          hour: '2-digit',
+          hour12: false
+        }).format(new Date())
+      )
+      const bereit = tagBereit({
+        unsereBfs: unsere.map((g) => g.bfs),
+        stand,
+        bundOffen,
+        letzterLauf: stunde >= 20
+      })
+      if (!bereit) {
+        ergebnis.hinweise.push(
+          `${quelle.name}: Meldungsvorschlaege folgen, sobald alle bespielten Gemeinden ausgezaehlt${bundOffen > 0 ? ' und der Bund final' : ''} ist.`
+        )
+        return
+      }
+      const regeln = (
+        await ladeRegeln(
+          new ItemsService('redaktionswissen', { schema }),
+          { bereich: 'abstimmung', stufe: 'text' },
+          { warn: (m: string) => logger.warn(m) }
+        )
+      ).map((r) => r.regel)
+      const geschrieben = await schreibeTagesmeldungen(
+        {
+          abstimmungen: abstimmungenService,
+          gemeinden: gemeindenService,
+          meldungen: new ItemsService('meldungen', { schema }),
+          regeln
+        },
+        datum,
+        gemeinden
+      )
+      ergebnis.meldungen += geschrieben.geschrieben.length
+      if (geschrieben.geschrieben.length > 0)
+        ergebnis.hinweise.push(
+          `${quelle.name}: ${geschrieben.geschrieben.length} Meldungsvorschlaege geschrieben (${geschrieben.geschrieben.join(', ')}).`
+        )
+      if (geschrieben.wartend > 0)
+        ergebnis.hinweise.push(
+          `${quelle.name}: ${geschrieben.wartend} warten auf den naechsten Lauf (Deckel).`
+        )
+      for (const f of geschrieben.fehler)
+        ergebnis.fehler.push(`${quelle.name}: ${f}`)
     }
 
     /**

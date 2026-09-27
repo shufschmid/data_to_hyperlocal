@@ -294,9 +294,7 @@ function Zeile({ eintrag, laeuft, berichte, onAuftrag, onVerwerfen }: ZeileProps
             eintrag={eintrag}
             laeuft={laeuft}
             gemeindenNachBfs={berichte.gemeindenNachBfs}
-            meldungen={
-              eintrag.abstimmungId === null ? [] : (berichte.zuAbstimmung?.get(eintrag.abstimmungId) ?? [])
-            }
+            meldungen={eintrag.abstimmungIds.flatMap((id) => berichte.zuAbstimmung?.get(id) ?? [])}
             onMeldung={berichte.onAbstimmungsMeldung}
             onChat={berichte.onChat}
             onAktion={berichte.onAktion}
@@ -411,6 +409,11 @@ interface AbstimmungProps {
 /**
  * Was unter einer Abstimmungszeile steht.
  *
+ * Eine Zeile je Abstimmungssonntag, eine zusammenfassende Meldung je Gemeinde
+ * über alle Vorlagen des Tages (seit dem 27. September 2026). Der Lauf
+ * schreibt sie selbst, sobald alles ausgezählt ist; der Knopf bleibt für eine
+ * Gemeinde, die er noch nicht hat.
+ *
  * Ein Knopf je bespielter Gemeinde — aber nur, wo sie fertig ausgezählt ist.
  * Eine Gemeinde, die noch zählt, steht da und sagt das, statt einen Knopf zu
  * zeigen, der ohnehin 422 antworten würde: eine teilausgezählte Gemeinde ist
@@ -439,6 +442,11 @@ function Abstimmung({
 
   return (
     <Stack spacing={1} sx={{ pt: 0.5 }}>
+      {eintrag.beschreibung !== null && eintrag.beschreibung !== '' && (
+        <Typography variant="body2" color="text.secondary">
+          {eintrag.beschreibung}
+        </Typography>
+      )}
       {eintrag.abstimmungsgemeinden.map((gemeinde) => {
         const erfasst = gemeindenNachBfs?.get(gemeinde.bfs)
         const meldung = meldungen.find((m) => m.gemeinde?.id === erfasst?.id)

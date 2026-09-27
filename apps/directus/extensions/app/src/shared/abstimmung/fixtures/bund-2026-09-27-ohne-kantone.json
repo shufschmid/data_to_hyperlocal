@@ -1,0 +1,127 @@
+{
+  "abstimmtag": "20260927",
+  "timestamp": "2026-09-27T14:34:01",
+  "spatial_reference": [
+    {
+      "spatial_unit": "kant",
+      "spatial_date": "1979-01-01"
+    },
+    {
+      "spatial_unit": "bezk",
+      "spatial_date": "2026-01-01"
+    },
+    {
+      "spatial_unit": "voge",
+      "spatial_date": "2026-01-01"
+    }
+  ],
+  "schweiz": {
+    "geoLevelnummer": 0,
+    "geoLevelname": "Schweiz",
+    "nochKeineInformation": false,
+    "vorlagen": [
+      {
+        "vorlagenId": 6880,
+        "reihenfolgeAnzeige": 6880,
+        "vorlagenTitel": [
+          {
+            "langKey": "de",
+            "text": "Volksinitiative «Wahrung der schweizerischen Neutralität (Neutralitätsinitiative)»"
+          },
+          {
+            "langKey": "fr",
+            "text": "Initiative populaire « Sauvegarder la neutralité suisse (initiative sur la neutralité) »"
+          },
+          {
+            "langKey": "it",
+            "text": "Iniziativa popolare «Salvaguardia della neutralità svizzera (Iniziativa sulla neutralità)»"
+          },
+          {
+            "langKey": "rm",
+            "text": "Iniziativa dal pievel «Mantegnair la neutralitad svizra (Iniziativa da neutralitad)»"
+          },
+          {
+            "langKey": "en",
+            "text": "Popular Initiative 'Safeguard Swiss neutrality (Neutrality Initiative)'"
+          }
+        ],
+        "vorlageBeendet": false,
+        "provisorisch": true,
+        "vorlageAngenommen": null,
+        "vorlagenArtId": 3,
+        "hauptvorlagenId": null,
+        "reserveInfoText": null,
+        "doppeltesMehr": true,
+        "staende": {
+          "jaStaendeGanz": 0,
+          "neinStaendeGanz": 16,
+          "anzahlStaendeGanz": 16,
+          "jaStaendeHalb": 0,
+          "neinStaendeHalb": 5,
+          "anzahlStaendeHalb": 5
+        },
+        "resultat": {
+          "gebietAusgezaehlt": false,
+          "jaStimmenInProzent": 30.932408601,
+          "jaStimmenAbsolut": 724931,
+          "neinStimmenAbsolut": 1618666,
+          "stimmbeteiligungInProzent": 46.697317446,
+          "eingelegteStimmzettel": 2370000,
+          "anzahlStimmberechtigte": 5075238,
+          "gueltigeStimmen": 2343597
+        }
+      },
+      {
+        "vorlagenId": 6890,
+        "reihenfolgeAnzeige": 6890,
+        "vorlagenTitel": [
+          {
+            "langKey": "de",
+            "text": "Volksinitiative «Für eine sichere Ernährung – durch Stärkung einer nachhaltigen inländischen Produktion, mehr pflanzliche Lebensmittel und sauberes Trinkwasser (Ernährungsinitiative)»"
+          },
+          {
+            "langKey": "fr",
+            "text": "Initiative populaire « Pour une alimentation sûre – grâce au renforcement de la protection indigène durable, à davantage de denrées alimentaires végétales et à une eau potable propre (initiative sur l’alimentation) »"
+          },
+          {
+            "langKey": "it",
+            "text": "Iniziativa popolare «Per un’alimentazione sicura – mediante il rafforzamento di una produzione nazionale sostenibile, più derrate alimentari vegetali e acqua potabile pulita (Iniziativa sull’alimentazione)»"
+          },
+          {
+            "langKey": "rm",
+            "text": "Iniziativa dal pievel «Per in’alimentaziun segira – grazia al rinforzament d’ina producziun indigena duraivla, a dapli victualias vegetalas ed ad aua da baiver netta (Iniziativa d’alimentaziun)»"
+          },
+          {
+            "langKey": "en",
+            "text": "Popular Initiative 'For food security – through increased sustainable domestic production, more plant-based food and clean drinking water (Food Initiative)'"
+          }
+        ],
+        "vorlageBeendet": false,
+        "provisorisch": true,
+        "vorlageAngenommen": null,
+        "vorlagenArtId": 3,
+        "hauptvorlagenId": null,
+        "reserveInfoText": null,
+        "doppeltesMehr": true,
+        "staende": {
+          "jaStaendeGanz": 0,
+          "neinStaendeGanz": 16,
+          "anzahlStaendeGanz": 16,
+          "jaStaendeHalb": 0,
+          "neinStaendeHalb": 5,
+          "anzahlStaendeHalb": 5
+        },
+        "resultat": {
+          "gebietAusgezaehlt": false,
+          "jaStimmenInProzent": 26.800111216,
+          "jaStimmenAbsolut": 625569,
+          "neinStimmenAbsolut": 1708634,
+          "stimmbeteiligungInProzent": 46.670678301,
+          "eingelegteStimmzettel": 2368648,
+          "anzahlStimmberechtigte": 5075238,
+          "gueltigeStimmen": 2334203
+        }
+      }
+    ]
+  }
+}

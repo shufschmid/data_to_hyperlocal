@@ -61,7 +61,7 @@ export const AbstimmungUnvollstaendig = createError(
 
 export const MeldungSchonDa = createError(
   'ALREADY_WRITTEN',
-  'Fuer diese Gemeinde und diese Vorlage gibt es bereits eine Meldung.',
+  'Fuer diese Gemeinde und diesen Abstimmungstag gibt es bereits eine Meldung.',
   409
 )
 

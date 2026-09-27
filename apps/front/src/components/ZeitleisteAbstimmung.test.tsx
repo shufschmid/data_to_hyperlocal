@@ -54,10 +54,10 @@ function zeige(
 }
 
 describe('Zeitleiste — Abstimmung', () => {
-  it('zeigt die Vorlage, ihre Herkunft und den Auszählstand', () => {
+  it('zeigt den Abstimmungssonntag, seine Vorlagen und den Auszählstand', () => {
     zeige([vorlage()])
 
-    expect(screen.getByText(/Abstimmung vom 27.09.2026/)).toBeInTheDocument()
+    expect(screen.getByText(/Abstimmungssonntag vom 27.09.2026 · 1 Vorlage/)).toBeInTheDocument()
     expect(screen.getByText('Abstimmung')).toBeInTheDocument()
     expect(screen.getByText(/40 von 86 Gemeinden ausgezählt/)).toBeInTheDocument()
   })

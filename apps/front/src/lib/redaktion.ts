@@ -515,6 +515,62 @@ export function abstimmungsStand(vorlage: {
   return `${fertig} von ${alle} Gemeinden ausgezählt — über eine Gemeinde, die noch zählt, wird nichts geschrieben.`
 }
 
+type Abstimmungsvorlage = NonNullable<ZeitleistenQuellen['abstimmungen']>[number]
+
+export interface Abstimmungstag {
+  datum: string
+  /** Nach `vote_id` — die erste trägt die Meldungen des Tages (wie im Backend). */
+  vorlagen: Abstimmungsvorlage[]
+  gemeinden: AbstimmungsGemeinde[]
+  gemeindenAusgezaehlt: number
+  gemeindenTotal: number
+  ausgezaehlt: boolean
+}
+
+/**
+ * Die Vorlagen je Abstimmungssonntag — seit dem 27. September 2026 schreibt
+ * die Redaktion EINE zusammenfassende Meldung je Gemeinde und Tag. Eine
+ * Gemeinde ist ausgezählt, wenn sie es in JEDER Vorlage des Tages ist, in der
+ * sie steht; das ist dieselbe Regel wie `gemeindeStand` im Backend.
+ */
+export function abstimmungstage(vorlagen: readonly Abstimmungsvorlage[]): Abstimmungstag[] {
+  const nachTag = new Map<string, Abstimmungsvorlage[]>()
+  for (const v of vorlagen) {
+    const bisher = nachTag.get(v.datum)
+    if (bisher === undefined) nachTag.set(v.datum, [v])
+    else bisher.push(v)
+  }
+  return [...nachTag.entries()].map(([datum, liste]) => {
+    const sortiert = [...liste].sort((a, b) => a.vote_id.localeCompare(b.vote_id))
+    const gemeinden = new Map<string, AbstimmungsGemeinde>()
+    for (const v of sortiert) {
+      for (const g of v.gemeindezahlen ?? []) {
+        const bisher = gemeinden.get(g.bfs)
+        gemeinden.set(g.bfs, {
+          bfs: g.bfs,
+          name: g.gemeinde,
+          ausgezaehlt: (bisher?.ausgezaehlt ?? true) && g.ausgezaehlt
+        })
+      }
+    }
+    return {
+      datum,
+      vorlagen: sortiert,
+      gemeinden: [...gemeinden.values()],
+      // Der Tag ist so weit wie seine langsamste Vorlage.
+      gemeindenAusgezaehlt: Math.min(...sortiert.map((v) => v.gemeinden_ausgezaehlt ?? 0)),
+      gemeindenTotal: Math.max(...sortiert.map((v) => v.gemeinden_total ?? 0)),
+      ausgezaehlt: sortiert.every((v) => v.ausgezaehlt)
+    }
+  })
+}
+
+/** "Abstimmungssonntag vom 27.09.2026 · 5 Vorlagen" — der Titel der Tageszeile. */
+export function abstimmungstagTitel(tag: Pick<Abstimmungstag, 'datum' | 'vorlagen'>): string {
+  const n = tag.vorlagen.length
+  return `Abstimmungssonntag vom ${formatiereDatum(tag.datum)} · ${n} ${n === 1 ? 'Vorlage' : 'Vorlagen'}`
+}
+
 /**
  * Die Meldungen je Vorlage.
  *
@@ -571,6 +627,12 @@ export interface ZeitleistenEintrag {
   abstimmungId: string | null
   /** Nur bei Abstimmungszeilen: die bespielten Gemeinden mit ihrem Auszählstand. */
   abstimmungsgemeinden: AbstimmungsGemeinde[]
+  /**
+   * Nur bei Abstimmungszeilen: jede Vorlage des Tages. Die Meldung einer
+   * Gemeinde hängt an der ersten (`abstimmungId`), eine ältere je Vorlage an
+   * ihrer eigenen — gesucht wird über alle.
+   */
+  abstimmungIds: string[]
 }
 
 export interface ZeitleistenQuellen {
@@ -733,7 +795,8 @@ export function zeitleiste(quellen: ZeitleistenQuellen, hoechstens = 40): Zeitle
       vorschlag: false,
       befunde: [],
       abstimmungId: null,
-      abstimmungsgemeinden: []
+      abstimmungsgemeinden: [],
+      abstimmungIds: []
     })
   }
 
@@ -760,7 +823,8 @@ export function zeitleiste(quellen: ZeitleistenQuellen, hoechstens = 40): Zeitle
       vorschlag: false,
       befunde: [],
       abstimmungId: null,
-      abstimmungsgemeinden: []
+      abstimmungsgemeinden: [],
+      abstimmungIds: []
     })
   }
 
@@ -788,7 +852,8 @@ export function zeitleiste(quellen: ZeitleistenQuellen, hoechstens = 40): Zeitle
       vorschlag: false,
       befunde: [],
       abstimmungId: null,
-      abstimmungsgemeinden: []
+      abstimmungsgemeinden: [],
+      abstimmungIds: []
     })
   }
 
@@ -817,7 +882,8 @@ export function zeitleiste(quellen: ZeitleistenQuellen, hoechstens = 40): Zeitle
       vorschlag: q.vorschlag,
       befunde: q.befunde ?? [],
       abstimmungId: null,
-      abstimmungsgemeinden: []
+      abstimmungsgemeinden: [],
+      abstimmungIds: []
     })
   }
 
@@ -826,30 +892,37 @@ export function zeitleiste(quellen: ZeitleistenQuellen, hoechstens = 40): Zeitle
   // Datiert auf den Abstimmungssonntag selbst — der Tag, an dem sie eine
   // Nachricht sind. Der Hinweis auf der Zeile sagt, wie weit ausgezählt ist:
   // ein Lauf, der nichts schreibt, weil noch gezählt wird, ist kein Fehler.
-  for (const a of quellen.abstimmungen ?? []) {
+  for (const tag of abstimmungstage(quellen.abstimmungen ?? [])) {
+    const erste = tag.vorlagen[0]
+    if (erste === undefined) continue
     eintraege.push({
-      id: `abstimmung-${a.id}`,
+      id: `abstimmung-${tag.datum}`,
       herkunft: 'abstimmung',
-      datum: a.datum,
-      titel: abstimmungsTitel(a),
-      hinweis: abstimmungsStand(a),
+      datum: tag.datum,
+      titel: abstimmungstagTitel(tag),
+      hinweis: abstimmungsStand({
+        gemeinden_ausgezaehlt: tag.gemeindenAusgezaehlt,
+        gemeinden_total: tag.gemeindenTotal,
+        ausgezaehlt: tag.ausgezaehlt
+      }),
       datensatzId: null,
       laufId: null,
       pfad: null,
-      link: a.quelle_url,
+      // Die Seite des ganzen Tages beim Kanton, nicht die der ersten Vorlage.
+      link: erste.quelle_url === null ? null : erste.quelle_url.replace(/\/issues\/[^/]+\/?$/, ''),
       quartal: null,
-      beschreibung: null,
+      beschreibung: tag.vorlagen
+        .map((v) => (v.titel ?? '').trim())
+        .filter((t) => t !== '')
+        .join(' · '),
       rhythmus: null,
       zeilen: null,
       quoteId: null,
       vorschlag: false,
       befunde: [],
-      abstimmungId: a.id,
-      abstimmungsgemeinden: (a.gemeindezahlen ?? []).map((g) => ({
-        bfs: g.bfs,
-        name: g.gemeinde,
-        ausgezaehlt: g.ausgezaehlt
-      }))
+      abstimmungId: erste.id,
+      abstimmungsgemeinden: tag.gemeinden,
+      abstimmungIds: tag.vorlagen.map((v) => v.id)
     })
   }
 

@@ -1,4 +1,4 @@
-import { abstimmungsTitel, meldungenNachAbstimmung, zeitleiste } from './redaktion'
+import { abstimmungstage, abstimmungsTitel, meldungenNachAbstimmung, zeitleiste } from './redaktion'
 
 const VORLAGE = {
   id: 'a-1',
@@ -28,14 +28,14 @@ describe('abstimmungsTitel', () => {
 })
 
 describe('die Zeitleiste', () => {
-  it('nimmt eine Vorlage als fünften Zufluss auf, datiert auf den Abstimmungstag', () => {
+  it('nimmt einen Abstimmungstag als fünften Zufluss auf, datiert auf den Sonntag', () => {
     const ergebnis = zeitleiste({ ...LEER, abstimmungen: [VORLAGE] }, 40)
     const zeile = ergebnis.datiert[0]
 
     expect(zeile?.herkunft).toBe('abstimmung')
     expect(zeile?.datum).toBe('2026-09-27')
     expect(zeile?.abstimmungId).toBe('a-1')
-    expect(zeile?.link).toBe(VORLAGE.quelle_url)
+    expect(zeile?.link).toBe('https://vework-public.bl.ch/app/publication/2026-09-27')
   })
 
   it('sagt auf der Zeile, wie weit ausgezählt ist', () => {
@@ -50,6 +50,39 @@ describe('die Zeitleiste', () => {
     expect(zeile?.abstimmungsgemeinden.map((g) => g.bfs)).toEqual(['2765', '2761'])
     expect(zeile?.abstimmungsgemeinden[0]?.ausgezaehlt).toBe(true)
     expect(zeile?.abstimmungsgemeinden[1]?.ausgezaehlt).toBe(false)
+  })
+})
+
+describe('abstimmungstage — eine Zeile je Sonntag', () => {
+  const ZWEITE = {
+    ...VORLAGE,
+    id: 'a-0',
+    vote_id: '20260927_E1',
+    titel: 'Neutralitätsinitiative',
+    gemeindezahlen: [
+      { bfs: '2765', gemeinde: 'Binningen', ausgezaehlt: false, ergebnisse: [] },
+      { bfs: '2761', gemeinde: 'Aesch (BL)', ausgezaehlt: false, ergebnisse: [] }
+    ],
+    gemeinden_ausgezaehlt: 20
+  }
+
+  it('fasst die Vorlagen eines Tages zusammen, die erste nach vote_id vorne', () => {
+    const [tag] = abstimmungstage([VORLAGE, ZWEITE])
+    expect(tag?.vorlagen.map((v) => v.id)).toEqual(['a-0', 'a-1'])
+    expect(tag?.gemeindenAusgezaehlt).toBe(20)
+  })
+
+  it('zählt eine Gemeinde erst als ausgezählt, wenn sie es in jeder Vorlage ist', () => {
+    const [tag] = abstimmungstage([VORLAGE, ZWEITE])
+    expect(tag?.gemeinden.find((g) => g.bfs === '2765')?.ausgezaehlt).toBe(false)
+  })
+
+  it('macht aus zwei Vorlagen EINE Zeile, die beide Ids kennt', () => {
+    const zeilen = zeitleiste({ ...LEER, abstimmungen: [VORLAGE, ZWEITE] }, 40).datiert
+    expect(zeilen).toHaveLength(1)
+    expect(zeilen[0]?.abstimmungId).toBe('a-0')
+    expect(zeilen[0]?.abstimmungIds).toEqual(['a-0', 'a-1'])
+    expect(zeilen[0]?.titel).toContain('2 Vorlagen')
   })
 })
 

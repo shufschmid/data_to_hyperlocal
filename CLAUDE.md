@@ -91,6 +91,7 @@ them is wrong even if it works.
    | `api.anthropic.com`                         | every LLM call                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | `shared/claude.ts`                               |
    | `data.bl.ch`                                | open-data catalogue and records (no auth, documented API) — including dataset 11990, the vote results per Vorlage and municipality, read on a vote Sunday only                                                                                                                                                                                                                                                                                                                                                                            | `shared/ods/`                                    |
    | `abstimmungen.bl.ch`                        | the canton's live publication of a vote day (Sitrox VeWork, where the portal's own `url_web` points): plain JSON under `/data/publication/`, the list of vote days and one file of every municipality's result per Vorlage, no key, no robots.txt. Read only on a vote Sunday, only for a day the portal already knows, because it carries the final figures hours or a day before dataset 11990 does (measured 27.09.2026)                                                                                                               | `shared/abstimmung/vework.ts`                    |
+   | `ogd-static.voteinfo-app.ch`                | the Federal Chancellery's open data for a vote day: one static JSON file per day, no key. Read only on a vote Sunday with a federal Vorlage, and only for WHETHER Switzerland accepted — the yardstick of «anders als die Schweiz» in the day summary; no national figure reaches an article                                                                                                                                                                                                                                              | `shared/abstimmung/bund.ts`                      |
    | `data.bs.ch`                                | the same Opendatasoft platform for Basel-Stadt — registered but INACTIVE, so no request is made until a person switches it on. Measured 17.09.2026: identical paths and response shape, 361 datasets against 188, and Riehen and Bettingen are municipalities in its rows, not quarters                                                                                                                                                                                                                                                   | `shared/ods/`                                    |
    | `www.baselland.ch`                          | the publication agenda — announcements the API cannot give — and the office's own web article behind an entry, read once per announcement for the mapping and the briefing                                                                                                                                                                                                                                                                                                                                                                | `shared/agenda/`                                 |
    | `statistik.bl.ch`                           | tables the open-data portal does not carry                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | `shared/statbl/`                                 |
@@ -1073,8 +1074,12 @@ them is wrong even if it works.
    „keine Vergleichszahlen".
    **The Bund is NOT in this dataset**, and that was measured rather than
    assumed: 11990 carries 86 municipalities and no aggregate row, 10500 carries
-   the canton. So an article is handed the municipality, the canton and the
-   previous ballot's turnout, and says nothing about Switzerland.
+   the canton. Whether Switzerland accepted a federal Vorlage comes from
+   the Federal Chancellery's vote-day file instead (`shared/abstimmung/bund.ts`,
+   `konfiguration.abstimmungen_bund`, seeded by `20260927C`), paired by TITLE —
+   the Bund prints the canton's titles word for word — and stored as
+   `abstimmungen.bund` `{angenommen, beendet}`; `vorlageAngenommen` is null
+   until `vorlageBeendet`.
    Which dataset a portal carries its votes in is a ROW
    (`quellen.konfiguration.abstimmungen`), like the office and the districts
    beside it; a portal without one is not walked and the run names it.
@@ -1097,6 +1102,27 @@ them is wrong even if it works.
    is said in the run's result and the portal's rows stand. The previous
    ballot's turnout still comes from the portal: the live app holds only the
    current day.
+   **Since 27 September 2026 the article is ONE SUMMARY per municipality and
+   vote day**, not one per Vorlage (`redaktion/abstimmungstag.ts`,
+   `redaktion/abstimmungsmeldungen.ts`). The newsroom's words, and where each
+   lives: where a municipality voted DIFFERENTLY from the canton or
+   Switzerland, that is the story — whether it did is code (`weichtAb`),
+   handed over as „ANDERS als der Kanton"; how the canton or the Bund voted
+   does NOT belong in the article, the newsletter covers it elsewhere — so
+   their figures are never handed over at all, and `zahlWarnungenTag` allows
+   the municipality's digits only; and the editor names the day's most
+   interesting Vorlagen in the ordinary chat revision, which rebuilds from the
+   whole day when `datengrundlage.quelle === 'abstimmungstag'` (older
+   per-Vorlage articles keep their own path). The summary hangs on the day's
+   FIRST row by `vote_id` and one per municipality and day is the rule
+   (`vorhandeneTagesmeldung` looks at every row of the day). **The run writes
+   the drafts itself**: from 14:00 every half hour (`*/30 14-20 * * 0`), and
+   once every covered municipality is counted in every Vorlage AND the Bund is
+   final — or at the 20:00 run without the Bund, because a summary without the
+   national yardstick beats an empty Monday briefing (`tagBereit`). Twenty per
+   run, the rest named; like the Gemeindeseiten drafts it teaches nothing. The
+   desk shows one line per Sunday (`abstimmungstage` in `lib/redaktion.ts`),
+   a municipality counted only when it is counted in every Vorlage.
 
    When it turns us away, that is not silence: the workspace shows a banner
    naming the source, the reason and the date of the last attempt, with a link
@@ -1200,9 +1226,9 @@ them is wrong even if it works.
 | which municipalities lie under the south approach               | „Gemeinden" → die Karte → `gemeinden.suedanflug`; die Quote gilt für den FLUGHAFEN, wer betroffen ist, entscheidet die Redaktion. Leer heisst: die Monatszeile steht da und sagt, dass niemand erfasst ist                                                                         |
 | the thresholds of the Südanflug-Quote                           | `quellen.konfiguration` der EuroAirport-Zeile (`{monatsschwelle, jahresschwellen}`) — 40 Prozent im Monat ist die Schwelle der Redaktion, 8 und 10 im Jahr die der Pistenbenutzungsvereinbarung von 2006                                                                           |
 | a new rule about what a Südanflug-Meldung may say               | `redaktion/suedanflug.ts` — the prompt **and** the checks (Ortsregel, Provisorik, Attribution an den EuroAirport, Ziffern, absolute Daten, keine selbst geschriebenen Links)                                                                                                       |
-| a new rule about what an Abstimmungs-Meldung says               | `redaktion/abstimmung.ts` — the prompt **and** the checks (Stichfragenregel, Attribution an den Kanton, Ziffern gegen die übergebenen Angaben, absolute Daten, keine selbst geschriebenen Links)                                                                                   |
+| a new rule about what an Abstimmungs-Meldung says               | `redaktion/abstimmungstag.ts` (die Tageszusammenfassung) — the prompt **and** the checks (Abweichung vom Code, keine Zahl von Kanton/Bund, Stichfragenregel, Attribution an den Kanton, absolute Daten, keine Links)                                                               |
 | the dataset a portal carries its votes in                       | `quellen.konfiguration.abstimmungen` (JSON, Admin-UI) — die Datensatz-Id des Portals, gesetzt von `migrations/20260918B`. Leer heisst: dieses Portal wird am Abstimmungssonntag nicht gelesen, und der Lauf nennt es                                                               |
-| the timing of a vote Sunday                                     | der Flow «Abstimmungen holen» (`*/30 12-20 * * 0`) plus `operations/abstimmungen-holen`; ausserhalb bleibt es beim Katalogwächter um 06:00                                                                                                                                         |
+| the timing of a vote Sunday                                     | der Flow «Abstimmungen holen» (`*/30 14-20 * * 0`) plus `operations/abstimmungen-holen`; ausserhalb bleibt es beim Katalogwächter um 06:00                                                                                                                                         |
 | a new environment variable                                      | `apps/directus/.env.example` **and** root `.env.example` **and** docker-compose.yml                                                                                                                                                                                                |
 
 A change that spans both apps starts in `apps/directus` — data model first, then the
@@ -1458,7 +1484,7 @@ editor takes an Anlass over ── POST /redaktion/veranstaltungen/:id/meldung
      Sichtung (bereich veranstaltung); der Dauerangebot-Schalter
      (POST …/dauerangebot) kostet keinen Modellaufruf.
 
-Flow "Abstimmungen holen"  (*/30 12-20 * * 0)   nur am Abstimmungssonntag
+Flow "Abstimmungen holen"  (*/30 14-20 * * 0)   nur am Abstimmungssonntag
   └─ operations/abstimmungen-holen   je aktivem ods-Portal mit Datensatz
        ├─ EIN Abruf: alle Zeilen des heutigen Tages, 86 Gemeinden mal N
        │    Vorlagen (gemessen: 430 Zeilen, 294 KB). Keine Zeilen = keine
@@ -1466,20 +1492,25 @@ Flow "Abstimmungen holen"  (*/30 12-20 * * 0)   nur am Abstimmungssonntag
        ├─ gemeindeStand()   je Gemeinde ueber den GANZEN Tag: eine offene
        │    Zeile heisst, ueber diese Gemeinde wird nichts geschrieben
        ├─ gruppiereNachVorlage()  vote_id traegt Initiative, Gegenvorschlag
-       │    und Stichfrage zusammen — ein Artikel je Gemeinde und Frage
+       │    und Stichfrage zusammen — eine Zeile je Frage
        ├─ kantonsSumme()    ueber ALLE 86 Gemeinden oder gar nicht; gegen
        │    Datensatz 10500 auf dreizehn Stellen geprueft
        ├─ stichfrageGilt()  nur wenn der Kanton beide Vorlagen annahm
-       └─ einmal je Abstimmungstag: die Beteiligung der letzten Abstimmung
-            davor, je bespielter Gemeinde (zwei Abrufe, nie wiederholt)
-       Kein Modellaufruf. Der Lauf sagt in Worten, wie weit ausgezaehlt ist.
+       ├─ einmal je Abstimmungstag: die Beteiligung der letzten Abstimmung
+       │    davor, je bespielter Gemeinde (zwei Abrufe, nie wiederholt)
+       ├─ bei eidgenoessischen Vorlagen: die Tagesdatei des Bundes (1 Abruf),
+       │    nur ob angenommen, nie eine Zahl
+       └─ tagBereit()  alle bespielten Gemeinden ausgezaehlt und der Bund final
+            (oder 20 Uhr) → je Gemeinde EINE zusammenfassende Meldung als
+            Entwurf, hoechstens 20 je Lauf. Vorher kein Modellaufruf.
 
-editor takes a Vorlage over ── POST /redaktion/abstimmungen/:id/meldung
-  └─ 1× Sonnet ueber die uebergebenen Zahlen (Gemeinde, Kanton, letzter
-     Abstimmungstag) → kurze Meldung; Attribution an den Kanton erzwungen
+editor or run writes a day ── POST /redaktion/abstimmungen/:id/meldung
+  └─ 1× Sonnet ueber ALLE Vorlagen des Tages (Gemeindezahlen, „anders als der
+     Kanton/die Schweiz" vom Code, letzter Abstimmungstag; KEINE Zahl von
+     Kanton oder Bund) → eine Meldung; Attribution an den Kanton erzwungen
      (Pruefung + ein Nachfassen), Ziffern gegen die Angaben, absolute Daten,
      keine selbst geschriebenen Links, und die Stichfrage nur, wenn sie
-     etwas entscheidet. Quellenzeile vom Code aus `url_web`. Eine Gemeinde,
+     etwas entscheidet. Quellenzeile vom Code: die Tagesseite. Eine Gemeinde,
      die noch auszaehlt, bekommt 422 statt eines Zwischenstands.
 
 Flow "Sportresultate holen"  (0 30 6 * * *)
@@ -1927,7 +1958,8 @@ checked rather than assumed, and there is a test.
 - `abstimmungen` — one row per Vorlage (`vote_id`) and vote day: the parts of
   the question with their own addresses, the cantonal sums, the newsroom's
   municipalities with their own figures AND whether each is fully counted, the
-  Stichfrage verdict in words, and the previous ballot's turnout. Identity is
+  Stichfrage verdict in words, the previous ballot's turnout and, for a
+  federal Vorlage, whether Switzerland accepted (`bund`). Identity is
   `vote_id` — it contains the date, so it is unique across all years and needs
   no composite key. The row is what an article is written from, never a fresh
   fetch: a vote day's rows move under the run's hands for hours, and the
