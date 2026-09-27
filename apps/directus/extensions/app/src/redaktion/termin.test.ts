@@ -149,11 +149,34 @@ describe('planeAnlassTermin', () => {
     )
   })
 
-  it('ein Dauerangebot hat keinen Termin — es gilt an jedem Tag', () => {
+  it('ein Dauerangebot ohne Stichtag hat keinen Termin', () => {
     expect(
       planeAnlassTermin({ ...anlass, anker: 'dauerangebot' }, true)
     ).toBeNull()
     expect(planeAnlassTermin({ ...anlass, anker: 'routine' }, true)).toBeNull()
+  })
+
+  // Die Redaktion am 27.09.2026: ein Dauerangebot wird als Anlass an seinem
+  // naechsten Termin geschrieben — und an diesem Tag bringt es der Dorfkoenig.
+  it('ein Dauerangebot bekommt seinen naechsten Termin ab heute, einen Tag', () => {
+    const palais = {
+      anker: 'dauerangebot',
+      anker_am: null,
+      frist_am: null,
+      von: '2026-09-22',
+      bis: '2026-11-24',
+      termine: ['2026-09-22', '2026-10-13', '2026-10-20'],
+      zugang: 'offen' as const,
+      heute: '2026-09-27'
+    }
+    expect(planeAnlassTermin(palais, false)).toEqual({
+      ideal: '2026-10-13',
+      ende: '2026-10-13',
+      auftritte: []
+    })
+    expect(
+      planeAnlassTermin({ ...palais, heute: '2026-10-21' }, false)
+    ).toBeNull()
   })
 
   it('das Ende ist der letzte bekannte Tag, nie vor dem idealen', () => {

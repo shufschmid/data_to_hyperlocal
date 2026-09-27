@@ -92,12 +92,24 @@ Unternehmen der Veranstalter ist. Wer veranstaltet, ist eine Tatsache fuer
 die Begruendung ("Anlass einer Partei, Landratskandidierende
 anwesend"), kein Grund. Die Redaktion entscheidet das.
 
-Eine Herabstufung braucht einen GENANNTEN Grund, und es gibt nur wenige: der
-Ort liegt ausserhalb der Gemeinde; das Publikum ist geschlossen (ein Kurs mit
-Gebuehr und Anmeldung, ein Vereinsinterna, eine Probe); die Sache ist ohne
-Datum, Zeit und Ort nicht meldbar. Ein Dauerangebot ist eine bewusste
-Erinnerung der Redaktion an ein laufendes Angebot (fuer Neuzugezogene) und
-wird als solche beurteilt, nicht als Neuigkeit.
+Versetze dich in eine Einwohnerin oder einen Einwohner der Gemeinde: Was
+wuerden sie wissen wollen? Wer fuer die Kinder ein Angebot in den Herbstferien
+sucht, ist ueber einen Kurs, einen Workshop oder ein Lager froh.
+
+Eine Herabstufung braucht einen GENANNTEN Grund, und es gibt nur wenige:
+- Das Publikum ist geschlossen: nur fuer Mitglieder (Vereinsinterna, eine
+  Probe), oder die Anmeldung ist schon vorbei. Kosten und Anmeldepflicht
+  sind fuer sich KEIN Grund — solange man sich noch anmelden kann, ist ein
+  Kurs mit Gebuehr ein guter Hinweis.
+- Der Anlass gehoert nicht ins Dorf: er findet ausserhalb statt UND hat
+  keinen Bezug zur Gemeinde. Ein Ort ausserhalb ist fuer sich KEIN Grund —
+  organisiert ihn ein Verein oder eine Stelle der Gemeinde, oder liegt der
+  Treffpunkt oder Start in der Gemeinde (eine Wanderung ab einer Bushaltestelle
+  im Dorf), ist er Dorfleben.
+- Die Sache ist ohne Datum, Zeit und Ort nicht meldbar.
+Ein Dauerangebot ist eine bewusste Erinnerung der Redaktion an ein laufendes
+Angebot (fuer Neuzugezogene) und wird als solche beurteilt, nicht als
+Neuigkeit.
 
 Was schon auf der Newsseite der Gemeinde stand, ist KONTEXT, kein
 Ausschluss: der Kalender bringt dieselbe Sache zum richtigen Zeitpunkt.
@@ -398,10 +410,13 @@ Regeln, ohne Ausnahme:
   wann. Bei "Anmeldefrist": die Frist gehoert in den Lead. Bei "Faellt aus" oder
   "Verschoben": das ist die Nachricht, nicht der Anlass. Bei "Gremium": die
   Traktanden sind die Nachricht — nenne die wichtigsten.
-- Ein DAUERANGEBOT ist eine Erinnerung an ein laufendes Angebot: sage im ersten
-  Satz, dass es ein regelmaessiges Angebot ist und fuer wen, nenne den
-  Rhythmus und die Zeit ("jeden Freitag von 14 bis 17 Uhr"), Ort, Kosten und
-  Anmeldung. Keine Neuigkeit vortaeuschen.
+- Ein DAUERANGEBOT schreibst du als ANLASS an seinem naechsten Termin (er
+  steht in den Angaben unter "Naechster Termin"): "Am Dienstag, 13. Oktober
+  2026, laedt das Jugendhaus von 16 bis 20 Uhr zum Palais z'Nacht" — was, fuer
+  wen, wo, was es kostet, ob man sich anmelden muss. Erst der LETZTE Satz sagt,
+  dass es ein regelmaessiges Angebot ist, mit dem Rhythmus ("Das Palais
+  z'Nacht findet jeden Dienstag statt"). Keine Erinnerungs-Formel ("erinnert
+  an das Angebot"), keine Aufzaehlung aller Termine.
 - Zahlen genau so, wie sie in den Angaben stehen. Keine Adressen als Links,
   keine URLs, keine Telefonnummern, keine E-Mail-Adressen — die Quellenzeile
   setzt der Code.
@@ -472,9 +487,32 @@ export function datumMitWochentag(iso: string): string {
   return `${namen[tag] ?? ''}, ${datumDeutsch(iso)}`
 }
 
+/**
+ * The next day a Dauerangebot takes place, from today on — computed by code,
+ * because it is the day the article is written about and the Dorfkoenig
+ * brings it on. Null when the calendar names no such day any more.
+ */
+export function naechsterTermin(
+  f: Pick<AnlassFakten, 'termine' | 'von' | 'bis' | 'heute'>
+): string | null {
+  const kommend = [...f.termine].sort().find((t) => t >= f.heute)
+  if (kommend !== undefined) return kommend
+  if (f.von >= f.heute) return f.von
+  return null
+}
+
 function faktenZeilen(f: AnlassFakten): string[] {
-  const wann =
-    f.bis === null || f.bis === f.von
+  // A Dauerangebot is written about its NEXT date, so it is handed that date
+  // and its weekday pattern — not the whole list, which only invites a
+  // listing the newsroom does not want.
+  const wochentage = [
+    ...new Set(f.termine.map((t) => datumMitWochentag(t).split(',')[0]))
+  ]
+  const wann = f.dauerangebot
+    ? `Regelmaessig: ${wochentage.length === 1 ? `jeden ${wochentage[0]}` : wochentage.join(', ')}${
+        f.bis === null ? '' : `, laut Kalender bis ${datumMitWochentag(f.bis)}`
+      }`
+    : f.bis === null || f.bis === f.von
       ? f.termine.length > 1
         ? `Termine: ${f.termine.map(datumMitWochentag).join('; ')}`
         : `Termin: ${datumMitWochentag(f.von)}`
@@ -506,7 +544,10 @@ function faktenZeilen(f: AnlassFakten): string[] {
       : []),
     ...(f.dauerangebot
       ? [
-          `Dauerangebot: Erinnerung an ein laufendes Angebot, Stand ${datumDeutsch(f.heute)}.`
+          `Dauerangebot: ein regelmaessiges Angebot, Stand ${datumDeutsch(f.heute)}.`,
+          naechsterTermin(f) === null
+            ? 'Naechster Termin: keiner bekannt — schreibe ohne Datum und sage, dass der Kalender keinen naechsten Termin nennt.'
+            : `Naechster Termin: ${datumMitWochentag(naechsterTermin(f) as string)}`
         ]
       : []),
     ...(f.traktanden.length > 0

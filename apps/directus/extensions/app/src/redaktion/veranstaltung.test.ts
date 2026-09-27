@@ -327,8 +327,10 @@ describe('Meldung', () => {
       'Traktanden:\n- 01 Ersatzwahl\n- 03 Schnellzugshalt'
     )
     expect(prompt).toContain(
-      'Dauerangebot: Erinnerung an ein laufendes Angebot, Stand 19. September 2026.'
+      'Dauerangebot: ein regelmaessiges Angebot, Stand 19. September 2026.'
     )
+    // Der Anlass am naechsten Termin — vom Code bestimmt, nie vom Modell.
+    expect(prompt).toContain('Naechster Termin: Montag, 21. September 2026')
     expect(prompt).toContain('Zugang: Teilnahme ueber die ganze Dauer')
     const spanne = buildMeldungPrompt(
       fakten({
@@ -415,5 +417,23 @@ describe('Meldung', () => {
     expect(zahlWarnungen('Rund 300 Besucher werden erwartet.', f)).toEqual([
       'Zahl "300" steht nicht in den Angaben.'
     ])
+  })
+})
+
+// Die Redaktion am 27.09.2026: Kosten und Anmeldung sind kein Grund, solange
+// man sich anmelden kann; ein Ort ausserhalb auch nicht, wenn ein Verein der
+// Gemeinde organisiert oder der Treffpunkt im Dorf liegt.
+describe('Herabstufungsgruende der Sichtung', () => {
+  it('nennt Kosten, Anmeldung und einen Ort ausserhalb nicht als Grund fuer sich', () => {
+    expect(SICHTUNG_SYSTEM_PROMPT).toContain('Kosten und Anmeldepflicht')
+    expect(SICHTUNG_SYSTEM_PROMPT).toContain(
+      'solange man sich noch anmelden kann'
+    )
+    expect(SICHTUNG_SYSTEM_PROMPT).toContain(
+      'Treffpunkt oder Start in der Gemeinde'
+    )
+    expect(SICHTUNG_SYSTEM_PROMPT).not.toContain(
+      'ein Kurs mit\nGebuehr und Anmeldung'
+    )
   })
 })

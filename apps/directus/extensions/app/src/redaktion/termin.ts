@@ -203,6 +203,11 @@ export interface AnlassFuerTermin {
   bis: string | null
   termine: readonly string[] | null
   zugang: Zugang | null
+  /**
+   * Today — needed only for a Dauerangebot, whose termin is its NEXT
+   * occurrence. Without it a Dauerangebot has no termin, as before.
+   */
+  heute?: string
 }
 
 /**
@@ -218,7 +223,22 @@ export function planeAnlassTermin(
   z: AnlassFuerTermin,
   wichtig: boolean
 ): Termin | null {
-  if (z.anker === 'dauerangebot' || z.anker === 'routine') return null
+  if (z.anker === 'dauerangebot' || z.anker === 'routine') {
+    // Since 27 September 2026 a Dauerangebot is written as the event on its
+    // next date (the newsroom: remind every few months that something is on
+    // TODAY), so that date is its termin — one day, not the whole run.
+    const heute = z.heute
+    if (heute === undefined) return null
+    const naechster = [...(z.termine ?? []), z.von]
+      .filter((t) => istIsoTag(t) && t >= heute)
+      .sort()[0]
+    if (naechster === undefined) return null
+    return {
+      ideal: naechster,
+      ende: naechster,
+      auftritte: planeAuftritte(naechster, naechster, wichtig, z.zugang)
+    }
+  }
   const ideal = z.frist_am ?? z.anker_am ?? z.von
   if (!istIsoTag(ideal)) return null
   const letzter =

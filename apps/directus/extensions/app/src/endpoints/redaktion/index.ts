@@ -3365,7 +3365,8 @@ export default defineEndpoint(
               von: zeile.von,
               bis: zeile.bis,
               termine: zeile.termine,
-              zugang: zeile.zugang
+              zugang: zeile.zugang,
+              heute: heuteIso()
             },
             wichtig
           )

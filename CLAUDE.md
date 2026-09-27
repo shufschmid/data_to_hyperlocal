@@ -232,7 +232,7 @@ them is wrong even if it works.
    same `planeMitteilungTermin`) — in the SAME model call that writes the
    article: for an Anlass the dates are CODE from its own fields (`frist_am`
    before `anker_am` before `von`; `bis` or the last termin as `ende`; a
-   Dauerangebot has none), for a municipal item the model picks them from the
+   Dauerangebot its NEXT occurrence from today, one day), for a municipal item the model picks them from the
    days code found in the wording (`alleDaten`), and a day not on that list is
    dropped with a warning — never delivered. Only the judgement whether the
    event is IMPORTANT comes from the model (`wichtig`), and it is the one thing
@@ -735,13 +735,28 @@ them is wrong even if it works.
    (`DAUERANGEBOTE_JE_WOCHE`), longest wait first; „nie" takes it out for
    good; „jetzt vorschlagen" is a one-off grip that costs no model call. Such
    an article carries a „Stand: ‹Datum›, laut ‹Kalender›."-line, which is what
-   keeps it true in the archive.
+   keeps it true in the archive. **Since 27 September 2026 it is written as
+   the EVENT on its next date** — „Am Dienstag, 13. Oktober 2026, öffnet das
+   Palais z'Nacht …", what, where, cost, registration, and only the LAST
+   sentence says it is regular („jeden Dienstag"). The newsroom's words: every
+   few months, say that something is on today, even though it is a standing
+   offer. So the writer is handed the next date (`naechsterTermin`, code) and
+   the weekday pattern instead of the full list, which only invited a listing,
+   and the termin is that one day, so the Dorfkönig brings it then.
    **The Sichtung sorts and NEVER downgrades for the organiser's sake.** That
    is the newsroom's explicit decision, taken on Pratteln's Kleidertausch of an
    independent party list: it is a small village, if something is on it is of
    interest, and a party connection is a FACT for the text, not a reason to
-   demote. A downgrade needs a named reason — the venue lies outside, the
-   audience is closed — and a rule may say so; the model may not invent one.
+   demote. A downgrade needs a named reason and a rule may say so; the model
+   may not invent one. **Two reasons are narrower than they look, sharpened on
+   27 September 2026.** Cost and registration are NOT a reason while one can
+   still register — put yourself in a resident's place: someone looking for a
+   holiday course for their children is glad of the Schnupperkurs with a fee;
+   closed means members only, or a registration already past. And a venue
+   OUTSIDE is not a reason by itself: organised by a club or office of the
+   municipality, or starting from a meeting point in it (a Reinach birding
+   walk from a Reinach bus stop), it is village life. Only outside AND without
+   a tie to the municipality demotes.
    **„Letzte Gelegenheit" is only for what one can drop in on.** An exhibition
    that has run for months is visited in a day, so its last day is a real last
    chance; a Lager, a Ferienpass or a course concerns only those who take part
