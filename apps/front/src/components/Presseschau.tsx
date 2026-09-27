@@ -137,6 +137,16 @@ export interface PresseschauProps {
   heute?: string
 }
 
+/** Die Gemeinden eines Blatts fuer den Kopf: Hauptgemeinde zuerst, dann der Rest alphabetisch, jede einmal. */
+export function abgedeckteGemeinden(blatt: Pick<WochenblattFelder, 'gemeinde' | 'abdeckungen'>): string[] {
+  const haupt = blatt.gemeinde?.name ?? null
+  const weitere = blatt.abdeckungen
+    .map((a) => a.gemeinde?.name ?? null)
+    .filter((n): n is string => n !== null && n !== haupt)
+    .sort((a, b) => a.localeCompare(b, 'de'))
+  return [...new Set([...(haupt === null ? [] : [haupt]), ...weitere])]
+}
+
 export interface FormulierStatus {
   laeuft: boolean
   ergebnis: {
@@ -493,10 +503,13 @@ export function Presseschau({
                 <Typography variant="h2" component="h2" sx={{ fontSize: '1.1rem' }}>
                   {blatt.name}
                 </Typography>
-                <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                  {blatt.gemeinde !== null && (
-                    <Chip size="small" variant="outlined" label={blatt.gemeinde.name} />
-                  )}
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', gap: 0.5 }}>
+                  {/* Alle Gemeinden, ueber die das Blatt schreibt — die
+                      Hauptgemeinde zuerst. Sie ist nur der Anker des Blatts;
+                      jede abgedeckte Gemeinde bekommt ihre Beitraege gleich. */}
+                  {abgedeckteGemeinden(blatt).map((name) => (
+                    <Chip key={name} size="small" variant="outlined" label={name} />
+                  ))}
                   {ausgabe !== undefined && (
                     <Chip size="small" label={AUSGABE_STATUS[ausgabe.status] ?? ausgabe.status} />
                   )}

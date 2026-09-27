@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { Presseschau } from './Presseschau'
+import { abgedeckteGemeinden, Presseschau } from './Presseschau'
 import type {
   AlleMeldungFelder,
   GemeindeFelder,
@@ -376,5 +376,21 @@ describe('Presseschau', () => {
       />
     )
     expect(screen.getByText('20 Entwürfe geschrieben, 3 warten auf den nächsten Klick.')).toBeInTheDocument()
+  })
+
+  it('zeigt im Kopf alle Gemeinden des Blatts, die Hauptgemeinde zuerst', () => {
+    const birseck = blatt({
+      name: 'Wochenblatt für das Birseck',
+      gemeinde: { id: 'g-a', name: 'Aesch' },
+      abdeckungen: [
+        { id: 'x1', gemeinde: { id: 'g-r', name: 'Reinach' } },
+        { id: 'x2', gemeinde: { id: 'g-a', name: 'Aesch' } },
+        { id: 'x3', gemeinde: { id: 'g-ar', name: 'Arlesheim' } }
+      ]
+    })
+    expect(abgedeckteGemeinden(birseck)).toEqual(['Aesch', 'Arlesheim', 'Reinach'])
+    render(<Presseschau blaetter={[birseck]} gemeinden={gemeinden} meldungen={[]} {...NICHTS} />)
+    expect(screen.getByText('Arlesheim')).toBeInTheDocument()
+    expect(screen.getByText('Reinach')).toBeInTheDocument()
   })
 })
