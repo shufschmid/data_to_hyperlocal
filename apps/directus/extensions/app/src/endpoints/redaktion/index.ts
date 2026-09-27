@@ -4148,6 +4148,178 @@ export default defineEndpoint(
       }
     )
 
+    // --- the whole vote day at once -----------------------------------------
+    //
+    // The statistics bargain on this desk (27 September 2026): the run writes
+    // every summary, and the editor publishes, sends out or revises them ALL
+    // with one grip — and still each one on its own card. `:id` is any Vorlage
+    // of the day; the articles are found over every row of that day, so an
+    // older per-Vorlage article is included too.
+
+    async function meldungenDesTages(
+      abstimmungId: string,
+      accountability: ApiRequest['accountability']
+    ): Promise<Array<Pick<Meldung, 'id' | 'status'>>> {
+      const schema = await getSchema()
+      const abstimmungen = new ItemsService('abstimmungen', {
+        schema,
+        accountability
+      })
+      const meldungen = new ItemsService('meldungen', {
+        schema,
+        accountability
+      })
+      const zeile = (await abstimmungen.readOne(abstimmungId, {
+        fields: ['datum']
+      })) as { datum: string }
+      const tag = await ladeTag(abstimmungen, zeile.datum)
+      if (tag.length === 0) return []
+      return (await meldungen.readByQuery({
+        filter: {
+          abstimmung: { _in: tag.map((z) => z.id) },
+          status: { _neq: 'verworfen' }
+        },
+        fields: ['id', 'status'],
+        limit: -1
+      })) as Array<Pick<Meldung, 'id' | 'status'>>
+    }
+
+    router.post(
+      '/abstimmungen/:id/tag/:aktion(publizieren|pruefung)',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        try {
+          const id = pruefeId(req.params['id'])
+          const ziel = zielStatus(req.params['aktion'])
+          const meldungen = new ItemsService('meldungen', {
+            schema: await getSchema(),
+            accountability: req.accountability
+          })
+          // Every row passes the status hook on its own, so a refusal names
+          // its reason instead of sinking the rest — the run-wide grip's rule.
+          const erledigt: string[] = []
+          const abgelehnt: { id: string; grund: string }[] = []
+          for (const meldung of await meldungenDesTages(
+            id,
+            req.accountability
+          )) {
+            if (meldung.status === ziel || meldung.status === 'publiziert')
+              continue
+            try {
+              await meldungen.updateOne(meldung.id, { status: ziel })
+              erledigt.push(meldung.id)
+            } catch (error) {
+              abgelehnt.push({
+                id: meldung.id,
+                grund: error instanceof Error ? error.message : String(error)
+              })
+            }
+          }
+          return res.json({ data: { erledigt: erledigt.length, abgelehnt } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    router.post(
+      '/abstimmungen/:id/tag/chat',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        try {
+          const id = pruefeId(req.params['id'])
+          const anweisung = leseAnweisung(req)
+          const schema = await getSchema()
+          const meldungen = new ItemsService('meldungen', { schema })
+          const chat = new ItemsService('chat_nachrichten', { schema })
+
+          const offen = (
+            await meldungenDesTages(id, req.accountability)
+          ).filter((m) =>
+            ['entwurf', 'in_pruefung', 'freigegeben'].includes(m.status)
+          )
+          if (offen.length === 0) return next(new NichtsZuTun())
+
+          // Marked before the answer, so every card shows it is being worked
+          // on; one Sonnet call per article takes longer than a proxy holds a
+          // connection, hence 202 and detached, the waste calendar's pattern.
+          for (const m of offen)
+            await meldungen.updateOne(m.id, {
+              verarbeitung: 'laeuft',
+              anweisung
+            })
+          merkeAnweisung(
+            anweisung,
+            'abstimmung',
+            'Abstimmungs-Meldung (Kanton Basel-Landschaft)'
+          )
+
+          void (async () => {
+            for (const m of offen) {
+              try {
+                const meldung = (await meldungen.readOne(m.id, {
+                  fields: [
+                    'id',
+                    'titel',
+                    'lead',
+                    'text',
+                    'abstimmung',
+                    'gemeinde'
+                  ]
+                })) as {
+                  id: string
+                  titel: string | null
+                  lead: string | null
+                  text: string | null
+                  abstimmung: string
+                  gemeinde: string
+                }
+                const position = await naechstePosition(chat, {
+                  meldung: { _eq: m.id }
+                })
+                await chat.createOne({
+                  meldung: m.id,
+                  rolle: 'user',
+                  inhalt: anweisung,
+                  position
+                })
+                const warnungen = await ueberarbeiteAbstimmung(
+                  meldung,
+                  meldung.abstimmung,
+                  meldung.gemeinde,
+                  anweisung
+                )
+                await chat.createOne({
+                  meldung: m.id,
+                  rolle: 'assistant',
+                  inhalt:
+                    warnungen.length === 0
+                      ? 'Neu formuliert (Anweisung an alle).'
+                      : `Neu formuliert (Anweisung an alle) — mit Hinweisen: ${warnungen.join(' · ')}`,
+                  position: position + 1
+                })
+              } catch (fehler) {
+                await meldungen
+                  .updateOne(m.id, {
+                    verarbeitung: 'idle',
+                    fehler: fehlerText(fehler)
+                  })
+                  .catch(() => undefined)
+                logger.error(
+                  fehler,
+                  'redaktion: Abstimmungs-Ueberarbeitung (alle) fehlgeschlagen'
+                )
+              }
+            }
+          })()
+
+          return res.status(202).json({ data: { meldungen: offen.length } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
     router.post(
       '/wissen',
       async (req: ApiRequest, res: Response, next: NextFunction) => {

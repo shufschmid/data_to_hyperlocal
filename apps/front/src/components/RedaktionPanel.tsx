@@ -1125,6 +1125,12 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             onAbstimmungsMeldung={async (abstimmungId, gemeindeId) => {
               await fuehreAus(`abstimmungen/${abstimmungId}/meldung`, { gemeinde: gemeindeId })
             }}
+            onAbstimmungStapelChat={async (abstimmungId, anweisung) => {
+              await fuehreAus(`abstimmungen/${abstimmungId}/tag/chat`, { anweisung })
+            }}
+            onAbstimmungStapelAktion={async (abstimmungId, aktion) => {
+              await fuehreAus(`abstimmungen/${abstimmungId}/tag/${aktion}`)
+            }}
           />
 
           <Accordion disableGutters>

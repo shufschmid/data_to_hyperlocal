@@ -12,6 +12,7 @@ import {
 import {
   buildTagesPrompt,
   buildTagesRevision,
+  bundWarnungenTag,
   datengrundlageTag,
   mitTagesQuelle,
   stichfragenWarnungenTag,
@@ -154,6 +155,7 @@ export async function schreibeTagesmeldung(
       ...zahlWarnungenTag(alles, fakten),
       ...linkWarnungen(alles),
       ...stichfragenWarnungenTag(alles, fakten),
+      ...bundWarnungenTag(fakten),
       ...(attribution === null ? [] : [attribution])
     ]
   }

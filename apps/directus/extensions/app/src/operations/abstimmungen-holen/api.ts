@@ -94,19 +94,16 @@ function bundAus(konfiguration: unknown): string | null {
 
 /**
  * Whether the day is ready for the drafts: every covered municipality counted
- * in every Vorlage, and the Bund final for each federal one — or the last
- * scheduled run of the evening, when a draft without the national yardstick
- * is better than none for the Monday briefing.
+ * in every Vorlage. The Bund is NOT waited for (the newsroom's decision of 27
+ * September 2026): the comparison within the canton is the story, and a Bund
+ * still counting reaches the draft as its interim tendency with a warning.
  */
 export function tagBereit(eingabe: {
   unsereBfs: readonly string[]
   stand: ReadonlyArray<{ bfs: string; ausgezaehlt: boolean }>
-  bundOffen: number
-  letzterLauf: boolean
 }): boolean {
   const unsere = eingabe.stand.filter((s) => eingabe.unsereBfs.includes(s.bfs))
-  if (unsere.length === 0 || unsere.some((s) => !s.ausgezaehlt)) return false
-  return eingabe.bundOffen === 0 || eingabe.letzterLauf
+  return unsere.length > 0 && unsere.every((s) => s.ausgezaehlt)
 }
 
 /** The dataset a portal carries its votes in — a row, never a constant. */
@@ -294,7 +291,14 @@ export default defineOperationApi<Optionen>({
           felder['bund'] =
             eigene === null
               ? null
-              : { angenommen: eigene.angenommen, beendet: eigene.beendet }
+              : {
+                  angenommen: eigene.angenommen,
+                  beendet: eigene.beendet,
+                  jaProzent: eigene.jaProzent,
+                  staendeJa: eigene.staendeJa,
+                  staendeNein: eigene.staendeNein,
+                  stand: eigene.stand
+                }
         }
 
         const bestehende = vorhandene[0]
@@ -309,28 +313,18 @@ export default defineOperationApi<Optionen>({
       // The drafts, once the day is there: one summary per covered
       // municipality (the newsroom's words of 27 September 2026 — the
       // newsroom fetches the data itself, and when it is there it generates
-      // the proposals). Ready means every covered municipality counted and the
-      // Bund final; the evening's last run writes without the Bund rather
-      // than leaving the Monday briefing empty.
-      const stunde = Number(
-        new Intl.DateTimeFormat('de-CH', {
-          timeZone: 'Europe/Zurich',
-          hour: '2-digit',
-          hour12: false
-        }).format(new Date())
-      )
-      const bereit = tagBereit({
-        unsereBfs: unsere.map((g) => g.bfs),
-        stand,
-        bundOffen,
-        letzterLauf: stunde >= 20
-      })
-      if (!bereit) {
+      // the proposals). Ready means every covered municipality counted; a
+      // Bund still counting travels as its interim tendency with a warning.
+      if (!tagBereit({ unsereBfs: unsere.map((g) => g.bfs), stand })) {
         ergebnis.hinweise.push(
-          `${quelle.name}: Meldungsvorschlaege folgen, sobald alle bespielten Gemeinden ausgezaehlt${bundOffen > 0 ? ' und der Bund final' : ''} ist.`
+          `${quelle.name}: Meldungsvorschlaege folgen, sobald alle bespielten Gemeinden ausgezaehlt sind.`
         )
         return
       }
+      if (bundOffen > 0)
+        ergebnis.hinweise.push(
+          `${quelle.name}: ${bundOffen} eidgenoessische Vorlage(n) noch nicht final — die Meldungen vergleichen mit dem Zwischenresultat des Bundes und tragen einen Hinweis.`
+        )
       const regeln = (
         await ladeRegeln(
           new ItemsService('redaktionswissen', { schema }),

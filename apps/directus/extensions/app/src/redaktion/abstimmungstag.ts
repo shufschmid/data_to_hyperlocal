@@ -1,6 +1,6 @@
 import { datumDeutsch } from './amtsblatt'
 import { vorgabenZeilen } from './lernen'
-import { zahlWarnung } from './warnungen'
+import { bundZwischenstandWarnung, zahlWarnung } from './warnungen'
 import type { AbstimmungsFakten, Zahlenblock } from './abstimmung'
 
 // ONE article per municipality and vote Sunday — the newsroom's decision of
@@ -39,8 +39,10 @@ export interface TagesVorlage {
   titel: string
   ebeneText: string | null
   teile: TagesTeil[]
-  /** The national outcome of a federal Vorlage, once the Bund is final. */
+  /** The national outcome of a federal Vorlage — final, or the interim tendency. */
   bundAntwort: 'angenommen' | 'abgelehnt' | null
+  /** The warning line when `bundAntwort` is only an interim count, else null. */
+  bundZwischenstand: string | null
   andersAlsBund: boolean | null
   /** The Stichfrage is only named when it decides something (`abstimmung.ts`). */
   stichfrageGrund: string | null
@@ -61,6 +63,10 @@ export interface TagesFakten {
 export interface BundErgebnis {
   angenommen: boolean | null
   beendet: boolean
+  jaProzent?: number | null
+  staendeJa?: number | null
+  staendeNein?: number | null
+  stand?: string | null
 }
 
 /**
@@ -111,10 +117,7 @@ export function tagesFakten(
             )
     }))
     const bundAntwort =
-      fakten.ebene === 'bund' &&
-      bund !== null &&
-      bund.beendet &&
-      bund.angenommen !== null
+      fakten.ebene === 'bund' && bund !== null && bund.angenommen !== null
         ? bund.angenommen
           ? ('angenommen' as const)
           : ('abgelehnt' as const)
@@ -126,6 +129,17 @@ export function tagesFakten(
       ebeneText: fakten.ebeneText,
       teile,
       bundAntwort,
+      bundZwischenstand:
+        bundAntwort !== null && bund !== null && !bund.beendet
+          ? bundZwischenstandWarnung({
+              titel: fakten.titel,
+              antwort: bundAntwort,
+              jaProzent: bund.jaProzent ?? null,
+              staendeJa: bund.staendeJa ?? null,
+              staendeNein: bund.staendeNein ?? null,
+              stand: bund.stand ?? null
+            })
+          : null,
       andersAlsBund:
         bundAntwort === null
           ? null
@@ -324,6 +338,18 @@ export function zahlWarnungenTag(text: string, f: TagesFakten): string[] {
   return [...new Set(gefunden.filter((z) => !erlaubt.has(z)))].map((z) =>
     zahlWarnung(z)
   )
+}
+
+/**
+ * One warning per federal Vorlage whose comparison rests on the Bund's
+ * interim count — whatever the text says, because the journalist decides
+ * whether the tendency is clear and the article never says «Zwischenresultat»
+ * itself (it would rot by the evening).
+ */
+export function bundWarnungenTag(f: TagesFakten): string[] {
+  return f.vorlagen
+    .map((v) => v.bundZwischenstand)
+    .filter((w): w is string => w !== null)
 }
 
 /** The Stichfrage appears although no Vorlage of the day has one that decides. */

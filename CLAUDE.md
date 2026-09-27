@@ -1116,13 +1116,27 @@ them is wrong even if it works.
    per-Vorlage articles keep their own path). The summary hangs on the day's
    FIRST row by `vote_id` and one per municipality and day is the rule
    (`vorhandeneTagesmeldung` looks at every row of the day). **The run writes
-   the drafts itself**: from 14:00 every half hour (`*/30 14-20 * * 0`), and
-   once every covered municipality is counted in every Vorlage AND the Bund is
-   final — or at the 20:00 run without the Bund, because a summary without the
-   national yardstick beats an empty Monday briefing (`tagBereit`). Twenty per
-   run, the rest named; like the Gemeindeseiten drafts it teaches nothing. The
-   desk shows one line per Sunday (`abstimmungstage` in `lib/redaktion.ts`),
-   a municipality counted only when it is counted in every Vorlage.
+   the drafts itself**: from 14:00 every half hour (`*/30 14-20 * * 0`), as
+   soon as every covered municipality is counted in every Vorlage
+   (`tagBereit`) — it does NOT wait for the Bund. The newsroom's words: the
+   comparison within the canton is what matters, the one with Switzerland
+   less so. A Bund still counting reaches the draft as its INTERIM tendency
+   (`tendenz` in `bund.ts`: the popular vote so far and, for a double
+   majority, the Stände counted so far), and every such Vorlage puts a warning
+   on the draft (`bundZwischenstandWarnung`, with Ja share, Stände and the
+   file's timestamp) — whether the tendency is clear is the journalist's call.
+   The article itself never says „Zwischenresultat": it would rot by the
+   evening. That warning is written WITHOUT A COMMA, because `zeit_warnungen`
+   is a CSV column and a comma cut the first one into eight tags (measured).
+   Twenty per run, the rest named; like the Gemeindeseiten drafts it teaches
+   nothing. The desk shows one line per Sunday (`abstimmungstage` in
+   `lib/redaktion.ts`), a municipality counted only when it is counted in
+   every Vorlage, and its articles in the statistics run's block
+   (`LaufBerichte`): one instruction to all, all to the counter-check, all
+   published, each card still on its own
+   (`POST /redaktion/abstimmungen/:id/tag/chat` — 202 + detached, one inline
+   revision per article — and `…/tag/publizieren|pruefung`, where `:id` is any
+   Vorlage of the day).
 
    When it turns us away, that is not silence: the workspace shows a banner
    naming the source, the reason and the date of the last attempt, with a link
@@ -1499,10 +1513,11 @@ Flow "Abstimmungen holen"  (*/30 14-20 * * 0)   nur am Abstimmungssonntag
        ├─ einmal je Abstimmungstag: die Beteiligung der letzten Abstimmung
        │    davor, je bespielter Gemeinde (zwei Abrufe, nie wiederholt)
        ├─ bei eidgenoessischen Vorlagen: die Tagesdatei des Bundes (1 Abruf),
-       │    nur ob angenommen, nie eine Zahl
-       └─ tagBereit()  alle bespielten Gemeinden ausgezaehlt und der Bund final
-            (oder 20 Uhr) → je Gemeinde EINE zusammenfassende Meldung als
-            Entwurf, hoechstens 20 je Lauf. Vorher kein Modellaufruf.
+       │    nur ob angenommen (final oder als Zwischentendenz), nie eine Zahl
+       └─ tagBereit()  alle bespielten Gemeinden ausgezaehlt → je Gemeinde EINE
+            zusammenfassende Meldung als Entwurf, hoechstens 20 je Lauf; ein
+            Bund, der noch zaehlt, als Tendenz mit Hinweis. Vorher kein
+            Modellaufruf.
 
 editor or run writes a day ── POST /redaktion/abstimmungen/:id/meldung
   └─ 1× Sonnet ueber ALLE Vorlagen des Tages (Gemeindezahlen, „anders als der

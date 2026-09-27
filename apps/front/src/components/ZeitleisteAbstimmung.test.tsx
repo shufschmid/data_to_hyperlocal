@@ -86,7 +86,7 @@ describe('Zeitleiste — Abstimmung', () => {
     expect(screen.getByText(/Binningen: ausgezählt, aber nicht als Gemeinde erfasst/)).toBeInTheDocument()
   })
 
-  it('zeigt die Karte der Meldung, sobald es eine gibt', () => {
+  it('bündelt die Meldungen des Tages wie einen Statistik-Lauf, mit Anweisung an alle', async () => {
     zeige([vorlage()], {
       berichteZuAbstimmung: new Map([
         [
@@ -127,7 +127,10 @@ describe('Zeitleiste — Abstimmung', () => {
       ])
     })
 
-    expect(screen.getByText('Binningen sagt Ja zur Mehrwertabgabe')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Meldung erzeugen · Binningen/ })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: '1 Bericht' }))
+    expect(screen.getByText('Binningen sagt Ja zur Mehrwertabgabe')).toBeInTheDocument()
+    expect(screen.getByLabelText('Anweisung an alle Meldungen dieses Abstimmungstags')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Alle publizieren' })).toBeInTheDocument()
   })
 })

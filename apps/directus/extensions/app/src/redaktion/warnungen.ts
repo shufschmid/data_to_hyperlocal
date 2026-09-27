@@ -63,6 +63,42 @@ export function istZeitwarnung(warnung: string): boolean {
   return ZEIT_WARNUNG.test(warnung) || ZEITMUSTER.has(warnung)
 }
 
+/** The day summary compared with the Bund's interim count, not its final result. */
+export const BUND_ZWISCHENSTAND = /^Zwischenresultat des Bundes /
+
+/**
+ * Without a single comma: `zeit_warnungen` is stored as CSV, and a comma cuts
+ * a warning into pieces (measured: one warning became eight tags). So the
+ * figures are rounded to whole percents, a half Stand is written «½», and the
+ * commas inside a Vorlage's title are dropped.
+ */
+export function bundZwischenstandWarnung(z: {
+  titel: string
+  antwort: 'angenommen' | 'abgelehnt'
+  jaProzent: number | null
+  staendeJa: number | null
+  staendeNein: number | null
+  stand: string | null
+}): string {
+  const staende = (n: number) =>
+    `${Math.floor(n) === 0 && n % 1 !== 0 ? '' : Math.floor(n)}${n % 1 === 0 ? '' : '½'}`
+  const zeit =
+    z.stand === null
+      ? ''
+      : ` (Stand ${z.stand.slice(8, 10)}.${z.stand.slice(5, 7)}.${z.stand.slice(0, 4)} ${z.stand.slice(11, 16)} Uhr)`
+  const teile = [
+    `Schweiz vorläufig ${z.antwort === 'angenommen' ? 'Ja' : 'Nein'}`,
+    z.jaProzent === null
+      ? null
+      : `mit rund ${Math.round(z.jaProzent)} Prozent Ja`,
+    z.staendeJa === null || z.staendeNein === null
+      ? null
+      : `und bisher ${staende(z.staendeJa)} zu ${staende(z.staendeNein)} Ständen`
+  ].filter((t): t is string => t !== null)
+  const titel = z.titel.replace(/\s*,\s*/g, ' ')
+  return `Zwischenresultat des Bundes${zeit}: «${titel}» — ${teile.join(' ')}. Prüfen ob das Bundesresultat klar genug ist bevor der Vergleich mit der Schweiz stehen bleibt.`
+}
+
 /** Whether a warning came out of one of the number checks. */
 export function istZahlwarnung(warnung: string): boolean {
   return (

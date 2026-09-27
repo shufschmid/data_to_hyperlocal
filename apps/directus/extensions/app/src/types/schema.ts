@@ -1323,7 +1323,14 @@ export interface Abstimmung {
   vergleich: Abstimmungsvergleich | null
   quelle_url: string | null
   /** `cast-json`: the Bund's outcome of a federal Vorlage — the yardstick of a deviation, never a figure for the text. */
-  bund: { angenommen: boolean | null; beendet: boolean } | null
+  bund: {
+    angenommen: boolean | null
+    beendet: boolean
+    jaProzent?: number | null
+    staendeJa?: number | null
+    staendeNein?: number | null
+    stand?: string | null
+  } | null
   stand: string | null
   /** `cast-json`: what the run could not read. A gap is never silent. */
   hinweise: string[] | null

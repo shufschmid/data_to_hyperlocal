@@ -29,6 +29,8 @@ export interface LaufBerichteProps {
   /** Status des Laufs, fuer die Fortschrittszeile. */
   laufStatus?: string | null
   laeuft?: boolean
+  /** Beschriftung des Anweisungsfelds — der Abstimmungstag hat keinen Datensatz. */
+  anweisungLabel?: string
   onStapelChat: (anweisung: string) => Promise<void>
   onStapelAktion: (aktion: 'pruefung' | 'publizieren') => Promise<void>
   onChat: (id: string, anweisung: string) => Promise<void>
@@ -39,6 +41,7 @@ export function LaufBerichte({
   meldungen,
   laufStatus = null,
   laeuft = false,
+  anweisungLabel = 'Anweisung an alle Berichte dieses Datensatzes',
   onStapelChat,
   onStapelAktion,
   onChat,
@@ -88,7 +91,7 @@ export function LaufBerichte({
         <Stack spacing={2} sx={{ pt: 1, pl: 1, borderLeft: 3, borderColor: 'divider' }}>
           <Stack spacing={1}>
             <TextField
-              label="Anweisung an alle Berichte dieses Datensatzes"
+              label={anweisungLabel}
               size="small"
               multiline
               minRows={2}

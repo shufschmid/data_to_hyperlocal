@@ -73,6 +73,9 @@ export interface ZeitleisteProps {
   /** Die Meldungen je Vorlage, eine je Gemeinde. */
   berichteZuAbstimmung?: Map<string, AlleMeldungFelder[]>
   onAbstimmungsMeldung?: (abstimmungId: string, gemeindeId: string) => Promise<void>
+  /** Eine Anweisung an alle Meldungen des Abstimmungstags. */
+  onAbstimmungStapelChat?: (abstimmungId: string, anweisung: string) => Promise<void>
+  onAbstimmungStapelAktion?: (abstimmungId: string, aktion: 'pruefung' | 'publizieren') => Promise<void>
 }
 
 export function Zeitleiste({
@@ -92,7 +95,9 @@ export function Zeitleiste({
   onSuedanflugMeldung,
   gemeindenNachBfs,
   berichteZuAbstimmung,
-  onAbstimmungsMeldung
+  onAbstimmungsMeldung,
+  onAbstimmungStapelChat,
+  onAbstimmungStapelAktion
 }: ZeitleisteProps) {
   // Einmal gebuendelt statt in jeder Zeile: `Zeile` bekommt nur, was sie
   // betrifft, und die Signatur bleibt lesbar.
@@ -108,7 +113,9 @@ export function Zeitleiste({
     onSuedanflugMeldung,
     gemeindenNachBfs,
     zuAbstimmung: berichteZuAbstimmung,
-    onAbstimmungsMeldung
+    onAbstimmungsMeldung,
+    onAbstimmungStapelChat,
+    onAbstimmungStapelAktion
   }
   const quartale = nachQuartal(ergebnis.ohneDatum)
 
@@ -182,6 +189,8 @@ interface BerichteBuendel {
   gemeindenNachBfs?: ReadonlyMap<string, { id: string; name: string }>
   zuAbstimmung?: Map<string, AlleMeldungFelder[]>
   onAbstimmungsMeldung?: (abstimmungId: string, gemeindeId: string) => Promise<void>
+  onAbstimmungStapelChat?: (abstimmungId: string, anweisung: string) => Promise<void>
+  onAbstimmungStapelAktion?: (abstimmungId: string, aktion: 'pruefung' | 'publizieren') => Promise<void>
 }
 
 interface ZeileProps {
@@ -296,6 +305,8 @@ function Zeile({ eintrag, laeuft, berichte, onAuftrag, onVerwerfen }: ZeileProps
             gemeindenNachBfs={berichte.gemeindenNachBfs}
             meldungen={eintrag.abstimmungIds.flatMap((id) => berichte.zuAbstimmung?.get(id) ?? [])}
             onMeldung={berichte.onAbstimmungsMeldung}
+            onStapelChat={berichte.onAbstimmungStapelChat}
+            onStapelAktion={berichte.onAbstimmungStapelAktion}
             onChat={berichte.onChat}
             onAktion={berichte.onAktion}
           />
@@ -402,6 +413,8 @@ interface AbstimmungProps {
   gemeindenNachBfs?: ReadonlyMap<string, { id: string; name: string }>
   meldungen: readonly AlleMeldungFelder[]
   onMeldung?: (abstimmungId: string, gemeindeId: string) => Promise<void>
+  onStapelChat?: (abstimmungId: string, anweisung: string) => Promise<void>
+  onStapelAktion?: (abstimmungId: string, aktion: 'pruefung' | 'publizieren') => Promise<void>
   onChat?: (id: string, anweisung: string) => Promise<void>
   onAktion?: (id: string, aktion: MeldungAktion, koerper?: MeldungAktionKoerper) => Promise<void>
 }
@@ -426,6 +439,8 @@ function Abstimmung({
   gemeindenNachBfs,
   meldungen,
   onMeldung,
+  onStapelChat,
+  onStapelAktion,
   onChat,
   onAktion
 }: AbstimmungProps) {
@@ -447,26 +462,29 @@ function Abstimmung({
           {eintrag.beschreibung}
         </Typography>
       )}
+      {meldungen.length > 0 && (
+        <LaufBerichte
+          meldungen={meldungen}
+          laeuft={laeuft}
+          anweisungLabel="Anweisung an alle Meldungen dieses Abstimmungstags"
+          onStapelChat={async (anweisung) => {
+            await onStapelChat?.(abstimmungId, anweisung)
+          }}
+          onStapelAktion={async (aktion) => {
+            await onStapelAktion?.(abstimmungId, aktion)
+          }}
+          onChat={async (id, anweisung) => {
+            await onChat?.(id, anweisung)
+          }}
+          onAktion={async (id, was, koerper) => {
+            await onAktion?.(id, was, koerper)
+          }}
+        />
+      )}
       {eintrag.abstimmungsgemeinden.map((gemeinde) => {
         const erfasst = gemeindenNachBfs?.get(gemeinde.bfs)
-        const meldung = meldungen.find((m) => m.gemeinde?.id === erfasst?.id)
-
-        if (meldung !== undefined) {
-          return (
-            <MeldungKarte
-              key={gemeinde.bfs}
-              meldung={meldung}
-              laeuft={laeuft}
-              kompakt
-              onChat={async (id, anweisung) => {
-                await onChat?.(id, anweisung)
-              }}
-              onAktion={async (id, was, koerper) => {
-                await onAktion?.(id, was, koerper)
-              }}
-            />
-          )
-        }
+        // Wer schon eine Meldung hat, steht oben im Block „N Berichte".
+        if (meldungen.some((m) => m.gemeinde?.id === erfasst?.id)) return null
 
         if (!gemeinde.ausgezaehlt) {
           return (

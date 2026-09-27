@@ -7,12 +7,14 @@ import {
 } from './abstimmungsmeldungen'
 import {
   buildTagesPrompt,
+  bundWarnungenTag,
   datengrundlageTag,
   mitTagesQuelle,
   stichfragenWarnungenTag,
   tagesQuelleUrl,
   weichtAb,
-  zahlWarnungenTag
+  zahlWarnungenTag,
+  type BundErgebnis
 } from './abstimmungstag'
 
 const { completeJson, FormatFehler } = vi.hoisted(() => {
@@ -38,7 +40,7 @@ vi.mock('../shared/claude', () => ({
 const TAG = 'https://vework-public.bl.ch/app/publication/2026-09-27'
 
 type Tageszeile = Abstimmungszeile & {
-  bund?: { angenommen: boolean | null; beendet: boolean } | null
+  bund?: BundErgebnis | null
 }
 
 function kantonal(ueber: Partial<Tageszeile> = {}): Tageszeile {
@@ -184,13 +186,66 @@ describe('tagesFaktenAus — ein Tag, eine Gemeinde', () => {
     expect(() => tagesFaktenAus([kantonal()], aesch)).toThrow()
   })
 
-  it('kennt ohne finalen Bund keinen Vergleich mit der Schweiz', () => {
+  it('vergleicht mit dem Zwischenresultat des Bundes und warnt davor', () => {
+    const offen = tagesFaktenAus(
+      [
+        eidgenoessisch({
+          bund: {
+            angenommen: true,
+            beendet: false,
+            jaProzent: 53.24,
+            staendeJa: 14,
+            staendeNein: 4.5,
+            stand: '2026-09-27T15:03:03'
+          }
+        })
+      ],
+      binningen
+    )
+    expect(offen.vorlagen[0]?.bundAntwort).toBe('angenommen')
+    expect(offen.vorlagen[0]?.andersAlsBund).toBe(true)
+    expect(bundWarnungenTag(offen)).toEqual([
+      'Zwischenresultat des Bundes (Stand 27.09.2026 15:03 Uhr): «Neutralitätsinitiative» — Schweiz vorläufig Ja mit rund 53 Prozent Ja und bisher 14 zu 4½ Ständen. Prüfen ob das Bundesresultat klar genug ist bevor der Vergleich mit der Schweiz stehen bleibt.'
+    ])
+    // Das Wort gehoert nicht in den Artikel: er soll am Abend noch stimmen.
+    expect(buildTagesPrompt(offen)).not.toMatch(/Zwischen/)
+  })
+
+  it('schreibt den Hinweis ohne Komma — die Spalte ist CSV', () => {
+    const offen = tagesFaktenAus(
+      [
+        eidgenoessisch({
+          titel:
+            'Initiative «Für eine sichere Ernährung – durch Stärkung, mehr Wasser»',
+          bund: {
+            angenommen: false,
+            beendet: false,
+            jaProzent: 27.34,
+            staendeJa: 0.5,
+            staendeNein: 21.5,
+            stand: '2026-09-27T15:05:00'
+          }
+        })
+      ],
+      binningen
+    )
+    const [warnung] = bundWarnungenTag(offen)
+    expect(warnung).not.toContain(',')
+    expect(warnung).toContain('bisher ½ zu 21½ Ständen')
+  })
+
+  it('kennt ohne Tendenz keinen Vergleich mit der Schweiz', () => {
     const offen = tagesFaktenAus(
       [eidgenoessisch({ bund: { angenommen: null, beendet: false } })],
       binningen
     )
     expect(offen.vorlagen[0]?.bundAntwort).toBeNull()
-    expect(offen.vorlagen[0]?.andersAlsBund).toBeNull()
+    expect(bundWarnungenTag(offen)).toEqual([])
+  })
+
+  it('warnt nicht, sobald der Bund final ist', () => {
+    const fakten = tagesFaktenAus([eidgenoessisch()], binningen)
+    expect(bundWarnungenTag(fakten)).toEqual([])
   })
 
   it('legt die Vote-Ids in die Datengrundlage', () => {

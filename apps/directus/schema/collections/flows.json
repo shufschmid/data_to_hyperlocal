@@ -174,7 +174,7 @@
     "name": "Abstimmungen holen",
     "icon": "how_to_vote",
     "color": null,
-    "description": "Holt am Abstimmungssonntag ab 14 Uhr halbstuendlich die Resultate je Gemeinde von data.bl.ch und aus der Live-Publikation des Kantons, dazu das Ergebnis des Bundes. Gibt es fuer heute keine Zeilen, kostet ein Lauf einen Abruf und schreibt nichts. Sind alle bespielten Gemeinden ausgezaehlt und der Bund final (oder ist es 20 Uhr), schreibt der Lauf je Gemeinde eine zusammenfassende Meldung als Entwurf.",
+    "description": "Holt am Abstimmungssonntag ab 14 Uhr halbstuendlich die Resultate je Gemeinde von data.bl.ch und aus der Live-Publikation des Kantons, dazu das Ergebnis des Bundes. Gibt es fuer heute keine Zeilen, kostet ein Lauf einen Abruf und schreibt nichts. Sind alle bespielten Gemeinden ausgezaehlt, schreibt der Lauf je Gemeinde eine zusammenfassende Meldung als Entwurf; zaehlt der Bund noch, vergleicht sie mit seinem Zwischenresultat und traegt einen Hinweis.",
     "status": "active",
     "trigger": "schedule",
     "accountability": "all",

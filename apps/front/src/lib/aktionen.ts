@@ -44,6 +44,7 @@ export const ERLAUBT: RegExp[] = [
   /^suedanflug\/[0-9a-f-]{36}\/meldung$/i,
   /^abstimmungen\/pruefen$/i,
   /^abstimmungen\/[0-9a-f-]{36}\/meldung$/i,
+  /^abstimmungen\/[0-9a-f-]{36}\/tag\/(chat|publizieren|pruefung)$/i,
   /^vereine$/i,
   /^vereine\/[0-9a-f-]{36}$/i,
   /^wochenblaetter$/i,
