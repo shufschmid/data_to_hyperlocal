@@ -1025,6 +1025,10 @@ export interface KandidatFelder {
   zusammenfassung: string | null
   perle_vorschlag: boolean
   perle_begruendung: string | null
+  /** vorschau · rueckschau · keiner — vom Inventar; null vor dem 27.09.2026. */
+  zeitbezug: string | null
+  /** Der Tag des angekuendigten Anlasses, vom Code im Beitrag gefunden. */
+  anlass_am: string | null
   entscheid: string
   ablehnungsgrund: string | null
   ablehnungskommentar: string | null
@@ -1109,6 +1113,8 @@ export const WOCHENBLAETTER_QUERY = gql`
           zusammenfassung
           perle_vorschlag
           perle_begruendung
+          zeitbezug
+          anlass_am
           entscheid
           ablehnungsgrund
           ablehnungskommentar

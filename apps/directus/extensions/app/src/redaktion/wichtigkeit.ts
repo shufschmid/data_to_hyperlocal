@@ -17,7 +17,11 @@ import type { ItemsServiceLike } from './lernsignale'
 
 export const WICHTIGKEIT_FENSTER = 20
 
-export type WichtigkeitUrsprung = 'gemeindemitteilung' | 'veranstaltung'
+export type WichtigkeitUrsprung =
+  | 'gemeindemitteilung'
+  | 'veranstaltung'
+  // The press review since 27 September 2026: a weekly paper's piece.
+  | 'kandidat'
 
 export interface WichtigkeitBeispiel {
   titel: string

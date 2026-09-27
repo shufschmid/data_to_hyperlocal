@@ -12,13 +12,17 @@
 // the issue's text layer — the check that tells "own words" from copying.
 
 import type Anthropic from '@anthropic-ai/sdk'
+import { alleDaten, heuteAus } from '../shared/gemeindeseite/datum'
 import { seitenLink } from '../shared/wochenblatt/parse'
+import { heuteIso } from './feiertage'
 import { vorgabenZeilen } from './lernen'
 import type { HinweisUrteil, Verwurf } from './lernsignale'
+import { terminTageZeilen } from './termin'
 import type {
   Ablehnungsgrund,
   KandidatEntscheid,
-  KandidatTyp
+  KandidatTyp,
+  KandidatZeitbezug
 } from '../types/schema'
 export { parseMeldungstext as parsePresseschau } from './spielbericht'
 
@@ -33,6 +37,14 @@ const TYPEN: ReadonlyArray<KandidatTyp> = [
   'erfolgsmeldung',
   'fotoverweis'
 ]
+
+const ZEITBEZUEGE: ReadonlyArray<KandidatZeitbezug> = [
+  'vorschau',
+  'rueckschau',
+  'keiner'
+]
+
+const ISO_TAG = /^\d{4}-\d{2}-\d{2}$/
 
 // ---------------------------------------------------------------------------
 // The inventory: one Opus call per issue.
@@ -88,6 +100,19 @@ mehr Gemeinden ab (Nachbargemeinden), die uns nichts angehen.
 - Nur wo ein Rubrik-Kopf fehlt (etwa auf der Front), entscheide am Inhalt; auch
   dann zaehlt nur, was eine Auftrags-Gemeinde betrifft. Bleibt es unklar, nimm
   die erstgenannte Auftrags-Gemeinde und benenne die Unsicherheit in "hinweise".
+
+Zeitbezug je Kandidat — die Redaktion blendet eine Vorschau aus, sobald ihr
+Anlass vorbei ist:
+- "zeitbezug": "vorschau", wenn der Beitrag etwas ANKUENDIGT, das erst noch
+  stattfindet (ein Spiel, ein Fest, ein Konzert, eine Eroeffnung, ein
+  Info-Abend); "rueckschau", wenn er von etwas berichtet, das schon
+  stattgefunden hat — das Blatt war dabei, oft mit Bildern (ein "fotoverweis"
+  ist immer "rueckschau"); "keiner" fuer alles ohne Anlass (Portraet,
+  Hintergrund, Interview, Erfolgsmeldung).
+- "anlass_am": NUR bei einer Vorschau der Tag des Anlasses als JJJJ-MM-TT, bei
+  mehreren Tagen der LETZTE. Nur ein Tag, der im Beitrag steht; nennt der
+  Beitrag keinen, ist "anlass_am" null. Bei "rueckschau" und "keiner" immer
+  null.
 
 Geburtstags- und Jubilaeums-Portraets sind nur Kandidaten, wenn die
 Lebensgeschichte selbst berichtenswert ist (eine Stadtmeisterin, eine
@@ -150,7 +175,9 @@ export const INVENTAR_SCHEMA = {
           'perle_vorschlag',
           'perle_begruendung',
           'empfehlung',
-          'empfehlung_regel'
+          'empfehlung_regel',
+          'zeitbezug',
+          'anlass_am'
         ],
         properties: {
           titel: { type: 'string' },
@@ -171,7 +198,9 @@ export const INVENTAR_SCHEMA = {
               { type: 'null' }
             ]
           },
-          empfehlung_regel: { type: ['string', 'null'] }
+          empfehlung_regel: { type: ['string', 'null'] },
+          zeitbezug: { type: 'string', enum: [...ZEITBEZUEGE] },
+          anlass_am: { type: ['string', 'null'] }
         }
       }
     },
@@ -524,6 +553,20 @@ export interface InventarKandidat {
   /** Only ever set when a numbered rule of the newsroom asked for it — checked by code. */
   empfehlung: 'weiterreichen' | null
   empfehlung_regel: string | null
+  /** Announcement, report of something past, or neither. */
+  zeitbezug: KandidatZeitbezug
+  /** The event's day on a `vorschau` — null unless the code found it in the piece. */
+  anlass_am: string | null
+}
+
+/**
+ * What `parseInventar` checks a proposed event day against: the issue's own
+ * text layer, and the day the issue appeared (a "Samstag, 3. Oktober" without
+ * a year is read forward from there).
+ */
+export interface InventarDatumsGrundlage {
+  seitenTexte?: readonly (string | null)[]
+  stichtag?: string | null
 }
 
 export interface InventarFaehrte {
@@ -572,7 +615,8 @@ export function empfehlungAus(e: Record<string, unknown>): {
 export function parseInventar(
   antwort: unknown,
   seiten: number | null,
-  gemeinden: readonly string[] = []
+  gemeinden: readonly string[] = [],
+  grundlage: InventarDatumsGrundlage = {}
 ): Inventar {
   if (typeof antwort !== 'object' || antwort === null) {
     throw new Error('Antwort ist kein Objekt.')
@@ -656,12 +700,26 @@ export function parseInventar(
     if (gesehen.has(schluessel)) continue
     gesehen.add(schluessel)
 
+    const frontseite = e.frontseite === true
+    const zeitbezug =
+      ZEITBEZUEGE.find((z) => z === e.zeitbezug) ?? ('keiner' as const)
+    const anlass_am =
+      zeitbezug === 'vorschau'
+        ? pruefeAnlasstag(e.anlass_am, {
+            titel,
+            zusammenfassung,
+            seite: seite ?? (frontseite ? 1 : null),
+            grundlage,
+            hinweise
+          })
+        : null
+
     kandidaten.push({
       titel,
       seite,
       typ,
       gemeinde,
-      frontseite: e.frontseite === true,
+      frontseite,
       warum_exklusiv:
         typeof e.warum_exklusiv === 'string' ? e.warum_exklusiv.trim() : '',
       zusammenfassung,
@@ -671,7 +729,9 @@ export function parseInventar(
         e.perle_begruendung.trim() !== ''
           ? e.perle_begruendung.trim()
           : null,
-      ...empfehlungAus(e)
+      ...empfehlungAus(e),
+      zeitbezug,
+      anlass_am
     })
   }
 
@@ -721,6 +781,109 @@ export function parseInventar(
   return { kandidaten, recherchehinweise, hinweise }
 }
 
+/**
+ * The event day of a Vorschau, bound to the piece the same way a termin is
+ * bound to a municipal notice: the model names it, the CODE must find it —
+ * in the summary, the title, or the text layer of the piece's page and the
+ * next one (a Reportage runs over). A day nowhere in there is dropped and
+ * named; the candidate stays, it only will not fold away by itself.
+ */
+function pruefeAnlasstag(
+  roh: unknown,
+  kontext: {
+    titel: string
+    zusammenfassung: string
+    seite: number | null
+    grundlage: InventarDatumsGrundlage
+    hinweise: string[]
+  }
+): string | null {
+  if (typeof roh !== 'string') return null
+  const tag = roh.trim()
+  if (!ISO_TAG.test(tag)) return null
+
+  const seiten = kontext.grundlage.seitenTexte ?? []
+  const teile = [kontext.titel, kontext.zusammenfassung]
+  if (kontext.seite !== null) {
+    for (const n of [kontext.seite, kontext.seite + 1]) {
+      const text = seiten[n - 1]
+      if (typeof text === 'string') teile.push(text)
+    }
+  }
+  const stichtag = kontext.grundlage.stichtag ?? heuteIso()
+  const funde = alleDaten(teile.join('\n'), heuteAus(stichtag))
+  if (funde.includes(tag)) return tag
+
+  kontext.hinweise.push(
+    `"${kontext.titel}": Anlasstag ${tag} steht nicht im Beitrag — ohne Datum aufgenommen, die Vorschau wird nicht von selbst ausgeblendet.`
+  )
+  return null
+}
+
+/**
+ * A preview whose event has passed: the desk folds it away, the next issue
+ * lets it lapse. Only an OPEN candidate — one the editor took over, or one
+ * a draft is being edited for, never folds away under her hands. A report
+ * of something past ("rueckschau") never folds: the paper was there, and
+ * that stays worth a line for a while.
+ *
+ * Mirrored by `vorschauVorbei` in the frontend's `lib/presseschau.ts`.
+ */
+export function vorschauVorbei(
+  kandidat: {
+    zeitbezug?: string | null
+    anlass_am?: string | null
+    entscheid: string
+  },
+  heute: string
+): boolean {
+  if (kandidat.entscheid !== 'offen') return false
+  if (kandidat.zeitbezug !== 'vorschau') return false
+  const tag = kandidat.anlass_am ?? null
+  return tag !== null && tag < heute
+}
+
+/** How many drafts one click of «Alle Meldungen formulieren» writes. */
+export const PRESSESCHAU_FORMULIEREN_JE_KLICK = 20
+
+export interface FormulierKandidat {
+  id: string
+  entscheid: string
+  zeitbezug?: string | null
+  anlass_am?: string | null
+  zusammenfassung: string | null
+}
+
+/**
+ * Which candidates the bulk button writes a draft for, in desk order, and
+ * how many the cap leaves waiting. Open ones only, none that already has a
+ * Meldung, none without a fact summary (there is nothing to write FROM), and
+ * no preview whose event has passed — that one is folded away on the desk
+ * and is not worth a model call.
+ */
+export function formulierbare<T extends FormulierKandidat>(
+  kandidaten: readonly T[],
+  mitMeldung: ReadonlySet<string>,
+  heute: string,
+  hoechstens: number = PRESSESCHAU_FORMULIEREN_JE_KLICK
+): { dran: T[]; wartend: number; ohneZusammenfassung: number } {
+  const offen = kandidaten.filter(
+    (k) =>
+      k.entscheid === 'offen' &&
+      !mitMeldung.has(k.id) &&
+      !vorschauVorbei(k, heute)
+  )
+  const mitFakten = offen.filter(
+    (k) => k.zusammenfassung !== null && k.zusammenfassung.trim() !== ''
+  )
+  const dran = mitFakten.slice(0, hoechstens)
+  return {
+    dran,
+    wartend: mitFakten.length - dran.length,
+    ohneZusammenfassung: offen.length - mitFakten.length
+  }
+}
+
 // ---------------------------------------------------------------------------
 // The Meldung: one Sonnet call per picked candidate.
 // ---------------------------------------------------------------------------
@@ -740,6 +903,12 @@ export interface PresseschauFakten {
   zusammenfassung: string
   /** Resolved PDF or reader address for the source line; the page link is appended in code. */
   pdfUrl: string | null
+  /**
+   * Every day the code found in the piece (summary plus page text) — the only
+   * days the writer may name as its termin. Absent on a call that proposes
+   * no termin.
+   */
+  datenImText?: readonly string[]
 }
 
 export const PRESSESCHAU_SYSTEM_PROMPT = `Du schreibst fuer eine lokale Redaktion in der Region Basel kurze Presseschau-Meldungen: eigene Zusammenfassungen dessen, was die Wochenzeitung einer Gemeinde exklusiv berichtet.
@@ -761,8 +930,25 @@ Regeln, ohne Ausnahme:
 Umfang: Titel (maximal 70 Zeichen), Lead (ein Satz), Text (ein bis zwei kurze
 Absaetze, durch eine Leerzeile getrennt).
 
+Zusaetzlich beurteilst du zwei Dinge FUER DEN NEWSLETTER — sie erscheinen
+nicht im Text:
+- "termin": Kuendigt der Beitrag etwas an, das an einem Tag stattfindet oder
+  bis zu einem Tag gilt — ein Anlass, ein Spiel, eine Ausstellung, eine
+  Anmeldefrist? Dann nenne "ideal" (den Tag des Anlasses oder die Frist, bei
+  einer Ausstellung ihren ersten Tag) und "ende" (den letzten Tag, an dem die
+  Meldung noch Sinn hat — bei einer Ausstellung ihr letzter Tag, sonst
+  derselbe wie "ideal"). NUR Tage aus der Liste "Im Beitrag genannte Tage";
+  steht der passende Tag nicht dort, ist "termin" null. Ein Rueckblick, ein
+  Bildbericht, ein Portraet oder ein Hintergrund ohne Stichtag hat
+  "termin": null.
+- "wichtig": true, wenn die Sache fuer viele im Dorf zaehlt und eine FRUEHE
+  Ankuendigung verdient — ein Dorffest, ein grosses Spiel, eine Eroeffnung,
+  eine Veranstaltung, zu der das halbe Dorf kommt. false bei Routine und
+  kleinen Anlaessen. Stehen unten Entscheide der Redaktion, richte dich
+  danach.
+
 Antworte ausschliesslich mit JSON:
-{"titel": "...", "lead": "...", "text": "..."}`
+{"titel": "...", "lead": "...", "text": "...", "termin": {"ideal": "JJJJ-MM-TT", "ende": "JJJJ-MM-TT"} | null, "wichtig": true | false}`
 
 const TYP_TEXT: Record<KandidatTyp, string> = {
   interview: 'Interview des Blatts',
@@ -790,17 +976,23 @@ function faktenZeilen(fakten: PresseschauFakten): string[] {
       : []),
     '',
     'Fakten aus dem Beitrag:',
-    fakten.zusammenfassung
+    fakten.zusammenfassung,
+    ...(fakten.datenImText === undefined
+      ? []
+      : terminTageZeilen(fakten.datenImText, 'Beitrag'))
   ]
 }
 
 export function buildPresseschauPrompt(
   fakten: PresseschauFakten,
-  regeln: readonly string[] = []
+  regeln: readonly string[] = [],
+  /** What the newsroom decided about importance lately — `wichtigkeitDigest`, or ''. */
+  wichtigkeit = ''
 ): string {
   return [
     ...faktenZeilen(fakten),
     ...vorgabenZeilen(regeln),
+    ...(wichtigkeit === '' ? [] : ['', wichtigkeit]),
     '',
     'Schreibe die Presseschau-Meldung. Verwende ausschliesslich diese Angaben.'
   ].join('\n')

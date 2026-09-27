@@ -1,0 +1,59 @@
+{
+  "collection": "wochenblattkandidaten",
+  "field": "zeitbezug",
+  "type": "string",
+  "meta": {
+    "collection": "wochenblattkandidaten",
+    "conditions": null,
+    "display": "labels",
+    "display_options": null,
+    "field": "zeitbezug",
+    "group": null,
+    "hidden": false,
+    "interface": "select-dropdown",
+    "note": "Vom Inventar: kuendigt der Beitrag etwas an (vorschau), berichtet er von Vergangenem (rueckschau) oder keins von beidem. Null vor dem 27.09.2026.",
+    "options": {
+      "choices": [
+        {
+          "text": "Vorschau",
+          "value": "vorschau"
+        },
+        {
+          "text": "Rueckschau",
+          "value": "rueckschau"
+        },
+        {
+          "text": "Kein Zeitbezug",
+          "value": "keiner"
+        }
+      ]
+    },
+    "readonly": false,
+    "required": false,
+    "searchable": true,
+    "sort": 18,
+    "special": null,
+    "translations": null,
+    "validation": null,
+    "validation_message": null,
+    "width": "half"
+  },
+  "schema": {
+    "name": "zeitbezug",
+    "table": "wochenblattkandidaten",
+    "data_type": "character varying",
+    "default_value": null,
+    "max_length": 16,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "is_nullable": true,
+    "is_unique": false,
+    "is_indexed": false,
+    "is_primary_key": false,
+    "is_generated": false,
+    "generation_expression": null,
+    "has_auto_increment": false,
+    "foreign_key_table": null,
+    "foreign_key_column": null
+  }
+}

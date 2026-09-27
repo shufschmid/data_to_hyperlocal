@@ -6,12 +6,14 @@ import {
   buildInventarMessages,
   buildPresseschauPrompt,
   buildPresseschauRevision,
+  formulierbare,
   INVENTAR_PDF_MAX_BYTES,
   lernDigest,
   mitQuelle,
   parseInventar,
   quelleZeile,
   ueberlappungsWarnungen,
+  vorschauVorbei,
   zahlWarnungenPresseschau,
   type LernEintrag,
   type PresseschauFakten
@@ -716,5 +718,151 @@ describe('parseInventar — Empfehlung zum Weiterreichen', () => {
     )
     expect(inventar.kandidaten[0]?.empfehlung).toBeNull()
     expect(inventar.kandidaten[0]?.empfehlung_regel).toBeNull()
+  })
+})
+
+// --- Vorschau und Rueckschau (seit 27.09.2026) -------------------------------
+
+describe('Vorschau im Inventar', () => {
+  const VORSCHAU = {
+    ...KANDIDAT,
+    titel: 'Cup-Highlight fürs Seniorenteam: Der FC Sion kommt nach Arlesheim',
+    seite: 3,
+    typ: 'hintergrund',
+    zeitbezug: 'vorschau',
+    anlass_am: '2026-09-26',
+    zusammenfassung: 'Der FC Arlesheim empfaengt den FC Sion im Cup.'
+  }
+  const SEITEN = [
+    'Front',
+    'Seite 2',
+    'Anpfiff ist am Samstag, 26. September, um 16 Uhr auf der Hagenbuchen.'
+  ]
+
+  it('nimmt den Anlasstag, wenn er im Beitrag steht — auch ohne Jahr, vorwaerts vom Erscheinungstag', () => {
+    const inventar = parseInventar(
+      { kandidaten: [VORSCHAU], hinweise: [] },
+      16,
+      EINE_GEMEINDE,
+      { seitenTexte: SEITEN, stichtag: '2026-09-24' }
+    )
+    expect(inventar.kandidaten[0]?.zeitbezug).toBe('vorschau')
+    expect(inventar.kandidaten[0]?.anlass_am).toBe('2026-09-26')
+  })
+
+  it('verwirft einen Tag, der nirgends im Beitrag steht, und sagt es — der Kandidat bleibt', () => {
+    const inventar = parseInventar(
+      { kandidaten: [{ ...VORSCHAU, anlass_am: '2026-09-27' }], hinweise: [] },
+      16,
+      EINE_GEMEINDE,
+      { seitenTexte: SEITEN, stichtag: '2026-09-24' }
+    )
+    expect(inventar.kandidaten).toHaveLength(1)
+    expect(inventar.kandidaten[0]?.anlass_am).toBeNull()
+    expect(inventar.hinweise.join(' ')).toContain('2026-09-27')
+  })
+
+  it('fuehrt bei einer Rueckschau nie ein Anlassdatum', () => {
+    const inventar = parseInventar(
+      { kandidaten: [{ ...VORSCHAU, zeitbezug: 'rueckschau' }], hinweise: [] },
+      16,
+      EINE_GEMEINDE,
+      { seitenTexte: SEITEN, stichtag: '2026-09-24' }
+    )
+    expect(inventar.kandidaten[0]?.zeitbezug).toBe('rueckschau')
+    expect(inventar.kandidaten[0]?.anlass_am).toBeNull()
+  })
+
+  it('nimmt einen unbekannten Zeitbezug als «keiner»', () => {
+    const inventar = parseInventar(
+      { kandidaten: [KANDIDAT], hinweise: [] },
+      16,
+      EINE_GEMEINDE
+    )
+    expect(inventar.kandidaten[0]?.zeitbezug).toBe('keiner')
+    expect(inventar.kandidaten[0]?.anlass_am).toBeNull()
+  })
+})
+
+describe('vorschauVorbei', () => {
+  const vorschau = {
+    zeitbezug: 'vorschau',
+    anlass_am: '2026-09-26',
+    entscheid: 'offen'
+  }
+
+  it('blendet eine offene Vorschau am Tag NACH dem Anlass aus, nicht am Tag selbst', () => {
+    expect(vorschauVorbei(vorschau, '2026-09-26')).toBe(false)
+    expect(vorschauVorbei(vorschau, '2026-09-27')).toBe(true)
+  })
+
+  it('laesst Rueckschau, Uebernommenes und Kandidaten ohne Datum stehen', () => {
+    expect(
+      vorschauVorbei({ ...vorschau, zeitbezug: 'rueckschau' }, '2026-10-01')
+    ).toBe(false)
+    expect(
+      vorschauVorbei({ ...vorschau, entscheid: 'uebernommen' }, '2026-10-01')
+    ).toBe(false)
+    expect(vorschauVorbei({ ...vorschau, anlass_am: null }, '2026-10-01')).toBe(
+      false
+    )
+    expect(vorschauVorbei({ entscheid: 'offen' }, '2026-10-01')).toBe(false)
+  })
+})
+
+describe('formulierbare', () => {
+  const k = (id: string, ueber: Record<string, unknown> = {}) => ({
+    id,
+    entscheid: 'offen',
+    zeitbezug: 'keiner',
+    anlass_am: null,
+    zusammenfassung: 'Fakten.',
+    ...ueber
+  })
+
+  it('nimmt nur offene Kandidaten ohne Meldung und ohne vergangene Vorschau', () => {
+    const { dran } = formulierbare(
+      [
+        k('a'),
+        k('b', { entscheid: 'abgelehnt' }),
+        k('c'),
+        k('d', { zeitbezug: 'vorschau', anlass_am: '2026-09-20' }),
+        k('e', { zeitbezug: 'vorschau', anlass_am: '2026-10-03' })
+      ],
+      new Set(['c']),
+      '2026-09-27'
+    )
+    expect(dran.map((x) => x.id)).toEqual(['a', 'e'])
+  })
+
+  it('nennt, was der Deckel liegen laesst und was ohne Fakten nicht geht', () => {
+    const ergebnis = formulierbare(
+      [k('a'), k('b'), k('c'), k('d', { zusammenfassung: '  ' })],
+      new Set(),
+      '2026-09-27',
+      2
+    )
+    expect(ergebnis.dran.map((x) => x.id)).toEqual(['a', 'b'])
+    expect(ergebnis.wartend).toBe(1)
+    expect(ergebnis.ohneZusammenfassung).toBe(1)
+  })
+})
+
+describe('Termin in der Presseschau-Meldung', () => {
+  it('nennt dem Schreiber die Tage aus dem Beitrag — und sagt es, wenn keiner dasteht', () => {
+    expect(
+      buildPresseschauPrompt({ ...FAKTEN, datenImText: ['2026-09-26'] })
+    ).toContain(
+      'Im Beitrag genannte Tage (nur diese darf "termin" nennen): 2026-09-26'
+    )
+    expect(buildPresseschauPrompt({ ...FAKTEN, datenImText: [] })).toContain(
+      'Im Beitrag steht kein Kalendertag'
+    )
+  })
+
+  it('traegt die Entscheide der Redaktion zur Wichtigkeit in den User-Turn', () => {
+    expect(
+      buildPresseschauPrompt(FAKTEN, [], 'Entscheide der Redaktion: X')
+    ).toContain('Entscheide der Redaktion: X')
   })
 })

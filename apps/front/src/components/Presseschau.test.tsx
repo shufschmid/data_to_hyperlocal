@@ -21,6 +21,8 @@ function kandidat(ueber: Partial<KandidatFelder>): KandidatFelder {
     zusammenfassung: 'Die Basler Klimamessreihe reicht bis 1755 zurueck.',
     perle_vorschlag: true,
     perle_begruendung: 'Weltweit einmalige Messreihe.',
+    zeitbezug: null,
+    anlass_am: null,
     entscheid: 'offen',
     ablehnungsgrund: null,
     ablehnungskommentar: null,
@@ -273,5 +275,106 @@ describe('Presseschau', () => {
 
     expect(screen.getByText(/Archiv nicht gelesen/)).toBeInTheDocument()
     expect(screen.getByText(/Archiv antwortete mit 503/)).toBeInTheDocument()
+  })
+
+  // --- Vorschauen, Termine, «Alle Meldungen formulieren» (seit 27.09.2026) ---
+
+  const VORSCHAU = kandidat({
+    id: 'k-2',
+    titel: 'Cup-Highlight fürs Seniorenteam: Der FC Sion kommt nach Arlesheim',
+    typ: 'hintergrund',
+    seite: 2,
+    perle_vorschlag: false,
+    zeitbezug: 'vorschau',
+    anlass_am: '2026-09-26'
+  })
+
+  function mitKandidaten(liste: KandidatFelder[]): WochenblattFelder {
+    const basis = blatt({})
+    const [ausgabe] = basis.ausgaben
+    return { ...basis, ausgaben: ausgabe === undefined ? [] : [{ ...ausgabe, kandidaten: liste }] }
+  }
+
+  it('haengt eine Vorschau, deren Anlass vorbei ist, eingeklappt unten an — nichts geht verloren', async () => {
+    render(
+      <Presseschau
+        blaetter={[mitKandidaten([kandidat({}), VORSCHAU])]}
+        gemeinden={gemeinden}
+        meldungen={[]}
+        heute="2026-09-27"
+        {...NICHTS}
+      />
+    )
+    const falte = screen.getByRole('button', { name: /Vorschauen, deren Anlass vorbei ist \(1\)/ })
+    expect(screen.getByText(/Cup-Highlight/)).not.toBeVisible()
+    await userEvent.click(falte)
+    expect(screen.getByText(/Cup-Highlight/)).toBeVisible()
+    expect(screen.getByText('Vorschau · 26.09.2026')).toBeInTheDocument()
+  })
+
+  it('laesst eine Vorschau bis zu ihrem Anlasstag oben stehen', () => {
+    render(
+      <Presseschau
+        blaetter={[mitKandidaten([VORSCHAU])]}
+        gemeinden={gemeinden}
+        meldungen={[]}
+        heute="2026-09-26"
+        {...NICHTS}
+      />
+    )
+    expect(screen.queryByRole('button', { name: /Anlass vorbei/ })).not.toBeInTheDocument()
+    expect(screen.getByText(/Cup-Highlight/)).toBeVisible()
+  })
+
+  it('formuliert alle offenen Vorschlaege auf einen Klick und zaehlt nur, was es schreiben wuerde', async () => {
+    const onAlleFormulieren = jest.fn().mockResolvedValue(undefined)
+    render(
+      <Presseschau
+        blaetter={[mitKandidaten([kandidat({}), VORSCHAU, kandidat({ id: 'k-3', titel: 'Drei' })])]}
+        gemeinden={gemeinden}
+        meldungen={[meldung({ kandidat: { id: 'k-3' } })]}
+        heute="2026-09-27"
+        onAlleFormulieren={onAlleFormulieren}
+        {...NICHTS}
+      />
+    )
+    // k-1 zaehlt; die vergangene Vorschau nicht, k-3 hat schon einen Entwurf.
+    await userEvent.click(screen.getByRole('button', { name: 'Alle Meldungen formulieren (1)' }))
+    expect(onAlleFormulieren).toHaveBeenCalled()
+  })
+
+  it('zeigt einen Entwurf neben einem offenen Kandidaten mit allen drei Entscheiden', async () => {
+    render(
+      <Presseschau
+        blaetter={[blatt({})]}
+        gemeinden={gemeinden}
+        meldungen={[meldung({})]}
+        heute="2026-09-27"
+        {...NICHTS}
+      />
+    )
+    expect(screen.getByText(/noch nicht entschieden/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ablehnen' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'An Chefredaktion' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Übernehmen' }))
+    expect(NICHTS.onMeldung).toHaveBeenCalledWith('k-1')
+  })
+
+  it('sagt nach dem Formulieren, was geschrieben wurde und was wartet', () => {
+    render(
+      <Presseschau
+        blaetter={[blatt({})]}
+        gemeinden={gemeinden}
+        meldungen={[]}
+        onAlleFormulieren={jest.fn()}
+        formulierStatus={{
+          laeuft: false,
+          fehler: null,
+          ergebnis: { geschrieben: 20, wartend: 3, ohneZusammenfassung: 0, fehler: [] }
+        }}
+        {...NICHTS}
+      />
+    )
+    expect(screen.getByText('20 Entwürfe geschrieben, 3 warten auf den nächsten Klick.')).toBeInTheDocument()
   })
 })

@@ -1047,7 +1047,9 @@ export function seitenLink(pdfUrl: string, seite: number | null): string {
  * sie sind das Gedächtnis des Inventars.
  */
 export function bleibtAufDemTisch(entscheid: string, meldungStatus: string | null): boolean {
-  if (entscheid === 'offen') return true
+  // Seit «Alle Meldungen formulieren» traegt auch ein OFFENER Kandidat einen
+  // Entwurf. Wird der publiziert, ist die Arbeit getan, wie bei «uebernommen».
+  if (entscheid === 'offen') return meldungStatus !== 'publiziert'
   if (entscheid !== 'uebernommen') return false
   if (meldungStatus === null) return false
   return meldungStatus !== 'publiziert' && meldungStatus !== 'verworfen'

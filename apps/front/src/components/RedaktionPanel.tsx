@@ -88,7 +88,8 @@ import {
 } from '@/lib/redaktion'
 import { revisionZaehlerSport, revisionZaehlerStatistik } from '@/lib/revision'
 import { QuellenLauf } from './QuellenLauf'
-import { Presseschau } from './Presseschau'
+import { Presseschau, type FormulierStatus } from './Presseschau'
+import { vorschauVorbei } from '@/lib/presseschau'
 import { Amtsblatt } from './Amtsblatt'
 import { Gemeindeseiten } from './Gemeindeseiten'
 import { Veranstaltungen } from './Veranstaltungen'
@@ -548,6 +549,33 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
     spieleRefetch
   ])
 
+  // «Alle Meldungen formulieren» on the Wochenblätter desk: detached in the
+  // backend, polled while under way, the desk refetched once when it is over.
+  const [formulierStatus, setFormulierStatus] = useState<FormulierStatus | null>(null)
+  const ladeFormulierStatus = useCallback(async () => {
+    try {
+      const antwort = await sitzungsFetch('/api/redaktion/wochenblaetter/formulieren')
+      if (!antwort.ok) return
+      const inhalt = (await antwort.json()) as { data?: FormulierStatus }
+      setFormulierStatus(inhalt.data ?? null)
+    } catch {
+      // Komfortanzeige; ein verpasster Abruf wird beim naechsten Poll nachgeholt.
+    }
+  }, [])
+  const wochenblaetterRefetch = wochenblaetter.refetch
+  const formulierAlleMeldungenRefetch = alleMeldungen.refetch
+  const formulierWarUnterwegs = useRef(false)
+  useEffect(() => {
+    const unterwegs = formulierStatus?.laeuft === true
+    if (formulierWarUnterwegs.current && !unterwegs) {
+      void Promise.all([wochenblaetterRefetch(), formulierAlleMeldungenRefetch()])
+    }
+    formulierWarUnterwegs.current = unterwegs
+    if (!unterwegs) return
+    const intervall = setInterval(() => void ladeFormulierStatus(), 10_000)
+    return () => clearInterval(intervall)
+  }, [formulierStatus?.laeuft, ladeFormulierStatus, wochenblaetterRefetch, formulierAlleMeldungenRefetch])
+
   // The municipal-news run, mirrored the same way: polled while under way,
   // the desk refetched once when it is over.
   const [gemeindeseitenLaufStatus, setGemeindeseitenLaufStatus] = useState<GemeindeseitenLaufStatus | null>(
@@ -892,7 +920,9 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
                     .flatMap((b) => b.ausgaben)
                     .flatMap((a) => a.kandidaten)
                     .filter((k) => bleibtAufDemTisch(k.entscheid, meldungStatusJeKandidat.get(k.id) ?? null))
-                    .length
+                    // Eine Vorschau, deren Anlass vorbei ist, haengt eingeklappt
+                    // unten — sie ist keine Arbeit mehr und zaehlt nicht.
+                    .filter((k) => !vorschauVorbei(k, new Date().toISOString().slice(0, 10))).length
                 }
                 sx={ZAEHLER_IM_REITER}
               >
@@ -1315,6 +1345,17 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
               // filtern über den Meldungsstatus, den fuehreAus frisch holt.
               await fuehreAus(`meldungen/${id}/${was}`, koerper)
             }}
+            onTermin={async (id, eingabe) => {
+              await fuehreAus(`meldungen/${id}/termin`, eingabe)
+            }}
+            onAlleFormulieren={async () => {
+              // Ein Entwurf je offenem Vorschlag, abgeloest im Backend; der
+              // Stand wird abgefragt, bis der Lauf fertig ist.
+              await fuehreAus('wochenblaetter/formulieren')
+              await ladeFormulierStatus()
+            }}
+            formulierStatus={formulierStatus}
+            heute={new Date().toISOString().slice(0, 10)}
           />
         </Stack>
       )}

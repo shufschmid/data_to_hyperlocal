@@ -37,7 +37,11 @@ import type { GespeicherterMonat } from '../../redaktion/suedanfluglauf'
 import { createError } from '@directus/errors'
 import { defineEndpoint } from '@directus/extensions-sdk'
 import type { NextFunction, Response } from 'express'
-import { completeChatJson, completeJson } from '../../shared/claude'
+import {
+  ClaudeFormatError,
+  completeChatJson,
+  completeJson
+} from '../../shared/claude'
 import { scrape } from '../../shared/crawler'
 import { parseTelegrammSeite } from '../../shared/matchcenter/parse'
 import { isAuthenticated, type ApiRequest } from '../../shared/http'
@@ -132,6 +136,7 @@ import {
 import {
   attributionsWarnung,
   brauchtTextTransport,
+  formulierbare,
   buildInventarMessages,
   buildPresseschauPrompt,
   buildPresseschauRevision,
@@ -158,9 +163,13 @@ import {
 import { verwirfEntwurfZu } from '../../redaktion/entwurf'
 import {
   planeAnlassTermin,
+  planeMitteilungTermin,
   pruefeTermin,
-  wichtigAus
+  terminVorschlagAus,
+  wichtigAus,
+  type Termin
 } from '../../redaktion/termin'
+import { alleDaten } from '../../shared/gemeindeseite/datum'
 import {
   ladeWichtigkeitSignale,
   wichtigkeitDigest
@@ -400,6 +409,12 @@ const KeinPdfAnAusgabe = createError(
 const KandidatSchonUebernommen = createError(
   'CANDIDATE_TAKEN',
   'Zu diesem Kandidaten gibt es schon eine Meldung.',
+  409
+)
+
+const PresseschauFormuliertBereits = createError(
+  'RUN_IN_PROGRESS',
+  'Die Meldungen der Wochenblätter werden gerade formuliert. Bitte kurz warten.',
   409
 )
 // The master-data endpoints answer with the reason itself: unlike a status
@@ -1028,7 +1043,8 @@ export default defineEndpoint(
             const inventar = parseInventar(
               antwort,
               ausgabe.seiten,
-              abdeckung.map((g) => g.name)
+              abdeckung.map((g) => g.name),
+              { seitenTexte: layer.seitenTexte, stichtag: ausgabe.datum }
             )
 
             // Diff instead of replace: a candidate the editor already decided
@@ -1068,7 +1084,9 @@ export default defineEndpoint(
                   warum_exklusiv: neu.warum_exklusiv,
                   zusammenfassung: neu.zusammenfassung,
                   perle_vorschlag: neu.perle_vorschlag,
-                  perle_begruendung: neu.perle_begruendung
+                  perle_begruendung: neu.perle_begruendung,
+                  zeitbezug: neu.zeitbezug,
+                  anlass_am: neu.anlass_am
                 })
               } else if (alt.entscheid === 'offen' && !mitMeldung.has(alt.id)) {
                 await kandidatenService.deleteOne(alt.id)
@@ -1088,6 +1106,8 @@ export default defineEndpoint(
                 zusammenfassung: neu.zusammenfassung,
                 perle_vorschlag: neu.perle_vorschlag,
                 perle_begruendung: neu.perle_begruendung,
+                zeitbezug: neu.zeitbezug,
+                anlass_am: neu.anlass_am,
                 entscheid: 'offen'
               })) as string
 
@@ -2251,6 +2271,72 @@ export default defineEndpoint(
       }
     )
 
+    /**
+     * One press-review Meldung for one candidate — the ONE way the button and
+     * «Alle Meldungen formulieren» share. `uebernehmen` is the difference: a
+     * person's click decides (`uebernommen`, the learning signal); the bulk
+     * button writes a draft beside an OPEN candidate and teaches nothing,
+     * exactly the bargain the Gemeindeseiten desk has had since 21 September.
+     */
+    async function legePresseschauMeldungAn(
+      kandidatId: string,
+      optionen: {
+        uebernehmen: boolean
+        accountability?: ApiRequest['accountability']
+        wichtigkeit?: string
+      }
+    ): Promise<{ meldung: string; warnungen: string[] }> {
+      const schema = await getSchema()
+      const kandidatenService = new ItemsService('wochenblattkandidaten', {
+        schema,
+        accountability: optionen.accountability
+      })
+      const meldungenService = new ItemsService('meldungen', {
+        schema,
+        accountability: optionen.accountability
+      })
+
+      const geladen = await ladePresseschauFakten(schema, kandidatId)
+      const { bericht, warnungen, termin, wichtig } = await schreibePresseschau(
+        geladen.fakten,
+        geladen.volltext,
+        optionen.wichtigkeit
+      )
+
+      const meldungId = (await meldungenService.createOne({
+        kandidat: kandidatId,
+        gemeinde: geladen.gemeindeId,
+        titel: bericht.titel,
+        lead: bericht.lead,
+        text: mitQuelle(bericht.text, geladen.fakten),
+        status: 'entwurf',
+        verarbeitung: 'idle',
+        zeit_warnungen: warnungen.length > 0 ? warnungen : null,
+        // The proposal is kept twice: once to edit, once to remember. The
+        // newsroom's deviation from the second is the learning signal.
+        termin,
+        termin_vorschlag: termin,
+        wichtig,
+        wichtig_vorschlag: wichtig,
+        datengrundlage: {
+          quelle: 'wochenblatt',
+          blatt: geladen.fakten.blatt,
+          nummer: geladen.fakten.nummer,
+          datum: geladen.fakten.datum,
+          seite: geladen.fakten.seite,
+          beitrag: geladen.fakten.titel,
+          pdf_url: geladen.fakten.pdfUrl
+        }
+      })) as string
+
+      if (optionen.uebernehmen) {
+        await kandidatenService.updateOne(kandidatId, {
+          entscheid: 'uebernommen'
+        })
+      }
+      return { meldung: meldungId, warnungen }
+    }
+
     router.post(
       '/kandidaten/:id/meldung',
       async (req: ApiRequest, res: Response, next: NextFunction) => {
@@ -2268,46 +2354,32 @@ export default defineEndpoint(
             accountability: req.accountability
           })
 
-          const geladen = await ladePresseschauFakten(schema, id)
-
           const vorhandene = (await meldungenService.readByQuery({
             filter: {
               kandidat: { _eq: id },
               status: { _neq: 'verworfen' }
             },
-            fields: ['id'],
+            fields: ['id', 'status'],
             limit: 1
-          })) as { id: string }[]
-          if (vorhandene.length > 0) return next(new KandidatSchonUebernommen())
+          })) as { id: string; status: string }[]
+          const vorhanden = vorhandene[0]
+          if (vorhanden !== undefined) {
+            // A draft the bulk button wrote beside an open candidate: taking
+            // it over is the decision, not a second article.
+            const kandidat = (await kandidatenService.readOne(id, {
+              fields: ['entscheid']
+            })) as { entscheid: string }
+            if (kandidat.entscheid !== 'offen')
+              return next(new KandidatSchonUebernommen())
+            await kandidatenService.updateOne(id, { entscheid: 'uebernommen' })
+            return res.json({ data: { meldung: vorhanden.id, warnungen: [] } })
+          }
 
-          const { bericht, warnungen } = await schreibePresseschau(
-            geladen.fakten,
-            geladen.volltext
-          )
-
-          const meldungId = (await meldungenService.createOne({
-            kandidat: id,
-            gemeinde: geladen.gemeindeId,
-            titel: bericht.titel,
-            lead: bericht.lead,
-            text: mitQuelle(bericht.text, geladen.fakten),
-            status: 'entwurf',
-            verarbeitung: 'idle',
-            zeit_warnungen: warnungen.length > 0 ? warnungen : null,
-            datengrundlage: {
-              quelle: 'wochenblatt',
-              blatt: geladen.fakten.blatt,
-              nummer: geladen.fakten.nummer,
-              datum: geladen.fakten.datum,
-              seite: geladen.fakten.seite,
-              beitrag: geladen.fakten.titel,
-              pdf_url: geladen.fakten.pdfUrl
-            }
-          })) as string
-
-          await kandidatenService.updateOne(id, { entscheid: 'uebernommen' })
-
-          return res.json({ data: { meldung: meldungId, warnungen } })
+          const angelegt = await legePresseschauMeldungAn(id, {
+            uebernehmen: true,
+            accountability: req.accountability
+          })
+          return res.json({ data: angelegt })
         } catch (error) {
           const status = (error as { status?: unknown }).status
           if (
@@ -2321,6 +2393,200 @@ export default defineEndpoint(
           logger.error(error, 'redaktion: Presseschau-Meldung fehlgeschlagen')
           return next(new UeberarbeitungFehlgeschlagen())
         }
+      }
+    )
+
+    // «Alle Meldungen formulieren»: a draft for every open candidate on the
+    // desk, detached (one Sonnet call each, minutes for a full desk), polled
+    // through GET. Single-flight per process, like the other detached runs.
+    interface PresseschauFormulierStatus {
+      laeuft: boolean
+      gestartet_um: string | null
+      beendet_um: string | null
+      ergebnis: {
+        geschrieben: number
+        wartend: number
+        ohneZusammenfassung: number
+        fehler: string[]
+      } | null
+      fehler: string | null
+    }
+    const presseschauFormulieren: PresseschauFormulierStatus = {
+      laeuft: false,
+      gestartet_um: null,
+      beendet_um: null,
+      ergebnis: null,
+      fehler: null
+    }
+
+    /**
+     * The desk's candidates, as the desk shows them: the NEWEST issue of each
+     * paper (by date, the workspace query's order), candidates by page.
+     */
+    async function formulierAuswahl(blattId: string | null): Promise<{
+      dran: Array<{ id: string; titel: string }>
+      wartend: number
+      ohneZusammenfassung: number
+    }> {
+      const schema = await getSchema()
+      const blaetter = new ItemsService('wochenblaetter', { schema })
+      const ausgaben = new ItemsService('wochenblattausgaben', { schema })
+      const kandidaten = new ItemsService('wochenblattkandidaten', { schema })
+      const meldungen = new ItemsService('meldungen', { schema })
+
+      const ids = (
+        (await blaetter.readByQuery({
+          filter: blattId === null ? {} : { id: { _eq: blattId } },
+          fields: ['id'],
+          limit: -1
+        })) as Array<{ id: string }>
+      ).map((b) => b.id)
+
+      const alle: Array<{
+        id: string
+        titel: string
+        entscheid: string
+        zeitbezug: string | null
+        anlass_am: string | null
+        zusammenfassung: string | null
+      }> = []
+      for (const id of ids) {
+        const [neueste] = (await ausgaben.readByQuery({
+          filter: { wochenblatt: { _eq: id } },
+          fields: ['id'],
+          sort: ['-datum'],
+          limit: 1
+        })) as Array<{ id: string }>
+        if (neueste === undefined) continue
+        alle.push(
+          ...((await kandidaten.readByQuery({
+            filter: { ausgabe: { _eq: neueste.id } },
+            fields: [
+              'id',
+              'titel',
+              'entscheid',
+              'zeitbezug',
+              'anlass_am',
+              'zusammenfassung'
+            ],
+            sort: ['seite'],
+            limit: -1
+          })) as typeof alle)
+        )
+      }
+      if (alle.length === 0)
+        return { dran: [], wartend: 0, ohneZusammenfassung: 0 }
+
+      const beschrieben = (await meldungen.readByQuery({
+        filter: {
+          kandidat: { _in: alle.map((k) => k.id) },
+          status: { _neq: 'verworfen' }
+        },
+        fields: ['kandidat'],
+        limit: -1
+      })) as Array<{ kandidat: string }>
+      return formulierbare(
+        alle,
+        new Set(beschrieben.map((m) => m.kandidat)),
+        heuteIso()
+      )
+    }
+
+    router.get(
+      '/wochenblaetter/formulieren',
+      (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        return res.json({ data: presseschauFormulieren })
+      }
+    )
+
+    router.post(
+      '/wochenblaetter/formulieren',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        if (presseschauFormulieren.laeuft)
+          return next(new PresseschauFormuliertBereits())
+
+        const koerper = (req.body ?? {}) as { blatt?: unknown }
+        let blattId: string | null = null
+        try {
+          blattId =
+            typeof koerper.blatt === 'string' && koerper.blatt !== ''
+              ? pruefeId(koerper.blatt)
+              : null
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+
+        let auswahl: Awaited<ReturnType<typeof formulierAuswahl>>
+        try {
+          auswahl = await formulierAuswahl(blattId)
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+        if (auswahl.dran.length === 0) return next(new NichtsZuTun())
+
+        presseschauFormulieren.laeuft = true
+        presseschauFormulieren.gestartet_um = new Date().toISOString()
+        presseschauFormulieren.beendet_um = null
+        presseschauFormulieren.ergebnis = null
+        presseschauFormulieren.fehler = null
+
+        const formulieren = async (): Promise<void> => {
+          const ergebnis = {
+            geschrieben: 0,
+            wartend: auswahl.wartend,
+            ohneZusammenfassung: auswahl.ohneZusammenfassung,
+            fehler: [] as string[]
+          }
+          // Loaded once per click: what the newsroom decided about importance
+          // is the same for every article of the desk.
+          const wichtigkeit = wichtigkeitDigest(
+            await ladeWichtigkeitSignale(
+              new ItemsService('meldungen', { schema: await getSchema() }),
+              'kandidat'
+            )
+          )
+          for (const kandidat of auswahl.dran) {
+            try {
+              await legePresseschauMeldungAn(kandidat.id, {
+                uebernehmen: false,
+                wichtigkeit
+              })
+              ergebnis.geschrieben += 1
+            } catch (fehler) {
+              logger.warn(
+                fehler,
+                `redaktion: Presseschau-Entwurf zu "${kandidat.titel}" fehlgeschlagen`
+              )
+              ergebnis.fehler.push(
+                `${kandidat.titel} — ${fehler instanceof Error ? fehler.message : 'Fehler'}`
+              )
+            }
+          }
+          presseschauFormulieren.ergebnis = ergebnis
+        }
+        void formulieren()
+          .catch((fehler: unknown) => {
+            logger.error(
+              fehler,
+              'redaktion: Presseschau-Formulieren fehlgeschlagen'
+            )
+            presseschauFormulieren.fehler =
+              fehler instanceof Error ? fehler.message : String(fehler)
+          })
+          .finally(() => {
+            presseschauFormulieren.laeuft = false
+            presseschauFormulieren.beendet_um = new Date().toISOString()
+          })
+
+        return res.status(202).json({
+          data: {
+            gestartet: true,
+            anzahl: auswahl.dran.length,
+            wartend: auswahl.wartend
+          }
+        })
       }
     )
 
@@ -2366,6 +2632,16 @@ export default defineEndpoint(
             ablehnungsgrund: koerper.grund,
             ablehnungskommentar: kommentar
           })
+          // A draft «Alle Meldungen formulieren» wrote goes with the
+          // candidate — only the draft, never what is further along.
+          await verwirfEntwurfZu(
+            new ItemsService('meldungen', {
+              schema: await getSchema(),
+              accountability: req.accountability
+            }),
+            { kandidat: { _eq: id } },
+            'Kandidat abgelehnt — der Entwurf wird nicht gebraucht.'
+          )
           lerne({
             tisch: 'presseschau',
             art: 'entscheid',
@@ -2442,6 +2718,14 @@ export default defineEndpoint(
             }
           )
 
+          await verwirfEntwurfZu(
+            new ItemsService('meldungen', {
+              schema,
+              accountability: req.accountability
+            }),
+            { kandidat: { _eq: id } },
+            'Kandidat an die Chefredaktion weitergereicht — der Entwurf wird nicht gebraucht.'
+          )
           lerne({
             tisch: 'presseschau',
             art: 'entscheid',
@@ -6686,6 +6970,16 @@ export default defineEndpoint(
         }
       }
 
+      // The only days a termin may name: what the code finds in the summary,
+      // the title and the piece's pages — read forward from today, because
+      // an announced day lies ahead.
+      const datenImText = alleDaten(
+        [kandidat.titel, kandidat.zusammenfassung, ...quelltextTeile].join(
+          '\n'
+        ),
+        heuteAus(heuteIso())
+      )
+
       return {
         gemeindeId: gemeinde.id,
         volltext: kandidat.ausgabe.volltext,
@@ -6701,7 +6995,8 @@ export default defineEndpoint(
           typ: kandidat.typ,
           frontseite: kandidat.frontseite,
           zusammenfassung: kandidat.zusammenfassung,
-          pdfUrl: kandidat.ausgabe.pdf_url
+          pdfUrl: kandidat.ausgabe.pdf_url,
+          datenImText
         }
       }
     }
@@ -6720,36 +7015,66 @@ export default defineEndpoint(
     ): Promise<{
       bericht: { titel: string; lead: string; text: string }
       warnungen: string[]
+      termin: Termin | null
+      wichtig: boolean
     }> {
-      let bericht = parsePresseschau(
-        await completeJson<unknown>({
-          system: PRESSESCHAU_SYSTEM_PROMPT,
-          prompt,
-          maxTokens: 1500
-        })
-      )
+      // One second attempt at the same prompt when the answer is not
+      // parseable JSON — the bulk button writes unattended now, and the same
+      // slip would otherwise cost the candidate its draft (the Gemeindeseiten
+      // lesson of 21 September 2026). Any other failure is not retried.
+      const schreibe = async (): Promise<unknown> => {
+        try {
+          return await completeJson<unknown>({
+            system: PRESSESCHAU_SYSTEM_PROMPT,
+            prompt,
+            maxTokens: 1500
+          })
+        } catch (fehler) {
+          if (!(fehler instanceof ClaudeFormatError)) throw fehler
+          return completeJson<unknown>({
+            system: PRESSESCHAU_SYSTEM_PROMPT,
+            prompt,
+            maxTokens: 1500
+          })
+        }
+      }
+      let antwort = await schreibe()
+      let bericht = parsePresseschau(antwort)
 
       let attribution = attributionsWarnung(
         `${bericht.lead} ${bericht.text}`,
         fakten
       )
       if (attribution !== null) {
-        bericht = parsePresseschau(
-          await completeJson<unknown>({
-            system: PRESSESCHAU_SYSTEM_PROMPT,
-            prompt: buildPresseschauRevision(
-              fakten,
-              bericht,
-              `Nenne die Quelle im Fliesstext: "${fakten.blatt} (Nr. ${fakten.nummer})".`
-            ),
-            maxTokens: 1500
-          })
-        )
+        antwort = await completeJson<unknown>({
+          system: PRESSESCHAU_SYSTEM_PROMPT,
+          prompt: buildPresseschauRevision(
+            fakten,
+            bericht,
+            `Nenne die Quelle im Fliesstext: "${fakten.blatt} (Nr. ${fakten.nummer})".`
+          ),
+          maxTokens: 1500
+        })
+        bericht = parsePresseschau(antwort)
         attribution = attributionsWarnung(
           `${bericht.lead} ${bericht.text}`,
           fakten
         )
       }
+
+      // The termin rides in the same answer and is bound to the piece the
+      // same way a municipal notice's is: a day the code did not find in it
+      // is dropped, with a warning.
+      const wichtig = wichtigAus(antwort)
+      const geplant = planeMitteilungTermin(
+        terminVorschlagAus(
+          typeof antwort === 'object' && antwort !== null
+            ? (antwort as Record<string, unknown>)['termin']
+            : null
+        ),
+        fakten.datenImText ?? [],
+        wichtig
+      )
 
       const alles = `${bericht.titel} ${bericht.lead} ${bericht.text}`
       const warnungen = [
@@ -6758,23 +7083,37 @@ export default defineEndpoint(
         ...(attribution === null ? [] : [attribution]),
         ...(volltext !== null && volltext.trim().length >= 50
           ? ueberlappungsWarnungen(alles, volltext)
-          : ['Volltext der Ausgabe fehlt — Ueberlappungs-Check uebersprungen.'])
+          : [
+              'Volltext der Ausgabe fehlt — Ueberlappungs-Check uebersprungen.'
+            ]),
+        ...(geplant.warnung === null ? [] : [geplant.warnung])
       ]
 
-      return { bericht, warnungen }
+      return { bericht, warnungen, termin: geplant.termin, wichtig }
     }
 
     async function schreibePresseschau(
       fakten: PresseschauFakten,
-      volltext: string | null
-    ): Promise<{
-      bericht: { titel: string; lead: string; text: string }
-      warnungen: string[]
-    }> {
+      volltext: string | null,
+      /** `wichtigkeitDigest` of the desk; loaded here when the caller has none. */
+      wichtigkeit?: string
+    ): Promise<Awaited<ReturnType<typeof presseschauMitChecks>>> {
+      const digest =
+        wichtigkeit ??
+        wichtigkeitDigest(
+          await ladeWichtigkeitSignale(
+            new ItemsService('meldungen', { schema: await getSchema() }),
+            'kandidat'
+          )
+        )
       return presseschauMitChecks(
         fakten,
         volltext,
-        buildPresseschauPrompt(fakten, await regelnFuer('presseschau', 'text'))
+        buildPresseschauPrompt(
+          fakten,
+          await regelnFuer('presseschau', 'text'),
+          digest
+        )
       )
     }
 

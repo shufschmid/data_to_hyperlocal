@@ -30,6 +30,7 @@ import {
   SICHTUNGSREGELN_UEBERSCHRIFT
 } from '../../redaktion/lernen'
 import { kandidatAlsHinweis, reicheWeiter } from '../../redaktion/weiterreichen'
+import { verwirfEntwurfZu } from '../../redaktion/entwurf'
 import { optionalEnv } from '../../shared/env'
 import type { Wochenblatt, Wochenblattausgabe } from '../../types/schema'
 
@@ -380,7 +381,10 @@ export default defineOperationApi<Optionen>({
       const inventar = parseInventar(
         antwort,
         seiten,
-        abdeckung.map((g) => g.name)
+        abdeckung.map((g) => g.name),
+        // An announced day must stand in the piece itself; read forward from
+        // the day the issue appeared.
+        { seitenTexte: layer.seitenTexte, stichtag: datum }
       )
 
       for (const kandidat of inventar.kandidaten) {
@@ -397,6 +401,8 @@ export default defineOperationApi<Optionen>({
           zusammenfassung: kandidat.zusammenfassung,
           perle_vorschlag: kandidat.perle_vorschlag,
           perle_begruendung: kandidat.perle_begruendung,
+          zeitbezug: kandidat.zeitbezug,
+          anlass_am: kandidat.anlass_am,
           entscheid: 'offen'
         })) as string
 
@@ -496,21 +502,32 @@ export default defineOperationApi<Optionen>({
       })) as { id: string }[]
       if (alteOffene.length === 0) return
 
-      // An open candidate cannot have a Meldung (taking one over sets
-      // uebernommen), but an admin edit could — a row with a Meldung is not
-      // "left lying" and keeps its state.
+      // Since 27 September 2026 an open candidate may carry a machine DRAFT
+      // («Alle Meldungen formulieren» writes one without deciding). A draft
+      // nobody touched lapses with its candidate — it is the same "left
+      // lying". Anything further along (in the counter-check, approved,
+      // published) is work a person did, and the candidate keeps its state.
       const verknuepfte = (await meldungenService.readByQuery({
-        filter: { kandidat: { _in: alteOffene.map((k) => k.id) } },
-        fields: ['kandidat'],
+        filter: {
+          kandidat: { _in: alteOffene.map((k) => k.id) },
+          status: { _neq: 'verworfen' }
+        },
+        fields: ['kandidat', 'status'],
         limit: -1
-      })) as { kandidat: string }[]
-      const mitMeldung = new Set(verknuepfte.map((m) => m.kandidat))
+      })) as { kandidat: string; status: string }[]
+      const inArbeit = new Set(
+        verknuepfte.filter((m) => m.status !== 'entwurf').map((m) => m.kandidat)
+      )
       for (const kandidat of alteOffene) {
-        if (!mitMeldung.has(kandidat.id)) {
-          await kandidatenService.updateOne(kandidat.id, {
-            entscheid: 'verfallen'
-          })
-        }
+        if (inArbeit.has(kandidat.id)) continue
+        await verwirfEntwurfZu(
+          meldungenService,
+          { kandidat: { _eq: kandidat.id } },
+          'Neue Ausgabe erschienen — der Entwurf zum alten Vorschlag verfaellt mit ihm.'
+        )
+        await kandidatenService.updateOne(kandidat.id, {
+          entscheid: 'verfallen'
+        })
       }
     }
   }

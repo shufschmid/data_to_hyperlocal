@@ -49,6 +49,8 @@ export const ERLAUBT: RegExp[] = [
   /^wochenblaetter$/i,
   /^wochenblaetter\/[0-9a-f-]{36}\/gemeinden$/i,
   /^wochenblaetter\/pruefen$/i,
+  // «Alle Meldungen formulieren»: ein Entwurf je offenem Kandidaten, abgeloest.
+  /^wochenblaetter\/formulieren$/i,
   /^ausgaben\/[0-9a-f-]{36}\/inventar$/i,
   /^kandidaten\/[0-9a-f-]{36}\/(meldung|ablehnen|gemeinde|weiterreichen|perle)$/i,
   /^hinweise\/[0-9a-f-]{36}\/(bewerten|zurueck)$/i,
@@ -61,7 +63,12 @@ export const ERLAUBT: RegExp[] = [
 // Die zwei Laeufe und die Bilanz: der Zustand eines von Hand gestarteten Laufs
 // lebt im Prozess der Erweiterung, und die Bilanz ist eine Rechnung ueber alle
 // Tische. Alles andere, was der Arbeitsplatz liest, geht ueber GraphQL.
-export const LESBAR: RegExp[] = [/^quellen\/lauf$/i, /^gemeindeseiten\/lauf$/i, /^bilanz$/i]
+export const LESBAR: RegExp[] = [
+  /^quellen\/lauf$/i,
+  /^gemeindeseiten\/lauf$/i,
+  /^wochenblaetter\/formulieren$/i,
+  /^bilanz$/i
+]
 
 export function darfSchreiben(ziel: string): boolean {
   return ERLAUBT.some((muster) => muster.test(ziel))

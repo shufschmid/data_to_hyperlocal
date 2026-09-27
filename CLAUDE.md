@@ -226,8 +226,10 @@ them is wrong even if it works.
    the last day a visit is still worth it; the newsroom must be able to change
    the proposal; nothing of it appears in the blog; and the system learns what
    the newsroom counts as important. Five things follow, each measured or
-   decided. The proposal is written by the two desks that carry dates —
-   Gemeindeseiten and Veranstaltungen — in the SAME model call that writes the
+   decided. The proposal is written by the desks that carry dates —
+   Gemeindeseiten and Veranstaltungen, and since 27 September 2026 the
+   Wochenblätter too (the days found in the piece's summary and pages, the
+   same `planeMitteilungTermin`) — in the SAME model call that writes the
    article: for an Anlass the dates are CODE from its own fields (`frist_am`
    before `anker_am` before `von`; `bis` or the last termin as `ende`; a
    Dauerangebot has none), for a municipal item the model picks them from the
@@ -365,12 +367,39 @@ them is wrong even if it works.
    (`bleibtAufDemTisch` — published, verworfen, abgelehnt and weitergereicht
    drop off; an übernommene Meldung stays while it is being edited), and when
    a paper's next issue is inventoried, the previous issues' UNDECIDED
-   candidates are deleted (`raeumeAlteVorschlaegeAuf`) — decided rows stay,
+   candidates are marked `verfallen` (`raeumeAlteVorschlaegeAuf`), a machine
+   draft that nobody touched going with them — decided rows stay,
    they are the memory, and candidates with a Perle proposal are spared too
    (their verdict belongs to the Chefredaktion and survives new issues); the
    badge counts what the desk shows. A re-inventory diffs leads like
    candidates: open ones the new run no longer proposes are deleted, verdicts
    are never re-asked.
+   **Since 27 September 2026 a PREVIEW lapses on its own day** — the
+   newsroom's rule for every paper and every municipality: what a paper
+   announces (the FC Sion coming to Arlesheim for a cup match) is over for
+   the desk once the event's day has passed, while a REPORT of something past
+   (the paper was there, it has pictures) is not held to that. The inventory
+   files each candidate as `zeitbezug` `vorschau` · `rueckschau` · `keiner`
+   and names the event's day as `anlass_am`, and that day is a FIND OF THE
+   CODE: `parseInventar` keeps it only if `alleDaten` finds it in the title,
+   the summary or the text layer of the piece's page and the next, read
+   forward from the issue's date — otherwise the day is dropped with a hint
+   and the candidate simply never folds. From the day after, an open preview
+   hangs folded under „Vorschauen, deren Anlass vorbei ist" with every button
+   it had (`ordneKandidaten` in `lib/presseschau.ts`, mirroring
+   `vorschauVorbei`), the badge stops counting it, and the next issue lets it
+   lapse like any other. Candidates read before that day carry null and never
+   fold; „Neu inventarisieren" fills them in.
+   **„Alle Meldungen formulieren"** (`POST /redaktion/wochenblaetter/formulieren`,
+   202 + detached, polled through the GET of the same path) is the
+   Gemeindeseiten bargain on this desk: a draft beside every open candidate of
+   each paper's newest issue — not the folded previews, not one without a
+   fact summary, at most twenty a click with the rest named — and the
+   decision STAYS open. The draft teaches nothing; „Übernehmen" on it only
+   sets `uebernommen` (no second article), rejecting or handing up discards it
+   (`verwirfEntwurfZu`), and a published draft takes its candidate off the
+   desk (`bleibtAufDemTisch`). The selection is `formulierbare` in
+   `redaktion/presseschau.ts`, counted on the button by `formulierbar`.
    „Amtsblatt" is the fifth feed and the newsroom's THIRD desk. It is the
    only source that reaches every covered municipality WHATEVER ITS CANTON:
    the cantonal gazettes and the federal SHAB sit on one portal, so Riehen
@@ -1925,9 +1954,13 @@ checked rather than assumed, and there is a test.
   feed the next Sichtung per municipality like the two desks above;
   `anker` is the merkmal the examples are keyed on, so „ein Gremium wird
   immer vorgeschlagen" can be learned as such.
+- `wochenblattkandidaten.zeitbezug` + `anlass_am` — whether a piece announces,
+  reports or neither, and the announced day as the code found it. It is what
+  folds a passed preview away on the desk; null on candidates from before 27
+  September 2026, which therefore never fold.
 - `meldungen.termin` + `wichtig` beside `termin_vorschlag` + `wichtig_vorschlag`
   — what the newsroom set against what the run proposed, on every article of
-  the Gemeindeseiten and Veranstaltungen desks. The first pair is what the
+  the Gemeindeseiten, Veranstaltungen and Wochenblätter desks. The first pair is what the
   Dorfkönig gets (`apiTermin`); the second never changes, so the difference
   stays measurable, and `ladeWichtigkeitSignale` turns it into the examples
   the next articles are written with. Per desk, not per municipality.

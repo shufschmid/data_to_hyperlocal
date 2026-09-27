@@ -806,6 +806,9 @@ describe('bleibtAufDemTisch', () => {
     expect(bleibtAufDemTisch('uebernommen', 'publiziert')).toBe(false)
     expect(bleibtAufDemTisch('uebernommen', 'verworfen')).toBe(false)
     expect(bleibtAufDemTisch('abgelehnt', null)).toBe(false)
+    // Ein Entwurf neben einem offenen Kandidaten, publiziert: erledigt.
+    expect(bleibtAufDemTisch('offen', 'publiziert')).toBe(false)
+    expect(bleibtAufDemTisch('offen', 'entwurf')).toBe(true)
     expect(bleibtAufDemTisch('weitergereicht', null)).toBe(false)
   })
 

@@ -27,6 +27,8 @@ import type {
   WochenblattFelder
 } from '@/graphql/redaktion'
 import { bleibtAufDemTisch, seitenLink } from '@/lib/redaktion'
+import { formulierbar, ordneKandidaten, zeitbezugText } from '@/lib/presseschau'
+import type { TerminEingabe } from '@/lib/termin'
 import { MeldungKarte, type MeldungAktion, type MeldungAktionKoerper } from './MeldungKarte'
 
 // The press review: what each municipality's weekly paper has exclusively.
@@ -125,6 +127,39 @@ export interface PresseschauProps {
   onGemeinde?: (kandidatId: string, gemeindeId: string) => Promise<void>
   onChat: (id: string, anweisung: string) => Promise<void>
   onAktion: (id: string, aktion: MeldungAktion, koerper?: MeldungAktionKoerper) => Promise<void>
+  /** Der Termin einer Meldung — was der Dorfkönig bekommt, von der Redaktion geändert. */
+  onTermin?: (id: string, eingabe: TerminEingabe) => Promise<void>
+  /** «Alle Meldungen formulieren»: ein Entwurf je offenem Kandidaten, der Entscheid bleibt offen. */
+  onAlleFormulieren?: () => Promise<void>
+  /** Der Stand des abgelösten Formulierens, vom Arbeitsplatz abgefragt. */
+  formulierStatus?: FormulierStatus | null
+  /** Heute als JJJJ-MM-TT — gegen diesen Tag verfallen Vorschauen. */
+  heute?: string
+}
+
+export interface FormulierStatus {
+  laeuft: boolean
+  ergebnis: {
+    geschrieben: number
+    wartend: number
+    ohneZusammenfassung: number
+    fehler: string[]
+  } | null
+  fehler: string | null
+}
+
+/** Was nach einem Formulieren unter dem Knopf steht — kurz, und Lücken beim Namen. */
+export function formulierText(status: FormulierStatus | null | undefined): string | null {
+  if (status === null || status === undefined) return null
+  if (status.laeuft) return 'Die Meldungen werden formuliert — das dauert einige Minuten.'
+  if (status.fehler !== null) return `Formulieren abgebrochen: ${status.fehler}`
+  const e = status.ergebnis
+  if (e === null) return null
+  const teile = [`${e.geschrieben} ${e.geschrieben === 1 ? 'Entwurf' : 'Entwürfe'} geschrieben`]
+  if (e.wartend > 0) teile.push(`${e.wartend} warten auf den nächsten Klick`)
+  if (e.ohneZusammenfassung > 0) teile.push(`${e.ohneZusammenfassung} ohne Fakten übersprungen`)
+  if (e.fehler.length > 0) teile.push(`${e.fehler.length} fehlgeschlagen: ${e.fehler.join('; ')}`)
+  return `${teile.join(', ')}.`
 }
 
 export function Presseschau({
@@ -141,8 +176,13 @@ export function Presseschau({
   onWeiterreichen,
   onGemeinde,
   onChat,
-  onAktion
+  onAktion,
+  onTermin,
+  onAlleFormulieren,
+  formulierStatus = null,
+  heute = new Date().toISOString().slice(0, 10)
 }: PresseschauProps) {
+  const [offeneFalten, setOffeneFalten] = useState<ReadonlySet<string>>(new Set())
   const [gewaehlteGemeinden, setGewaehlteGemeinden] = useState<string[]>([])
   const [name, setName] = useState('')
   const [archivUrl, setArchivUrl] = useState('')
@@ -171,6 +211,18 @@ export function Presseschau({
   }, [meldungen])
 
   const liest = blaetter.some((b) => b.ausgaben.some((a) => a.status === 'liest' || a.status === 'neu'))
+
+  // Wofür der Sammelknopf einen Entwurf schriebe — dieselbe Auswahl wie im
+  // Backend, damit die Zahl auf dem Knopf stimmt.
+  const anzahlFormulierbar = blaetter
+    .flatMap((b) => b.ausgaben.slice(0, 1))
+    .flatMap((a) => a.kandidaten)
+    .filter((k) => {
+      const m = nachKandidat.get(k.id)
+      return formulierbar(k, m !== undefined && m.status !== 'verworfen', heute)
+    }).length
+  const formuliert = formulierStatus?.laeuft === true
+  const formulierZeile = formulierText(formulierStatus)
 
   async function anlegen() {
     await onAnlegen({
@@ -276,6 +328,22 @@ export function Presseschau({
               bleibt liegen.
             </Typography>
           </Stack>
+          {onAlleFormulieren !== undefined && (
+            <Stack direction="row" spacing={2} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => void onAlleFormulieren()}
+                disabled={laeuft || formuliert || anzahlFormulierbar === 0}
+              >
+                {formuliert ? 'Wird formuliert …' : `Alle Meldungen formulieren (${anzahlFormulierbar})`}
+              </Button>
+              <Typography variant="caption" color="text.secondary">
+                {formulierZeile ??
+                  'Schreibt einen Entwurf zu jedem offenen Vorschlag, höchstens 20 pro Klick. Dein Entscheid bleibt offen: Ablehnen verwirft den Entwurf.'}
+              </Typography>
+            </Stack>
+          )}
         </Stack>
       </Paper>
 
@@ -289,6 +357,131 @@ export function Presseschau({
         const aufDemTisch = (ausgabe?.kandidaten ?? []).filter((k) =>
           bleibtAufDemTisch(k.entscheid, nachKandidat.get(k.id)?.status ?? null)
         )
+        // Vorschauen, deren Anlass vorbei ist, hängen unten — eingeklappt,
+        // nicht weg. Die nächste Ausgabe räumt sie ab.
+        const { aktuell, vorbei } = ordneKandidaten(aufDemTisch, heute)
+        const faltOffen = offeneFalten.has(blatt.id)
+        const zeile = (kandidat: KandidatFelder) => {
+          if (ausgabe === undefined) return null
+          const meldung = nachKandidat.get(kandidat.id)
+          const zeitbezug = zeitbezugText(kandidat)
+          const entwurfDaneben =
+            meldung !== undefined && meldung.status !== 'verworfen' && kandidat.entscheid === 'offen'
+          return (
+            <Box key={kandidat.id} sx={{ borderTop: 1, borderColor: 'divider', pt: 1.5 }}>
+              <Stack spacing={1}>
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', gap: 0.5 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    {kandidat.titel}
+                    {kandidat.seite !== null &&
+                      (ausgabe.pdf_url !== null ? (
+                        <>
+                          {' '}
+                          <Link
+                            href={seitenLink(ausgabe.pdf_url, kandidat.seite)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            (S. {kandidat.seite})
+                          </Link>
+                        </>
+                      ) : (
+                        ` (S. ${kandidat.seite})`
+                      ))}
+                  </Typography>
+                  <Chip size="small" variant="outlined" label={TYP_LABEL[kandidat.typ] ?? kandidat.typ} />
+                  {kandidat.frontseite && <Chip size="small" color="info" label="Front" />}
+                  {zeitbezug !== null && <Chip size="small" variant="outlined" label={zeitbezug} />}
+                  {kandidat.perle_vorschlag && <Chip size="small" color="secondary" label="Perle?" />}
+                  {/* The per-piece municipality — only worth pixels
+                                when the paper covers more than one. Correctable
+                                only WHILE the candidate is open: once a Meldung
+                                exists it carries the municipality itself (its
+                                card says so), and changing the candidate would
+                                no longer move it. */}
+                  {blatt.abdeckungen.length > 1 &&
+                    meldung === undefined &&
+                    (onGemeinde !== undefined && kandidat.entscheid === 'offen' ? (
+                      <TextField
+                        select
+                        size="small"
+                        variant="standard"
+                        value={kandidat.gemeinde?.id ?? ''}
+                        onChange={(e) => void onGemeinde(kandidat.id, e.target.value)}
+                        disabled={laeuft}
+                        // The name must sit on the element carrying the
+                        // combobox role — a plain aria-label on the
+                        // TextField never reaches it.
+                        slotProps={{
+                          select: {
+                            SelectDisplayProps: { 'aria-label': 'Gemeinde des Beitrags' }
+                          }
+                        }}
+                        sx={{ minWidth: 110 }}
+                      >
+                        {blatt.abdeckungen
+                          .filter((a) => a.gemeinde !== null)
+                          .map((a) => (
+                            <MenuItem key={a.gemeinde?.id} value={a.gemeinde?.id ?? ''}>
+                              {a.gemeinde?.name}
+                            </MenuItem>
+                          ))}
+                      </TextField>
+                    ) : (
+                      kandidat.gemeinde !== null && (
+                        <Chip size="small" variant="outlined" label={kandidat.gemeinde.name} />
+                      )
+                    ))}
+                </Stack>
+                {kandidat.warum_exklusiv !== null && (
+                  <Typography variant="caption" color="text.secondary">
+                    {kandidat.warum_exklusiv}
+                    {kandidat.perle_begruendung !== null && ` — Perle: ${kandidat.perle_begruendung}`}
+                  </Typography>
+                )}
+                <Typography variant="body2">{kandidat.zusammenfassung}</Typography>
+                <Originaltext
+                  text={kandidat.seite === null ? null : (ausgabe.seiten_texte?.[kandidat.seite - 1] ?? null)}
+                  seite={kandidat.seite}
+                />
+
+                {meldung !== undefined && meldung.status !== 'verworfen' && (
+                  <MeldungKarte
+                    meldung={meldung}
+                    onChat={onChat}
+                    onAktion={onAktion}
+                    {...(onTermin === undefined ? {} : { onTermin })}
+                    laeuft={laeuft}
+                  />
+                )}
+                {entwurfDaneben && (
+                  <Typography variant="caption" color="text.secondary">
+                    Entwurf von «Alle Meldungen formulieren» — noch nicht entschieden. Übernehmen macht ihn zu
+                    deinem, Ablehnen oder Weiterreichen verwerfen ihn.
+                  </Typography>
+                )}
+                {(meldung === undefined || meldung.status === 'verworfen' || entwurfDaneben) && (
+                  <Stack direction="row" spacing={1}>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      onClick={() => void onMeldung(kandidat.id)}
+                      disabled={laeuft}
+                    >
+                      {entwurfDaneben ? 'Übernehmen' : 'Meldung erzeugen'}
+                    </Button>
+                    <Button size="small" onClick={() => setAblehnung(kandidat)} disabled={laeuft}>
+                      Ablehnen
+                    </Button>
+                    <Button size="small" onClick={() => setWeitergabe(kandidat)} disabled={laeuft}>
+                      An Chefredaktion
+                    </Button>
+                  </Stack>
+                )}
+              </Stack>
+            </Box>
+          )
+        }
         return (
           <Paper key={blatt.id} sx={{ p: 2 }}>
             <Stack spacing={2}>
@@ -349,129 +542,30 @@ export function Presseschau({
                     </Alert>
                   )}
 
-                  {aufDemTisch.map((kandidat) => {
-                    const meldung = nachKandidat.get(kandidat.id)
-                    return (
-                      <Box key={kandidat.id} sx={{ borderTop: 1, borderColor: 'divider', pt: 1.5 }}>
-                        <Stack spacing={1}>
-                          <Stack
-                            direction="row"
-                            spacing={1}
-                            sx={{ alignItems: 'center', flexWrap: 'wrap', gap: 0.5 }}
-                          >
-                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                              {kandidat.titel}
-                              {kandidat.seite !== null &&
-                                (ausgabe.pdf_url !== null ? (
-                                  <>
-                                    {' '}
-                                    <Link
-                                      href={seitenLink(ausgabe.pdf_url, kandidat.seite)}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                    >
-                                      (S. {kandidat.seite})
-                                    </Link>
-                                  </>
-                                ) : (
-                                  ` (S. ${kandidat.seite})`
-                                ))}
-                            </Typography>
-                            <Chip
-                              size="small"
-                              variant="outlined"
-                              label={TYP_LABEL[kandidat.typ] ?? kandidat.typ}
-                            />
-                            {kandidat.frontseite && <Chip size="small" color="info" label="Front" />}
-                            {kandidat.perle_vorschlag && (
-                              <Chip size="small" color="secondary" label="Perle?" />
-                            )}
-                            {/* The per-piece municipality — only worth pixels
-                                when the paper covers more than one. Correctable
-                                only WHILE the candidate is open: once a Meldung
-                                exists it carries the municipality itself (its
-                                card says so), and changing the candidate would
-                                no longer move it. */}
-                            {blatt.abdeckungen.length > 1 &&
-                              meldung === undefined &&
-                              (onGemeinde !== undefined && kandidat.entscheid === 'offen' ? (
-                                <TextField
-                                  select
-                                  size="small"
-                                  variant="standard"
-                                  value={kandidat.gemeinde?.id ?? ''}
-                                  onChange={(e) => void onGemeinde(kandidat.id, e.target.value)}
-                                  disabled={laeuft}
-                                  // The name must sit on the element carrying the
-                                  // combobox role — a plain aria-label on the
-                                  // TextField never reaches it.
-                                  slotProps={{
-                                    select: {
-                                      SelectDisplayProps: { 'aria-label': 'Gemeinde des Beitrags' }
-                                    }
-                                  }}
-                                  sx={{ minWidth: 110 }}
-                                >
-                                  {blatt.abdeckungen
-                                    .filter((a) => a.gemeinde !== null)
-                                    .map((a) => (
-                                      <MenuItem key={a.gemeinde?.id} value={a.gemeinde?.id ?? ''}>
-                                        {a.gemeinde?.name}
-                                      </MenuItem>
-                                    ))}
-                                </TextField>
-                              ) : (
-                                kandidat.gemeinde !== null && (
-                                  <Chip size="small" variant="outlined" label={kandidat.gemeinde.name} />
-                                )
-                              ))}
-                          </Stack>
-                          {kandidat.warum_exklusiv !== null && (
-                            <Typography variant="caption" color="text.secondary">
-                              {kandidat.warum_exklusiv}
-                              {kandidat.perle_begruendung !== null &&
-                                ` — Perle: ${kandidat.perle_begruendung}`}
-                            </Typography>
-                          )}
-                          <Typography variant="body2">{kandidat.zusammenfassung}</Typography>
-                          <Originaltext
-                            text={
-                              kandidat.seite === null
-                                ? null
-                                : (ausgabe.seiten_texte?.[kandidat.seite - 1] ?? null)
-                            }
-                            seite={kandidat.seite}
-                          />
+                  {aktuell.map(zeile)}
 
-                          {meldung !== undefined ? (
-                            <MeldungKarte
-                              meldung={meldung}
-                              onChat={onChat}
-                              onAktion={onAktion}
-                              laeuft={laeuft}
-                            />
-                          ) : (
-                            <Stack direction="row" spacing={1}>
-                              <Button
-                                size="small"
-                                variant="contained"
-                                onClick={() => void onMeldung(kandidat.id)}
-                                disabled={laeuft}
-                              >
-                                Meldung erzeugen
-                              </Button>
-                              <Button size="small" onClick={() => setAblehnung(kandidat)} disabled={laeuft}>
-                                Ablehnen
-                              </Button>
-                              <Button size="small" onClick={() => setWeitergabe(kandidat)} disabled={laeuft}>
-                                An Chefredaktion
-                              </Button>
-                            </Stack>
-                          )}
-                        </Stack>
-                      </Box>
-                    )
-                  })}
+                  {vorbei.length > 0 && (
+                    <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 1 }}>
+                      <Button
+                        size="small"
+                        variant="text"
+                        sx={{ px: 0 }}
+                        onClick={() =>
+                          setOffeneFalten((alt) => {
+                            const neu = new Set(alt)
+                            if (neu.has(blatt.id)) neu.delete(blatt.id)
+                            else neu.add(blatt.id)
+                            return neu
+                          })
+                        }
+                      >
+                        {faltOffen ? '▾' : '▸'} Vorschauen, deren Anlass vorbei ist ({vorbei.length})
+                      </Button>
+                      <Collapse in={faltOffen}>
+                        <Stack spacing={2}>{vorbei.map(zeile)}</Stack>
+                      </Collapse>
+                    </Box>
+                  )}
 
                   {ausgabe.status === 'inventarisiert' && ausgabe.kandidaten.length === 0 && (
                     <Typography variant="body2" color="text.secondary">

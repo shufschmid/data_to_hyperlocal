@@ -335,3 +335,23 @@ export function apiTermin(
 export function terminAus(roh: unknown): Termin | null {
   return pruefeTermin(roh).termin
 }
+
+/**
+ * The days a writer may name as termin — found by code, never by the model.
+ * Named even when empty, so "termin: null" is an instruction and not a
+ * guess. Shared by every writer that proposes a termin; `wo` is where the
+ * days were found ("Wortlaut" for a municipal notice, "Beitrag" for a piece
+ * in a weekly paper).
+ */
+export function terminTageZeilen(
+  tage: readonly string[],
+  wo = 'Wortlaut'
+): string[] {
+  if (tage.length === 0) {
+    return ['', `Im ${wo} steht kein Kalendertag — "termin" ist null.`]
+  }
+  return [
+    '',
+    `Im ${wo} genannte Tage (nur diese darf "termin" nennen): ${tage.join(', ')}`
+  ]
+}

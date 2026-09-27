@@ -16,6 +16,7 @@ import {
   type LernEintrag,
   type TriageUrteil
 } from './amtsblatt'
+import { terminTageZeilen } from './termin'
 import { vorgabenZeilen } from './lernen'
 import { gekuerzt } from './presseschau'
 
@@ -499,21 +500,7 @@ function faktenZeilen(fakten: MitteilungFakten): string[] {
         ]
       : []),
     ...anhangZeilen(fakten.anhaenge),
-    ...tageZeilen(fakten.datenImText ?? [])
-  ]
-}
-
-/**
- * The days the model may name as termin — found by code, never by the model.
- * Named even when empty, so "termin: null" is an instruction and not a guess.
- */
-function tageZeilen(tage: readonly string[]): string[] {
-  if (tage.length === 0) {
-    return ['', 'Im Wortlaut steht kein Kalendertag — "termin" ist null.']
-  }
-  return [
-    '',
-    `Im Wortlaut genannte Tage (nur diese darf "termin" nennen): ${tage.join(', ')}`
+    ...terminTageZeilen(fakten.datenImText ?? [])
   ]
 }
 

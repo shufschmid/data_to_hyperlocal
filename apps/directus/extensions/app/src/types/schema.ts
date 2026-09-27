@@ -710,6 +710,8 @@ export interface Wochenblattausgabe {
   date_updated: string | null
 }
 
+export type KandidatZeitbezug = 'vorschau' | 'rueckschau' | 'keiner'
+
 export type KandidatTyp =
   | 'interview'
   | 'reportage'
@@ -827,6 +829,18 @@ export interface Wochenblattkandidat {
   perle: boolean | null
   /** Her optional reason — the learning signal the verdict alone lacks. */
   perle_kommentar: string | null
+  /**
+   * Whether the piece announces something still to come, reports on
+   * something that happened, or neither. Set by the inventory since 27
+   * September 2026; null on candidates read before.
+   */
+  zeitbezug: KandidatZeitbezug | null
+  /**
+   * The day of the announced event (the last one, where several) — only on a
+   * `vorschau`, and only a day the CODE found in the piece. The desk folds
+   * the candidate away the day after.
+   */
+  anlass_am: string | null
   entscheid: KandidatEntscheid
   /** The learning signal: flows into the next inventory's digest. */
   ablehnungsgrund: Ablehnungsgrund | null
