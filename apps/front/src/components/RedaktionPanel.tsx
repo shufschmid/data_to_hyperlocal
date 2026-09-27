@@ -89,6 +89,16 @@ import {
 import { revisionZaehlerSport, revisionZaehlerStatistik } from '@/lib/revision'
 import { QuellenLauf } from './QuellenLauf'
 import { Presseschau, type FormulierStatus } from './Presseschau'
+import {
+  BEREICHE,
+  bereichsZaehler,
+  bereichVon,
+  zielImBereich,
+  type BereichWert,
+  type Werkbank,
+  type Zaehler,
+  type ZaehlerArt
+} from '@/lib/bereiche'
 import { vorschauVorbei } from '@/lib/presseschau'
 import { Amtsblatt } from './Amtsblatt'
 import { Gemeindeseiten } from './Gemeindeseiten'
@@ -207,6 +217,13 @@ async function aktion(pfad: string, body?: unknown): Promise<AktionErgebnis> {
 // (`translate(50%)`). Gemessen sind das bei „99+“ 31px statt der gesetzten 14 —
 // und `MuiTab-root` kappt mit `overflow: hidden`, also war die Zahl angeschnitten.
 // Jede Breite braeuchte ein anderes Polster; im Textfluss braucht sie keines.
+/** Die Farbe eines Zaehlers: Arbeit blau, Falsches draussen rot, Chefredaktion orange. */
+const ZAEHLER_FARBE: Record<ZaehlerArt, 'info' | 'error' | 'warning'> = {
+  arbeit: 'info',
+  fehler: 'error',
+  chef: 'warning'
+}
+
 const ZAEHLER_IM_REITER = {
   '& .MuiBadge-badge': { position: 'static', transform: 'none', alignSelf: 'center', ml: 0.75 }
 } as const
@@ -244,7 +261,17 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
   // Namen statt Nummern: die Reihenfolge wurde zweimal umnummeriert, und jedes
   // Mal musste jede `reiter === N`-Stelle mitwandern. Ein Name bleibt gueltig,
   // wohin der Reiter auch rutscht.
-  const [reiter, setReiter] = useState<Reiter>(blogGemeinde === null ? 'statistik' : 'blog')
+  const [reiter, setReiter] = useState<Reiter>(blogGemeinde === null ? 'gemeindeseiten' : 'blog')
+  // Welche Werkbank in jedem Bereich zuletzt offen war — ein Klick auf den
+  // Bereich fuehrt dorthin zurueck.
+  const [zuletztImBereich, setZuletztImBereich] = useState<Partial<Record<BereichWert, Werkbank>>>({})
+  useEffect(() => {
+    const bereich = bereichVon(reiter)
+    if (bereich === null) return
+    setZuletztImBereich((alt) =>
+      alt[bereich.wert] === reiter ? alt : { ...alt, [bereich.wert]: reiter as Werkbank }
+    )
+  }, [reiter])
   const [abstimmungsTag, setAbstimmungsTag] = useState('')
   const [zahnradAnker, setZahnradAnker] = useState<HTMLElement | null>(null)
 
@@ -792,6 +819,46 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
     }
   }
 
+  // Die Zaehler der Werkbaenke an EINEM Ort: die zweite Zeile zeigt sie
+  // einzeln, die Bereiche oben ihre Summe (`bereichsZaehler`).
+  const heuteIsoTag = new Date().toISOString().slice(0, 10)
+  const zaehler: Partial<Record<Werkbank, Zaehler>> = {
+    // Rot: nicht „hier liegt Arbeit", sondern „hier steht etwas Falsches
+    // draussen" — die Revisionswaechter.
+    statistik: { anzahl: revisionZaehlerStatistik(meldungenAlle), art: 'fehler' },
+    sport: { anzahl: revisionZaehlerSport(meldungenAlle), art: 'fehler' },
+    wochenblaetter: {
+      // Der Fuellstand des Tischs: Offenes und Meldungen im Redigat, ohne die
+      // Vorschauen, deren Anlass vorbei ist.
+      anzahl: (wochenblaetter.data?.wochenblaetter ?? [])
+        .flatMap((b) => b.ausgaben)
+        .flatMap((a) => a.kandidaten)
+        .filter((k) => bleibtAufDemTisch(k.entscheid, meldungStatusJeKandidat.get(k.id) ?? null))
+        .filter((k) => !vorschauVorbei(k, heuteIsoTag)).length,
+      art: 'arbeit'
+    },
+    amtsblatt: {
+      anzahl: anzahlOffen(amtsblatt.data?.amtsblattmeldungen ?? [], meldungStatusJeAmtsblatt),
+      art: 'arbeit'
+    },
+    gemeindeseiten: {
+      anzahl: anzahlMitteilungen(gemeindeseiten.data?.gemeindemitteilungen ?? [], meldungStatusJeMitteilung),
+      art: 'arbeit'
+    },
+    veranstaltungen: {
+      anzahl: anzahlAnlaesse(veranstaltungen.data?.veranstaltungen ?? [], meldungStatusJeAnlass),
+      art: 'arbeit'
+    },
+    regionaljournal: { anzahl: anzahlSendungOffen('regionaljournal'), art: 'arbeit' },
+    punkt6: { anzahl: anzahlSendungOffen('punkt6'), art: 'arbeit' },
+    chefredaktion: {
+      anzahl:
+        (recherchehinweise.data?.recherchehinweise ?? []).filter((h) => h.status === 'offen').length +
+        (offenePerlen.data?.wochenblattkandidaten ?? []).length,
+      art: 'chef'
+    }
+  }
+  const aktiverBereich = bereichVon(reiter)
   return (
     <Stack spacing={3}>
       {schreibtErinnerungen.length > 0 && (
@@ -864,145 +931,33 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
       <Wochenzahl bilanz={bilanz} />
 
       <Stack direction="row" sx={{ alignItems: 'center', gap: 1 }}>
+        {/* Oben die vier Bereiche in der Reihenfolge der Redaktion, darunter
+            die Werkbaenke des gewaehlten. Zehn Werkbaenke passten nicht mehr
+            in eine Zeile (27.09.2026). */}
         <Tabs
-          value={EINSTELLUNGEN.some((e) => e.wert === reiter) || reiter === 'blog' ? false : reiter}
-          onChange={(_, v: Reiter) => setReiter(v)}
+          value={aktiverBereich?.wert ?? false}
+          onChange={(_, v: BereichWert) => {
+            const bereich = BEREICHE.find((x) => x.wert === v)
+            if (bereich !== undefined) setReiter(zielImBereich(bereich, zuletztImBereich))
+          }}
           variant="scrollable"
           scrollButtons="auto"
-          sx={{
-            flexGrow: 1,
-            minWidth: 0,
-            // Acht Tische plus Zahnrad passen mit der MUI-Vorgabe nicht auf
-            // eine Zeile — der letzte verschwand hinter dem Blaetterpfeil.
-            '& .MuiTab-root': { minWidth: 0, px: 1.25 }
-          }}
+          sx={{ flexGrow: 1, minWidth: 0, '& .MuiTab-root': { minWidth: 0, px: 1.5 } }}
         >
-          <Tab
-            value="statistik"
-            label={
-              <Badge
-                badgeContent={revisionZaehlerStatistik(meldungenAlle)}
-                // Rot statt der ueblichen Farbe: dieser Zaehler meint nicht
-                // „hier liegt Arbeit", sondern „hier steht etwas Falsches
-                // draussen".
-                color="error"
-                sx={ZAEHLER_IM_REITER}
-              >
-                data to hyperlocal
-              </Badge>
-            }
-          />
-          <Tab
-            value="sport"
-            label={
-              <Badge
-                // Derselbe rote Zaehler wie bei statistik.bl, aus demselben
-                // Feld: seit dem 17. September schaut der Waechter auch auf
-                // korrigierte Verbandsresultate zurueck.
-                badgeContent={revisionZaehlerSport(meldungenAlle)}
-                color="error"
-                sx={ZAEHLER_IM_REITER}
-              >
-                Sportresultate
-              </Badge>
-            }
-          />
-          <Tab value="entsorgung" label="Entsorgung" />
-          <Tab
-            value="wochenblaetter"
-            label={
-              <Badge
-                color="info"
-                badgeContent={
-                  // Der Füllstand des Tischs: alles, was noch auf die
-                  // Redaktorin wartet — Offenes und Meldungen im Redigat.
-                  (wochenblaetter.data?.wochenblaetter ?? [])
-                    .flatMap((b) => b.ausgaben)
-                    .flatMap((a) => a.kandidaten)
-                    .filter((k) => bleibtAufDemTisch(k.entscheid, meldungStatusJeKandidat.get(k.id) ?? null))
-                    // Eine Vorschau, deren Anlass vorbei ist, haengt eingeklappt
-                    // unten — sie ist keine Arbeit mehr und zaehlt nicht.
-                    .filter((k) => !vorschauVorbei(k, new Date().toISOString().slice(0, 10))).length
+          {BEREICHE.map((bereich) => {
+            const z = bereichsZaehler(bereich, zaehler)
+            return (
+              <Tab
+                key={bereich.wert}
+                value={bereich.wert}
+                label={
+                  <Badge color={ZAEHLER_FARBE[z.art]} badgeContent={z.anzahl} sx={ZAEHLER_IM_REITER}>
+                    {bereich.text}
+                  </Badge>
                 }
-                sx={ZAEHLER_IM_REITER}
-              >
-                Wochenblätter
-              </Badge>
-            }
-          />
-          <Tab
-            value="amtsblatt"
-            label={
-              <Badge
-                color="info"
-                badgeContent={anzahlOffen(amtsblatt.data?.amtsblattmeldungen ?? [], meldungStatusJeAmtsblatt)}
-                sx={ZAEHLER_IM_REITER}
-              >
-                Amtsblatt
-              </Badge>
-            }
-          />
-          <Tab
-            value="gemeindeseiten"
-            label={
-              <Badge
-                color="info"
-                badgeContent={anzahlMitteilungen(
-                  gemeindeseiten.data?.gemeindemitteilungen ?? [],
-                  meldungStatusJeMitteilung
-                )}
-                sx={ZAEHLER_IM_REITER}
-              >
-                Gemeindeseiten
-              </Badge>
-            }
-          />
-          <Tab
-            value="veranstaltungen"
-            label={
-              <Badge
-                color="info"
-                badgeContent={anzahlAnlaesse(
-                  veranstaltungen.data?.veranstaltungen ?? [],
-                  meldungStatusJeAnlass
-                )}
-                sx={ZAEHLER_IM_REITER}
-              >
-                Veranstaltungen
-              </Badge>
-            }
-          />
-          <Tab
-            value="regionaljournal"
-            label={
-              <Badge color="info" badgeContent={anzahlSendungOffen('regionaljournal')} sx={ZAEHLER_IM_REITER}>
-                Regionaljournal
-              </Badge>
-            }
-          />
-          <Tab
-            value="punkt6"
-            label={
-              <Badge color="info" badgeContent={anzahlSendungOffen('punkt6')} sx={ZAEHLER_IM_REITER}>
-                punkt6
-              </Badge>
-            }
-          />
-          <Tab
-            value="chefredaktion"
-            label={
-              <Badge
-                color="warning"
-                badgeContent={
-                  (recherchehinweise.data?.recherchehinweise ?? []).filter((h) => h.status === 'offen')
-                    .length + (offenePerlen.data?.wochenblattkandidaten ?? []).length
-                }
-                sx={ZAEHLER_IM_REITER}
-              >
-                Chefredaktion
-              </Badge>
-            }
-          />
+              />
+            )
+          })}
         </Tabs>
 
         {/* Gemeinden und Gelerntes sind Einstellungen, keine Arbeitstische —
@@ -1029,6 +984,41 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
           ))}
         </Menu>
       </Stack>
+
+      {aktiverBereich !== null && aktiverBereich.werkbaenke.length > 1 && (
+        <Tabs
+          value={reiter}
+          onChange={(_, v: Reiter) => setReiter(v)}
+          variant="scrollable"
+          scrollButtons="auto"
+          aria-label={`Werkbänke ${aktiverBereich.text}`}
+          sx={{
+            minHeight: 36,
+            borderBottom: 1,
+            borderColor: 'divider',
+            '& .MuiTab-root': { minHeight: 36, minWidth: 0, px: 1.25, py: 0.5, textTransform: 'none' }
+          }}
+        >
+          {aktiverBereich.werkbaenke.map((werkbank) => {
+            const z = zaehler[werkbank.wert]
+            return (
+              <Tab
+                key={werkbank.wert}
+                value={werkbank.wert}
+                label={
+                  <Badge
+                    color={ZAEHLER_FARBE[z?.art ?? 'arbeit']}
+                    badgeContent={z?.anzahl ?? 0}
+                    sx={ZAEHLER_IM_REITER}
+                  >
+                    {werkbank.text}
+                  </Badge>
+                }
+              />
+            )
+          })}
+        </Tabs>
+      )}
 
       {reiter === 'statistik' && (
         <Stack spacing={1}>

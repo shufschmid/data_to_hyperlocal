@@ -169,11 +169,17 @@ them is wrong even if it works.
    it, answers 200, and silently ignores it — asking for "Riehen" that way
    returned Zurich fire bans.
 
-   The workspace has ten WORKBENCHES and a gear: **statistik.bl ·
-   Sportresultate · Entsorgung · Wochenblätter · Amtsblatt · Gemeindeseiten ·
-   Veranstaltungen · Regionaljournal · punkt6 · Chefredaktion**, with
-   **Gemeinden** and **Gelerntes** behind the
-   settings gear at the end of the row. Every tab up there is a desk with a
+   The workspace has ten WORKBENCHES in four AREAS and a gear — since 27
+   September 2026 in two rows, because ten tabs no longer fitted in one and
+   the last ones hid behind the scroll arrow. The areas, in the newsroom's
+   order: **Gemeinde** (Gemeindeseiten · Veranstaltungen · Amtsblatt) ·
+   **Medien** (Wochenblätter · Regionaljournal · punkt6) · **Daten** (data to
+   hyperlocal · Sportresultate · Entsorgung) · **Chefredaktion**, with
+   **Gemeinden** and **Gelerntes** behind the settings gear at the end of the
+   first row. The second row shows the chosen area's workbenches with their
+   own counters; an area shows their sum, and a red revision counter beats
+   the blue work count (`apps/front/src/lib/bereiche.ts`). A click on an area
+   returns to the workbench last open there. Every workbench is a desk with a
    task; the two behind the gear are configuration. The **Blog** is neither —
    it is the result of all the others — so it hangs on two small links in the
    header instead: one opens it in-app for editing, one opens the public page.
