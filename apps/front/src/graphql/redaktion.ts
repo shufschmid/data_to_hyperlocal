@@ -1776,8 +1776,17 @@ export interface AbstimmungsFelder {
   quelle_url: string | null
 }
 
+/** A coming federal vote day, from the Bund's table of Blanko-Termine. */
+export interface AbstimmungsterminFelder {
+  id: string
+  datum: string
+  art: 'genutzt' | 'festgelegt' | 'blanko' | 'nationalratswahlen'
+  vorlagen: number | null
+}
+
 export interface AbstimmungenErgebnis {
   abstimmungen: AbstimmungsFelder[]
+  abstimmungstermine: AbstimmungsterminFelder[]
 }
 
 export const ABSTIMMUNGEN_QUERY = gql`
@@ -1795,6 +1804,12 @@ export const ABSTIMMUNGEN_QUERY = gql`
       stichfrage_gilt
       stichfrage_grund
       quelle_url
+    }
+    abstimmungstermine(sort: ["datum"], limit: 20) {
+      id
+      datum
+      art
+      vorlagen
     }
   }
 `

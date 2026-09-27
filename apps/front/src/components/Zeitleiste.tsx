@@ -38,7 +38,8 @@ const HERKUNFT: Record<
   portal: { label: 'Portal', farbe: 'default' },
   datensatz: { label: 'data.bl.ch', farbe: 'success' },
   suedanflug: { label: 'EuroAirport', farbe: 'default' },
-  abstimmung: { label: 'Abstimmung', farbe: 'info' }
+  abstimmung: { label: 'Abstimmung', farbe: 'info' },
+  abstimmungstermin: { label: 'Abstimmungstermin', farbe: 'default' }
 }
 
 export interface ZeitleisteProps {
@@ -570,7 +571,9 @@ function Aktion({ eintrag, laeuft, onAuftrag }: Pick<ZeileProps, 'eintrag' | 'la
   // Die Abstimmungszeile traegt ihre Knoepfe darunter, einen je ausgezaehlter
   // Gemeinde. Hier oben steht nur, wie weit gezaehlt ist — das sagt der
   // Hinweis, und er ist kein Fehler.
-  if (eintrag.herkunft === 'abstimmung') {
+  // Ein kommender Abstimmungstag ist eine Ankündigung, noch ohne Zahlen: er
+  // sagt, was die Liste des Bundes weiss und was nicht, und bietet nichts an.
+  if (eintrag.herkunft === 'abstimmung' || eintrag.herkunft === 'abstimmungstermin') {
     return (
       <Typography variant="body2" color="text.disabled">
         {eintrag.hinweis ?? ''}

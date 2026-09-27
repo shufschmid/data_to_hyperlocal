@@ -92,6 +92,7 @@ them is wrong even if it works.
    | `data.bl.ch`                                | open-data catalogue and records (no auth, documented API) — including dataset 11990, the vote results per Vorlage and municipality, read on a vote Sunday only                                                                                                                                                                                                                                                                                                                                                                            | `shared/ods/`                                    |
    | `abstimmungen.bl.ch`                        | the canton's live publication of a vote day (Sitrox VeWork, where the portal's own `url_web` points): plain JSON under `/data/publication/`, the list of vote days and one file of every municipality's result per Vorlage, no key, no robots.txt. Read only on a vote Sunday, only for a day the portal already knows, because it carries the final figures hours or a day before dataset 11990 does (measured 27.09.2026)                                                                                                               | `shared/abstimmung/vework.ts`                    |
    | `ogd-static.voteinfo-app.ch`                | the Federal Chancellery's open data for a vote day: one static JSON file per day, no key. Read only on a vote Sunday with a federal Vorlage, and only for WHETHER Switzerland accepted — the yardstick of «anders als die Schweiz» in the day summary; no national figure reaches an article                                                                                                                                                                                                                                              | `shared/abstimmung/bund.ts`                      |
+   | `lindas.admin.ch`                           | the Bund's linked-data service: the Federal Chancellery's table of Blanko-Termine is a LINDAS cube (`voting_dates`), asked through its public SPARQL endpoint once a day, one GET, answering CSV — every vote day with its type (genutzt, festgelegt with the number of Vorlagen, blanko, nationalratswahlen). `robots.txt` is a blanket `Disallow: /`; like amtsblattportal's it governs crawling pages, and the documented SPARQL service is the Bund's door for exactly this                                                           | `shared/abstimmung/termine.ts`                   |
    | `data.bs.ch`                                | the same Opendatasoft platform for Basel-Stadt — registered but INACTIVE, so no request is made until a person switches it on. Measured 17.09.2026: identical paths and response shape, 361 datasets against 188, and Riehen and Bettingen are municipalities in its rows, not quarters                                                                                                                                                                                                                                                   | `shared/ods/`                                    |
    | `www.baselland.ch`                          | the publication agenda — announcements the API cannot give — and the office's own web article behind an entry, read once per announcement for the mapping and the briefing                                                                                                                                                                                                                                                                                                                                                                | `shared/agenda/`                                 |
    | `statistik.bl.ch`                           | tables the open-data portal does not carry                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | `shared/statbl/`                                 |
@@ -1137,6 +1138,21 @@ them is wrong even if it works.
    (`POST /redaktion/abstimmungen/:id/tag/chat` — 202 + detached, one inline
    revision per article — and `…/tag/publizieren|pruefung`, where `:id` is any
    Vorlage of the day).
+   **The COMING vote days stand on the desk before they arrive** (27 September
+   2026, the newsroom's wish: „wie bei der Agenda"). The Bundeskanzlei's page
+   of Blanko-Termine builds its table in the browser from a visualize.admin.ch
+   chart, and the chart reads a LINDAS cube — so the 06:00 run asks that
+   cube's SPARQL service once (`shared/abstimmung/termine.ts`,
+   `konfiguration.abstimmungen_termine`, seeded by `20260927D`) and keeps the
+   next 400 days in `abstimmungstermine`, one row per day: `festgelegt` with
+   the number of federal Vorlagen, `blanko` (reserved only — the Federal
+   Council decides at least four months ahead), `nationalratswahlen`. A moved
+   Blanko-Termin disappears from the window (`termineAbgleich`), a past day is
+   never touched, an unknown type is counted in the run's hints rather than
+   guessed, and a failed read leaves the rows standing. The timeline shows the
+   next twelve months as `herkunft: 'abstimmungstermin'`, linking the Bund's
+   page and saying plainly that the list names no cantonal Vorlagen; the day
+   the results arrive, the vote line replaces the date.
 
    When it turns us away, that is not silence: the workspace shows a banner
    naming the source, the reason and the date of the last attempt, with a link
@@ -1314,6 +1330,9 @@ Flow "Quellen taeglich pruefen"  (0 6 * * *)
        │                    changed? A page cap that bites is named in the
        │                    run's hinweise (`katalogKappung`) — the option is
        │                    sized for 188 datasets, data.bs.ch carries 361
+       ├─ shared/abstimmung/termine.ts → die kommenden Abstimmungstage des
+       │                    Bundes (LINDAS, 1 Abruf), 400 Tage voraus →
+       │                    abstimmungstermine
        ├─ shared/agenda/  → the office's agenda: what is coming?
        │                    writes datensaetze + ankuendigungen
        ├─ shared/euroairport/ → die ILS-33-Uebersicht: neue Monate, bewegte
@@ -1979,6 +1998,10 @@ checked rather than assumed, and there is a test.
   no composite key. The row is what an article is written from, never a fresh
   fetch: a vote day's rows move under the run's hands for hours, and the
   article has to stand on what the editor saw when she pressed the button.
+- `abstimmungstermine` — the Bund's coming vote days, one row per day
+  (`datum` unique): `art` and, where fixed, the number of federal Vorlagen.
+  The source's own table, mirrored for 400 days ahead by the 06:00 run; the
+  newsroom never writes it.
 - `vereine` — which clubs speak for a municipality, and why. Recorded from the
   Gemeinden tab through `POST /redaktion/vereine`, whose one rule with teeth is
   that `swissvolley`, `handball` and `basketball` need an `ergebnis_url`: those

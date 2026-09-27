@@ -1,0 +1,28 @@
+{
+  "collection": "abstimmungstermine",
+  "meta": {
+    "accountability": "all",
+    "archive_app_filter": true,
+    "archive_field": null,
+    "archive_value": null,
+    "collapse": "open",
+    "collection": "abstimmungstermine",
+    "color": null,
+    "display_template": "{{datum}} — {{art}}",
+    "group": null,
+    "hidden": false,
+    "icon": "event",
+    "item_duplication_fields": null,
+    "note": "Die kommenden Abstimmungstage des Bundes, taeglich aus LINDAS (der Tabelle der Blanko-Termine der Bundeskanzlei): festgelegt mit der Zahl der Vorlagen, blanko nur reserviert, oder Nationalratswahlen. Ein Jahr voraus, geschrieben vom 06:00-Lauf.",
+    "preview_url": null,
+    "singleton": false,
+    "sort": null,
+    "sort_field": null,
+    "translations": null,
+    "unarchive_value": null,
+    "versioning": false
+  },
+  "schema": {
+    "name": "abstimmungstermine"
+  }
+}

@@ -876,6 +876,7 @@ export interface Schema {
   gemeindemitteilungen: Gemeindemitteilung[]
   suedanflugquoten: Suedanflugquote[]
   abstimmungen: Abstimmung[]
+  abstimmungstermine: Abstimmungstermin[]
   veranstaltungsquellen: Veranstaltungsquelle[]
   veranstaltungen: Veranstaltung[]
   abnehmer: Abnehmer[]
@@ -1300,6 +1301,15 @@ export interface Suedanflugquote {
  * of one question share it, which is why they share a row here and produce ONE
  * article per municipality rather than three.
  */
+/** A coming federal vote day, from LINDAS (`shared/abstimmung/termine.ts`). */
+export interface Abstimmungstermin {
+  id: string
+  datum: string
+  art: 'genutzt' | 'festgelegt' | 'blanko' | 'nationalratswahlen'
+  vorlagen: number | null
+  date_updated: string | null
+}
+
 export interface Abstimmung {
   id: string
   /** `20260927_K3`. Unique at the source and here. */

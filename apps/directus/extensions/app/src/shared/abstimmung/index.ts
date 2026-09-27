@@ -132,3 +132,4 @@ export async function liesGemeindezahlen(
 
   return parseZeilen(await holeRecords(url, doFetch))
 }
+export * from './termine'

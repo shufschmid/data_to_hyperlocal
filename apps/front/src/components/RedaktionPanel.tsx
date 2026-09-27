@@ -1084,7 +1084,8 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
                 datensaetze: datensaetze.data?.datensaetze ?? [],
                 laeufe: laeufe.data?.laeufe ?? [],
                 suedanflug: suedanflug.data?.suedanflugquoten ?? [],
-                abstimmungen: abstimmungen.data?.abstimmungen ?? []
+                abstimmungen: abstimmungen.data?.abstimmungen ?? [],
+                abstimmungstermine: abstimmungen.data?.abstimmungstermine ?? []
               },
               zeilen
             )}

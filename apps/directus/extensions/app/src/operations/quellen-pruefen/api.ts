@@ -51,6 +51,11 @@ import {
   tabellenId
 } from '../../shared/statbl'
 import { liesMonatsblatt, liesUebersicht } from '../../shared/euroairport'
+import {
+  liesTermine,
+  termineAbgleich,
+  TERMINE_VORAUS_TAGE
+} from '../../shared/abstimmung/termine'
 import { bewerteMonat, leseSchwellen } from '../../redaktion/suedanflug'
 import {
   revisionsSchreibungenSuedanflug,
@@ -216,8 +221,10 @@ export default defineOperationApi<Options>({
       ergebnis.quellen += 1
 
       try {
-        if (quelle.typ === 'ods') await pruefeQuelle(quelle)
-        else if (quelle.typ === 'statbl') await pruefeTabellen(quelle)
+        if (quelle.typ === 'ods') {
+          await pruefeQuelle(quelle)
+          await pruefeAbstimmungstermine(quelle)
+        } else if (quelle.typ === 'statbl') await pruefeTabellen(quelle)
         else if (quelle.typ === 'euroairport') await pruefeSuedanflug(quelle)
         else await pruefeAgenda(quelle)
 
@@ -453,6 +460,76 @@ export default defineOperationApi<Options>({
      * (`aenderungsSatz`), because a published article may be standing on the
      * figure that just moved.
      */
+    /**
+     * The Bund's coming vote days, where the portal names the service
+     * (`konfiguration.abstimmungen_termine`). One request a day; its own
+     * try/catch, because a failure here must not mark the portal as unread —
+     * the rows stand and the run says so.
+     */
+    async function pruefeAbstimmungstermine(
+      quelle: Pick<Quelle, 'name' | 'konfiguration'>
+    ): Promise<void> {
+      const konfiguration = (
+        typeof quelle.konfiguration === 'object' &&
+        quelle.konfiguration !== null
+          ? quelle.konfiguration
+          : {}
+      ) as Record<string, unknown>
+      const basis = konfiguration['abstimmungen_termine']
+      if (typeof basis !== 'string' || !/^https:\/\//.test(basis.trim())) return
+
+      const heute = new Date().toISOString().slice(0, 10)
+      const bis = new Date(Date.now() + TERMINE_VORAUS_TAGE * 86_400_000)
+        .toISOString()
+        .slice(0, 10)
+      try {
+        const gelesen = await liesTermine(basis.trim(), heute, (url) =>
+          fetch(url, {
+            headers: { 'User-Agent': 'Die Redaktion (We.Publish)' }
+          })
+        )
+        const termineService = new ItemsService('abstimmungstermine', {
+          schema
+        })
+        const bestand = (await termineService.readByQuery({
+          filter: { datum: { _gte: heute } },
+          fields: ['id', 'datum', 'art', 'vorlagen'],
+          limit: -1
+        })) as Array<{
+          id: string
+          datum: string
+          art: string
+          vorlagen: number | null
+        }>
+        const abgleich = termineAbgleich(bestand, gelesen.termine, heute, bis)
+        for (const t of abgleich.neu) await termineService.createOne({ ...t })
+        for (const t of abgleich.geaendert)
+          await termineService.updateOne(t.id, {
+            art: t.art,
+            vorlagen: t.vorlagen
+          })
+        if (abgleich.weg.length > 0)
+          await termineService.deleteMany(abgleich.weg)
+        if (gelesen.unbekannt > 0)
+          ergebnis.hinweise.push(
+            `${quelle.name}: ${gelesen.unbekannt} Abstimmungstermin(e) des Bundes mit unbekannter Art nicht uebernommen.`
+          )
+        if (
+          abgleich.neu.length +
+            abgleich.geaendert.length +
+            abgleich.weg.length >
+          0
+        )
+          ergebnis.hinweise.push(
+            `${quelle.name}: Abstimmungstermine des Bundes — ${abgleich.neu.length} neu, ${abgleich.geaendert.length} geaendert, ${abgleich.weg.length} entfallen.`
+          )
+      } catch (error) {
+        ergebnis.hinweise.push(
+          `${quelle.name}: die Abstimmungstermine des Bundes konnten nicht gelesen werden (${error instanceof Error ? error.message : String(error)}) — die bisherigen bleiben stehen.`
+        )
+      }
+    }
+
     async function pruefeSuedanflug(
       quelle: Pick<Quelle, 'id' | 'name' | 'basis_url' | 'konfiguration'>
     ): Promise<void> {

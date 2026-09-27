@@ -430,7 +430,13 @@ export function datensatzLink(
   return null
 }
 
-export type ZeitleistenHerkunft = 'agenda' | 'portal' | 'datensatz' | 'suedanflug' | 'abstimmung'
+export type ZeitleistenHerkunft =
+  | 'agenda'
+  | 'portal'
+  | 'datensatz'
+  | 'suedanflug'
+  | 'abstimmung'
+  | 'abstimmungstermin'
 
 const MONATSNAMEN = [
   'Januar',
@@ -569,6 +575,33 @@ export function abstimmungstage(vorlagen: readonly Abstimmungsvorlage[]): Abstim
 export function abstimmungstagTitel(tag: Pick<Abstimmungstag, 'datum' | 'vorlagen'>): string {
   const n = tag.vorlagen.length
   return `Abstimmungssonntag vom ${formatiereDatum(tag.datum)} · ${n} ${n === 1 ? 'Vorlage' : 'Vorlagen'}`
+}
+
+/** Die Seite der Bundeskanzlei mit der ganzen Tabelle. */
+export const ABSTIMMUNGSTERMINE_SEITE = 'https://www.bk.admin.ch/de/blanko-abstimmungstermine'
+
+/** Wie weit die Zeitleiste voraus zeigt: ein Jahr, also die vier Termine, mit denen die Redaktion plant. */
+export const ABSTIMMUNGSTERMINE_VORAUS_TAGE = 365
+
+/** Titel und Hinweis eines kommenden Abstimmungstags — was die Liste des Bundes sagt, und was nicht. */
+export function abstimmungsterminText(t: { datum: string; art: string; vorlagen: number | null }): {
+  titel: string
+  hinweis: string
+} {
+  const tag = formatiereDatum(t.datum)
+  const kantonal = 'Kantonale Vorlagen nennt diese Liste nicht.'
+  if (t.art === 'nationalratswahlen')
+    return { titel: `Nationalratswahlen vom ${tag}`, hinweis: 'Wahltag des Bundes, kein Abstimmungstermin.' }
+  if (t.art === 'blanko')
+    return {
+      titel: `Abstimmungssonntag vom ${tag} · Blanko-Termin`,
+      hinweis: `Reserviert. Ob abgestimmt wird, legt der Bundesrat spätestens vier Monate vorher fest. ${kantonal}`
+    }
+  const n = t.vorlagen
+  return {
+    titel: `Abstimmungssonntag vom ${tag}${n === null ? '' : ` · ${n} eidgenössische ${n === 1 ? 'Vorlage' : 'Vorlagen'}`}`,
+    hinweis: `Der Bundesrat hat die eidgenössischen Vorlagen festgelegt. ${kantonal}`
+  }
 }
 
 /**
@@ -715,6 +748,18 @@ export interface ZeitleistenQuellen {
     stichfrage_grund: string | null
     quelle_url: string | null
   }[]
+  /**
+   * Die kommenden Abstimmungstage des Bundes — damit sie dastehen, bevor sie
+   * kommen, wie die Ankündigungen der Agenda. Optional wie die Abstimmungen.
+   */
+  abstimmungstermine?: readonly {
+    id: string
+    datum: string
+    art: string
+    vorlagen: number | null
+  }[]
+  /** Der heutige Tag (JJJJ-MM-TT) — für Tests setzbar. */
+  heute?: string
 }
 
 export interface ZeitleistenErgebnis {
@@ -892,6 +937,40 @@ export function zeitleiste(quellen: ZeitleistenQuellen, hoechstens = 40): Zeitle
   // Datiert auf den Abstimmungssonntag selbst — der Tag, an dem sie eine
   // Nachricht sind. Der Hinweis auf der Zeile sagt, wie weit ausgezählt ist:
   // ein Lauf, der nichts schreibt, weil noch gezählt wird, ist kein Fehler.
+  // Die kommenden Abstimmungstage des Bundes, ein Jahr voraus. Ein Tag, für
+  // den schon Resultate da sind, steht dort als Abstimmungszeile und nicht
+  // ein zweites Mal als Termin.
+  const heute = quellen.heute ?? new Date().toISOString().slice(0, 10)
+  const bis = new Date(Date.parse(heute) + ABSTIMMUNGSTERMINE_VORAUS_TAGE * 86_400_000)
+    .toISOString()
+    .slice(0, 10)
+  const mitResultaten = new Set((quellen.abstimmungen ?? []).map((a) => a.datum))
+  for (const t of quellen.abstimmungstermine ?? []) {
+    if (t.datum < heute || t.datum > bis || mitResultaten.has(t.datum)) continue
+    const text = abstimmungsterminText(t)
+    eintraege.push({
+      id: `abstimmungstermin-${t.datum}`,
+      herkunft: 'abstimmungstermin',
+      datum: t.datum,
+      titel: text.titel,
+      hinweis: text.hinweis,
+      datensatzId: null,
+      laufId: null,
+      pfad: null,
+      link: ABSTIMMUNGSTERMINE_SEITE,
+      quartal: null,
+      beschreibung: null,
+      rhythmus: null,
+      zeilen: null,
+      quoteId: null,
+      vorschlag: false,
+      befunde: [],
+      abstimmungId: null,
+      abstimmungsgemeinden: [],
+      abstimmungIds: []
+    })
+  }
+
   for (const tag of abstimmungstage(quellen.abstimmungen ?? [])) {
     const erste = tag.vorlagen[0]
     if (erste === undefined) continue
