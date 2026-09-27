@@ -248,6 +248,25 @@ export default defineOperationApi<Optionen>({
       )
     }
 
+    /** The banner's line for one source: when it was read, and what failed. */
+    async function stempleQuelle(
+      typ: 'amtsblatt' | 'simap',
+      fehler: readonly string[]
+    ): Promise<void> {
+      const quelle = (await quellen.readByQuery({
+        filter: { typ: { _eq: typ } },
+        fields: ['id'],
+        limit: 1
+      })) as { id: string }[]
+      const quelleId = quelle[0]?.id
+      if (quelleId === undefined) return
+      await quellen.updateOne(quelleId, {
+        letzte_pruefung: new Date().toISOString(),
+        letzter_fehler:
+          fehler.length === 0 ? null : fehler.join(' · ').slice(0, 1000)
+      })
+    }
+
     // --- simap.ch: the procurement half, collected before the municipality loop
     //
     // Two queries, and both are needed for a different reason. The
@@ -365,6 +384,17 @@ export default defineOperationApi<Optionen>({
       logger.warn(fehler, 'simap.ch fehlgeschlagen.')
       ergebnis.fehler.push(`simap.ch: ${grund}`)
     }
+
+    // The simap status is stamped HERE, the moment its part is done — not at
+    // the end of the run. Every simap error arises above; the gazette part
+    // that follows (triage, the Opus reading of the plans) takes many minutes,
+    // and a banner stamped only after all of it went on showing yesterday's
+    // simap error to someone who had just started a new run and was watching
+    // (measured 27 September 2026).
+    await stempleQuelle(
+      'simap',
+      ergebnis.fehler.filter((f) => f.startsWith('simap.ch'))
+    )
 
     let planBudgetRest = planBudget
 
@@ -648,29 +678,11 @@ export default defineOperationApi<Optionen>({
     // agenda. Both are stamped, and the simap one carries only ITS errors: a
     // silent gazette and a silent procurement platform are different news, and
     // one banner blaming the other would send someone looking in the wrong place.
-    const simapFehler = ergebnis.fehler.filter((f) => f.startsWith('simap.ch'))
-    const portalFehler = ergebnis.fehler.filter(
-      (f) => !f.startsWith('simap.ch')
+    // simap was stamped when its part ended (see above).
+    await stempleQuelle(
+      'amtsblatt',
+      ergebnis.fehler.filter((f) => !f.startsWith('simap.ch'))
     )
-    const jetzt = new Date().toISOString()
-
-    for (const [typ, fehler] of [
-      ['amtsblatt', portalFehler],
-      ['simap', simapFehler]
-    ] as const) {
-      const quelle = (await quellen.readByQuery({
-        filter: { typ: { _eq: typ } },
-        fields: ['id'],
-        limit: 1
-      })) as { id: string }[]
-      const quelleId = quelle[0]?.id
-      if (quelleId === undefined) continue
-      await quellen.updateOne(quelleId, {
-        letzte_pruefung: jetzt,
-        letzter_fehler:
-          fehler.length === 0 ? null : fehler.join(' · ').slice(0, 1000)
-      })
-    }
 
     ergebnis.ueberCrawler = zweiteTuerSeit(laufStart)
     return ergebnis
