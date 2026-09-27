@@ -3,8 +3,11 @@ import { defaultFetch } from '../../shared/ods'
 import {
   liesAbstimmungen,
   liesGemeindezahlen,
+  liesVework,
   liesVorherigesDatum,
-  type Abstimmungszeile
+  waehleZeilen,
+  type Abstimmungszeile,
+  type Leseergebnis
 } from '../../shared/abstimmung'
 import { heuteIso } from '../../redaktion/feiertage'
 import {
@@ -58,6 +61,19 @@ interface Ergebnis {
 
 function fehlerText(error: unknown): string {
   return error instanceof Error ? error.message : 'Unbekannter Fehler'
+}
+
+/**
+ * The canton's live publication of a vote day, where a portal has one —
+ * `konfiguration.abstimmungen_live`, set by `migrations/20260927B` on
+ * data.bl.ch. A row like the dataset beside it, never a constant.
+ */
+function liveAus(konfiguration: unknown): string | null {
+  if (typeof konfiguration !== 'object' || konfiguration === null) return null
+  const wert = (konfiguration as Record<string, unknown>)['abstimmungen_live']
+  return typeof wert === 'string' && /^https:\/\//.test(wert.trim())
+    ? wert.trim().replace(/\/$/, '')
+    : null
 }
 
 /** The dataset a portal carries its votes in — a row, never a constant. */
@@ -124,7 +140,7 @@ export default defineOperationApi<Optionen>({
       ergebnis.quellen += 1
 
       try {
-        await holeQuelle(quelle, datensatz)
+        await holeQuelle(quelle, datensatz, liveAus(quelle.konfiguration))
       } catch (error) {
         // One unreachable portal must not stop the others.
         logger.error(error, `abstimmungen-holen: ${quelle.name} fehlgeschlagen`)
@@ -136,16 +152,38 @@ export default defineOperationApi<Optionen>({
 
     async function holeQuelle(
       quelle: Pick<Quelle, 'id' | 'name' | 'basis_url'>,
-      datensatz: string
+      datensatz: string,
+      live: string | null
     ): Promise<void> {
       // The one request of an ordinary Sunday. No rows for today means no
       // ballot today, and the run is over.
-      const gelesen = await liesAbstimmungen(
+      const portal = await liesAbstimmungen(
         quelle.basis_url,
         datensatz,
         datum,
         defaultFetch
       )
+
+      // The canton's live publication, where the portal names one: it carries
+      // the figures hours — or a day — before the portal does (measured
+      // 27.09.2026: final at 14:02 there, all 430 portal rows still open).
+      // Asked only on a day the portal knows as a vote day, and a failure is
+      // said and costs nothing: the portal's rows stand.
+      let liveGelesen: Leseergebnis | null = null
+      if (live !== null && portal.zeilen.length > 0) {
+        try {
+          liveGelesen = await liesVework(live, datum, defaultFetch)
+        } catch (error) {
+          ergebnis.hinweise.push(
+            `${quelle.name}: die Live-Publikation des Kantons konnte nicht gelesen werden (${fehlerText(error)}) — es gelten die Zeilen des Portals.`
+          )
+        }
+      }
+      const { gelesen, quelle: tuer } = waehleZeilen(portal, liveGelesen)
+      if (tuer === 'live')
+        ergebnis.hinweise.push(
+          `${quelle.name}: Resultate aus der Live-Publikation des Kantons (${new URL(live ?? 'https://abstimmungen.bl.ch').host}) — das Portal fuehrt sie noch nicht.`
+        )
 
       if (gelesen.zeilen.length === 0) {
         ergebnis.hinweise.push(

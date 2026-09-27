@@ -22,6 +22,7 @@ import { parseZeilen, type Leseergebnis } from './parse'
 // exactly that one request and answers nothing.
 
 export * from './parse'
+export * from './vework'
 
 /** The default dataset on data.bl.ch. Which one a portal uses is a `quellen` row. */
 export const ABSTIMMUNGS_DATENSATZ = '11990'

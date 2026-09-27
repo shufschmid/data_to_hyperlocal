@@ -1,0 +1,170 @@
+{
+  "data": [
+    {
+      "id": 3,
+      "frontend_id": "2026-09-27",
+      "label": { "de": "Urnengang vom 27. September 2026" },
+      "date": "2026-09-27",
+      "issues": [
+        {
+          "id": 14,
+          "frontend_id": "e1",
+          "resources": {
+            "counting_circles": true,
+            "aggregating_domains": true,
+            "second_aggregating_domains": false,
+            "downloads": false
+          },
+          "date": "2026-09-27",
+          "polling_day_id": 3,
+          "polling_day_frontend_id": "2026-09-27",
+          "type": "poll_simple",
+          "scope": "federal",
+          "domain_type": "canton",
+          "domain_id": 357,
+          "domain_bfs_number": "13",
+          "domain_name": { "de": "Basel-Landschaft" },
+          "title": {
+            "de": "Volksinitiative «Wahrung der schweizerischen Neutralität (Neutralitätsinitiative)»"
+          },
+          "short_title": { "de": "Neutralitätsinitiative" },
+          "info": { "de": null },
+          "links": [],
+          "sort_key": 1,
+          "aggregating_domain_type": "district",
+          "poll_info": { "subtype": "initiative", "question": { "de": null } }
+        },
+        {
+          "id": 15,
+          "frontend_id": "e2",
+          "resources": {
+            "counting_circles": true,
+            "aggregating_domains": true,
+            "second_aggregating_domains": false,
+            "downloads": false
+          },
+          "date": "2026-09-27",
+          "polling_day_id": 3,
+          "polling_day_frontend_id": "2026-09-27",
+          "type": "poll_simple",
+          "scope": "federal",
+          "domain_type": "canton",
+          "domain_id": 357,
+          "domain_bfs_number": "13",
+          "domain_name": { "de": "Basel-Landschaft" },
+          "title": {
+            "de": "Volksinitiative «Für eine sichere Ernährung – durch Stärkung einer nachhaltigen inländischen Produktion, mehr pflanzliche Lebensmittel und sauberes Trinkwasser (Ernährungsinitiative)»"
+          },
+          "short_title": { "de": "Ernährungsinitiative" },
+          "info": { "de": null },
+          "links": [],
+          "sort_key": 2,
+          "aggregating_domain_type": "district",
+          "poll_info": { "subtype": "initiative", "question": { "de": null } }
+        },
+        {
+          "id": 16,
+          "frontend_id": "k3a",
+          "resources": {
+            "counting_circles": true,
+            "aggregating_domains": true,
+            "second_aggregating_domains": false,
+            "downloads": false
+          },
+          "date": "2026-09-27",
+          "polling_day_id": 3,
+          "polling_day_frontend_id": "2026-09-27",
+          "type": "poll_complex",
+          "scope": "cantonal",
+          "domain_type": "canton",
+          "domain_id": 357,
+          "domain_bfs_number": "13",
+          "domain_name": { "de": "Basel-Landschaft" },
+          "title": {
+            "de": "Formulierte Gesetzesinitiative «Fairer Kompromiss bei der Mehrwertabgabe» vom 10. Juni 2025"
+          },
+          "short_title": {
+            "de": "Gesetzesinitiative «Fairer Kompromiss bei der Mehrwertabgabe»"
+          },
+          "info": { "de": null },
+          "links": [],
+          "sort_key": 3,
+          "aggregating_domain_type": "district",
+          "poll_info": { "subtype": "initiative", "question": { "de": null } }
+        },
+        {
+          "id": 17,
+          "frontend_id": "k3b",
+          "resources": {
+            "counting_circles": true,
+            "aggregating_domains": true,
+            "second_aggregating_domains": false,
+            "downloads": false
+          },
+          "date": "2026-09-27",
+          "polling_day_id": 3,
+          "polling_day_frontend_id": "2026-09-27",
+          "type": "poll_complex",
+          "scope": "cantonal",
+          "domain_type": "canton",
+          "domain_id": 357,
+          "domain_bfs_number": "13",
+          "domain_name": { "de": "Basel-Landschaft" },
+          "title": {
+            "de": "Gegenvorschlag des Landrats zur formulierten Gesetzesinitiative «Fairer Kompromiss bei der Mehrwertabgabe» vom 23. April 2026"
+          },
+          "short_title": {
+            "de": "Gegenvorschlag zur Gesetzesinitiative «Fairer Kompromiss bei der Mehrwertabgabe»"
+          },
+          "info": { "de": null },
+          "links": [],
+          "sort_key": 3,
+          "aggregating_domain_type": "district",
+          "poll_info": {
+            "subtype": "counter_proposal",
+            "question": { "de": null },
+            "main_poll_id": 16
+          }
+        },
+        {
+          "id": 18,
+          "frontend_id": "k3c",
+          "resources": {
+            "counting_circles": true,
+            "aggregating_domains": true,
+            "second_aggregating_domains": false,
+            "downloads": false
+          },
+          "date": "2026-09-27",
+          "polling_day_id": 3,
+          "polling_day_frontend_id": "2026-09-27",
+          "type": "poll_complex",
+          "scope": "cantonal",
+          "domain_type": "canton",
+          "domain_id": 357,
+          "domain_bfs_number": "13",
+          "domain_name": { "de": "Basel-Landschaft" },
+          "title": {
+            "de": "Stichfrage zur Gesetzesinitiative «Fairer Kompromiss bei der Mehrwertabgabe»"
+          },
+          "short_title": {
+            "de": "Stichfrage zur Gesetzesinitiative «Fairer Kompromiss bei der Mehrwertabgabe»"
+          },
+          "info": { "de": null },
+          "links": [],
+          "sort_key": 3,
+          "aggregating_domain_type": "district",
+          "poll_info": {
+            "subtype": "tie_counter_proposal",
+            "question": { "de": null },
+            "main_poll_id": 16
+          }
+        }
+      ]
+    }
+  ],
+  "meta": {
+    "powered_by": "Sitrox",
+    "data_checksum_sha256": "a6e13c021a5f257e1b310964c70d617cc2601a76d294498f33d8c5b971f2f61d"
+  }
+}

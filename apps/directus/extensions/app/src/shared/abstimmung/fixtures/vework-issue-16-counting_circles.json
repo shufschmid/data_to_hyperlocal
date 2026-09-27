@@ -1,0 +1,2702 @@
+{
+  "data": {
+    "totals": {
+      "progress": {
+        "total_number_of_counting_circles": 86,
+        "number_of_finished_counting_circles": 86
+      },
+      "results": {
+        "eligible_voters": 193517,
+        "eligible_voters_living_abroad": 5648,
+        "valid_voting_cards": 84582,
+        "participation": 37.8571391660681,
+        "valid_ballots": 68479,
+        "invalid_ballots": 1091,
+        "empty_ballots": 3690,
+        "total_ballots": 73260,
+        "poll_data": {
+          "yes_votes": 21420,
+          "yes_votes_percentage": 31.74838441928025,
+          "no_votes": 46048,
+          "no_votes_percentage": 68.25161558071974,
+          "blank_votes": 1011,
+          "poll_result": "rejected",
+          "poll_absolute_majority": null
+        }
+      }
+    },
+    "records": [
+      {
+        "id": 253,
+        "bfs_number": "2761",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Aesch (BL)" },
+        "aggregating_domain_id": 267,
+        "results": {
+          "eligible_voters": 7022,
+          "eligible_voters_living_abroad": 196,
+          "valid_voting_cards": 2822,
+          "participation": 34.02164625462832,
+          "valid_ballots": 2256,
+          "invalid_ballots": 39,
+          "empty_ballots": 94,
+          "total_ballots": 2389,
+          "poll_data": {
+            "yes_votes": 654,
+            "yes_votes_percentage": 29.35368043087971,
+            "no_votes": 1574,
+            "no_votes_percentage": 70.64631956912028,
+            "blank_votes": 28,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 239,
+        "bfs_number": "2762",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Allschwil" },
+        "aggregating_domain_id": 267,
+        "results": {
+          "eligible_voters": 13231,
+          "eligible_voters_living_abroad": 517,
+          "valid_voting_cards": 5613,
+          "participation": 36.72435945884665,
+          "valid_ballots": 4408,
+          "invalid_ballots": 148,
+          "empty_ballots": 303,
+          "total_ballots": 4859,
+          "poll_data": {
+            "yes_votes": 1220,
+            "yes_votes_percentage": 28.16251154201293,
+            "no_votes": 3112,
+            "no_votes_percentage": 71.83748845798708,
+            "blank_votes": 76,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 322,
+        "bfs_number": "2841",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Anwil" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 427,
+          "eligible_voters_living_abroad": 11,
+          "valid_voting_cards": 205,
+          "participation": 40.98360655737705,
+          "valid_ballots": 163,
+          "invalid_ballots": 4,
+          "empty_ballots": 8,
+          "total_ballots": 175,
+          "poll_data": {
+            "yes_votes": 52,
+            "yes_votes_percentage": 32.70440251572327,
+            "no_votes": 107,
+            "no_votes_percentage": 67.29559748427673,
+            "blank_votes": 4,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 339,
+        "bfs_number": "2881",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Arboldswil" },
+        "aggregating_domain_id": 356,
+        "results": {
+          "eligible_voters": 452,
+          "eligible_voters_living_abroad": 13,
+          "valid_voting_cards": 224,
+          "participation": 44.02654867256637,
+          "valid_ballots": 179,
+          "invalid_ballots": 2,
+          "empty_ballots": 18,
+          "total_ballots": 199,
+          "poll_data": {
+            "yes_votes": 72,
+            "yes_votes_percentage": 40.90909090909091,
+            "no_votes": 104,
+            "no_votes_percentage": 59.09090909090909,
+            "blank_votes": 3,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 284,
+        "bfs_number": "2821",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Arisdorf" },
+        "aggregating_domain_id": 304,
+        "results": {
+          "eligible_voters": 1197,
+          "eligible_voters_living_abroad": 22,
+          "valid_voting_cards": 515,
+          "participation": 35.67251461988304,
+          "valid_ballots": 400,
+          "invalid_ballots": 6,
+          "empty_ballots": 21,
+          "total_ballots": 427,
+          "poll_data": {
+            "yes_votes": 166,
+            "yes_votes_percentage": 41.91919191919192,
+            "no_votes": 230,
+            "no_votes_percentage": 58.08080808080808,
+            "blank_votes": 4,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 259,
+        "bfs_number": "2763",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Arlesheim" },
+        "aggregating_domain_id": 267,
+        "results": {
+          "eligible_voters": 6363,
+          "eligible_voters_living_abroad": 241,
+          "valid_voting_cards": 3157,
+          "participation": 41.26984126984127,
+          "valid_ballots": 2441,
+          "invalid_ballots": 69,
+          "empty_ballots": 116,
+          "total_ballots": 2626,
+          "poll_data": {
+            "yes_votes": 688,
+            "yes_votes_percentage": 28.75052235687421,
+            "no_votes": 1705,
+            "no_votes_percentage": 71.24947764312579,
+            "blank_votes": 48,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 290,
+        "bfs_number": "2822",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Augst" },
+        "aggregating_domain_id": 304,
+        "results": {
+          "eligible_voters": 733,
+          "eligible_voters_living_abroad": 16,
+          "valid_voting_cards": 307,
+          "participation": 38.47203274215553,
+          "valid_ballots": 258,
+          "invalid_ballots": 5,
+          "empty_ballots": 19,
+          "total_ballots": 282,
+          "poll_data": {
+            "yes_votes": 68,
+            "yes_votes_percentage": 27.2,
+            "no_votes": 182,
+            "no_votes_percentage": 72.8,
+            "blank_votes": 8,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 340,
+        "bfs_number": "2882",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Bennwil" },
+        "aggregating_domain_id": 356,
+        "results": {
+          "eligible_voters": 507,
+          "eligible_voters_living_abroad": 15,
+          "valid_voting_cards": 226,
+          "participation": 39.25049309664694,
+          "valid_ballots": 180,
+          "invalid_ballots": 3,
+          "empty_ballots": 16,
+          "total_ballots": 199,
+          "poll_data": {
+            "yes_votes": 72,
+            "yes_votes_percentage": 40.0,
+            "no_votes": 108,
+            "no_votes_percentage": 60.0,
+            "blank_votes": 0,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 247,
+        "bfs_number": "2764",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Biel-Benken" },
+        "aggregating_domain_id": 267,
+        "results": {
+          "eligible_voters": 2639,
+          "eligible_voters_living_abroad": 86,
+          "valid_voting_cards": 1338,
+          "participation": 43.00871542250852,
+          "valid_ballots": 1062,
+          "invalid_ballots": 12,
+          "empty_ballots": 61,
+          "total_ballots": 1135,
+          "poll_data": {
+            "yes_votes": 360,
+            "yes_votes_percentage": 34.48275862068966,
+            "no_votes": 684,
+            "no_votes_percentage": 65.51724137931035,
+            "blank_votes": 18,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 243,
+        "bfs_number": "2765",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Binningen" },
+        "aggregating_domain_id": 267,
+        "results": {
+          "eligible_voters": 9825,
+          "eligible_voters_living_abroad": 340,
+          "valid_voting_cards": 4895,
+          "participation": 43.66412213740458,
+          "valid_ballots": 3983,
+          "invalid_ballots": 74,
+          "empty_ballots": 233,
+          "total_ballots": 4290,
+          "poll_data": {
+            "yes_votes": 1126,
+            "yes_votes_percentage": 28.76117496807152,
+            "no_votes": 2789,
+            "no_votes_percentage": 71.23882503192847,
+            "blank_votes": 68,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 263,
+        "bfs_number": "2766",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Birsfelden" },
+        "aggregating_domain_id": 267,
+        "results": {
+          "eligible_voters": 5941,
+          "eligible_voters_living_abroad": 156,
+          "valid_voting_cards": 2180,
+          "participation": 31.42568591146271,
+          "valid_ballots": 1687,
+          "invalid_ballots": 53,
+          "empty_ballots": 127,
+          "total_ballots": 1867,
+          "poll_data": {
+            "yes_votes": 417,
+            "yes_votes_percentage": 25.22686025408348,
+            "no_votes": 1236,
+            "no_votes_percentage": 74.77313974591652,
+            "blank_votes": 34,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 268,
+        "bfs_number": "2781",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Blauen" },
+        "aggregating_domain_id": 283,
+        "results": {
+          "eligible_voters": 566,
+          "eligible_voters_living_abroad": 15,
+          "valid_voting_cards": 306,
+          "participation": 44.34628975265017,
+          "valid_ballots": 236,
+          "invalid_ballots": 0,
+          "empty_ballots": 15,
+          "total_ballots": 251,
+          "poll_data": {
+            "yes_votes": 78,
+            "yes_votes_percentage": 33.76623376623377,
+            "no_votes": 153,
+            "no_votes_percentage": 66.23376623376623,
+            "blank_votes": 5,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 305,
+        "bfs_number": "2842",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Böckten" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 609,
+          "eligible_voters_living_abroad": 14,
+          "valid_voting_cards": 324,
+          "participation": 46.30541871921182,
+          "valid_ballots": 266,
+          "invalid_ballots": 3,
+          "empty_ballots": 13,
+          "total_ballots": 282,
+          "poll_data": {
+            "yes_votes": 97,
+            "yes_votes_percentage": 36.74242424242424,
+            "no_votes": 167,
+            "no_votes_percentage": 63.25757575757576,
+            "blank_votes": 2,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 244,
+        "bfs_number": "2767",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Bottmingen" },
+        "aggregating_domain_id": 267,
+        "results": {
+          "eligible_voters": 4327,
+          "eligible_voters_living_abroad": 140,
+          "valid_voting_cards": 2395,
+          "participation": 46.96094291657037,
+          "valid_ballots": 1911,
+          "invalid_ballots": 31,
+          "empty_ballots": 90,
+          "total_ballots": 2032,
+          "poll_data": {
+            "yes_votes": 602,
+            "yes_votes_percentage": 31.93633952254642,
+            "no_votes": 1283,
+            "no_votes_percentage": 68.06366047745358,
+            "blank_votes": 26,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 341,
+        "bfs_number": "2883",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Bretzwil" },
+        "aggregating_domain_id": 356,
+        "results": {
+          "eligible_voters": 573,
+          "eligible_voters_living_abroad": 23,
+          "valid_voting_cards": 246,
+          "participation": 37.17277486910995,
+          "valid_ballots": 194,
+          "invalid_ballots": 5,
+          "empty_ballots": 14,
+          "total_ballots": 213,
+          "poll_data": {
+            "yes_votes": 63,
+            "yes_votes_percentage": 32.64248704663213,
+            "no_votes": 130,
+            "no_votes_percentage": 67.35751295336787,
+            "blank_votes": 1,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 269,
+        "bfs_number": "2782",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Brislach" },
+        "aggregating_domain_id": 283,
+        "results": {
+          "eligible_voters": 1293,
+          "eligible_voters_living_abroad": 25,
+          "valid_voting_cards": 515,
+          "participation": 32.79195668986852,
+          "valid_ballots": 396,
+          "invalid_ballots": 5,
+          "empty_ballots": 23,
+          "total_ballots": 424,
+          "poll_data": {
+            "yes_votes": 143,
+            "yes_votes_percentage": 36.57289002557545,
+            "no_votes": 248,
+            "no_votes_percentage": 63.42710997442455,
+            "blank_votes": 5,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 297,
+        "bfs_number": "2823",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Bubendorf" },
+        "aggregating_domain_id": 304,
+        "results": {
+          "eligible_voters": 3110,
+          "eligible_voters_living_abroad": 77,
+          "valid_voting_cards": 1469,
+          "participation": 41.15755627009646,
+          "valid_ballots": 1187,
+          "invalid_ballots": 15,
+          "empty_ballots": 78,
+          "total_ballots": 1280,
+          "poll_data": {
+            "yes_votes": 405,
+            "yes_votes_percentage": 34.35114503816794,
+            "no_votes": 774,
+            "no_votes_percentage": 65.64885496183206,
+            "blank_votes": 8,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 306,
+        "bfs_number": "2843",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Buckten" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 509,
+          "eligible_voters_living_abroad": 30,
+          "valid_voting_cards": 216,
+          "participation": 38.89980353634578,
+          "valid_ballots": 183,
+          "invalid_ballots": 2,
+          "empty_ballots": 13,
+          "total_ballots": 198,
+          "poll_data": {
+            "yes_votes": 56,
+            "yes_votes_percentage": 30.93922651933702,
+            "no_votes": 125,
+            "no_votes_percentage": 69.06077348066299,
+            "blank_votes": 2,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 270,
+        "bfs_number": "2783",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Burg im Leimental" },
+        "aggregating_domain_id": 283,
+        "results": {
+          "eligible_voters": 212,
+          "eligible_voters_living_abroad": 13,
+          "valid_voting_cards": 101,
+          "participation": 38.20754716981132,
+          "valid_ballots": 73,
+          "invalid_ballots": 3,
+          "empty_ballots": 5,
+          "total_ballots": 81,
+          "poll_data": {
+            "yes_votes": 25,
+            "yes_votes_percentage": 34.24657534246575,
+            "no_votes": 48,
+            "no_votes_percentage": 65.75342465753424,
+            "blank_votes": 0,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 323,
+        "bfs_number": "2844",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Buus" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 818,
+          "eligible_voters_living_abroad": 20,
+          "valid_voting_cards": 365,
+          "participation": 37.89731051344744,
+          "valid_ballots": 295,
+          "invalid_ballots": 3,
+          "empty_ballots": 12,
+          "total_ballots": 310,
+          "poll_data": {
+            "yes_votes": 100,
+            "yes_votes_percentage": 34.72222222222222,
+            "no_votes": 188,
+            "no_votes_percentage": 65.27777777777779,
+            "blank_votes": 7,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 342,
+        "bfs_number": "2884",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Diegten" },
+        "aggregating_domain_id": 356,
+        "results": {
+          "eligible_voters": 1167,
+          "eligible_voters_living_abroad": 33,
+          "valid_voting_cards": 521,
+          "participation": 39.16023993144816,
+          "valid_ballots": 435,
+          "invalid_ballots": 0,
+          "empty_ballots": 22,
+          "total_ballots": 457,
+          "poll_data": {
+            "yes_votes": 153,
+            "yes_votes_percentage": 35.91549295774648,
+            "no_votes": 273,
+            "no_votes_percentage": 64.08450704225352,
+            "blank_votes": 9,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 307,
+        "bfs_number": "2845",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Diepflingen" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 549,
+          "eligible_voters_living_abroad": 12,
+          "valid_voting_cards": 215,
+          "participation": 35.88342440801457,
+          "valid_ballots": 192,
+          "invalid_ballots": 0,
+          "empty_ballots": 5,
+          "total_ballots": 197,
+          "poll_data": {
+            "yes_votes": 60,
+            "yes_votes_percentage": 31.91489361702128,
+            "no_votes": 128,
+            "no_votes_percentage": 68.08510638297872,
+            "blank_votes": 4,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 271,
+        "bfs_number": "2784",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Dittingen" },
+        "aggregating_domain_id": 283,
+        "results": {
+          "eligible_voters": 531,
+          "eligible_voters_living_abroad": 26,
+          "valid_voting_cards": 245,
+          "participation": 37.09981167608286,
+          "valid_ballots": 182,
+          "invalid_ballots": 2,
+          "empty_ballots": 13,
+          "total_ballots": 197,
+          "poll_data": {
+            "yes_votes": 74,
+            "yes_votes_percentage": 41.34078212290503,
+            "no_votes": 105,
+            "no_votes_percentage": 58.65921787709497,
+            "blank_votes": 3,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 272,
+        "bfs_number": "2785",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Duggingen" },
+        "aggregating_domain_id": 283,
+        "results": {
+          "eligible_voters": 1059,
+          "eligible_voters_living_abroad": 19,
+          "valid_voting_cards": 479,
+          "participation": 38.0547686496695,
+          "valid_ballots": 381,
+          "invalid_ballots": 3,
+          "empty_ballots": 19,
+          "total_ballots": 403,
+          "poll_data": {
+            "yes_votes": 137,
+            "yes_votes_percentage": 36.3395225464191,
+            "no_votes": 240,
+            "no_votes_percentage": 63.6604774535809,
+            "blank_votes": 4,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 343,
+        "bfs_number": "2885",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Eptingen" },
+        "aggregating_domain_id": 356,
+        "results": {
+          "eligible_voters": 406,
+          "eligible_voters_living_abroad": 8,
+          "valid_voting_cards": 196,
+          "participation": 43.10344827586206,
+          "valid_ballots": 166,
+          "invalid_ballots": 1,
+          "empty_ballots": 8,
+          "total_ballots": 175,
+          "poll_data": {
+            "yes_votes": 63,
+            "yes_votes_percentage": 38.65030674846626,
+            "no_votes": 100,
+            "no_votes_percentage": 61.34969325153374,
+            "blank_votes": 3,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 248,
+        "bfs_number": "2768",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Ettingen" },
+        "aggregating_domain_id": 267,
+        "results": {
+          "eligible_voters": 3811,
+          "eligible_voters_living_abroad": 112,
+          "valid_voting_cards": 1767,
+          "participation": 39.28102860141695,
+          "valid_ballots": 1383,
+          "invalid_ballots": 31,
+          "empty_ballots": 83,
+          "total_ballots": 1497,
+          "poll_data": {
+            "yes_votes": 485,
+            "yes_votes_percentage": 35.71428571428572,
+            "no_votes": 873,
+            "no_votes_percentage": 64.28571428571429,
+            "blank_votes": 25,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 285,
+        "bfs_number": "2824",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Frenkendorf" },
+        "aggregating_domain_id": 304,
+        "results": {
+          "eligible_voters": 3543,
+          "eligible_voters_living_abroad": 84,
+          "valid_voting_cards": 1348,
+          "participation": 33.47445667513406,
+          "valid_ballots": 1099,
+          "invalid_ballots": 23,
+          "empty_ballots": 64,
+          "total_ballots": 1186,
+          "poll_data": {
+            "yes_votes": 310,
+            "yes_votes_percentage": 28.59778597785978,
+            "no_votes": 774,
+            "no_votes_percentage": 71.40221402214021,
+            "blank_votes": 15,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 286,
+        "bfs_number": "2825",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Füllinsdorf" },
+        "aggregating_domain_id": 304,
+        "results": {
+          "eligible_voters": 2712,
+          "eligible_voters_living_abroad": 79,
+          "valid_voting_cards": 1154,
+          "participation": 38.7905604719764,
+          "valid_ballots": 985,
+          "invalid_ballots": 17,
+          "empty_ballots": 50,
+          "total_ballots": 1052,
+          "poll_data": {
+            "yes_votes": 349,
+            "yes_votes_percentage": 35.94232749742534,
+            "no_votes": 622,
+            "no_votes_percentage": 64.05767250257468,
+            "blank_votes": 14,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 324,
+        "bfs_number": "2846",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Gelterkinden" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 4449,
+          "eligible_voters_living_abroad": 82,
+          "valid_voting_cards": 1938,
+          "participation": 39.62688244549337,
+          "valid_ballots": 1647,
+          "invalid_ballots": 10,
+          "empty_ballots": 106,
+          "total_ballots": 1763,
+          "poll_data": {
+            "yes_votes": 496,
+            "yes_votes_percentage": 30.56069008009858,
+            "no_votes": 1127,
+            "no_votes_percentage": 69.43930991990142,
+            "blank_votes": 24,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 287,
+        "bfs_number": "2826",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Giebenach" },
+        "aggregating_domain_id": 304,
+        "results": {
+          "eligible_voters": 674,
+          "eligible_voters_living_abroad": 17,
+          "valid_voting_cards": 286,
+          "participation": 37.38872403560831,
+          "valid_ballots": 231,
+          "invalid_ballots": 3,
+          "empty_ballots": 18,
+          "total_ballots": 252,
+          "poll_data": {
+            "yes_votes": 89,
+            "yes_votes_percentage": 39.20704845814978,
+            "no_votes": 138,
+            "no_votes_percentage": 60.79295154185021,
+            "blank_votes": 4,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 273,
+        "bfs_number": "2786",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Grellingen" },
+        "aggregating_domain_id": 283,
+        "results": {
+          "eligible_voters": 1194,
+          "eligible_voters_living_abroad": 38,
+          "valid_voting_cards": 446,
+          "participation": 32.49581239530988,
+          "valid_ballots": 367,
+          "invalid_ballots": 10,
+          "empty_ballots": 11,
+          "total_ballots": 388,
+          "poll_data": {
+            "yes_votes": 125,
+            "yes_votes_percentage": 34.43526170798898,
+            "no_votes": 238,
+            "no_votes_percentage": 65.56473829201101,
+            "blank_votes": 4,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 308,
+        "bfs_number": "2847",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Häfelfingen" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 205,
+          "eligible_voters_living_abroad": 7,
+          "valid_voting_cards": 93,
+          "participation": 40.0,
+          "valid_ballots": 78,
+          "invalid_ballots": 0,
+          "empty_ballots": 4,
+          "total_ballots": 82,
+          "poll_data": {
+            "yes_votes": 22,
+            "yes_votes_percentage": 28.94736842105263,
+            "no_votes": 54,
+            "no_votes_percentage": 71.05263157894737,
+            "blank_votes": 2,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 325,
+        "bfs_number": "2848",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Hemmiken" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 214,
+          "eligible_voters_living_abroad": 10,
+          "valid_voting_cards": 99,
+          "participation": 40.18691588785047,
+          "valid_ballots": 82,
+          "invalid_ballots": 0,
+          "empty_ballots": 4,
+          "total_ballots": 86,
+          "poll_data": {
+            "yes_votes": 32,
+            "yes_votes_percentage": 39.02439024390244,
+            "no_votes": 50,
+            "no_votes_percentage": 60.97560975609756,
+            "blank_votes": 0,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 288,
+        "bfs_number": "2827",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Hersberg" },
+        "aggregating_domain_id": 304,
+        "results": {
+          "eligible_voters": 295,
+          "eligible_voters_living_abroad": 6,
+          "valid_voting_cards": 123,
+          "participation": 38.98305084745763,
+          "valid_ballots": 110,
+          "invalid_ballots": 0,
+          "empty_ballots": 5,
+          "total_ballots": 115,
+          "poll_data": {
+            "yes_votes": 53,
+            "yes_votes_percentage": 48.18181818181818,
+            "no_votes": 57,
+            "no_votes_percentage": 51.81818181818182,
+            "blank_votes": 0,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 344,
+        "bfs_number": "2886",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Hölstein" },
+        "aggregating_domain_id": 356,
+        "results": {
+          "eligible_voters": 1759,
+          "eligible_voters_living_abroad": 46,
+          "valid_voting_cards": 737,
+          "participation": 37.3507674815236,
+          "valid_ballots": 617,
+          "invalid_ballots": 17,
+          "empty_ballots": 23,
+          "total_ballots": 657,
+          "poll_data": {
+            "yes_votes": 186,
+            "yes_votes_percentage": 30.44189852700491,
+            "no_votes": 425,
+            "no_votes_percentage": 69.55810147299509,
+            "blank_votes": 6,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 309,
+        "bfs_number": "2849",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Itingen" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 1589,
+          "eligible_voters_living_abroad": 17,
+          "valid_voting_cards": 665,
+          "participation": 37.06733794839522,
+          "valid_ballots": 559,
+          "invalid_ballots": 7,
+          "empty_ballots": 23,
+          "total_ballots": 589,
+          "poll_data": {
+            "yes_votes": 178,
+            "yes_votes_percentage": 32.36363636363636,
+            "no_votes": 372,
+            "no_votes_percentage": 67.63636363636364,
+            "blank_votes": 9,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 310,
+        "bfs_number": "2850",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Känerkinden" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 420,
+          "eligible_voters_living_abroad": 23,
+          "valid_voting_cards": 180,
+          "participation": 38.80952380952381,
+          "valid_ballots": 153,
+          "invalid_ballots": 2,
+          "empty_ballots": 8,
+          "total_ballots": 163,
+          "poll_data": {
+            "yes_votes": 46,
+            "yes_votes_percentage": 30.4635761589404,
+            "no_votes": 105,
+            "no_votes_percentage": 69.5364238410596,
+            "blank_votes": 2,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 326,
+        "bfs_number": "2851",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Kilchberg (BL)" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 143,
+          "eligible_voters_living_abroad": 3,
+          "valid_voting_cards": 86,
+          "participation": 53.14685314685315,
+          "valid_ballots": 73,
+          "invalid_ballots": 0,
+          "empty_ballots": 3,
+          "total_ballots": 76,
+          "poll_data": {
+            "yes_votes": 21,
+            "yes_votes_percentage": 29.57746478873239,
+            "no_votes": 50,
+            "no_votes_percentage": 70.4225352112676,
+            "blank_votes": 2,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 311,
+        "bfs_number": "2852",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Läufelfingen" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 1036,
+          "eligible_voters_living_abroad": 31,
+          "valid_voting_cards": 481,
+          "participation": 41.89189189189189,
+          "valid_ballots": 411,
+          "invalid_ballots": 1,
+          "empty_ballots": 22,
+          "total_ballots": 434,
+          "poll_data": {
+            "yes_votes": 145,
+            "yes_votes_percentage": 35.53921568627451,
+            "no_votes": 263,
+            "no_votes_percentage": 64.4607843137255,
+            "blank_votes": 3,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 345,
+        "bfs_number": "2887",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Lampenberg" },
+        "aggregating_domain_id": 356,
+        "results": {
+          "eligible_voters": 445,
+          "eligible_voters_living_abroad": 15,
+          "valid_voting_cards": 197,
+          "participation": 38.65168539325843,
+          "valid_ballots": 159,
+          "invalid_ballots": 4,
+          "empty_ballots": 9,
+          "total_ballots": 172,
+          "poll_data": {
+            "yes_votes": 58,
+            "yes_votes_percentage": 37.17948717948718,
+            "no_votes": 98,
+            "no_votes_percentage": 62.82051282051282,
+            "blank_votes": 3,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 346,
+        "bfs_number": "2888",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Langenbruck" },
+        "aggregating_domain_id": 356,
+        "results": {
+          "eligible_voters": 714,
+          "eligible_voters_living_abroad": 60,
+          "valid_voting_cards": 333,
+          "participation": 39.91596638655462,
+          "valid_ballots": 274,
+          "invalid_ballots": 3,
+          "empty_ballots": 8,
+          "total_ballots": 285,
+          "poll_data": {
+            "yes_votes": 90,
+            "yes_votes_percentage": 33.08823529411764,
+            "no_votes": 182,
+            "no_votes_percentage": 66.91176470588235,
+            "blank_votes": 2,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 274,
+        "bfs_number": "2787",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Laufen" },
+        "aggregating_domain_id": 283,
+        "results": {
+          "eligible_voters": 3615,
+          "eligible_voters_living_abroad": 56,
+          "valid_voting_cards": 1713,
+          "participation": 37.84232365145228,
+          "valid_ballots": 1315,
+          "invalid_ballots": 2,
+          "empty_ballots": 51,
+          "total_ballots": 1368,
+          "poll_data": {
+            "yes_votes": 437,
+            "yes_votes_percentage": 33.79737045630317,
+            "no_votes": 856,
+            "no_votes_percentage": 66.20262954369683,
+            "blank_votes": 22,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 294,
+        "bfs_number": "2828",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Lausen" },
+        "aggregating_domain_id": 304,
+        "results": {
+          "eligible_voters": 3557,
+          "eligible_voters_living_abroad": 73,
+          "valid_voting_cards": 1465,
+          "participation": 36.66010683159966,
+          "valid_ballots": 1214,
+          "invalid_ballots": 18,
+          "empty_ballots": 72,
+          "total_ballots": 1304,
+          "poll_data": {
+            "yes_votes": 385,
+            "yes_votes_percentage": 32.05661948376353,
+            "no_votes": 816,
+            "no_votes_percentage": 67.94338051623647,
+            "blank_votes": 13,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 347,
+        "bfs_number": "2889",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Lauwil" },
+        "aggregating_domain_id": 356,
+        "results": {
+          "eligible_voters": 273,
+          "eligible_voters_living_abroad": 11,
+          "valid_voting_cards": 136,
+          "participation": 40.29304029304029,
+          "valid_ballots": 101,
+          "invalid_ballots": 0,
+          "empty_ballots": 9,
+          "total_ballots": 110,
+          "poll_data": {
+            "yes_votes": 30,
+            "yes_votes_percentage": 30.0,
+            "no_votes": 70,
+            "no_votes_percentage": 70.0,
+            "blank_votes": 1,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 348,
+        "bfs_number": "2890",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Liedertswil" },
+        "aggregating_domain_id": 356,
+        "results": {
+          "eligible_voters": 114,
+          "eligible_voters_living_abroad": 0,
+          "valid_voting_cards": 52,
+          "participation": 42.98245614035088,
+          "valid_ballots": 48,
+          "invalid_ballots": 0,
+          "empty_ballots": 1,
+          "total_ballots": 49,
+          "poll_data": {
+            "yes_votes": 21,
+            "yes_votes_percentage": 45.65217391304348,
+            "no_votes": 25,
+            "no_votes_percentage": 54.34782608695652,
+            "blank_votes": 2,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 275,
+        "bfs_number": "2788",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Liesberg" },
+        "aggregating_domain_id": 283,
+        "results": {
+          "eligible_voters": 844,
+          "eligible_voters_living_abroad": 22,
+          "valid_voting_cards": 362,
+          "participation": 35.54502369668246,
+          "valid_ballots": 290,
+          "invalid_ballots": 0,
+          "empty_ballots": 10,
+          "total_ballots": 300,
+          "poll_data": {
+            "yes_votes": 102,
+            "yes_votes_percentage": 35.29411764705883,
+            "no_votes": 187,
+            "no_votes_percentage": 64.70588235294117,
+            "blank_votes": 1,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 295,
+        "bfs_number": "2829",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Liestal" },
+        "aggregating_domain_id": 304,
+        "results": {
+          "eligible_voters": 9549,
+          "eligible_voters_living_abroad": 263,
+          "valid_voting_cards": 4069,
+          "participation": 37.79453345900095,
+          "valid_ballots": 3392,
+          "invalid_ballots": 28,
+          "empty_ballots": 189,
+          "total_ballots": 3609,
+          "poll_data": {
+            "yes_votes": 1000,
+            "yes_votes_percentage": 29.94011976047904,
+            "no_votes": 2340,
+            "no_votes_percentage": 70.05988023952095,
+            "blank_votes": 52,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 298,
+        "bfs_number": "2830",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Lupsingen" },
+        "aggregating_domain_id": 304,
+        "results": {
+          "eligible_voters": 1125,
+          "eligible_voters_living_abroad": 30,
+          "valid_voting_cards": 538,
+          "participation": 42.4,
+          "valid_ballots": 452,
+          "invalid_ballots": 5,
+          "empty_ballots": 20,
+          "total_ballots": 477,
+          "poll_data": {
+            "yes_votes": 131,
+            "yes_votes_percentage": 29.30648769574944,
+            "no_votes": 316,
+            "no_votes_percentage": 70.69351230425056,
+            "blank_votes": 5,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 327,
+        "bfs_number": "2853",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Maisprach" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 698,
+          "eligible_voters_living_abroad": 15,
+          "valid_voting_cards": 360,
+          "participation": 40.83094555873926,
+          "valid_ballots": 270,
+          "invalid_ballots": 2,
+          "empty_ballots": 13,
+          "total_ballots": 285,
+          "poll_data": {
+            "yes_votes": 92,
+            "yes_votes_percentage": 34.32835820895522,
+            "no_votes": 176,
+            "no_votes_percentage": 65.67164179104478,
+            "blank_votes": 2,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 260,
+        "bfs_number": "2769",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Münchenstein" },
+        "aggregating_domain_id": 267,
+        "results": {
+          "eligible_voters": 7703,
+          "eligible_voters_living_abroad": 200,
+          "valid_voting_cards": 3206,
+          "participation": 35.85615993768661,
+          "valid_ballots": 2617,
+          "invalid_ballots": 31,
+          "empty_ballots": 114,
+          "total_ballots": 2762,
+          "poll_data": {
+            "yes_votes": 781,
+            "yes_votes_percentage": 30.23615950445219,
+            "no_votes": 1802,
+            "no_votes_percentage": 69.76384049554781,
+            "blank_votes": 34,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 264,
+        "bfs_number": "2770",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Muttenz" },
+        "aggregating_domain_id": 267,
+        "results": {
+          "eligible_voters": 12027,
+          "eligible_voters_living_abroad": 356,
+          "valid_voting_cards": 5006,
+          "participation": 35.8609794628752,
+          "valid_ballots": 4001,
+          "invalid_ballots": 57,
+          "empty_ballots": 255,
+          "total_ballots": 4313,
+          "poll_data": {
+            "yes_votes": 1279,
+            "yes_votes_percentage": 32.45369195635626,
+            "no_votes": 2662,
+            "no_votes_percentage": 67.54630804364375,
+            "blank_votes": 60,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 276,
+        "bfs_number": "2789",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Nenzlingen" },
+        "aggregating_domain_id": 283,
+        "results": {
+          "eligible_voters": 334,
+          "eligible_voters_living_abroad": 6,
+          "valid_voting_cards": 175,
+          "participation": 44.61077844311377,
+          "valid_ballots": 141,
+          "invalid_ballots": 3,
+          "empty_ballots": 5,
+          "total_ballots": 149,
+          "poll_data": {
+            "yes_votes": 51,
+            "yes_votes_percentage": 36.17021276595745,
+            "no_votes": 90,
+            "no_votes_percentage": 63.82978723404256,
+            "blank_votes": 0,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 349,
+        "bfs_number": "2891",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Niederdorf" },
+        "aggregating_domain_id": 356,
+        "results": {
+          "eligible_voters": 1141,
+          "eligible_voters_living_abroad": 20,
+          "valid_voting_cards": 445,
+          "participation": 34.70639789658195,
+          "valid_ballots": 367,
+          "invalid_ballots": 9,
+          "empty_ballots": 20,
+          "total_ballots": 396,
+          "poll_data": {
+            "yes_votes": 145,
+            "yes_votes_percentage": 39.83516483516483,
+            "no_votes": 219,
+            "no_votes_percentage": 60.16483516483516,
+            "blank_votes": 3,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 312,
+        "bfs_number": "2854",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Nusshof" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 225,
+          "eligible_voters_living_abroad": 15,
+          "valid_voting_cards": 115,
+          "participation": 44.88888888888889,
+          "valid_ballots": 97,
+          "invalid_ballots": 1,
+          "empty_ballots": 3,
+          "total_ballots": 101,
+          "poll_data": {
+            "yes_votes": 28,
+            "yes_votes_percentage": 30.10752688172043,
+            "no_votes": 65,
+            "no_votes_percentage": 69.89247311827957,
+            "blank_votes": 4,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 350,
+        "bfs_number": "2892",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Oberdorf (BL)" },
+        "aggregating_domain_id": 356,
+        "results": {
+          "eligible_voters": 1612,
+          "eligible_voters_living_abroad": 55,
+          "valid_voting_cards": 615,
+          "participation": 34.7394540942928,
+          "valid_ballots": 528,
+          "invalid_ballots": 8,
+          "empty_ballots": 24,
+          "total_ballots": 560,
+          "poll_data": {
+            "yes_votes": 161,
+            "yes_votes_percentage": 30.78393881453155,
+            "no_votes": 362,
+            "no_votes_percentage": 69.21606118546845,
+            "blank_votes": 5,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 249,
+        "bfs_number": "2771",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Oberwil (BL)" },
+        "aggregating_domain_id": 267,
+        "results": {
+          "eligible_voters": 7464,
+          "eligible_voters_living_abroad": 201,
+          "valid_voting_cards": 3508,
+          "participation": 40.78242229367631,
+          "valid_ballots": 2877,
+          "invalid_ballots": 38,
+          "empty_ballots": 129,
+          "total_ballots": 3044,
+          "poll_data": {
+            "yes_votes": 895,
+            "yes_votes_percentage": 31.58080451658433,
+            "no_votes": 1939,
+            "no_votes_percentage": 68.41919548341566,
+            "blank_votes": 43,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 328,
+        "bfs_number": "2855",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Oltingen" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 391,
+          "eligible_voters_living_abroad": 10,
+          "valid_voting_cards": 224,
+          "participation": 49.10485933503836,
+          "valid_ballots": 181,
+          "invalid_ballots": 3,
+          "empty_ballots": 8,
+          "total_ballots": 192,
+          "poll_data": {
+            "yes_votes": 57,
+            "yes_votes_percentage": 31.84357541899441,
+            "no_votes": 122,
+            "no_votes_percentage": 68.15642458100558,
+            "blank_votes": 2,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 329,
+        "bfs_number": "2856",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Ormalingen" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 1699,
+          "eligible_voters_living_abroad": 29,
+          "valid_voting_cards": 694,
+          "participation": 35.5503237198352,
+          "valid_ballots": 581,
+          "invalid_ballots": 0,
+          "empty_ballots": 23,
+          "total_ballots": 604,
+          "poll_data": {
+            "yes_votes": 226,
+            "yes_votes_percentage": 39.44153577661431,
+            "no_votes": 347,
+            "no_votes_percentage": 60.55846422338569,
+            "blank_votes": 8,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 254,
+        "bfs_number": "2772",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Pfeffingen" },
+        "aggregating_domain_id": 267,
+        "results": {
+          "eligible_voters": 1727,
+          "eligible_voters_living_abroad": 34,
+          "valid_voting_cards": 877,
+          "participation": 44.12275622466705,
+          "valid_ballots": 729,
+          "invalid_ballots": 9,
+          "empty_ballots": 24,
+          "total_ballots": 762,
+          "poll_data": {
+            "yes_votes": 265,
+            "yes_votes_percentage": 36.75450762829404,
+            "no_votes": 456,
+            "no_votes_percentage": 63.24549237170597,
+            "blank_votes": 8,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 291,
+        "bfs_number": "2831",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Pratteln" },
+        "aggregating_domain_id": 304,
+        "results": {
+          "eligible_voters": 8153,
+          "eligible_voters_living_abroad": 254,
+          "valid_voting_cards": 2714,
+          "participation": 29.70685637188765,
+          "valid_ballots": 2274,
+          "invalid_ballots": 53,
+          "empty_ballots": 95,
+          "total_ballots": 2422,
+          "poll_data": {
+            "yes_votes": 737,
+            "yes_votes_percentage": 32.84313725490196,
+            "no_votes": 1507,
+            "no_votes_percentage": 67.15686274509804,
+            "blank_votes": 30,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 299,
+        "bfs_number": "2832",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Ramlinsburg" },
+        "aggregating_domain_id": 304,
+        "results": {
+          "eligible_voters": 540,
+          "eligible_voters_living_abroad": 21,
+          "valid_voting_cards": 252,
+          "participation": 41.48148148148148,
+          "valid_ballots": 210,
+          "invalid_ballots": 2,
+          "empty_ballots": 12,
+          "total_ballots": 224,
+          "poll_data": {
+            "yes_votes": 63,
+            "yes_votes_percentage": 30.28846153846154,
+            "no_votes": 145,
+            "no_votes_percentage": 69.71153846153845,
+            "blank_votes": 2,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 351,
+        "bfs_number": "2893",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Reigoldswil" },
+        "aggregating_domain_id": 356,
+        "results": {
+          "eligible_voters": 1212,
+          "eligible_voters_living_abroad": 60,
+          "valid_voting_cards": 522,
+          "participation": 36.30363036303631,
+          "valid_ballots": 406,
+          "invalid_ballots": 0,
+          "empty_ballots": 34,
+          "total_ballots": 440,
+          "poll_data": {
+            "yes_votes": 147,
+            "yes_votes_percentage": 36.47642679900744,
+            "no_votes": 256,
+            "no_votes_percentage": 63.52357320099256,
+            "blank_votes": 3,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 256,
+        "bfs_number": "2773",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Reinach (BL)" },
+        "aggregating_domain_id": 267,
+        "results": {
+          "eligible_voters": 13526,
+          "eligible_voters_living_abroad": 379,
+          "valid_voting_cards": 5597,
+          "participation": 35.57592784267337,
+          "valid_ballots": 4477,
+          "invalid_ballots": 74,
+          "empty_ballots": 261,
+          "total_ballots": 4812,
+          "poll_data": {
+            "yes_votes": 1374,
+            "yes_votes_percentage": 31.15646258503401,
+            "no_votes": 3036,
+            "no_votes_percentage": 68.84353741496598,
+            "blank_votes": 67,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 330,
+        "bfs_number": "2857",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Rickenbach (BL)" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 456,
+          "eligible_voters_living_abroad": 13,
+          "valid_voting_cards": 219,
+          "participation": 41.66666666666667,
+          "valid_ballots": 179,
+          "invalid_ballots": 1,
+          "empty_ballots": 10,
+          "total_ballots": 190,
+          "poll_data": {
+            "yes_votes": 54,
+            "yes_votes_percentage": 30.50847457627119,
+            "no_votes": 123,
+            "no_votes_percentage": 69.49152542372882,
+            "blank_votes": 2,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 277,
+        "bfs_number": "2791",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Röschenz" },
+        "aggregating_domain_id": 283,
+        "results": {
+          "eligible_voters": 1484,
+          "eligible_voters_living_abroad": 41,
+          "valid_voting_cards": 686,
+          "participation": 38.81401617250674,
+          "valid_ballots": 561,
+          "invalid_ballots": 5,
+          "empty_ballots": 10,
+          "total_ballots": 576,
+          "poll_data": {
+            "yes_votes": 203,
+            "yes_votes_percentage": 36.51079136690647,
+            "no_votes": 353,
+            "no_votes_percentage": 63.48920863309353,
+            "blank_votes": 5,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 278,
+        "bfs_number": "2790",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Roggenburg" },
+        "aggregating_domain_id": 283,
+        "results": {
+          "eligible_voters": 232,
+          "eligible_voters_living_abroad": 30,
+          "valid_voting_cards": 91,
+          "participation": 32.75862068965517,
+          "valid_ballots": 72,
+          "invalid_ballots": 0,
+          "empty_ballots": 4,
+          "total_ballots": 76,
+          "poll_data": {
+            "yes_votes": 27,
+            "yes_votes_percentage": 38.0281690140845,
+            "no_votes": 44,
+            "no_votes_percentage": 61.97183098591549,
+            "blank_votes": 1,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 331,
+        "bfs_number": "2858",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Rothenfluh" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 615,
+          "eligible_voters_living_abroad": 24,
+          "valid_voting_cards": 264,
+          "participation": 37.07317073170731,
+          "valid_ballots": 208,
+          "invalid_ballots": 1,
+          "empty_ballots": 19,
+          "total_ballots": 228,
+          "poll_data": {
+            "yes_votes": 80,
+            "yes_votes_percentage": 39.21568627450981,
+            "no_votes": 124,
+            "no_votes_percentage": 60.78431372549019,
+            "blank_votes": 4,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 313,
+        "bfs_number": "2859",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Rümlingen" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 297,
+          "eligible_voters_living_abroad": 9,
+          "valid_voting_cards": 103,
+          "participation": 32.32323232323233,
+          "valid_ballots": 91,
+          "invalid_ballots": 0,
+          "empty_ballots": 5,
+          "total_ballots": 96,
+          "poll_data": {
+            "yes_votes": 29,
+            "yes_votes_percentage": 32.22222222222222,
+            "no_votes": 61,
+            "no_votes_percentage": 67.77777777777779,
+            "blank_votes": 1,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 332,
+        "bfs_number": "2860",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Rünenberg" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 637,
+          "eligible_voters_living_abroad": 20,
+          "valid_voting_cards": 297,
+          "participation": 41.44427001569859,
+          "valid_ballots": 251,
+          "invalid_ballots": 0,
+          "empty_ballots": 13,
+          "total_ballots": 264,
+          "poll_data": {
+            "yes_votes": 58,
+            "yes_votes_percentage": 23.77049180327869,
+            "no_votes": 186,
+            "no_votes_percentage": 76.22950819672131,
+            "blank_votes": 7,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 240,
+        "bfs_number": "2774",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Schönenbuch" },
+        "aggregating_domain_id": 267,
+        "results": {
+          "eligible_voters": 1101,
+          "eligible_voters_living_abroad": 67,
+          "valid_voting_cards": 606,
+          "participation": 47.50227066303361,
+          "valid_ballots": 476,
+          "invalid_ballots": 9,
+          "empty_ballots": 38,
+          "total_ballots": 523,
+          "poll_data": {
+            "yes_votes": 148,
+            "yes_votes_percentage": 31.69164882226981,
+            "no_votes": 319,
+            "no_votes_percentage": 68.3083511777302,
+            "blank_votes": 9,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 300,
+        "bfs_number": "2833",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Seltisberg" },
+        "aggregating_domain_id": 304,
+        "results": {
+          "eligible_voters": 1040,
+          "eligible_voters_living_abroad": 35,
+          "valid_voting_cards": 557,
+          "participation": 46.25,
+          "valid_ballots": 458,
+          "invalid_ballots": 8,
+          "empty_ballots": 15,
+          "total_ballots": 481,
+          "poll_data": {
+            "yes_votes": 142,
+            "yes_votes_percentage": 31.14035087719299,
+            "no_votes": 314,
+            "no_votes_percentage": 68.85964912280701,
+            "blank_votes": 2,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 314,
+        "bfs_number": "2861",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Sissach" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 4879,
+          "eligible_voters_living_abroad": 111,
+          "valid_voting_cards": 2203,
+          "participation": 40.39762246361959,
+          "valid_ballots": 1844,
+          "invalid_ballots": 20,
+          "empty_ballots": 107,
+          "total_ballots": 1971,
+          "poll_data": {
+            "yes_votes": 554,
+            "yes_votes_percentage": 30.43956043956044,
+            "no_votes": 1266,
+            "no_votes_percentage": 69.56043956043956,
+            "blank_votes": 24,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 333,
+        "bfs_number": "2862",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Tecknau" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 502,
+          "eligible_voters_living_abroad": 11,
+          "valid_voting_cards": 191,
+          "participation": 34.66135458167331,
+          "valid_ballots": 158,
+          "invalid_ballots": 4,
+          "empty_ballots": 12,
+          "total_ballots": 174,
+          "poll_data": {
+            "yes_votes": 57,
+            "yes_votes_percentage": 37.01298701298701,
+            "no_votes": 97,
+            "no_votes_percentage": 62.98701298701299,
+            "blank_votes": 4,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 315,
+        "bfs_number": "2863",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Tenniken" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 689,
+          "eligible_voters_living_abroad": 18,
+          "valid_voting_cards": 297,
+          "participation": 37.01015965166908,
+          "valid_ballots": 238,
+          "invalid_ballots": 2,
+          "empty_ballots": 15,
+          "total_ballots": 255,
+          "poll_data": {
+            "yes_votes": 86,
+            "yes_votes_percentage": 37.06896551724138,
+            "no_votes": 146,
+            "no_votes_percentage": 62.93103448275862,
+            "blank_votes": 6,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 250,
+        "bfs_number": "2775",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Therwil" },
+        "aggregating_domain_id": 267,
+        "results": {
+          "eligible_voters": 6992,
+          "eligible_voters_living_abroad": 199,
+          "valid_voting_cards": 3179,
+          "participation": 38.61556064073227,
+          "valid_ballots": 2562,
+          "invalid_ballots": 47,
+          "empty_ballots": 91,
+          "total_ballots": 2700,
+          "poll_data": {
+            "yes_votes": 779,
+            "yes_votes_percentage": 30.88818398096749,
+            "no_votes": 1743,
+            "no_votes_percentage": 69.11181601903252,
+            "blank_votes": 40,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 316,
+        "bfs_number": "2864",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Thürnen" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 988,
+          "eligible_voters_living_abroad": 24,
+          "valid_voting_cards": 386,
+          "participation": 35.52631578947368,
+          "valid_ballots": 325,
+          "invalid_ballots": 2,
+          "empty_ballots": 24,
+          "total_ballots": 351,
+          "poll_data": {
+            "yes_votes": 107,
+            "yes_votes_percentage": 33.4375,
+            "no_votes": 213,
+            "no_votes_percentage": 66.5625,
+            "blank_votes": 5,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 352,
+        "bfs_number": "2894",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Titterten" },
+        "aggregating_domain_id": 356,
+        "results": {
+          "eligible_voters": 358,
+          "eligible_voters_living_abroad": 19,
+          "valid_voting_cards": 191,
+          "participation": 48.88268156424581,
+          "valid_ballots": 165,
+          "invalid_ballots": 4,
+          "empty_ballots": 6,
+          "total_ballots": 175,
+          "poll_data": {
+            "yes_votes": 38,
+            "yes_votes_percentage": 23.17073170731707,
+            "no_votes": 126,
+            "no_votes_percentage": 76.82926829268293,
+            "blank_votes": 1,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 279,
+        "bfs_number": "2792",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Wahlen" },
+        "aggregating_domain_id": 283,
+        "results": {
+          "eligible_voters": 1127,
+          "eligible_voters_living_abroad": 17,
+          "valid_voting_cards": 450,
+          "participation": 31.8544809228039,
+          "valid_ballots": 350,
+          "invalid_ballots": 0,
+          "empty_ballots": 9,
+          "total_ballots": 359,
+          "poll_data": {
+            "yes_votes": 130,
+            "yes_votes_percentage": 37.90087463556851,
+            "no_votes": 213,
+            "no_votes_percentage": 62.09912536443149,
+            "blank_votes": 7,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 353,
+        "bfs_number": "2895",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Waldenburg" },
+        "aggregating_domain_id": 356,
+        "results": {
+          "eligible_voters": 711,
+          "eligible_voters_living_abroad": 43,
+          "valid_voting_cards": 248,
+          "participation": 30.66104078762307,
+          "valid_ballots": 213,
+          "invalid_ballots": 0,
+          "empty_ballots": 5,
+          "total_ballots": 218,
+          "poll_data": {
+            "yes_votes": 92,
+            "yes_votes_percentage": 44.01913875598086,
+            "no_votes": 117,
+            "no_votes_percentage": 55.98086124401915,
+            "blank_votes": 4,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 334,
+        "bfs_number": "2865",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Wenslingen" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 572,
+          "eligible_voters_living_abroad": 20,
+          "valid_voting_cards": 316,
+          "participation": 50.17482517482518,
+          "valid_ballots": 268,
+          "invalid_ballots": 5,
+          "empty_ballots": 14,
+          "total_ballots": 287,
+          "poll_data": {
+            "yes_votes": 86,
+            "yes_votes_percentage": 33.59375,
+            "no_votes": 170,
+            "no_votes_percentage": 66.40625,
+            "blank_votes": 12,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 317,
+        "bfs_number": "2866",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Wintersingen" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 450,
+          "eligible_voters_living_abroad": 16,
+          "valid_voting_cards": 210,
+          "participation": 43.11111111111111,
+          "valid_ballots": 183,
+          "invalid_ballots": 1,
+          "empty_ballots": 10,
+          "total_ballots": 194,
+          "poll_data": {
+            "yes_votes": 71,
+            "yes_votes_percentage": 38.79781420765027,
+            "no_votes": 112,
+            "no_votes_percentage": 61.20218579234973,
+            "blank_votes": 0,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 318,
+        "bfs_number": "2867",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Wittinsburg" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 362,
+          "eligible_voters_living_abroad": 3,
+          "valid_voting_cards": 215,
+          "participation": 50.5524861878453,
+          "valid_ballots": 174,
+          "invalid_ballots": 0,
+          "empty_ballots": 9,
+          "total_ballots": 183,
+          "poll_data": {
+            "yes_votes": 50,
+            "yes_votes_percentage": 29.23976608187134,
+            "no_votes": 121,
+            "no_votes_percentage": 70.76023391812866,
+            "blank_votes": 3,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 335,
+        "bfs_number": "2868",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Zeglingen" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 390,
+          "eligible_voters_living_abroad": 11,
+          "valid_voting_cards": 190,
+          "participation": 42.82051282051282,
+          "valid_ballots": 152,
+          "invalid_ballots": 2,
+          "empty_ballots": 13,
+          "total_ballots": 167,
+          "poll_data": {
+            "yes_votes": 42,
+            "yes_votes_percentage": 28.18791946308725,
+            "no_votes": 107,
+            "no_votes_percentage": 71.81208053691275,
+            "blank_votes": 3,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 301,
+        "bfs_number": "2834",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Ziefen" },
+        "aggregating_domain_id": 304,
+        "results": {
+          "eligible_voters": 1297,
+          "eligible_voters_living_abroad": 31,
+          "valid_voting_cards": 680,
+          "participation": 44.64148033924441,
+          "valid_ballots": 542,
+          "invalid_ballots": 7,
+          "empty_ballots": 30,
+          "total_ballots": 579,
+          "poll_data": {
+            "yes_votes": 160,
+            "yes_votes_percentage": 29.90654205607476,
+            "no_votes": 375,
+            "no_votes_percentage": 70.09345794392523,
+            "blank_votes": 7,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 319,
+        "bfs_number": "2869",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Zunzgen" },
+        "aggregating_domain_id": 338,
+        "results": {
+          "eligible_voters": 1821,
+          "eligible_voters_living_abroad": 46,
+          "valid_voting_cards": 790,
+          "participation": 39.09939593629873,
+          "valid_ballots": 648,
+          "invalid_ballots": 12,
+          "empty_ballots": 52,
+          "total_ballots": 712,
+          "poll_data": {
+            "yes_votes": 212,
+            "yes_votes_percentage": 33.02180685358255,
+            "no_votes": 430,
+            "no_votes_percentage": 66.97819314641744,
+            "blank_votes": 6,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      },
+      {
+        "id": 280,
+        "bfs_number": "2793",
+        "type": "municipality",
+        "finished": true,
+        "progress": {
+          "total_number_of_counting_circles": 1,
+          "number_of_finished_counting_circles": 1
+        },
+        "name": { "de": "Zwingen" },
+        "aggregating_domain_id": 283,
+        "results": {
+          "eligible_voters": 1719,
+          "eligible_voters_living_abroad": 32,
+          "valid_voting_cards": 560,
+          "participation": 27.51599767306573,
+          "valid_ballots": 451,
+          "invalid_ballots": 2,
+          "empty_ballots": 20,
+          "total_ballots": 473,
+          "poll_data": {
+            "yes_votes": 172,
+            "yes_votes_percentage": 38.65168539325843,
+            "no_votes": 273,
+            "no_votes_percentage": 61.34831460674157,
+            "blank_votes": 6,
+            "poll_result": "rejected",
+            "poll_absolute_majority": null
+          }
+        }
+      }
+    ],
+    "map": "\u003csvg id=\"cantonal_map\" viewBox=\"3709.175 1661.415 480.0 251.0\"\u003e\n  \u003c!-- Bundesamt für Statistik, die Gemeinden der Schweiz, https://www.atlas.bfs.admin.ch/maps/13/de/15739_229_228_227/24617.html --\u003e\n  \u003cg transform=\"matrix(1.0 0.0 0.0 -1.0 1794.175 3843.415)\"\u003e\n    \u003cpath id=\"region_2761\" d=\"M2096 2094 L2097 2094 L2104 2089 L2127 2097 L2126 2083 L2123 2078 L2124 2069 L2091 2074 L2096 2094 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2762\" d=\"M2087 2182 L2095 2174 L2092 2168 L2088 2160 L2082 2148 L2070 2140 L2058 2147 L2049 2158 L2060 2163 L2068 2171 L2087 2182 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2763\" d=\"M2127 2115 L2132 2121 L2157 2110 L2160 2104 L2164 2096 L2153 2091 L2127 2099 L2126 2109 L2127 2115 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2764\" d=\"M2054 2113 L2051 2121 L2044 2126 L2042 2132 L2046 2135 L2052 2128 L2058 2130 L2064 2127 L2073 2126 L2074 2116 L2070 2107 L2061 2107 L2054 2113 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2765\" d=\"M2082 2148 L2088 2160 L2105 2158 L2112 2157 L2109 2145 L2091 2141 L2082 2148 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2766\" d=\"M2146 2179 L2156 2169 L2138 2157 L2137 2166 L2135 2176 L2146 2179 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2767\" d=\"M2091 2141 L2109 2145 L2114 2133 L2108 2123 L2091 2141 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2768\" d=\"M2074 2094 L2096 2094 L2091 2074 L2087 2066 L2084 2070 L2069 2067 L2068 2086 L2074 2094 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2769\" d=\"M2118 2132 L2126 2145 L2133 2156 L2138 2155 L2138 2136 L2157 2116 L2157 2110 L2132 2121 L2127 2115 L2118 2132 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2770\" d=\"M2138 2157 L2156 2169 L2178 2148 L2171 2107 L2160 2104 L2157 2110 L2157 2116 L2138 2136 L2138 2155 L2138 2157 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2771\" d=\"M2082 2148 L2091 2141 L2108 2123 L2109 2119 L2074 2116 L2073 2126 L2064 2127 L2065 2134 L2070 2140 L2082 2148 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2772\" d=\"M2091 2074 L2124 2069 L2128 2066 L2127 2063 L2120 2056 L2120 2053 L2122 2049 L2122 2047 L2119 2046 L2115 2052 L2110 2055 L2105 2049 L2087 2066 L2091 2074 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2773\" d=\"M2114 2133 L2118 2132 L2127 2115 L2126 2109 L2127 2099 L2127 2097 L2104 2089 L2097 2094 L2115 2112 L2109 2119 L2108 2123 L2114 2133 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2774\" d=\"M2049 2158 L2058 2147 L2053 2143 L2047 2143 L2044 2153 L2049 2158 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2775\" d=\"M2074 2116 L2109 2119 L2115 2112 L2097 2094 L2096 2094 L2074 2094 L2070 2107 L2074 2116 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2781\" d=\"M2069 2067 L2084 2070 L2087 2066 L2081 2060 L2081 2052 L2059 2045 L2050 2049 L2035 2063 L2043 2065 L2069 2067 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2782\" d=\"M2083 2048 L2089 2048 L2093 2045 L2098 2041 L2098 2024 L2107 2016 L2066 2012 L2063 2015 L2064 2025 L2075 2038 L2078 2039 L2081 2042 L2081 2045 L2083 2048 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2783\" d=\"M2005 2068 L2012 2054 L1999 2051 L1987 2050 L1994 2065 L2005 2068 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2784\" d=\"M2018 2056 L2035 2063 L2050 2049 L2056 2033 L2055 2028 L2035 2032 L2033 2046 L2018 2056 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2785\" d=\"M2124 2069 L2123 2078 L2141 2069 L2134 2042 L2134 2036 L2126 2036 L2117 2038 L2119 2046 L2122 2047 L2122 2049 L2120 2053 L2120 2056 L2127 2063 L2128 2066 L2124 2069 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2786\" d=\"M2105 2049 L2110 2055 L2115 2052 L2119 2046 L2117 2038 L2126 2036 L2122 2031 L2112 2032 L2098 2041 L2102 2043 L2105 2049 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2787\" d=\"M2035 2032 L2055 2028 L2064 2025 L2063 2015 L2045 2000 L2041 1983 L2039 1983 L2030 1988 L2029 2001 L2026 1999 L2022 2001 L2020 2002 L2016 2000 L2013 2014 L2035 2015 L2035 2032 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2788\" d=\"M1953 2015 L1956 2018 L2007 2015 L2013 2014 L2016 2000 L2012 2003 L2008 2003 L2009 2000 L2006 2000 L2003 2001 L1999 1978 L1980 1978 L1981 1987 L1981 1993 L1954 2010 L1953 2015 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2789\" d=\"M2081 2052 L2081 2060 L2087 2066 L2105 2049 L2102 2043 L2098 2041 L2093 2045 L2089 2048 L2083 2048 L2081 2052 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2790\" d=\"M1915 2035 L1916 2045 L1924 2044 L1931 2039 L1957 2035 L1956 2018 L1953 2015 L1943 2015 L1939 2016 L1940 2022 L1915 2035 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2791\" d=\"M2012 2054 L2018 2056 L2033 2046 L2035 2032 L2035 2015 L2013 2014 L2007 2015 L2013 2030 L1999 2051 L2012 2054 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2792\" d=\"M2063 2015 L2066 2012 L2068 2000 L2059 1986 L2041 1983 L2045 2000 L2063 2015 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2793\" d=\"M2081 2052 L2083 2048 L2081 2045 L2081 2042 L2078 2039 L2075 2038 L2064 2025 L2055 2028 L2056 2033 L2050 2049 L2059 2045 L2081 2052 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2821\" d=\"M2234 2139 L2264 2131 L2266 2115 L2264 2110 L2258 2107 L2251 2100 L2235 2115 L2232 2131 L2234 2139 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2822\" d=\"M2194 2150 L2207 2155 L2222 2145 L2218 2142 L2213 2135 L2205 2147 L2196 2144 L2194 2150 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2823\" d=\"M2224 2074 L2235 2070 L2242 2062 L2242 2046 L2241 2045 L2234 2040 L2228 2028 L2219 2025 L2214 2029 L2214 2041 L2205 2052 L2209 2056 L2224 2074 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2824\" d=\"M2211 2132 L2214 2110 L2190 2108 L2174 2094 L2173 2095 L2171 2107 L2199 2120 L2211 2132 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2825\" d=\"M2213 2135 L2218 2142 L2232 2131 L2235 2115 L2230 2108 L2214 2110 L2211 2132 L2213 2135 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2826\" d=\"M2218 2142 L2222 2145 L2234 2139 L2232 2131 L2218 2142 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2827\" d=\"M2264 2110 L2265 2106 L2266 2093 L2261 2091 L2255 2094 L2251 2100 L2258 2107 L2264 2110 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2828\" d=\"M2255 2094 L2261 2091 L2255 2084 L2256 2063 L2242 2062 L2235 2070 L2238 2089 L2255 2094 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2829\" d=\"M2214 2110 L2230 2108 L2235 2115 L2251 2100 L2255 2094 L2238 2089 L2235 2070 L2224 2074 L2205 2077 L2197 2089 L2174 2094 L2190 2108 L2214 2110 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2830\" d=\"M2190 2058 L2196 2061 L2209 2056 L2205 2052 L2186 2031 L2184 2043 L2185 2052 L2190 2058 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2831\" d=\"M2178 2148 L2186 2147 L2194 2150 L2196 2144 L2205 2147 L2213 2135 L2211 2132 L2199 2120 L2171 2107 L2178 2148 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2832\" d=\"M2242 2062 L2256 2063 L2256 2055 L2255 2049 L2242 2046 L2242 2062 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2833\" d=\"M2205 2077 L2224 2074 L2209 2056 L2196 2061 L2205 2077 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2834\" d=\"M2186 2031 L2205 2052 L2214 2041 L2214 2029 L2195 2013 L2178 2016 L2186 2031 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2841\" d=\"M2378 2069 L2386 2072 L2391 2062 L2383 2048 L2374 2046 L2369 2055 L2365 2056 L2378 2069 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2842\" d=\"M2298 2087 L2300 2086 L2304 2063 L2291 2069 L2298 2087 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2843\" d=\"M2306 2023 L2310 2022 L2317 2009 L2300 2004 L2303 2020 L2306 2023 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2844\" d=\"M2320 2137 L2330 2136 L2329 2126 L2343 2118 L2344 2114 L2326 2104 L2322 2099 L2307 2106 L2303 2118 L2320 2137 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2845\" d=\"M2305 2058 L2310 2048 L2296 2044 L2296 2053 L2305 2058 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2846\" d=\"M2300 2086 L2318 2088 L2335 2065 L2332 2060 L2332 2053 L2317 2038 L2311 2043 L2310 2048 L2305 2058 L2304 2063 L2300 2086 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2847\" d=\"M2310 2022 L2321 2022 L2327 2027 L2335 2015 L2340 2008 L2333 2002 L2317 2009 L2310 2022 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2848\" d=\"M2326 2104 L2344 2114 L2351 2103 L2351 2095 L2344 2088 L2326 2104 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2849\" d=\"M2256 2063 L2255 2084 L2268 2081 L2273 2070 L2264 2064 L2263 2056 L2256 2055 L2256 2063 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2850\" d=\"M2294 2023 L2303 2020 L2300 2004 L2293 2003 L2294 2023 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2851\" d=\"M2346 2039 L2349 2036 L2356 2028 L2339 2022 L2341 2034 L2346 2039 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2852\" d=\"M2300 2004 L2317 2009 L2333 2002 L2325 1995 L2332 1982 L2303 1971 L2298 1993 L2293 2003 L2300 2004 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2853\" d=\"M2297 2149 L2312 2150 L2320 2137 L2303 2118 L2296 2127 L2297 2149 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2854\" d=\"M2265 2106 L2271 2110 L2278 2108 L2277 2098 L2266 2093 L2265 2106 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2855\" d=\"M2365 2056 L2369 2055 L2374 2046 L2383 2048 L2395 2025 L2391 2021 L2379 2016 L2359 2026 L2366 2037 L2365 2056 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2856\" d=\"M2322 2099 L2326 2104 L2344 2088 L2343 2069 L2348 2060 L2341 2056 L2335 2065 L2318 2088 L2322 2099 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2857\" d=\"M2307 2106 L2322 2099 L2318 2088 L2300 2086 L2298 2087 L2297 2091 L2307 2106 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2858\" d=\"M2351 2095 L2382 2095 L2378 2069 L2365 2056 L2355 2065 L2343 2069 L2344 2088 L2351 2095 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2859\" d=\"M2311 2043 L2317 2038 L2327 2027 L2321 2022 L2310 2022 L2306 2023 L2311 2043 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2860\" d=\"M2332 2053 L2346 2039 L2341 2034 L2339 2022 L2335 2015 L2327 2027 L2317 2038 L2332 2053 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2861\" d=\"M2266 2093 L2277 2098 L2297 2091 L2298 2087 L2291 2069 L2284 2059 L2273 2065 L2263 2056 L2264 2064 L2273 2070 L2268 2081 L2255 2084 L2261 2091 L2266 2093 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2862\" d=\"M2335 2065 L2341 2056 L2352 2050 L2346 2047 L2346 2043 L2351 2039 L2349 2036 L2346 2039 L2332 2053 L2332 2060 L2335 2065 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2863\" d=\"M2294 2046 L2296 2044 L2294 2026 L2265 2028 L2263 2031 L2281 2049 L2294 2046 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2864\" d=\"M2291 2069 L2304 2063 L2305 2058 L2296 2053 L2296 2044 L2294 2046 L2284 2059 L2291 2069 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2865\" d=\"M2343 2069 L2355 2065 L2365 2056 L2366 2037 L2359 2026 L2356 2028 L2349 2036 L2351 2039 L2346 2043 L2346 2047 L2352 2050 L2341 2056 L2348 2060 L2343 2069 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2866\" d=\"M2296 2127 L2303 2118 L2307 2106 L2297 2091 L2277 2098 L2278 2108 L2296 2127 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2867\" d=\"M2296 2044 L2310 2048 L2311 2043 L2306 2023 L2303 2020 L2294 2023 L2294 2026 L2296 2044 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2868\" d=\"M2339 2022 L2356 2028 L2359 2026 L2379 2016 L2376 2009 L2356 1998 L2340 2008 L2335 2015 L2339 2022 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2869\" d=\"M2263 2056 L2273 2065 L2284 2059 L2294 2046 L2281 2049 L2263 2031 L2255 2049 L2256 2055 L2263 2056 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2881\" d=\"M2214 2029 L2219 2025 L2221 2007 L2194 2009 L2195 2013 L2214 2029 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2882\" d=\"M2250 2013 L2266 2014 L2265 1989 L2265 1974 L2257 1974 L2248 1996 L2250 2013 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2883\" d=\"M2146 2010 L2169 2010 L2172 1998 L2170 1982 L2153 1978 L2146 2010 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2884\" d=\"M2265 2028 L2294 2026 L2294 2023 L2293 2003 L2298 1993 L2285 1996 L2265 1989 L2266 2014 L2265 2028 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2885\" d=\"M2265 1989 L2285 1996 L2298 1993 L2303 1971 L2298 1964 L2278 1958 L2265 1974 L2265 1989 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2886\" d=\"M2242 2046 L2255 2049 L2263 2031 L2265 2028 L2266 2014 L2250 2013 L2241 2018 L2249 2031 L2241 2045 L2242 2046 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2887\" d=\"M2228 2028 L2234 2040 L2241 2045 L2249 2031 L2241 2018 L2227 2017 L2228 2028 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2888\" d=\"M2257 1974 L2265 1974 L2278 1958 L2268 1933 L2264 1931 L2236 1938 L2219 1963 L2242 1964 L2253 1973 L2257 1974 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2889\" d=\"M2153 1978 L2170 1982 L2172 1998 L2186 1992 L2188 1967 L2155 1963 L2153 1975 L2153 1978 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2890\" d=\"M2203 1992 L2219 1996 L2218 1983 L2207 1976 L2203 1992 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2891\" d=\"M2219 2025 L2228 2028 L2227 2017 L2241 2018 L2250 2013 L2248 1996 L2241 1995 L2241 2003 L2222 2000 L2221 2007 L2219 2025 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2892\" d=\"M2219 1996 L2222 2000 L2241 2003 L2241 1995 L2248 1996 L2257 1974 L2253 1973 L2234 1987 L2218 1983 L2219 1996 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2893\" d=\"M2178 2016 L2195 2013 L2194 2009 L2203 1992 L2207 1976 L2198 1969 L2188 1967 L2186 1992 L2172 1998 L2169 2010 L2178 2016 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2894\" d=\"M2194 2009 L2221 2007 L2222 2000 L2219 1996 L2203 1992 L2194 2009 Z\"\u003e\u003c/path\u003e\n    \u003cpath id=\"region_2895\" d=\"M2207 1976 L2218 1983 L2234 1987 L2253 1973 L2242 1964 L2219 1963 L2198 1969 L2207 1976 Z\"\u003e\u003c/path\u003e\n  \u003c/g\u003e\n\u003c/svg\u003e\n"
+  },
+  "meta": {
+    "powered_by": "Sitrox",
+    "data_checksum_sha256": "24394c7a92773b697663f4d0f1354964a9166730c9a5aa484fc2874de1c87194"
+  }
+}

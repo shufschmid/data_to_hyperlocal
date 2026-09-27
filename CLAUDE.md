@@ -90,6 +90,7 @@ them is wrong even if it works.
    | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
    | `api.anthropic.com`                         | every LLM call                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | `shared/claude.ts`                               |
    | `data.bl.ch`                                | open-data catalogue and records (no auth, documented API) — including dataset 11990, the vote results per Vorlage and municipality, read on a vote Sunday only                                                                                                                                                                                                                                                                                                                                                                            | `shared/ods/`                                    |
+   | `abstimmungen.bl.ch`                        | the canton's live publication of a vote day (Sitrox VeWork, where the portal's own `url_web` points): plain JSON under `/data/publication/`, the list of vote days and one file of every municipality's result per Vorlage, no key, no robots.txt. Read only on a vote Sunday, only for a day the portal already knows, because it carries the final figures hours or a day before dataset 11990 does (measured 27.09.2026)                                                                                                               | `shared/abstimmung/vework.ts`                    |
    | `data.bs.ch`                                | the same Opendatasoft platform for Basel-Stadt — registered but INACTIVE, so no request is made until a person switches it on. Measured 17.09.2026: identical paths and response shape, 361 datasets against 188, and Riehen and Bettingen are municipalities in its rows, not quarters                                                                                                                                                                                                                                                   | `shared/ods/`                                    |
    | `www.baselland.ch`                          | the publication agenda — announcements the API cannot give — and the office's own web article behind an entry, read once per announcement for the mapping and the briefing                                                                                                                                                                                                                                                                                                                                                                | `shared/agenda/`                                 |
    | `statistik.bl.ch`                           | tables the open-data portal does not carry                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | `shared/statbl/`                                 |
@@ -1077,6 +1078,25 @@ them is wrong even if it works.
    Which dataset a portal carries its votes in is a ROW
    (`quellen.konfiguration.abstimmungen`), like the office and the districts
    beside it; a portal without one is not walked and the run names it.
+   **And the portal is LATE, which is why there is a second door** (measured
+   on the vote Sunday of 27 September 2026): the canton's live publication on
+   `abstimmungen.bl.ch` was final for all 86 municipalities at 14:02, while
+   every one of the 430 rows of 11990 still said `counted: "False"` and the
+   desk read „0 von 86 ausgezählt" all afternoon — and the newsroom needs the
+   results in Monday's briefing. `shared/abstimmung/vework.ts` reads the JSON
+   the canton's app itself loads and maps it into the very `Abstimmungszeile`
+   the portal's parser produces, so every rule above holds unchanged; the
+   parts map one to one (`e1` is `20260927_E1`, `k3a`/`k3b`/`k3c` are
+   Initiative, Gegenvorschlag and Stichfrage of `20260927_K3`), the link an
+   article carries is the portal's own `url_web` form, and the sum over the 86
+   municipalities matched the canton's total exactly on every Vorlage checked.
+   `waehleZeilen` takes whichever door has MORE municipalities counted and the
+   portal on a tie — the live door only ever makes the desk earlier, never a
+   second opinion. Which live publication belongs to a portal is a row too
+   (`konfiguration.abstimmungen_live`, seeded by `20260927B`); a failure of it
+   is said in the run's result and the portal's rows stand. The previous
+   ballot's turnout still comes from the portal: the live app holds only the
+   current day.
 
    When it turns us away, that is not silence: the workspace shows a banner
    naming the source, the reason and the date of the last attempt, with a link
