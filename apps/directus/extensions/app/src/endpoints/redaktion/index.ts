@@ -170,6 +170,7 @@ import {
   type Termin
 } from '../../redaktion/termin'
 import { alleDaten } from '../../shared/gemeindeseite/datum'
+import { leitetAufUebersicht } from '../../shared/gemeindeseite/url'
 import {
   ladeWichtigkeitSignale,
   wichtigkeitDigest
@@ -3281,7 +3282,16 @@ export default defineEndpoint(
         })
         const gelesen = await liesAnlass(
           leser,
-          { url: zeile.url_kanonisch ?? zeile.url, termin: zeile.von },
+          {
+            // A canonical address that is the overview came from a misread
+            // (the page had redirected up); the row's own page is the one.
+            url:
+              zeile.url_kanonisch !== null &&
+              !leitetAufUebersicht(zeile.url, zeile.url_kanonisch)
+                ? zeile.url_kanonisch
+                : zeile.url,
+            termin: zeile.von
+          },
           detailFamilie((zeile.plattform ?? 'weblication') as Plattform),
           new URL(zeile.quelle.url).hostname,
           heuteAus(heute),
@@ -3336,7 +3346,12 @@ export default defineEndpoint(
           // sein, bevor der Lauf sein Detailbudget dorthin verteilt hat — und
           // „Jetzt vorschlagen" hat gar keinen Lauf dazwischen. Erst wenn auch
           // das nichts bringt, ist die Absage die ehrliche Antwort.
-          if (!hatAnlassMaterial(anlassFakten(zeile, heute))) {
+          // Also when the stored read landed on the overview: its text and its
+          // documents are the overview's, not the Anlass's.
+          const falschGelesen =
+            zeile.url_kanonisch !== null &&
+            leitetAufUebersicht(zeile.url, zeile.url_kanonisch)
+          if (falschGelesen || !hatAnlassMaterial(anlassFakten(zeile, heute))) {
             await lieseAnlassNach(zeile, heute)
             zeile = await ladeAnlassZeile(id, req.accountability)
           }

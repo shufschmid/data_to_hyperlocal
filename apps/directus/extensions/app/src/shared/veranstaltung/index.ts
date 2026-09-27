@@ -7,12 +7,18 @@ import type { DetailFamilie } from '../gemeindeseite/erkennung'
 import { type Heute } from '../gemeindeseite/datum'
 import type { Transport } from '../crawler/fallback'
 import {
+  GemeindeseiteFehler,
   liesAnhaenge,
+  UEBERSICHT_STATT_EINTRAG,
   type Anhang,
   type Leser,
   type PdfText
 } from '../gemeindeseite'
-import { gleicheSite, normalisiereUrl } from '../gemeindeseite/url'
+import {
+  gleicheSite,
+  leitetAufUebersicht,
+  normalisiereUrl
+} from '../gemeindeseite/url'
 import {
   parseAnlassDetail,
   parseTraktanden,
@@ -60,6 +66,8 @@ export async function liesAnlass(
     siteVon,
     optionen.anhangMaxBytes
   )
+  if (leitetAufUebersicht(anlass.url, seite.url))
+    throw new GemeindeseiteFehler(UEBERSICHT_STATT_EINTRAG, anlass.url)
   if (seite.art === 'pdf') {
     throw new Error('Die Seite des Anlasses ist ein Dokument, keine Seite.')
   }

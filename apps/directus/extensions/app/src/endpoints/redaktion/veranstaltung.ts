@@ -4,6 +4,7 @@
 
 import type { Anker, Zugang } from '../../types/schema'
 import type { AnlassFakten } from '../../redaktion/veranstaltung'
+import { leitetAufUebersicht } from '../../shared/gemeindeseite/url'
 
 export interface AnlassRohzeile {
   id: string
@@ -102,6 +103,14 @@ export function anlassFakten(
   zeile: AnlassRohzeile,
   heute: string
 ): AnlassFakten {
+  // A detail read that landed on the calendar overview stored the OVERVIEW:
+  // its text (the whole calendar), its documents (the site's how-to PDF) and
+  // its address. None of that is this Anlass, so none of it is handed on —
+  // without a proper read the honest answer is the refusal, not an article
+  // written out of the whole calendar (measured on Reinach, 27.09.2026).
+  const falschGelesen =
+    zeile.url_kanonisch !== null &&
+    leitetAufUebersicht(zeile.url, zeile.url_kanonisch)
   return {
     gemeinde: zeile.gemeinde.name,
     quelleName: zeile.quelle.name,
@@ -118,9 +127,9 @@ export function anlassFakten(
     preis: zeile.preis,
     anmeldung: zeile.anmeldung,
     fristAm: zeile.frist_am,
-    beschreibung: zeile.beschreibung ?? '',
+    beschreibung: falschGelesen ? '' : (zeile.beschreibung ?? ''),
     textAbgeschnitten: zeile.text_abgeschnitten,
-    dokumente: (zeile.dokumente ?? []).map((d) => ({
+    dokumente: (falschGelesen ? [] : (zeile.dokumente ?? [])).map((d) => ({
       bezeichnung: d.bezeichnung,
       url: d.url,
       typ: d.typ,
@@ -133,7 +142,7 @@ export function anlassFakten(
     anker: zeile.anker ?? 'einmalig',
     zugang: zeile.zugang,
     dauerangebot: zeile.anker === 'dauerangebot',
-    url: zeile.url_kanonisch ?? zeile.url,
+    url: falschGelesen ? zeile.url : (zeile.url_kanonisch ?? zeile.url),
     heute
   }
 }

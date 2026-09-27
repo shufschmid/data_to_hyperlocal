@@ -14,11 +14,13 @@ import {
   berechneAnker,
   DAUERANGEBOTE_JE_WOCHE,
   imVorschlagsfenster,
+  naechsteSeite,
   waehleDauerangebote,
   type Anlass,
   type AnkerBefund,
   type GeleseneAnlass
 } from '../shared/veranstaltung'
+import { leitetAufUebersicht } from '../shared/gemeindeseite/url'
 import { verschiebe } from './feiertage'
 import type { RegelZeile } from './gedaechtnis'
 import { automatischeWeitergabe, type NummerierteRegel } from './lernen'
@@ -118,6 +120,8 @@ export interface BekannteZeile {
   frist_am: string | null
   beschreibung: string | null
   url: string
+  /** What the detail read called the page — an overview here means it was misread. */
+  url_kanonisch?: string | null
   hinweise: string[] | null
 }
 
@@ -143,6 +147,7 @@ export async function ladeBekannteSerien(
       'frist_am',
       'beschreibung',
       'url',
+      'url_kanonisch',
       'hinweise'
     ],
     limit: -1
@@ -258,7 +263,9 @@ export async function schreibeAnlaesse(
       anker: befund.anker,
       anker_am: befund.ankerAm,
       anker_grund: befund.grund,
-      zuletzt_gesehen_am: heute
+      zuletzt_gesehen_am: heute,
+      // Moves with the dates: the first date's page is gone once it passed.
+      url: naechsteSeite(anlass, heute)
     }
     try {
       if (vorher === null) {
@@ -281,7 +288,6 @@ export async function schreibeAnlaesse(
           zugang: befund.zugang,
           frist_am: befund.fristAm,
           ort_ausserhalb: ortAusserhalb(anlass.ort, quelle.gemeinde.name),
-          url: anlass.url,
           plattform: quelle.plattform,
           hinweise,
           entscheid: 'offen'
@@ -347,6 +353,18 @@ const SOFORT: ReadonlySet<Anker> = new Set<Anker>([
 ])
 
 /**
+ * A row whose detail read landed on the calendar overview (its canonical
+ * address is an ancestor of its own page) was never really read — it gets
+ * its page again, and the repair needs no migration: the next run does it.
+ */
+export function falschGelesen(
+  zeile: Pick<BekannteZeile, 'url' | 'url_kanonisch'>
+): boolean {
+  const kanonisch = zeile.url_kanonisch ?? null
+  return kanonisch !== null && leitetAufUebersicht(zeile.url, kanonisch)
+}
+
+/**
  * An Anlass gets its detail page when it is (or is about to be) on the desk:
  * an anchor inside the proposal window, or one of the kinds that is news the
  * day it appears. Once per Anlass, never per date — a row read earlier keeps
@@ -357,7 +375,7 @@ export function brauchtDetail(
   heute: string,
   vorschlagTage: number
 ): boolean {
-  if (g.vorher?.gelesen_am != null) return false
+  if (g.vorher?.gelesen_am != null && !falschGelesen(g.vorher)) return false
   if (OHNE_TISCH.has(g.befund.anker)) return false
   if (SOFORT.has(g.befund.anker)) return true
   return imVorschlagsfenster(g.befund.ankerAm, heute, vorschlagTage)

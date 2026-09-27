@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ListenEintrag } from '../gemeindeseite/liste'
-import { gruppiereAnlaesse, naechsterTermin } from './anlass'
+import { gruppiereAnlaesse, naechsteSeite, naechsterTermin } from './anlass'
 
 const zeile = (
   titel: string,
@@ -137,5 +137,37 @@ describe('naechsterTermin', () => {
       naechsterTermin(['2026-09-10', '2026-09-21', '2026-10-01'], '2026-09-18')
     ).toBe('2026-09-21')
     expect(naechsterTermin(['2026-09-10'], '2026-09-18')).toBeNull()
+  })
+})
+
+// Der Reinacher Kalender gibt jedem Termin eine eigene Seite und nimmt eine
+// vergangene vom Netz: die Adresse der Serie muss mit den Terminen wandern.
+describe('naechsteSeite', () => {
+  const eintraege = [
+    zeile('Palais', '2026-09-22'),
+    zeile('Palais', '2026-10-13'),
+    zeile('Palais', '2026-10-20')
+  ]
+  const anlass = { url: eintraege[0]!.url, eintraege }
+
+  it('nimmt die Seite des naechsten Termins ab heute', () => {
+    expect(naechsteSeite(anlass, '2026-09-27')).toBe(eintraege[1]!.url)
+    expect(naechsteSeite(anlass, '2026-10-13')).toBe(eintraege[1]!.url)
+  })
+
+  it('bleibt bei der ersten Seite, wenn kein Termin mehr vor uns liegt', () => {
+    expect(naechsteSeite(anlass, '2026-11-01')).toBe(eintraege[0]!.url)
+  })
+
+  it('haelt eine laufende Spanne auf ihrer eigenen Seite', () => {
+    const ausstellung = zeile('Ausstellung', '2026-09-01', {
+      veranstaltungBis: '2026-10-31'
+    })
+    expect(
+      naechsteSeite(
+        { url: ausstellung.url, eintraege: [ausstellung] },
+        '2026-09-27'
+      )
+    ).toBe(ausstellung.url)
   })
 })

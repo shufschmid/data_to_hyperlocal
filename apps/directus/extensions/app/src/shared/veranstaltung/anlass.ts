@@ -72,6 +72,25 @@ function baue(schluessel: string, rows: readonly ListenEintrag[]): Anlass {
 }
 
 /**
+ * The page of the series' next date from today — or of the date still
+ * running. Calendars like Reinach's give every date its own page and take a
+ * past one down, so the first date's page dies while the series lives on;
+ * the stored address must move with the dates. Falls back to the first
+ * page where no date lies ahead.
+ */
+export function naechsteSeite(
+  anlass: Pick<Anlass, 'url' | 'eintraege'>,
+  heute: string
+): string {
+  const kommend = anlass.eintraege
+    .filter((e) => (e.veranstaltungBis ?? e.veranstaltungAm ?? '') >= heute)
+    .sort((a, b) =>
+      (a.veranstaltungAm ?? '').localeCompare(b.veranstaltungAm ?? '')
+    )[0]
+  return kommend?.url ?? anlass.url
+}
+
+/**
  * Groups rows by series key. A group whose rows fall on the SAME day at
  * different times is two groups (the time joins the key); otherwise the time
  * stays out of it, so a two-day fair with different hours on each day is one

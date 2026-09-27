@@ -265,3 +265,31 @@ describe('hatAnlassMaterial', () => {
     ).toBe(false)
   })
 })
+
+// Eine Detailseite, die auf die Kalenderuebersicht umleitete, hinterliess den
+// Kalender als Beschrieb und seine Anleitung als Dokument (Reinach, 27.09.).
+describe('anlassFakten nach einem Fehllesen', () => {
+  it('gibt Text, Dokumente und kanonische Adresse der Uebersicht nicht weiter', () => {
+    const f = anlassFakten(
+      zeile({
+        url: 'https://www.reinach-bl.ch/de/veranstaltungen/detail/detail.php?i=11075',
+        url_kanonisch: 'https://www.reinach-bl.ch/de/veranstaltungen',
+        beschreibung: 'Hier finden Sie eine Übersicht der Anlässe …',
+        dokumente: [
+          {
+            bezeichnung: 'in dieser Anleitung',
+            url: 'https://www.reinach-bl.ch/a.pdf',
+            typ: 'pdf',
+            gelesen: true
+          }
+        ]
+      } as Partial<AnlassRohzeile>),
+      '2026-09-27'
+    )
+    expect(f.beschreibung).toBe('')
+    expect(f.dokumente).toEqual([])
+    expect(f.url).toBe(
+      'https://www.reinach-bl.ch/de/veranstaltungen/detail/detail.php?i=11075'
+    )
+  })
+})

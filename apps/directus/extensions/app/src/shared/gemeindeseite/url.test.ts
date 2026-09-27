@@ -4,6 +4,7 @@ import {
   istDokumentAdresse,
   istEigeneSeite,
   istPdfAdresse,
+  leitetAufUebersicht,
   normalisiereUrl
 } from './url'
 
@@ -96,5 +97,58 @@ describe('Dokumente', () => {
         seite
       )
     ).toBe(false)
+  })
+})
+
+// Gemessen am Reinacher Kalender (27.09.2026): die Seite eines vergangenen
+// Termins antwortet 302 auf ../index.php, den Kalender selbst.
+describe('leitetAufUebersicht', () => {
+  const detail =
+    'https://www.reinach-bl.ch/de/veranstaltungen/detail/detail.php?i=11075'
+
+  it('erkennt die Umleitung einer Detailseite hinauf zur Uebersicht', () => {
+    expect(
+      leitetAufUebersicht(
+        detail,
+        'https://www.reinach-bl.ch/de/veranstaltungen/index.php'
+      )
+    ).toBe(true)
+    expect(
+      leitetAufUebersicht(
+        detail,
+        'https://www.reinach-bl.ch/de/veranstaltungen/'
+      )
+    ).toBe(true)
+    expect(
+      leitetAufUebersicht(
+        detail,
+        'https://www.reinach-bl.ch/de/veranstaltungen/detail/detail.php'
+      )
+    ).toBe(true)
+  })
+
+  it('laesst dieselbe Seite, eine andere Seite und einen fremden Host durch', () => {
+    expect(leitetAufUebersicht(detail, detail)).toBe(false)
+    expect(
+      leitetAufUebersicht(
+        'http://www.reinach-bl.ch/de/a/b.php?i=1',
+        'https://www.reinach-bl.ch/de/a/b.php?i=1'
+      )
+    ).toBe(false)
+    expect(
+      leitetAufUebersicht(
+        detail,
+        'https://www.reinach-bl.ch/de/veranstaltungen/detail/detail.php?i=11076'
+      )
+    ).toBe(false)
+    expect(
+      leitetAufUebersicht(
+        detail,
+        'https://www.reinach-bl.ch/de/aktuell/news/x.php'
+      )
+    ).toBe(false)
+    expect(leitetAufUebersicht(detail, 'https://www.example.ch/de/')).toBe(
+      false
+    )
   })
 })

@@ -775,7 +775,18 @@ them is wrong even if it works.
    and the same manners as the run and WITHOUT recomputing the anchor
    (`nachgelesenePayload`) — the editor has just decided on that anchor and
    wants her article, not a new classification. Only if that read brings
-   nothing either is the refusal the honest answer. A place outside the
+   nothing either is the refusal the honest answer. **A detail page can send the
+   reader UP to the calendar, and that is not the page** (measured on Reinach,
+   27 September 2026): a date's page answers 302 to `../index.php` once the
+   date has passed, and read as the Anlass it handed over the whole calendar
+   as description, the overview as canonical address and the site's how-to
+   PDF as the Anlass's document — which then stood in an article's source
+   line. `leitetAufUebersicht` (`shared/gemeindeseite/url.ts`) refuses such a
+   landing in both detail readers, the row's `url` moves with the dates to the
+   page of the NEXT one (`naechsteSeite`), and a row already misread is
+   recognised by its canonical address being an ancestor of its own page
+   (`falschGelesen`): the run reads it again, and until then `anlassFakten`
+   hands on none of its text, documents or address. A place outside the
    municipality is DECLARED (`ort_ausserhalb`), never a silent exclusion —
    Binningen's Suppentag is in Bottmingen and is still Binningen's village
    life. The Sichtung is ONE Sonnet call per municipality and run, over the

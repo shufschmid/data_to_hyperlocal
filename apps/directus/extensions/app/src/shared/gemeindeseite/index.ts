@@ -45,7 +45,12 @@ import {
   type RobotsRegeln
 } from './robots'
 import { ANHANG_TEXT_MAX_ZEICHEN, kappe } from './text'
-import { gleicheSite, istPdfAdresse, normalisiereUrl } from './url'
+import {
+  gleicheSite,
+  istPdfAdresse,
+  leitetAufUebersicht,
+  normalisiereUrl
+} from './url'
 
 export * from './auswahl'
 export * from './datum'
@@ -55,6 +60,10 @@ export * from './liste'
 export * from './robots'
 export * from './text'
 export * from './url'
+
+/** A detail page that sent us up to its overview: the entry is gone. */
+export const UEBERSICHT_STATT_EINTRAG =
+  'Die Seite leitet auf die Übersicht um — der Eintrag ist dort nicht mehr vorhanden.'
 
 export class GemeindeseiteFehler extends Error {
   constructor(
@@ -743,6 +752,8 @@ export async function liesMitteilung(
   const liesText = optionen.pdfText ?? pdfText
 
   const seite = await leser.liesSeite(eintrag.url, siteVon, anhangMaxBytes)
+  if (leitetAufUebersicht(eintrag.url, seite.url))
+    throw new GemeindeseiteFehler(UEBERSICHT_STATT_EINTRAG, eintrag.url)
   if (seite.art === 'pdf') {
     return {
       detail: null,

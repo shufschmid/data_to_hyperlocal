@@ -65,6 +65,36 @@ export function normalisiereUrl(href: string, basis: string): string | null {
   return `https://${host}${port}${pfad}${ohneTracking(url.search)}`
 }
 
+/**
+ * Whether a detail request was sent UP to the overview instead of answered.
+ *
+ * Measured on Reinach's calendar (27 September 2026): the page of a past date
+ * (`…/detail/detail.php?i=11075`) answers 302 to `../index.php`, the
+ * calendar itself. Read as if it were the Anlass, that page handed over the
+ * overview as the canonical address and the overview's own how-to PDF as the
+ * Anlass's document. So a landing that is an ANCESTOR of the requested path —
+ * or the same path that lost its query, i.e. its item id — is no answer: the
+ * entry is not there any more. An `index.*` at the end counts as its folder;
+ * a scheme or trailing-slash redirect on the same page is not caught.
+ */
+export function leitetAufUebersicht(
+  angefragt: string,
+  gelandet: string
+): boolean {
+  const a = normalisiereUrl(angefragt, angefragt)
+  const g = normalisiereUrl(gelandet, gelandet)
+  if (a === null || g === null || a === g) return false
+  const ua = new URL(a)
+  const ug = new URL(g)
+  if (ua.host !== ug.host) return false
+  const ordner = (pfad: string): string =>
+    pfad.replace(/\/index\.(php|html?|aspx?)$/i, '').replace(/\/$/, '')
+  const pa = ordner(ua.pathname)
+  const pg = ordner(ug.pathname)
+  if (pa === pg) return ua.search !== '' && ug.search === ''
+  return pg === '' || pa.startsWith(`${pg}/`)
+}
+
 /** Ends in `.pdf`, query string or fragment notwithstanding. */
 export function istPdfAdresse(url: string): boolean {
   return /\.pdf(?:[?#]|$)/i.test(url)
