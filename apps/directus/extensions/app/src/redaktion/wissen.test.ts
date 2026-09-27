@@ -290,3 +290,26 @@ describe('wissenFelderManuell — Gemeindeseiten', () => {
     })
   })
 })
+
+describe('eine allgemeine Regel', () => {
+  it('gilt nur fuer das Schreiben', () => {
+    expect(
+      wissenFelderManuell({
+        bereich: 'allgemein',
+        stufe: 'text',
+        regel: 'Es heisst «der Bibo».'
+      })
+    ).toMatchObject({
+      bereich: 'allgemein',
+      stufe: 'text',
+      geltungsbereich: 'global'
+    })
+    expect(() =>
+      wissenFelderManuell({
+        bereich: 'allgemein',
+        stufe: 'sichtung',
+        regel: 'x'
+      })
+    ).toThrow('nur für das Schreiben')
+  })
+})

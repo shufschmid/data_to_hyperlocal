@@ -1079,6 +1079,25 @@ export function mitQuelle(text: string, fakten: PresseschauFakten): string {
  * issue number, in the running text. Reported, then retried once — a press
  * review without its source is not a press review.
  */
+/**
+ * The names a paper may be called by in a text: its registered name, and —
+ * where that name carries a parenthesis — the part before and the part inside
+ * it. „BiBo (Birsigtal-Bote)" is written „der Bibo" in this house (a general
+ * rule in „Gelerntes"), and a check insisting on the full registered string
+ * would flag the prescribed form and force a rewrite into the wrong one.
+ * Lower-cased and NFC, ready for `includes`; nothing shorter than three
+ * letters, so a stray initial never counts as a name.
+ */
+export function blattNamen(blatt: string): string[] {
+  const voll = blatt.normalize('NFC').trim()
+  const namen = [voll]
+  const klammer = /^(.*?)\s*\((.+)\)\s*$/.exec(voll)
+  if (klammer !== null) namen.push(klammer[1] ?? '', klammer[2] ?? '')
+  return [...new Set(namen.map((n) => n.trim().toLowerCase()))].filter(
+    (n) => n.length >= 3
+  )
+}
+
 export function attributionsWarnung(
   text: string,
   fakten: Pick<PresseschauFakten, 'blatt' | 'nummer'>
@@ -1088,7 +1107,7 @@ export function attributionsWarnung(
   // decomposed ("u" + combining diaeresis) in the other — a mismatch that
   // reads identically but fails a raw `includes`.
   const klein = text.normalize('NFC').toLowerCase()
-  const blattDa = klein.includes(fakten.blatt.normalize('NFC').toLowerCase())
+  const blattDa = blattNamen(fakten.blatt).some((name) => klein.includes(name))
   const nummerDa = new RegExp(
     `nr\\.?\\s*${fakten.nummer.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}`,
     'i'

@@ -7,6 +7,10 @@ import type { RecherchehinweisFelder, WissenFelder } from '@/graphql/redaktion'
 
 /** Tab order — the desks as the header shows them, then the configuration. */
 export const BEREICHE: ReadonlyArray<{ wert: string; text: string }> = [
+  // Wie das Haus schreibt, fuer jeden Tisch: „der Bibo", nicht „das BiBo
+  // (Birsigtal-Bote)". Nur Schreibregeln — was vorgeschlagen wird, ist Sache
+  // des einzelnen Tischs.
+  { wert: 'allgemein', text: 'Allgemein — alle Tische' },
   { wert: 'statistik', text: 'Statistik' },
   { wert: 'sport', text: 'Sportresultate' },
   { wert: 'entsorgung', text: 'Entsorgung' },

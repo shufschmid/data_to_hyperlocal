@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   INVENTAR_SYSTEM_PROMPT,
   attributionsWarnung,
+  blattNamen,
   brauchtTextTransport,
   buildInventarMessages,
   buildPresseschauPrompt,
@@ -864,5 +865,29 @@ describe('Termin in der Presseschau-Meldung', () => {
     expect(
       buildPresseschauPrompt(FAKTEN, [], 'Entscheide der Redaktion: X')
     ).toContain('Entscheide der Redaktion: X')
+  })
+})
+
+// «der Bibo» statt «das BiBo (Birsigtal-Bote)» — eine allgemeine Regel der
+// Redaktion; die Pruefung darf die vorgeschriebene Form nicht bemaengeln.
+describe('blattNamen', () => {
+  it('kennt den Namen vor und in der Klammer', () => {
+    expect(blattNamen('BiBo (Birsigtal-Bote)')).toEqual([
+      'bibo (birsigtal-bote)',
+      'bibo',
+      'birsigtal-bote'
+    ])
+    expect(blattNamen('Binninger Wochenblatt')).toEqual([
+      'binninger wochenblatt'
+    ])
+  })
+
+  it('laesst «der Bibo» als Quellenangabe gelten', () => {
+    expect(
+      attributionsWarnung('Wie der Bibo (Nr. 39) berichtet, …', {
+        blatt: 'BiBo (Birsigtal-Bote)',
+        nummer: '39'
+      })
+    ).toBeNull()
   })
 })

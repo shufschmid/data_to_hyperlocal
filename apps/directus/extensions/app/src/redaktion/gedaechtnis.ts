@@ -75,9 +75,16 @@ export async function ladeRegeln(
   logger: { warn: (m: string) => void },
   deckel = REGEL_DECKEL
 ): Promise<RegelZeile[]> {
+  // A writer reads its desk's rules AND the general ones („Gelerntes" →
+  // Allgemein): how the house writes a name holds on every desk, and typing
+  // it eight times would let the eight copies drift.
+  const bereiche =
+    frage.stufe === 'text' && frage.bereich !== 'allgemein'
+      ? [frage.bereich, 'allgemein']
+      : [frage.bereich]
   const filter: Record<string, unknown> = {
     aktiv: { _eq: true },
-    bereich: { _eq: frage.bereich },
+    bereich: { _in: bereiche },
     stufe: { _eq: frage.stufe }
   }
   // Desk rules are global within their desk — the examples carry the local

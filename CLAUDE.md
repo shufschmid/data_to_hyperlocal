@@ -1868,7 +1868,15 @@ checked rather than assumed, and there is a test.
   prompt. „Gelerntes" (behind the gear) shows them all, grouped by desk, with
   beleg, a switch, the automation's switch and its track record, and a
   „Regel erfassen" dialog (`POST /redaktion/wissen`) — the cheapest learning
-  of all.
+  of all. **Since 27 September 2026 there is one area that is no desk:
+  `allgemein`** — how the HOUSE writes, typed once and read by every writer
+  („der Bibo", not „das BiBo (Birsigtal-Bote)"). `ladeRegeln` merges it into
+  every `stufe: text` query, so it also reaches the statistics prefix; it
+  takes `text` only, because what a desk proposes has no general form. The
+  press-review attribution check accepts a paper's short names for the same
+  reason (`blattNamen`: the part before and inside a parenthesis) — a check
+  that insisted on the registered string would have forced the rewrite into
+  the form the rule forbids.
 - `suedanflugquoten` — one row per month of the EuroAirport's ILS-33 sheet:
   the two counts, the printed quota, every day line, the sheet's own
   contradictions (`befunde`), the address and the sha256 of the text layer.

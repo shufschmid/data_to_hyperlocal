@@ -466,6 +466,9 @@ export type Geltungsbereich = 'datensatz' | 'quelle' | 'global'
 export type WissenHerkunft = 'chat' | 'kommentar' | 'entscheid' | 'manuell'
 /** Which desk reads the rule. Only `statistik` rules reach the cached article prefix. */
 export type WissenBereich =
+  // Writing rules for EVERY desk (since 27.09.2026): how the house writes —
+  // "der Bibo", not "das BiBo (Birsigtal-Bote)". Only `stufe: text`.
+  | 'allgemein'
   | 'statistik'
   | 'sport'
   | 'entsorgung'

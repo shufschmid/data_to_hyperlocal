@@ -217,7 +217,19 @@ export function Gelerntes({
               select
               label="Tisch"
               value={neu.bereich}
-              onChange={(e) => setNeu((n) => ({ ...n, bereich: e.target.value }))}
+              onChange={(e) =>
+                setNeu((n) => ({
+                  ...n,
+                  bereich: e.target.value,
+                  // Eine allgemeine Regel betrifft nur das Schreiben.
+                  ...(e.target.value === 'allgemein' ? { stufe: 'text', wirkung: 'hinweis' } : {})
+                }))
+              }
+              helperText={
+                neu.bereich === 'allgemein'
+                  ? 'Gilt beim Schreiben jeder Meldung, auf allen Tischen — zum Beispiel: Es heisst «der Bibo», nicht «das BiBo (Birsigtal-Bote)».'
+                  : undefined
+              }
             >
               {BEREICHE.map((b) => (
                 <MenuItem key={b.wert} value={b.wert}>
@@ -229,6 +241,7 @@ export function Gelerntes({
               select
               label="Gilt für"
               value={neu.stufe}
+              disabled={neu.bereich === 'allgemein'}
               onChange={(e) => setNeu((n) => ({ ...n, stufe: e.target.value, wirkung: 'hinweis' }))}
             >
               {STUFEN.map((s) => (

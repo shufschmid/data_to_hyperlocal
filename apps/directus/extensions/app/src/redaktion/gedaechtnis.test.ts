@@ -56,7 +56,9 @@ describe('ladeRegeln', () => {
     expect(regeln.map((r) => r.regel)).toEqual(['Keine Vereinsjubilaeen.'])
     expect(wissen.aufrufe[0]?.['filter']).toEqual({
       aktiv: { _eq: true },
-      bereich: { _eq: 'presseschau' },
+      // Eine Sichtung liest nur ihren Tisch — allgemeine Regeln betreffen
+      // das Schreiben.
+      bereich: { _in: ['presseschau'] },
       stufe: { _eq: 'sichtung' }
     })
     expect(wissen.aufrufe[0]?.['sort']).toEqual(['-date_created'])
@@ -78,7 +80,7 @@ describe('ladeRegeln', () => {
 
     expect(wissen.aufrufe[0]?.['filter']).toEqual({
       aktiv: { _eq: true },
-      bereich: { _eq: 'statistik' },
+      bereich: { _in: ['statistik', 'allgemein'] },
       stufe: { _eq: 'text' },
       _or: [
         { geltungsbereich: { _eq: 'global' } },
@@ -465,5 +467,17 @@ describe('pausiereAutomatikWennNoetig', () => {
       )
     ).toBe(false)
     expect(wissen.aktualisiert).toHaveLength(0)
+  })
+})
+
+// Seit dem 27.09.2026: wie das Haus schreibt, gilt auf jedem Tisch.
+describe('allgemeine Schreibregeln', () => {
+  it('reisen in jede Schreibregel-Abfrage eines Tischs mit', async () => {
+    const wissen = dienst([])
+    await ladeRegeln(wissen, { bereich: 'presseschau', stufe: 'text' }, STILL)
+    expect(wissen.aufrufe[0]?.['filter']).toMatchObject({
+      bereich: { _in: ['presseschau', 'allgemein'] },
+      stufe: { _eq: 'text' }
+    })
   })
 })

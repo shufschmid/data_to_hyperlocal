@@ -163,6 +163,7 @@ export function wissenFelder(
 }
 
 const WISSEN_BEREICHE: readonly WissenBereich[] = [
+  'allgemein',
   'statistik',
   'sport',
   'entsorgung',
@@ -199,6 +200,11 @@ export function wissenFelderManuell(eingabe: {
     throw new Error('Unbekannte Stufe.')
   }
   const stufe = eingabe.stufe as WissenStufe
+  // A general rule is about how the house WRITES; what a desk proposes is the
+  // desk's own judgement and has no general form.
+  if (eingabe.bereich === 'allgemein' && stufe !== 'text') {
+    throw new Error('Allgemeine Regeln gelten nur für das Schreiben.')
+  }
   const wirkung =
     stufe === 'sichtung' &&
     WISSEN_WIRKUNGEN.includes(eingabe.wirkung as WissenWirkung)
