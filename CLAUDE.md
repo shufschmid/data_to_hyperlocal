@@ -932,11 +932,12 @@ them is wrong even if it works.
    different cut), on the dossier and in the button's report. Two timings
    were wrong as well and are fixed in the Flows: SMD mails at about 22:05
    every evening (measured 20.–27.09.), but „punkt6 holen" ran at 19:00, so a
-   show reached the desk at 19:15 the NEXT day — it runs at 22:30 now, with
-   06:30 as a safety; and „punkt6 verarbeiten" retried a waiting dossier once
-   a day, so markers set an hour after the run waited a day — it runs at
-   06:45, 12:45, 18:45 and 22:45. The broadcast's subtitles exist (Zattoo
-   carries a German text track of Telebasel's live stream), but only behind a
+   show reached the desk at 19:15 the NEXT day — the Flow is „punkt6 holen und
+   verarbeiten" now, at 22:10, fetching and processing in ONE chain like the
+   Regionaljournal's, with 06:10 as a safety; and a waiting dossier was
+   retried once a day, so markers set an hour after the run waited a day —
+   „punkt6 verarbeiten" retries at 12:45 and 18:45 besides the chain. The broadcast's
+   subtitles exist (Zattoo carries a German text track of Telebasel's live stream), but only behind a
    personal streaming session and only live; telebasel.ch's own HLS has video
    and audio and no text track. If Telebasel ever adds it there, that is the
    door — until then the transcript is SMD's.

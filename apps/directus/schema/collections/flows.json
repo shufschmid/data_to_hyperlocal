@@ -14,15 +14,15 @@
     "_syncId": "26f86364-b542-4514-b6b0-37fedc68e29a"
   },
   {
-    "name": "punkt6 holen",
+    "name": "punkt6 holen und verarbeiten",
     "icon": "live_tv",
     "color": null,
-    "description": "Holt die punkt6-Dossiers aus dem Postfach. SMD mailt das Transkript jeden Abend um etwa 22:05 (gemessen 20.-27.09.2026), darum 22:30 und morgens 06:30 als Sicherung; doppelt holen kostet nichts, der Ingest dedupliziert ueber source_subject. Legt nur pending-Zeilen an.",
+    "description": "Holt das punkt6-Dossier aus dem Postfach und verarbeitet es in derselben Kette. SMD mailt das Transkript jeden Abend um 22:05 (gemessen 20.-27.09.2026), darum 22:10; 06:10 als Sicherung, falls das Mail einmal spaet kommt. Doppelt holen kostet nichts: der Ingest dedupliziert ueber source_subject. Eine Wiederholung einer frueheren Sendung wird erkannt und nicht noch einmal aufbereitet.",
     "status": "active",
     "trigger": "schedule",
     "accountability": "all",
     "options": {
-      "cron": "30 6,22 * * *"
+      "cron": "10 6,22 * * *"
     },
     "operation": "527a023b-88c7-427f-ae8c-07a8fe818e81",
     "_syncId": "2e456128-2553-4333-ac55-bd283f3c45c0"
@@ -60,12 +60,12 @@
     "name": "punkt6 verarbeiten",
     "icon": "live_tv",
     "color": null,
-    "description": "Verarbeitet die pending punkt6-Dossiers und sichtet die Beitraege auf Gemeinde-Vorschlaege. Viermal am Tag, weil telebasel.ch die Beitragsmarken nachtraeglich setzt: ein Dossier ohne Marken kostet je Versuch zwei Seitenabrufe und keinen Modellaufruf, eines mit unpassenden Marken einen Sonnet-Aufruf fuer die Passprobe, und nach drei Tagen hoert das Warten auf. Eine Wiederholung einer frueheren Sendung wird erkannt und nicht noch einmal aufbereitet.",
+    "description": "Versucht die wartenden punkt6-Dossiers erneut, weil telebasel.ch die Beitragsmarken nachtraeglich setzt; die Kette um 22:10 und 06:10 verarbeitet ohnehin. Ein Dossier ohne Marken kostet je Versuch zwei Seitenabrufe und keinen Modellaufruf, eines mit unpassenden Marken einen Sonnet-Aufruf fuer die Passprobe, und nach drei Tagen hoert das Warten auf.",
     "status": "active",
     "trigger": "schedule",
     "accountability": "all",
     "options": {
-      "cron": "45 6,12,18,22 * * *"
+      "cron": "45 12,18 * * *"
     },
     "operation": "db229a49-35c3-4114-bcdb-704a85be6435",
     "_syncId": "4b3e1ec5-2071-4a3b-aa1f-07ca82bbb655"

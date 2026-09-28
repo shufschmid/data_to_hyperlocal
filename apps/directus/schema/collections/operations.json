@@ -66,10 +66,24 @@
     "options": {
       "limit": 5
     },
-    "resolve": null,
+    "resolve": "2db846ae-dcfb-4920-8e1d-1a0e6877d481",
     "reject": null,
     "flow": "2e456128-2553-4333-ac55-bd283f3c45c0",
     "_syncId": "527a023b-88c7-427f-ae8c-07a8fe818e81"
+  },
+  {
+    "name": "Verarbeiten",
+    "key": "verarbeiten",
+    "type": "punkt6-dossiers-process-pending",
+    "position_x": 37,
+    "position_y": 1,
+    "options": {
+      "limit": 5
+    },
+    "resolve": null,
+    "reject": null,
+    "flow": "2e456128-2553-4333-ac55-bd283f3c45c0",
+    "_syncId": "2db846ae-dcfb-4920-8e1d-1a0e6877d481"
   },
   {
     "name": "Inventur",
