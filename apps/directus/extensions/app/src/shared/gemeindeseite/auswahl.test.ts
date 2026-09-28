@@ -290,6 +290,49 @@ describe('zeileAus', () => {
     ])
   })
 
+  // Binningen, 28.09.2026: die verlinkte Seite zeigte alle Baustellen, nicht
+  // diese Mitteilung — dann ist der Anriss der Text, und die Zeile sagt es.
+  it('nimmt bei nur belegtem Anriss den Anriss als Text und die Liste als Seite', () => {
+    const zeile = zeileAus({
+      ...basis,
+      eintrag: {
+        ...eintrag('x', '2026-09-28'),
+        teaser:
+          'Die Ausfahrt Fuchshagweg ist am Freitag, 2. Oktober 2026, gesperrt.'
+      },
+      detail: detail({ text: '', kanonisch: null }),
+      pdf: null,
+      anhaenge: [],
+      beleg: 'nur_anriss'
+    })
+    expect(zeile.text).toBe(
+      'Die Ausfahrt Fuchshagweg ist am Freitag, 2. Oktober 2026, gesperrt.'
+    )
+    expect(zeile.url_kanonisch).toBe('https://www.example.ch/aktuelles')
+    expect(zeile.hinweise).toContain(
+      'Die verlinkte Seite zeigt nicht diese Mitteilung — nur der Anriss aus der Liste'
+    )
+  })
+
+  it('nennt es, wenn die Mitteilung ueber die Adresse der Liste gelesen wurde', () => {
+    const zeile = zeileAus({
+      ...basis,
+      eintrag: eintrag('x', '2026-09-28'),
+      detail: detail({
+        kanonisch: 'https://www.example.ch/news.html/106/news/1'
+      }),
+      pdf: null,
+      anhaenge: [],
+      beleg: 'modul'
+    })
+    expect(zeile.url_kanonisch).toBe(
+      'https://www.example.ch/news.html/106/news/1'
+    )
+    expect(zeile.hinweise).toContain(
+      'Die Liste verlinkt eine andere Seite — gelesen über die eigene Adresse der Mitteilung'
+    )
+  })
+
   it('ein direkt verlinktes PDF ist die Mitteilung selbst, gekappt und deklariert', () => {
     const zeile = zeileAus({
       ...basis,

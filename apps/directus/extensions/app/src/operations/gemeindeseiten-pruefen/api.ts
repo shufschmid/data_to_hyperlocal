@@ -11,6 +11,7 @@ import {
   detailFamilie,
   ERSTLAUF_TAGE,
   erstelleLeser,
+  falschGelesen,
   fensterSeit,
   heuteAus,
   kandidaten,
@@ -33,6 +34,7 @@ import {
   VORSCHLAGSFENSTER_TAGE
 } from '../../shared/veranstaltung'
 import { heuteIso } from '../../redaktion/feiertage'
+import { verwirfEntwurfZu } from '../../redaktion/entwurf'
 import { ladeRegeln } from '../../redaktion/gedaechtnis'
 import {
   schreibeGemeindeMeldungen,
@@ -155,6 +157,11 @@ interface Ergebnis {
   fehler: string[]
   /** Declared caps — the run read the page and says what it left for tomorrow. */
   hinweise: string[]
+  /**
+   * Rows on the desk read from a page that was not theirs (`falschGelesen`),
+   * read again this run — named per municipality.
+   */
+  nachgelesen: { gemeinde: string; anzahl: number }[]
 }
 
 interface GemeindeZeile {
@@ -240,6 +247,7 @@ export default defineOperationApi<Optionen>({
       erstlaeufe: [],
       neu: 0,
       detailsGelesen: 0,
+      nachgelesen: [],
       anhaengeGelesen: 0,
       vorschlaege: 0,
       weitergereicht: 0,
@@ -361,6 +369,12 @@ export default defineOperationApi<Optionen>({
         plattform: Plattform
         neue: ListenEintrag[]
       } | null = null
+      // Rows still on the desk whose text is not their item's — read from the
+      // page the list linked before `beleg.ts` checked it (Binningen's
+      // construction notices, its vote results). Read again, with the same
+      // budget, and their machine draft discarded: it was written from the
+      // wrong page.
+      const nachlesen = new Map<string, string>()
       if (hatAdresse(gemeinde.news_url)) {
         const url = gemeinde.news_url ?? ''
         try {
@@ -405,10 +419,33 @@ export default defineOperationApi<Optionen>({
                     })) as Array<{ url: string }>
                   ).map((z) => z.url)
                 )
+          const aufDemTisch =
+            uebersicht.eintraege.length === 0
+              ? []
+              : ((await mitteilungen.readByQuery({
+                  filter: {
+                    url: { _in: uebersicht.eintraege.map((e) => e.url) },
+                    entscheid: { _eq: 'offen' }
+                  },
+                  fields: ['id', 'url', 'titel', 'teaser', 'text', 'hinweise'],
+                  limit: -1
+                })) as Array<{
+                  id: string
+                  url: string
+                  titel: string | null
+                  teaser: string | null
+                  text: string | null
+                  hinweise: string[] | null
+                }>)
+          for (const zeile of aufDemTisch)
+            if (falschGelesen(zeile)) nachlesen.set(zeile.url, zeile.id)
           news = {
             site,
             plattform: uebersicht.plattform,
-            neue: drin.filter((e) => !bekannt.has(e.url))
+            neue: [
+              ...drin.filter((e) => !bekannt.has(e.url)),
+              ...uebersicht.eintraege.filter((e) => nachlesen.has(e.url))
+            ]
           }
         } catch (fehler) {
           logger.warn(
@@ -585,7 +622,13 @@ export default defineOperationApi<Optionen>({
               detailFamilie(news.plattform),
               news.site,
               heuteObj,
-              { anhaengeMax: ANHAENGE_MAX, anhangMaxBytes: ANHANG_MAX_BYTES }
+              {
+                anhaengeMax: ANHAENGE_MAX,
+                anhangMaxBytes: ANHANG_MAX_BYTES,
+                ...(gemeinde.news_url === null
+                  ? {}
+                  : { listeUrl: gemeinde.news_url })
+              }
             )
             const zeile = zeileAus({
               eintrag,
@@ -593,12 +636,40 @@ export default defineOperationApi<Optionen>({
               pdf: gelesen.pdf,
               anhaenge: gelesen.anhaenge,
               transport: gelesen.transport,
+              beleg: gelesen.beleg,
               gemeindeId: gemeinde.id,
               quelleSeite: gemeinde.news_url ?? '',
               plattform: news.plattform,
               gelesenAm: new Date().toISOString()
             })
-            const id = (await mitteilungen.createOne(zeile)) as string
+            const alteId = nachlesen.get(eintrag.url)
+            let id: string
+            if (alteId === undefined) {
+              id = (await mitteilungen.createOne(zeile)) as string
+            } else {
+              // The Sichtung judged the wrong excerpt, so it judges again; the
+              // decisions stay open, and only a machine draft goes.
+              await mitteilungen.updateOne(alteId, {
+                ...zeile,
+                vorschlag: null,
+                vorschlag_begruendung: null
+              })
+              await verwirfEntwurfZu(
+                artikel,
+                { gemeindemitteilung: { _eq: alteId } },
+                'Aus einer Seite geschrieben, die nicht diese Mitteilung zeigte — neu gelesen.'
+              )
+              id = alteId
+              const eintragZahl = ergebnis.nachgelesen.find(
+                (n) => n.gemeinde === gemeinde.name
+              )
+              if (eintragZahl === undefined)
+                ergebnis.nachgelesen.push({
+                  gemeinde: gemeinde.name,
+                  anzahl: 1
+                })
+              else eintragZahl.anzahl += 1
+            }
             angelegt.push({
               id,
               titel: zeile.titel,
@@ -610,7 +681,7 @@ export default defineOperationApi<Optionen>({
               anhaenge: zeile.anhaenge,
               veranstaltung_am: zeile.veranstaltung_am
             })
-            ergebnis.neu += 1
+            if (alteId === undefined) ergebnis.neu += 1
             ergebnis.detailsGelesen += 1
             ergebnis.anhaengeGelesen += zeile.anhaenge.filter(
               (a) => a.gelesen

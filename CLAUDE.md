@@ -584,7 +584,24 @@ them is wrong even if it works.
    2022 row as undated put 2020 minutes on the desk as news. Undated entries
    are never opened, only named by title in the run's result; a page with
    no dated entry at all reaches the municipality's status line — and the
-   DETAIL page's full date beats a badge whose year was inferred. One Sonnet Sichtung per municipality
+   DETAIL page's full date beats a badge whose year was inferred. **The list
+   names the item, the detail page has to PROVE it** (`shared/gemeindeseite/
+   beleg.ts`, 28 September 2026): Binningen's news list — Backslash, not
+   i-web — links eight of 33 entries to a TOPIC page that ignores the
+   `…/news/<id>` at the end, so a construction notice was read as the page of
+   all fifteen construction sites (6'265 characters, 26 PDFs, the notice
+   itself nowhere) and the vote results as the results page with every
+   voting document. A detail page counts only if it carries the list's
+   teaser (`traegtAnriss`, first eight words in order — true on every saved
+   correct pair, and nothing to check where a list prints no teaser). If it
+   does not, Backslash is asked under the list's OWN address
+   (`modulAdresse`: `<list>.html/<n>/news/<id>`, which shows every entry
+   whatever it links); if that fails too, the row keeps the teaser alone,
+   says so, reads no documents and names the list as its page. The i-web
+   sites (Aesch, Pratteln) link every entry to `/_rte/information/<id>` and
+   never hit this. Rows read before the check are recognised by their text
+   (`falschGelesen`), read again inside the host budget, re-sighted, and
+   their machine draft discarded. One Sonnet Sichtung per municipality
    and run sorts the new items (titles AND an excerpt — „Aus dem Gemeinderat"
    says nothing), steered by the desk's rules, this municipality's decisions
    and — where an item talks about collections — its Abfuhrkalender: a

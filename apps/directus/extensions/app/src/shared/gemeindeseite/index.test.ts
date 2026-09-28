@@ -511,7 +511,8 @@ describe('liesMitteilung', () => {
       detail: null,
       pdf: { text: 'Inhalt von Medienmitteilung', seiten: 1 },
       anhaenge: [],
-      transport: 'direkt'
+      transport: 'direkt',
+      beleg: 'ungeprueft'
     })
   })
 
@@ -662,5 +663,123 @@ describe('die zweite Tuer', () => {
     await expect(l.liesSeite(SEITE, 'example.ch')).rejects.toThrow(
       /antwortete mit 403\./
     )
+  })
+})
+
+// Gemessen am 28.09.2026 in Binningen (Backslash): die Liste verlinkt eine
+// Baustelleninformation auf die Seite ALLER Baustellen, die die Nummer am
+// Ende nicht beachtet. Die Mitteilung selbst steht unter der Adresse der Liste.
+describe('liesMitteilung — die Seite muss die Mitteilung zeigen', () => {
+  const heute = { jahr: 2026, monat: 9, tag: 28 }
+  const fixture = (name: string): string =>
+    require('node:fs').readFileSync(
+      require('node:path').join(__dirname, 'fixtures', name),
+      'utf8'
+    ) as string
+  const LISTE = 'https://www.example.ch/de/news.html/106'
+  const VERLINKT =
+    'https://www.example.ch/de/baustelleninformationen.html/717/news/6819'
+  const EIGEN = `${LISTE}/news/6819`
+  const ANRISS =
+    'Für die Verlegearbeiten des Primeo Stromtrasse quer vor dem Ausfahrtsbereich Fuchshagweg, muss die Ausfahrt am Freitag, 2. Oktober 2026, von 07.30 bis 17.00 Uhr für sämtliche Fahrzeuge inkl. Velos gesperrt werden.'
+  const eintrag = {
+    url: VERLINKT,
+    titel: 'Baustelleninformation',
+    teaser: ANRISS,
+    datum: '2026-09-28',
+    datumQuelle: 'liste' as const,
+    kategorie: null,
+    direktPdf: false,
+    veranstaltungAm: null,
+    veranstaltungBis: null,
+    zeit: null,
+    lokalitaet: null,
+    ort: null,
+    veranstalter: null,
+    serie: null,
+    serieSeit: null,
+    abgesagt: false
+  }
+
+  it('liest eine fremd verlinkte Mitteilung ueber die Adresse der Liste — ohne die PDFs der Uebersicht', async () => {
+    const stub = stubFetch({
+      [ROBOTS]: { status: 404 },
+      [VERLINKT]: { body: fixture('binningen-baustellen-uebersicht.html') },
+      [EIGEN]: { body: fixture('binningen-baustelle-6819.html') }
+    })
+    const gelesen = await liesMitteilung(
+      leser(stub).l,
+      eintrag,
+      'backslash',
+      'example.ch',
+      heute,
+      {
+        listeUrl: LISTE
+      }
+    )
+    expect(gelesen.beleg).toBe('modul')
+    expect(gelesen.detail?.text).toContain(
+      'Verlegearbeiten des Primeo Stromtrasse'
+    )
+    expect(gelesen.detail?.text.length).toBeLessThan(1000)
+    expect(gelesen.anhaenge).toEqual([])
+    expect(stub.aufrufe.filter((a) => a.url.endsWith('.pdf'))).toEqual([])
+  })
+
+  it('behaelt nur den Anriss, wo auch die Adresse der Liste die Mitteilung nicht zeigt', async () => {
+    const stub = stubFetch({
+      [ROBOTS]: { status: 404 },
+      [VERLINKT]: { body: fixture('binningen-baustellen-uebersicht.html') },
+      [EIGEN]: { body: fixture('binningen-baustellen-uebersicht.html') }
+    })
+    const gelesen = await liesMitteilung(
+      leser(stub).l,
+      eintrag,
+      'backslash',
+      'example.ch',
+      heute,
+      {
+        listeUrl: LISTE
+      }
+    )
+    expect(gelesen.beleg).toBe('nur_anriss')
+    expect(gelesen.detail?.text).toBe('')
+    expect(gelesen.detail?.kanonisch).toBeNull()
+    expect(gelesen.anhaenge).toEqual([])
+  })
+
+  it('fragt bei einer anderen Familie keine zweite Adresse, sondern behaelt den Anriss', async () => {
+    const stub = stubFetch({
+      [ROBOTS]: { status: 404 },
+      [VERLINKT]: { body: fixture('binningen-baustellen-uebersicht.html') }
+    })
+    const gelesen = await liesMitteilung(
+      leser(stub).l,
+      eintrag,
+      'weblication',
+      'example.ch',
+      heute,
+      {
+        listeUrl: LISTE
+      }
+    )
+    expect(gelesen.beleg).toBe('nur_anriss')
+    expect(stub.aufrufe.map((a) => a.url)).not.toContain(EIGEN)
+  })
+
+  it('liest wie bisher, wo die verlinkte Seite den Anriss traegt', async () => {
+    const stub = stubFetch({
+      [ROBOTS]: { status: 404 },
+      [EIGEN]: { body: fixture('binningen-baustelle-6819.html') }
+    })
+    const gelesen = await liesMitteilung(
+      leser(stub).l,
+      { ...eintrag, url: EIGEN },
+      'backslash',
+      'example.ch',
+      heute,
+      { listeUrl: LISTE }
+    )
+    expect(gelesen.beleg).toBe('eigen')
   })
 })

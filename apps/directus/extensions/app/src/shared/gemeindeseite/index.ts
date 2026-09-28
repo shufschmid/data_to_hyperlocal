@@ -25,6 +25,7 @@ import {
 } from './auswahl'
 import type { Heute } from './datum'
 import { parseDetail, type DetailInhalt } from './detail'
+import { modulAdresse, traegtAnriss, type Beleg } from './beleg'
 import {
   erkennePlattform,
   listenArt,
@@ -637,6 +638,12 @@ export interface GeleseneMitteilung {
   anhaenge: Anhang[]
   /** Which door the page came through — the row says when it was the crawler. */
   transport: Transport
+  /**
+   * How the text was proved to be this item's (`beleg.ts`): the linked page
+   * carried the teaser, the list's own module address did, neither did (only
+   * the teaser is kept), or there was no teaser to check.
+   */
+  beleg: Beleg
 }
 
 function anhangGrund(error: unknown): AnhangGrund {
@@ -745,6 +752,8 @@ export async function liesMitteilung(
     anhaengeMax?: number
     anhangMaxBytes?: number
     pdfText?: PdfText
+    /** The news list the entry came from — where Backslash shows every entry itself. */
+    listeUrl?: string
   } = {}
 ): Promise<GeleseneMitteilung> {
   const anhaengeMax = optionen.anhaengeMax ?? ANHAENGE_MAX
@@ -759,15 +768,62 @@ export async function liesMitteilung(
       detail: null,
       pdf: await liesText(seite.daten),
       anhaenge: [],
-      transport: seite.transport
+      transport: seite.transport,
+      beleg: 'ungeprueft'
     }
   }
 
-  const detail = parseDetail(seite.html, familie, seite.url, heute)
+  let detail = parseDetail(seite.html, familie, seite.url, heute)
+  let transport = seite.transport
+  let beleg: Beleg = 'ungeprueft'
+  const probe = traegtAnriss(detail, eintrag.teaser)
+  if (probe === true) beleg = 'eigen'
+  if (probe === false) {
+    // The linked page is not this item's page. Backslash shows the item under
+    // the list's own address; any other family, or an entry without a news
+    // id, keeps the teaser alone — never the foreign page's text or its PDFs.
+    const eigen =
+      familie === 'backslash' && optionen.listeUrl !== undefined
+        ? modulAdresse(optionen.listeUrl, eintrag.url)
+        : null
+    let ersatz: { detail: DetailInhalt; transport: Transport } | null = null
+    if (eigen !== null) {
+      try {
+        const zweite = await leser.liesSeite(eigen, siteVon, anhangMaxBytes)
+        if (zweite.art === 'html') {
+          const d = parseDetail(zweite.html, familie, zweite.url, heute)
+          if (traegtAnriss(d, eintrag.teaser) === true)
+            ersatz = {
+              detail: { ...d, kanonisch: d.kanonisch ?? eigen },
+              transport: zweite.transport
+            }
+        }
+      } catch {
+        // A second door that fails leaves the teaser, said on the row.
+      }
+    }
+    if (ersatz !== null) {
+      detail = ersatz.detail
+      transport = ersatz.transport
+      beleg = 'modul'
+    } else {
+      detail = {
+        titel: eintrag.titel,
+        datum: null,
+        lead: null,
+        text: '',
+        dokumente: [],
+        kanonisch: null,
+        verfahren: detail.verfahren
+      }
+      beleg = 'nur_anriss'
+    }
+  }
   // Where the page named no canonical address but the request landed
   // elsewhere, the landing address is the one a reader opens.
   const gelandet = normalisiereUrl(seite.url, seite.url)
   if (
+    beleg !== 'nur_anriss' &&
     detail.kanonisch === null &&
     gelandet !== null &&
     gelandet !== eintrag.url
@@ -780,5 +836,6 @@ export async function liesMitteilung(
     pdfText: liesText
   })
 
-  return { detail, pdf: null, anhaenge, transport: seite.transport }
+  return { detail, pdf: null, anhaenge, transport, beleg }
 }
+export * from './beleg'

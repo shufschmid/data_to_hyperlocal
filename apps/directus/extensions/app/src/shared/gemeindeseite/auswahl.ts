@@ -7,6 +7,7 @@ import type { DetailInhalt } from './detail'
 import { listenArt, type Plattform, type Seitenart } from './erkennung'
 import type { ListenEintrag } from './liste'
 import { kappe, TEXT_MAX_ZEICHEN } from './text'
+import { HINWEIS_MODUL, HINWEIS_NUR_ANRISS, type Beleg } from './beleg'
 
 /** A first read of a page imports the last week, never the archive. */
 export const ERSTLAUF_TAGE = 7
@@ -284,6 +285,8 @@ export interface ZeilenEingabe {
   gelesenAm: string
   /** Which door the page came through; the row says when it was the crawler. */
   transport?: 'direkt' | 'crawler'
+  /** How the text was proved to be this item's — see `beleg.ts`. */
+  beleg?: Beleg
 }
 
 /**
@@ -294,7 +297,14 @@ export function zeileAus(eingabe: ZeilenEingabe): MitteilungsZeile {
   const { eintrag, detail, pdf, anhaenge } = eingabe
   const hinweise: string[] = []
 
-  const rohText = pdf !== null ? pdf.text : (detail?.text ?? '')
+  // With only the teaser proved, the teaser IS the text — and the row says
+  // so, so nobody takes a one-sentence article for a lazy writer.
+  const nurAnriss = eingabe.beleg === 'nur_anriss'
+  const rohText = nurAnriss
+    ? (eintrag.teaser ?? '')
+    : pdf !== null
+      ? pdf.text
+      : (detail?.text ?? '')
   const gekappt = kappe(rohText.trim(), TEXT_MAX_ZEICHEN)
   if (gekappt.abgeschnitten) hinweise.push('Text gekürzt')
   if (gekappt.text === '') hinweise.push('Kein Text gefunden')
@@ -320,6 +330,8 @@ export function zeileAus(eingabe: ZeilenEingabe): MitteilungsZeile {
   if (detail?.verfahren === 'generisch')
     hinweise.push('Inhalt generisch extrahiert – Seitenaufbau unbekannt')
   if (eingabe.transport === 'crawler') hinweise.push('Über den Crawler gelesen')
+  if (eingabe.beleg === 'modul') hinweise.push(HINWEIS_MODUL)
+  if (nurAnriss) hinweise.push(HINWEIS_NUR_ANRISS)
 
   const ungelesen = anhaenge.filter((a) => !a.gelesen).length
   if (ungelesen > 0)
@@ -330,7 +342,11 @@ export function zeileAus(eingabe: ZeilenEingabe): MitteilungsZeile {
   return {
     gemeinde: eingabe.gemeindeId,
     url: eintrag.url,
-    url_kanonisch: detail?.kanonisch ?? null,
+    // Only the list shows a teaser-only item — that is the page a reader can
+    // open and find it on, not the foreign page the list linked.
+    url_kanonisch: nurAnriss
+      ? eingabe.quelleSeite || null
+      : (detail?.kanonisch ?? null),
     quelle_seite: eingabe.quelleSeite,
     plattform: eingabe.plattform,
     titel: detail?.titel ?? eintrag.titel,
