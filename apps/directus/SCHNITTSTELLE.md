@@ -149,6 +149,16 @@ zusätzlich ihren letzten Tag. Der erste Lesetag wird bei der Auslieferung aus
 auf dem Tisch, bevor er hinausgeht. Ein Anlass, der nicht als wichtig gilt,
 bekommt keine Liste, und der Dorfkönig bringt ihn wie bisher am Werktag davor.
 
+**Eine Entsorgungserinnerung trägt ihren Termin seit 1.6.0 immer**, gerechnet
+bei der Auslieferung aus `erscheint_am`: `ideal`, `ende` und der einzige
+Auftritt sind dieser eine Newsletter-Tag. Er ist schon der letzte Tag, an dem
+die Erinnerung nützt — vor der Abfuhr, vor dem Anmeldeschluss, bei einer Frist
+„bis Vormittag" am Fristtag selbst. Das Datum im Text ist der Tag der Abfuhr
+und nicht das Ende: „am Mittwoch (30. September 2026) ab 7.00 Uhr" heisst,
+das Sperrgut steht am Abend davor draussen, und eine Nennung am 30. käme zu
+spät (gemeldet vom Dorfkönig am 28. September 2026). Ein von Hand gesetzter
+Termin ginge vor.
+
 **Was sich ändern kann.** Die Redaktion ändert Termin, Ende, Auftritte und die
 Einstufung als wichtig auch nach der Publikation. `GET /api/v1/artikel/{id}`
 liefert immer den aktuellen Stand; der tägliche Abgleich des Dorfkönigs ist
@@ -542,4 +552,7 @@ gestempelt. Version 1.5.0 am 23. September 2026: der Stand je Abnehmer
 (`?abnehmer=`, `abholung` im Umschlag, `GET /abnehmer/{kennung}`,
 `POST /abnehmer/{kennung}/abgeholt` mit Schlüssel) gegen die Mehrfacheinträge
 des Dorfkönigs; die Liste ohne `abnehmer` ist unverändert, nur die Sortierung
-hat bei gleichem Zeitpunkt jetzt die `id` als zweiten Schlüssel._
+hat bei gleichem Zeitpunkt jetzt die `id` als zweiten Schlüssel. Version 1.6.0
+am 28. September 2026: jede Entsorgungserinnerung trägt einen `termin`, dessen
+drei Angaben ihr `erscheint_am` sind — bisher war er dort `null`, und der
+Dorfkönig las das Ende aus dem Text, also einen Tag zu spät._

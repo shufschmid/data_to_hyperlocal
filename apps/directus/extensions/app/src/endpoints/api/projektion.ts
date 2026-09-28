@@ -17,7 +17,12 @@
 // material of the newsroom, not part of a published article.
 
 import { AMT, quellenlink, type Quellenlink } from '../../redaktion/quelle'
-import { apiTermin, terminAus, type ApiTermin } from '../../redaktion/termin'
+import {
+  apiTermin,
+  erinnerungsTermin,
+  terminAus,
+  type ApiTermin
+} from '../../redaktion/termin'
 import { lesePortalKonfiguration } from '../../redaktion/portale'
 import { istZahlwarnung, istZeitwarnung } from '../../redaktion/warnungen'
 import { seitenLink } from '../../shared/wochenblatt/parse'
@@ -550,12 +555,15 @@ export function projektion(zeile: Rohzeile): ApiArtikel {
         : null,
     // The Lesetage are computed HERE, not stored: „sofort" is the first
     // reading day after the publication, and that is only known once the
-    // article is out.
-    termin: apiTermin(
-      terminAus(zeile.termin ?? null),
-      zeile.wichtig ?? null,
-      zeile.publiziert_am
-    ),
+    // article is out. A waste reminder carries no termin of its own; its
+    // newsletter day IS the termin (`erinnerungsTermin`), and a termin the
+    // newsroom set by hand would still win.
+    termin:
+      apiTermin(
+        terminAus(zeile.termin ?? null),
+        zeile.wichtig ?? null,
+        zeile.publiziert_am
+      ) ?? erinnerungsTermin(zeile.erscheint_am),
     pruefsiegel: pruefsiegel(zeile)
   }
 }

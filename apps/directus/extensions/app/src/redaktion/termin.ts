@@ -351,6 +351,29 @@ export function apiTermin(
     : { ideal: termin.ideal, ende: termin.ende, auftritte }
 }
 
+/**
+ * The termin of a waste reminder, derived from its newsletter day on the way
+ * out and never stored (28 September 2026, the Dorfkoenig's own report).
+ *
+ * `erscheint_am` is already the LAST newsletter day on which the reminder is
+ * of use — `planeErinnerungen` puts it before the collection or the
+ * registration deadline, and on the deadline day itself for a „bis
+ * Vormittag" deadline. Without a termin the Dorfkoenig read the date out of
+ * the text instead: „am Mittwoch (30. September 2026) ab 7.00 Uhr" became an
+ * expiry of 30 September, the day the bulky waste has to be on the street by
+ * seven — too late for any briefing. So all three are that one day: the
+ * contract forbids an `ende` before `ideal`, and the list of one appearance
+ * keeps the Dorfkoenig from its standard rule (the workday BEFORE `ideal`),
+ * which would bring the reminder a day early.
+ */
+export function erinnerungsTermin(
+  erscheintAm: string | null
+): ApiTermin | null {
+  const tag = erscheintAm?.slice(0, 10) ?? null
+  if (!istIsoTag(tag)) return null
+  return { ideal: tag, ende: tag, auftritte: [tag] }
+}
+
 /** Liest einen gespeicherten Termin, so wie Directus ihn zurueckgibt — tolerant, nie werfend. */
 export function terminAus(roh: unknown): Termin | null {
   return pruefeTermin(roh).termin

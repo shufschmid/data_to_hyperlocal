@@ -856,6 +856,41 @@ describe('termin', () => {
     expect(artikel.termin).toEqual({ ideal: '2026-10-09', ende: '2026-10-09' })
   })
 
+  // Gemeldet vom Dorfkoenig am 28.09.2026: Sperrgut in Aesch am Mittwoch,
+  // 30.09., ab 7 Uhr — ohne Termin las er den 30. als Ablaufdatum aus dem Text.
+  it('gibt einer Abfuhr-Erinnerung ihren Newsletter-Tag als Termin, Ende und einzigen Auftritt', () => {
+    const artikel = projektion(
+      zeile({
+        erscheint_am: '2026-09-29',
+        text: 'In Aesch werden Grobsperrgut sowie Metallabfall am Mittwoch (30. September 2026) ab 7.00 Uhr abgeholt.'
+      })
+    )
+    expect(artikel.rubrik).toBe('entsorgung')
+    expect(artikel.termin).toEqual({
+      ideal: '2026-09-29',
+      ende: '2026-09-29',
+      auftritte: ['2026-09-29']
+    })
+  })
+
+  it('laesst einen von Hand gesetzten Termin auch bei einer Erinnerung gelten', () => {
+    const artikel = projektion(
+      zeile({
+        erscheint_am: '2026-09-29',
+        termin: {
+          ideal: '2026-09-28',
+          ende: '2026-09-29',
+          auftritte: ['2026-09-28', '2026-09-29']
+        }
+      })
+    )
+    expect(artikel.termin).toEqual({
+      ideal: '2026-09-28',
+      ende: '2026-09-29',
+      auftritte: ['2026-09-28', '2026-09-29']
+    })
+  })
+
   // Eine von Hand verbogene Zeile darf nicht die ganze Liste kosten.
   it('uebergeht einen unlesbaren Termin statt zu scheitern', () => {
     expect(

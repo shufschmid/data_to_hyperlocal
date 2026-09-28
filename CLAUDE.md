@@ -243,7 +243,13 @@ them is wrong even if it works.
    before `anker_am` before `von`; `bis` or the last termin as `ende`; a
    Dauerangebot its NEXT occurrence from today, one day), for a municipal item the model picks them from the
    days code found in the wording (`alleDaten`), and a day not on that list is
-   dropped with a warning — never delivered. Only the judgement whether the
+   dropped with a warning — never delivered. A WASTE REMINDER carries one too
+   since 28 September 2026 (contract 1.6.0), computed on the way out by
+   `erinnerungsTermin`: ideal, ende and the single appearance are its
+   `erscheint_am`, which `planeErinnerungen` already made the last useful
+   newsletter day — without it the Dorfkönig read the collection day out of
+   the text and expired a Sperrgut reminder on the morning the waste had to
+   be on the street by seven. Only the judgement whether the
    event is IMPORTANT comes from the model (`wichtig`), and it is the one thing
    the newsroom's edit teaches. „Sofort" is not stored: it is the first
    reading day after `publiziert_am` (Mon–Fri, no Basel holiday), computed on
