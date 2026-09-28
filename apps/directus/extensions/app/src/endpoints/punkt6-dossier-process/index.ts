@@ -82,7 +82,17 @@ export default defineEndpoint((router, { services, getSchema, logger }) => {
           // telebasel.ch through the second door where a direct read fails —
           // the ported client takes a fetch, so it stays unchanged.
           telebaselClient: createTelebaselClient(fetchMitZweiterTuer()),
-          logger
+          logger,
+          kandidaten: new ItemsService('sendungskandidaten', {
+            schema,
+            accountability: req.accountability
+          }) as never,
+          loescheEdition: async (editionId) => {
+            await new ItemsService('punkt6_editions', {
+              schema,
+              accountability: req.accountability
+            }).deleteOne(editionId)
+          }
         })
 
         // Die Gemeinde-Sichtung haengt hinten dran und kann die Durchsicht

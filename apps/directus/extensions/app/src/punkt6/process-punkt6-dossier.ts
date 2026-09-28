@@ -10,6 +10,11 @@ import {
 } from './summary-prompt'
 import type { TelebaselClient, TelebaselEpisode } from './telebasel-client'
 import type { Punkt6Dossier, Punkt6Edition } from '../types/schema'
+import {
+  WIEDERHOLUNG_TAGE,
+  wiederholungsHinweis,
+  wiederholungVon
+} from './wiederholung'
 
 // Orchestrates turning one `punkt6_dossiers` row into ONE `punkt6_editions` row -
 // one row per Sendung (episode), same shape as one Regionaljournal `dossiers` row
@@ -53,7 +58,21 @@ export interface ProcessPunkt6DossierDeps {
   parseDossier?: (buffer: Buffer) => Promise<Punkt6Segment>
   /** Today as ISO "YYYY-MM-DD" - injectable so tests can pin the marker patience window. */
   heute?: string
+  /**
+   * The Sichtung's candidates, to tell whether a repeat's edition can go: an
+   * edition something hangs on is never deleted. Absent → the edition stays.
+   */
+  kandidaten?: Pick<ItemsServiceLike<{ id: string }>, 'readByQuery'>
+  /** Removes a repeat's own edition; absent → the edition stays. */
+  loescheEdition?: (id: string) => Promise<void>
 }
+
+/**
+ * Why a dossier waits: telebasel.ch has no markers for the episode yet, or it
+ * has markers that do not fit this transcript. The second is not "too early"
+ * but a different cut — the desk says which.
+ */
+export type WarteGrund = 'keine_marken' | 'passt_nicht'
 
 export interface ProcessPunkt6DossierResult {
   dossierId: string
@@ -63,8 +82,12 @@ export interface ProcessPunkt6DossierResult {
    * run retries, and the municipality Sichtung is deliberately NOT run yet
    * (a whole-show blob makes poor candidates, and the real ones follow).
    */
-  status: 'processed' | 'failed' | 'wartet'
+  status: 'processed' | 'failed' | 'wartet' | 'wiederholung'
   editionId: string | null
+  /** Only with 'wartet'. */
+  grund?: WarteGrund
+  /** Only with 'wiederholung': the broadcast date the transcript repeats. */
+  wiederholungVon?: string
 }
 
 /** How many days after the broadcast the pipeline keeps waiting for markers. */
@@ -163,6 +186,7 @@ async function resolveBeitraege(
   extras: ResolvedBeitrag[]
   /** false: no markers, or markers belonging to a different edit - both mean "keep waiting". */
   brauchbar: boolean
+  grund: WarteGrund | null
 }> {
   // telebasel.ch is what tells us how to split the Sendung into Beitraege at all -
   // without it there's no boundary to slice by, so the whole episode becomes a
@@ -175,7 +199,8 @@ async function resolveBeitraege(
       endSeconds: null
     },
     extras: [],
-    brauchbar: false
+    brauchbar: false,
+    grund: 'keine_marken' as WarteGrund
   }
 
   const slices = episode
@@ -198,7 +223,7 @@ async function resolveBeitraege(
       { passend, segmente: leads.length },
       'process-punkt6-dossier: markers do not match the transcript - segmentation rejected'
     )
-    return unsegmentiert
+    return { ...unsegmentiert, grund: 'passt_nicht' }
   }
 
   const leadsByHeadline = new Map(leads.map((l) => [l.headline, l.lead]))
@@ -213,7 +238,8 @@ async function resolveBeitraege(
   return {
     main: toResolved(mainSlice!),
     extras: restSlices.map(toResolved),
-    brauchbar: true
+    brauchbar: true,
+    grund: null
   }
 }
 
@@ -248,6 +274,78 @@ async function upsertEdition(
   })
 }
 
+function minusTage(iso: string, tage: number): string {
+  return new Date(Date.parse(iso) - tage * 86_400_000)
+    .toISOString()
+    .slice(0, 10)
+}
+
+/**
+ * Settles a dossier whose transcript repeats an earlier edition: marked
+ * processed with a note the desk shows, and the edition it may have got while
+ * it was waiting removed — unless something already hangs on it. Returns null
+ * for an ordinary transcript.
+ */
+async function pruefeWiederholung(
+  dossierId: string,
+  segment: Punkt6Segment,
+  deps: ProcessPunkt6DossierDeps
+): Promise<ProcessPunkt6DossierResult | null> {
+  const frueher = (await deps.editions.readByQuery({
+    filter: {
+      _and: [
+        { broadcast_date: { _lt: segment.broadcastDate } },
+        {
+          broadcast_date: {
+            _gte: minusTage(segment.broadcastDate, WIEDERHOLUNG_TAGE)
+          }
+        },
+        { dossier: { _neq: dossierId } }
+      ]
+    },
+    fields: ['broadcast_date', 'transcript'],
+    sort: ['-broadcast_date'],
+    limit: WIEDERHOLUNG_TAGE
+  })) as Array<Pick<Punkt6Edition, 'broadcast_date' | 'transcript'>>
+  const treffer = wiederholungVon(segment.paragraphs, frueher)
+  if (treffer === null) return null
+
+  const eigene = (await deps.editions.readByQuery({
+    filter: { dossier: { _eq: dossierId } },
+    fields: ['id'],
+    limit: 1
+  })) as Array<{ id: string }>
+  const editionId = eigene[0]?.id ?? null
+  let bleibt = editionId
+  if (
+    editionId !== null &&
+    deps.kandidaten !== undefined &&
+    deps.loescheEdition !== undefined
+  ) {
+    const daran = await deps.kandidaten.readByQuery({
+      filter: { punkt6_edition: { _eq: editionId } },
+      fields: ['id'],
+      limit: 1
+    })
+    if (daran.length === 0) {
+      await deps.loescheEdition(editionId)
+      bleibt = null
+    }
+  }
+
+  await deps.dossiers.updateOne(dossierId, {
+    status: 'processed',
+    processed_at: new Date().toISOString(),
+    error_message: wiederholungsHinweis(treffer.datum, treffer.anteil)
+  })
+  return {
+    dossierId,
+    status: 'wiederholung',
+    editionId: bleibt,
+    wiederholungVon: treffer.datum
+  }
+}
+
 export async function processPunkt6Dossier(
   dossierId: string,
   deps: ProcessPunkt6DossierDeps
@@ -263,11 +361,18 @@ export async function processPunkt6Dossier(
   try {
     const buffer = await deps.readSourceFile(dossier.source_file)
     const segment = await (deps.parseDossier ?? parsePunkt6Dossier)(buffer)
+
+    // A rerun under the new day's name (see wiederholung.ts) is settled before
+    // telebasel.ch is asked anything: its markers could never fit, and a second
+    // Saturday on the desk would propose its stories twice.
+    const wiederholung = await pruefeWiederholung(dossierId, segment, deps)
+    if (wiederholung !== null) return wiederholung
+
     const { episode, resolutionError } = await resolveEpisode(
       segment.broadcastDate,
       deps
     )
-    const { main, extras, brauchbar } = await resolveBeitraege(
+    const { main, extras, brauchbar, grund } = await resolveBeitraege(
       segment,
       episode,
       deps
@@ -300,9 +405,16 @@ export async function processPunkt6Dossier(
         status: 'pending',
         processed_at: new Date().toISOString(),
         error_message:
-          'telebasel.ch has not published Beitrag markers matching this transcript yet - retried daily until they appear.'
+          grund === 'passt_nicht'
+            ? 'Die Beitragsmarken von telebasel.ch passen nicht zu diesem Transkript (anderer Schnitt als die Sendung) — wird bei jedem Lauf erneut versucht.'
+            : 'telebasel.ch hat zu dieser Sendung noch keine Beitragsmarken publiziert — wird bei jedem Lauf erneut versucht.'
       })
-      return { dossierId, status: 'wartet', editionId }
+      return {
+        dossierId,
+        status: 'wartet',
+        editionId,
+        grund: grund ?? 'keine_marken'
+      }
     }
 
     await deps.dossiers.updateOne(dossierId, {

@@ -203,9 +203,10 @@ describe('processPunkt6Dossier', () => {
     const result = await processPunkt6Dossier('dossier-1', deps)
 
     expect(result.status).toBe('wartet')
+    expect(result.grund).toBe('keine_marken')
     const dossierRow = dossiers.all()[0]!
     expect(dossierRow.status).toBe('pending')
-    expect(dossierRow.error_message).toContain('markers')
+    expect(dossierRow.error_message).toContain('noch keine Beitragsmarken')
 
     const edition = editions.all()[0]!
     expect(edition.video_url).toBe(EPISODE.videoUrl)
@@ -235,7 +236,10 @@ describe('processPunkt6Dossier', () => {
     const result = await processPunkt6Dossier('dossier-1', deps)
 
     expect(result.status).toBe('wartet')
+    // Not "too early" but a different cut — the desk says which.
+    expect(result.grund).toBe('passt_nicht')
     expect(dossiers.all()[0]!.status).toBe('pending')
+    expect(dossiers.all()[0]!.error_message).toContain('passen nicht')
 
     const edition = editions.all()[0]!
     expect(edition.headline).toBe(SEGMENT.headline)
@@ -362,6 +366,91 @@ describe('processPunkt6Dossier', () => {
 // Full pipeline against real data: the actual TEBV_2026-08-25.pdf (pdfjs-dist, no
 // stub) resolved against a saved real telebasel.ch response for the matching
 // episode (id 239377, stubbed fetch only - no live network call in a test run).
+// SMD mailed Saturday's show again as „punkt6 vom 27.09.2026" (measured): the
+// markers of Sunday's web episode could never fit, and waiting would end with a
+// second Saturday on the desk.
+describe('processPunkt6Dossier — a rerun under the new day', () => {
+  async function wiederholungsDeps(mitKandidat: boolean) {
+    const pdf = await readFile(join(FIXTURES, 'TEBV_2026-08-25.pdf'))
+    const samstag = await parsePunkt6Dossier(pdf)
+    // Same words, other line breaks — exactly how the two SMD files differed.
+    const sonntag: Punkt6Segment = {
+      broadcastDate: '2026-08-26',
+      headline: 'punkt6 vom 26.08.2026',
+      paragraphs: samstag.paragraphs.flatMap((p) => {
+        const w = p.text.split(' ')
+        const mitte = Math.ceil(w.length / 2)
+        return [
+          { ...p, text: w.slice(0, mitte).join(' ') },
+          { ...p, text: w.slice(mitte).join(' ') }
+        ].filter((x) => x.text !== '')
+      })
+    }
+    const { deps, dossiers } = await buildDeps({
+      parseDossier: vi.fn().mockResolvedValue(sonntag)
+    })
+    // The editions the check reads: Saturday's, plus the one this dossier
+    // got while it was waiting for markers.
+    const frueher = {
+      id: 'ed-samstag',
+      dossier: 'dossier-0',
+      broadcast_date: '2026-08-25',
+      transcript: samstag.paragraphs
+    }
+    const eigene = {
+      id: 'ed-sonntag',
+      dossier: 'dossier-1',
+      broadcast_date: '2026-08-26',
+      transcript: sonntag.paragraphs
+    }
+    const geloescht: string[] = []
+    deps.editions = {
+      ...deps.editions,
+      async readByQuery(query) {
+        const f = (query as { filter: Record<string, unknown> }).filter
+        if ('_and' in f) return [frueher] as never
+        return [eigene] as never
+      }
+    }
+    deps.kandidaten = {
+      readByQuery: async () => (mitKandidat ? [{ id: 'k-1' }] : [])
+    }
+    deps.loescheEdition = async (id) => {
+      geloescht.push(id)
+    }
+    return { deps, dossiers, geloescht }
+  }
+
+  it('recognises the rerun, asks telebasel.ch nothing and removes the waiting edition', async () => {
+    const { deps, dossiers, geloescht } = await wiederholungsDeps(false)
+
+    const result = await processPunkt6Dossier('dossier-1', deps)
+
+    expect(result).toMatchObject({
+      status: 'wiederholung',
+      wiederholungVon: '2026-08-25',
+      editionId: null
+    })
+    expect(deps.telebaselClient.resolveEpisode).not.toHaveBeenCalled()
+    expect(geloescht).toEqual(['ed-sonntag'])
+    const zeile = dossiers.all()[0]!
+    expect(zeile.status).toBe('processed')
+    expect(zeile.error_message).toMatch(
+      /^Wiederholung der Sendung vom 25\.08\.2026 \(\d+ Prozent gleicher Wortlaut\)/
+    )
+  })
+
+  it('never deletes an edition something already hangs on', async () => {
+    const { deps, geloescht } = await wiederholungsDeps(true)
+
+    const result = await processPunkt6Dossier('dossier-1', deps)
+
+    expect(result.status).toBe('wiederholung')
+    expect(result.editionId).toBe('ed-sonntag')
+    expect(geloescht).toEqual([])
+  })
+})
+
 describe('processPunkt6Dossier (real PDF + real telebasel.ch fixtures)', () => {
   it('builds one edition: the real first Beitrag as Hauptbeitrag, the other six as extra_topics', async () => {
     const buffer = await readFile(join(FIXTURES, 'TEBV_2026-08-25.pdf'))

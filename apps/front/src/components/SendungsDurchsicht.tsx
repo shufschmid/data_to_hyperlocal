@@ -15,7 +15,14 @@ import { PUNKT6_DOSSIERS_QUERY, type Punkt6DossiersQueryResult } from '@/graphql
 import { PUNKT6_EDITIONS_QUERY, type Punkt6EditionsQueryResult } from '@/graphql/punkt6-editions'
 import type { AlleMeldungFelder, SendungskandidatFelder } from '@/graphql/redaktion'
 import { LIVE_FETCH_POLICY } from '@/lib/apollo'
-import { kandidatenJeEdition, meldungJeKandidat } from '@/lib/sendungen'
+import {
+  jungeWiederholungen,
+  kandidatenJeEdition,
+  meldungJeKandidat,
+  sendungAusBetreff,
+  verarbeitungsBericht,
+  type Verarbeitungsergebnis
+} from '@/lib/sendungen'
 import { EditionCard } from './EditionCard'
 import { Punkt6EditionCard } from './Punkt6EditionCard'
 import type { SendungsKandidatProps } from './SendungsKandidat'
@@ -29,8 +36,12 @@ export interface SendungsDurchsichtProps {
   /** Holt die Dossiers. Antwortet mit den neu angelegten Zeilen. */
   onPostfach?: () => Promise<{ created: number; dossierIds: string[] } | null>
   /** Verarbeitet EIN Dossier — je Aufruf eine Anfrage, damit kein Proxy-Timeout droht. */
-  /** 'wartet': verarbeitet, aber telebasel.ch hat die Beitragsmarken noch nicht publiziert. */
-  onVerarbeiten?: (dossierId: string) => Promise<'verarbeitet' | 'wartet' | 'fehlgeschlagen'>
+  /**
+   * 'wartet': telebasel.ch hat noch keine Beitragsmarken; 'passt_nicht': es hat
+   * welche, aber sie gehören zu einem anderen Schnitt; 'wiederholung': das
+   * Transkript ist eine frühere Sendung unter neuem Datum.
+   */
+  onVerarbeiten?: (dossierId: string) => Promise<Verarbeitungsergebnis>
   onMeldung?: (id: string) => Promise<void> | void
   onAblehnen?: (id: string, grund: string, kommentar: string | null) => Promise<void> | void
   onWeiterreichen?: (id: string, begruendung: string | null) => Promise<void> | void
@@ -99,6 +110,9 @@ export function SendungsDurchsicht({
   const offeneDossiers = istPunkt6
     ? (p6Dossiers.data?.punkt6_dossiers ?? [])
     : (rjDossiers.data?.dossiers ?? [])
+  // Eine erkannte Wiederholung ist verarbeitet und erzeugt keine Ausgabe — ohne
+  // diese Zeile fehlte der Tag einfach, und niemand wüsste, warum.
+  const wiederholungen = istPunkt6 ? jungeWiederholungen(p6Dossiers.data?.wiederholungen ?? []) : []
   const jeEdition = useMemo(() => kandidatenJeEdition(kandidaten), [kandidaten])
   const jeKandidat = useMemo(() => meldungJeKandidat(meldungen), [meldungen])
 
@@ -115,15 +129,10 @@ export function SendungsDurchsicht({
   // `geholt` ist nur beim Postfach-Weg gesetzt — der Aufraeum-Knopf holt nichts,
   // und "14 Dossiers geholt" ohne Postfachlauf hat schon einmal in die Irre gefuehrt.
   async function verarbeiteAlle(ids: readonly string[], geholt: number | null): Promise<void> {
-    let fertig = 0
-    let wartend = 0
-    let gescheitert = 0
+    const ergebnisse: Verarbeitungsergebnis[] = []
     for (const id of ids) {
-      setFortschritt({ fertig, gesamt: ids.length })
-      const ergebnis = (await onVerarbeiten?.(id)) ?? 'fehlgeschlagen'
-      if (ergebnis === 'verarbeitet') fertig += 1
-      else if (ergebnis === 'wartet') wartend += 1
-      else gescheitert += 1
+      setFortschritt({ fertig: ergebnisse.length, gesamt: ids.length })
+      ergebnisse.push((await onVerarbeiten?.(id)) ?? 'fehlgeschlagen')
     }
     setFortschritt(null)
     // Die Kandidaten liegen eine Ebene hoeher und muessen mit: sie entstehen
@@ -133,15 +142,7 @@ export function SendungsDurchsicht({
       istPunkt6 ? p6Dossiers.refetch() : rjDossiers.refetch(),
       onAktualisieren?.() ?? Promise.resolve()
     ])
-    const teile = [
-      geholt === null
-        ? `${fertig} von ${ids.length} Dossier${ids.length === 1 ? '' : 's'} verarbeitet`
-        : `${geholt} Dossier${geholt === 1 ? '' : 's'} geholt, ${fertig} verarbeitet`
-    ]
-    if (wartend > 0)
-      teile.push(`${wartend} ${wartend === 1 ? 'wartet' : 'warten'} auf die Beitragsmarken von telebasel.ch`)
-    if (gescheitert > 0) teile.push(`${gescheitert} fehlgeschlagen`)
-    setBericht(teile.join(', ') + '.')
+    setBericht(verarbeitungsBericht(ergebnisse, geholt))
   }
 
   return (
@@ -232,6 +233,24 @@ export function SendungsDurchsicht({
         >
           {offeneDossiers.length} Dossier{offeneDossiers.length === 1 ? '' : 's'} noch nicht verarbeitet
           {offeneDossiers.some((d) => d.status === 'failed') ? ' — darunter fehlgeschlagene.' : '.'}
+          {/* Der Grund steht auf der Zeile — ein wartendes Dossier sagt, worauf. */}
+          {offeneDossiers
+            .filter((d) => d.error_message !== null && d.error_message !== '')
+            .map((d) => (
+              <Typography key={d.id} variant="body2" sx={{ mt: 0.5 }}>
+                {sendungAusBetreff(d.source_subject) ?? 'Dossier'}: {d.error_message}
+              </Typography>
+            ))}
+        </Alert>
+      )}
+
+      {wiederholungen.length > 0 && fortschritt === null && (
+        <Alert severity="info">
+          {wiederholungen.map((d) => (
+            <Typography key={d.id} variant="body2">
+              {sendungAusBetreff(d.source_subject) ?? 'Dossier'}: {d.error_message}
+            </Typography>
+          ))}
         </Alert>
       )}
 

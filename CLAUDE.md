@@ -876,7 +876,7 @@ them is wrong even if it works.
    pdfjs from `unpdf/pdfjs`, `pdfjs-dist` is gone from the bundle, and there is
    exactly one copy and no worker file. **Only a real `docker compose build`
    plus one processed dossier proves this; no test can.**
-   Three fixes originated HERE and belong in the sister project as copies.
+   Four fixes originated HERE and belong in the sister project as copies.
    First: telebasel.ch renders the NEWEST episode only as the archive page's
    hero, never in the vertical episode list, so the current Sendung could never
    be resolved — hit on the 31.08. dossier, and structural, because a
@@ -911,6 +911,35 @@ them is wrong even if it works.
    Sichtung itself (`redaktion/sendunglauf.ts`, this project's own code) now
    diffs on reprocessing like the press review: an edition's OPEN candidates
    are replaced, decided ones stay and are never re-asked.
+   Fourth: **SMD can mail a RERUN under the new day's name**, and then the
+   markers wait for ever (measured 28 September 2026). „punkt6neu vom
+   27.09.2026" was headed „punkt6 vom 27.09.2026" and carried Saturday's show
+   again — 126 of 139 paragraphs word for word, the rest re-wrapped — while
+   the web episode of that vote Sunday was a special: all ten markers were
+   published and none could fit, so the desk said „wartet auf die
+   Beitragsmarken" about markers that stood on the page, and after three days
+   Saturday would have been on the desk twice, its stories proposed again.
+   `punkt6/wiederholung.ts` compares a new transcript with the editions of
+   the seven days before, as eight-word runs (the line breaks moved, the words
+   did not); at 80 percent it is a repeat, settled before telebasel.ch is
+   asked anything: the dossier is `processed` with a note („Wiederholung der
+   Sendung vom …"), the edition it got while waiting is removed unless a
+   candidate hangs on it, and the desk DECLARES it in a line of its own rather
+   than letting the day go missing. Measured over the eight transcripts of
+   20.–27.09.: 27.09. a 100-percent repeat of 26.09., every other day —
+   Sunday 20.09. included — a show of its own. And the waiting now says WHICH
+   wait it is (`grund`: `keine_marken` is too early, `passt_nicht` is a
+   different cut), on the dossier and in the button's report. Two timings
+   were wrong as well and are fixed in the Flows: SMD mails at about 22:05
+   every evening (measured 20.–27.09.), but „punkt6 holen" ran at 19:00, so a
+   show reached the desk at 19:15 the NEXT day — it runs at 22:30 now, with
+   06:30 as a safety; and „punkt6 verarbeiten" retried a waiting dossier once
+   a day, so markers set an hour after the run waited a day — it runs at
+   06:45, 12:45, 18:45 and 22:45. The broadcast's subtitles exist (Zattoo
+   carries a German text track of Telebasel's live stream), but only behind a
+   personal streaming session and only live; telebasel.ch's own HLS has video
+   and audio and no text track. If Telebasel ever adds it there, that is the
+   door — until then the transcript is SMD's.
    Two things were deliberately changed on arrival. The Beiträge lost their
    `draft/published` status — a leftover from an abandoned plan that would have
    put two meanings of „publizieren" side by side; here the word means one

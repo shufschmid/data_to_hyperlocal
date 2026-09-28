@@ -1,5 +1,15 @@
 import type { AlleMeldungFelder, SendungskandidatFelder } from '@/graphql/redaktion'
-import { anzahlOffen, bleibtOffen, kandidatenJeEdition, meldungJeKandidat, zeitText } from './sendungen'
+import {
+  anzahlOffen,
+  bleibtOffen,
+  jungeWiederholungen,
+  kandidatenJeEdition,
+  meldungJeKandidat,
+  sendungAusBetreff,
+  verarbeitungsBericht,
+  verarbeitungsergebnis,
+  zeitText
+} from './sendungen'
 
 function kandidat(ueber: Partial<SendungskandidatFelder> = {}): SendungskandidatFelder {
   return {
@@ -131,5 +141,41 @@ describe('zeitText', () => {
     expect(zeitText(49)).toBe('0:49')
     expect(zeitText(0)).toBe('0:00')
     expect(zeitText(null)).toBe('')
+  })
+})
+
+describe('Verarbeitung — was der Knopf berichtet', () => {
+  it('liest Status und Grund aus der Antwort', () => {
+    expect(verarbeitungsergebnis({ status: 'processed' })).toBe('verarbeitet')
+    expect(verarbeitungsergebnis({ status: 'wartet', grund: 'keine_marken' })).toBe('wartet')
+    expect(verarbeitungsergebnis({ status: 'wartet', grund: 'passt_nicht' })).toBe('passt_nicht')
+    expect(verarbeitungsergebnis({ status: 'wiederholung' })).toBe('wiederholung')
+    expect(verarbeitungsergebnis(undefined)).toBe('fehlgeschlagen')
+  })
+
+  it('nennt die zwei Arten zu warten und die Wiederholung getrennt', () => {
+    expect(verarbeitungsBericht(['wiederholung'], null)).toBe(
+      '0 von 1 Dossier verarbeitet, 1 ist eine Wiederholung einer früheren Sendung und wurde nicht noch einmal aufbereitet.'
+    )
+    expect(verarbeitungsBericht(['verarbeitet', 'wartet', 'passt_nicht'], 3)).toBe(
+      '3 Dossiers geholt, 1 verarbeitet, 1 wartet auf die Beitragsmarken von telebasel.ch, bei 1 passen die Beitragsmarken von telebasel.ch nicht zum Transkript (anderer Schnitt als die Sendung).'
+    )
+  })
+
+  it('findet die Sendung im Betreff des SMD-Mails', () => {
+    expect(
+      sendungAusBetreff('Resultate für Ihre gespeicherte Recherche: punkt6neu vom 27.09.2026 22:04:48')
+    ).toBe('punkt6 vom 27.09.2026')
+    expect(sendungAusBetreff('etwas anderes')).toBeNull()
+  })
+
+  it('zeigt nur die Wiederholungen der letzten zwei Wochen', () => {
+    const heute = new Date('2026-09-28T12:00:00Z')
+    const d = [
+      { id: 'a', date_created: '2026-09-27T20:30:00Z' },
+      { id: 'b', date_created: '2026-09-01T20:30:00Z' },
+      { id: 'c', date_created: null }
+    ]
+    expect(jungeWiederholungen(d, heute).map((x) => x.id)).toEqual(['a'])
   })
 })

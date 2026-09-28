@@ -13,11 +13,26 @@ export interface Punkt6DossierFields {
 
 export interface Punkt6DossiersQueryResult {
   punkt6_dossiers: Punkt6DossierFields[]
+  /** Recognised reruns of an earlier show — processed, but declared on the desk. */
+  wiederholungen?: Punkt6DossierFields[]
 }
 
 export const PUNKT6_DOSSIERS_QUERY = gql`
   query Punkt6Dossiers($limit: Int = 25) {
     punkt6_dossiers(limit: $limit, sort: ["-date_created"], filter: { status: { _neq: "processed" } }) {
+      id
+      status
+      source_subject
+      error_message
+      date_created
+    }
+    wiederholungen: punkt6_dossiers(
+      limit: 5
+      sort: ["-date_created"]
+      filter: {
+        _and: [{ status: { _eq: "processed" } }, { error_message: { _starts_with: "Wiederholung" } }]
+      }
+    ) {
       id
       status
       source_subject

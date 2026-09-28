@@ -108,7 +108,7 @@ import IconButton from '@mui/material/IconButton'
 import Menu from '@mui/material/Menu'
 import SettingsOutlined from '@mui/icons-material/SettingsOutlined'
 import MenuItem from '@mui/material/MenuItem'
-import { anzahlOffen as anzahlSendungskandidaten } from '@/lib/sendungen'
+import { anzahlOffen as anzahlSendungskandidaten, verarbeitungsergebnis } from '@/lib/sendungen'
 import { anzahlOffen, liestUnterlagen } from '@/lib/amtsblatt'
 import { anzahlOffen as anzahlMitteilungen, type GemeindeseitenLaufStatus } from '@/lib/gemeindeseiten'
 import { anzahlOffen as anzahlAnlaesse } from '@/lib/veranstaltungen'
@@ -1530,11 +1530,9 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
               const antwort = await sitzungsFetch(`/api/${pfad}/${dossierId}/process`, { method: 'POST' })
               if (!antwort.ok) return 'fehlgeschlagen'
               const inhalt = (await antwort.json().catch(() => null)) as {
-                data?: { status?: string }
+                data?: { status?: string; grund?: string }
               } | null
-              if (inhalt?.data?.status === 'processed') return 'verarbeitet'
-              if (inhalt?.data?.status === 'wartet') return 'wartet'
-              return 'fehlgeschlagen'
+              return verarbeitungsergebnis(inhalt?.data)
             }}
             onMeldung={async (id) => {
               await fuehreAus(`sendungen/${id}/meldung`)

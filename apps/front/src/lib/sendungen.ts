@@ -86,3 +86,71 @@ export function zeitText(sekunden: number | null): string {
   const sek = Math.floor(sekunden % 60)
   return `${min}:${String(sek).padStart(2, '0')}`
 }
+
+/** Das Ergebnis einer Verarbeitung, wie der Knopf es zählt. */
+export type Verarbeitungsergebnis =
+  | 'verarbeitet'
+  | 'wartet'
+  | 'passt_nicht'
+  | 'wiederholung'
+  | 'fehlgeschlagen'
+
+/** Liest die Antwort von POST …/process — Status und, beim Warten, den Grund. */
+export function verarbeitungsergebnis(
+  daten: { status?: string; grund?: string } | undefined
+): Verarbeitungsergebnis {
+  if (daten?.status === 'processed') return 'verarbeitet'
+  if (daten?.status === 'wiederholung') return 'wiederholung'
+  if (daten?.status === 'wartet') return daten.grund === 'passt_nicht' ? 'passt_nicht' : 'wartet'
+  return 'fehlgeschlagen'
+}
+
+/**
+ * Was ein Knopfdruck bewirkt hat, in einem Satz. Die zwei Arten zu warten
+ * werden getrennt genannt: „noch keine Marken" ist zu früh, „Marken passen
+ * nicht" ist ein anderer Schnitt als die Sendung — und eine Wiederholung ist
+ * weder das eine noch das andere.
+ */
+export function verarbeitungsBericht(
+  ergebnisse: readonly Verarbeitungsergebnis[],
+  geholt: number | null
+): string {
+  const zahl = (e: Verarbeitungsergebnis) => ergebnisse.filter((x) => x === e).length
+  const n = ergebnisse.length
+  const teile = [
+    geholt === null
+      ? `${zahl('verarbeitet')} von ${n} Dossier${n === 1 ? '' : 's'} verarbeitet`
+      : `${geholt} Dossier${geholt === 1 ? '' : 's'} geholt, ${zahl('verarbeitet')} verarbeitet`
+  ]
+  const wartet = zahl('wartet')
+  if (wartet > 0)
+    teile.push(`${wartet} ${wartet === 1 ? 'wartet' : 'warten'} auf die Beitragsmarken von telebasel.ch`)
+  const passtNicht = zahl('passt_nicht')
+  if (passtNicht > 0)
+    teile.push(
+      `bei ${passtNicht} passen die Beitragsmarken von telebasel.ch nicht zum Transkript (anderer Schnitt als die Sendung)`
+    )
+  const wiederholt = zahl('wiederholung')
+  if (wiederholt > 0)
+    teile.push(
+      `${wiederholt} ${wiederholt === 1 ? 'ist eine Wiederholung' : 'sind Wiederholungen'} einer früheren Sendung und ${wiederholt === 1 ? 'wurde' : 'wurden'} nicht noch einmal aufbereitet`
+    )
+  const gescheitert = zahl('fehlgeschlagen')
+  if (gescheitert > 0) teile.push(`${gescheitert} fehlgeschlagen`)
+  return teile.join(', ') + '.'
+}
+
+/** „punkt6 vom 27.09.2026" aus dem Betreff des SMD-Mails, sonst null. */
+export function sendungAusBetreff(betreff: string | null): string | null {
+  const m = /punkt6\S*\s+vom\s+(\d{2}\.\d{2}\.\d{4})/i.exec(betreff ?? '')
+  return m === null ? null : `punkt6 vom ${m[1]}`
+}
+
+/** Die erkannten Wiederholungen der letzten zwei Wochen — ältere interessieren den Tisch nicht mehr. */
+export function jungeWiederholungen<T extends { date_created: string | null }>(
+  dossiers: readonly T[],
+  heute: Date = new Date()
+): T[] {
+  const grenze = heute.getTime() - 14 * 86_400_000
+  return dossiers.filter((d) => d.date_created !== null && Date.parse(d.date_created) >= grenze)
+}

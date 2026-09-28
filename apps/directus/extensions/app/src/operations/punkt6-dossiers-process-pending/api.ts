@@ -62,7 +62,9 @@ export default defineOperationApi<Options>({
     let processed = 0
     let failed = 0
     let wartend = 0
+    let wiederholt = 0
     let kandidatenNeu = 0
+    const editionenService = new ItemsService('punkt6_editions', { schema })
 
     for (const { id } of pending) {
       try {
@@ -76,10 +78,15 @@ export default defineOperationApi<Options>({
           // telebasel.ch through the second door where a direct read fails —
           // the ported client takes a fetch, so it stays unchanged.
           telebaselClient: createTelebaselClient(fetchMitZweiterTuer()),
-          logger
+          logger,
+          kandidaten: kandidaten as never,
+          loescheEdition: async (editionId) => {
+            await editionenService.deleteOne(editionId)
+          }
         })
         if (result.status === 'processed') processed++
         else if (result.status === 'wartet') wartend++
+        else if (result.status === 'wiederholung') wiederholt++
         else failed++
 
         // Die Gemeinde-Sichtung faengt ihre Fehler selbst — sie darf die
@@ -120,6 +127,7 @@ export default defineOperationApi<Options>({
       processed,
       failed,
       wartend,
+      wiederholt,
       kandidaten: kandidatenNeu,
       aufgeraeumt
     }
