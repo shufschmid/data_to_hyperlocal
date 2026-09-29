@@ -78,6 +78,14 @@
       },
       {
         "type": "operation",
+        "name": "kanton-pruefen",
+        "source": {
+          "app": "src/operations/kanton-pruefen/app.ts",
+          "api": "src/operations/kanton-pruefen/api.ts"
+        }
+      },
+      {
+        "type": "operation",
         "name": "redaktion-abarbeiten",
         "source": {
           "app": "src/operations/redaktion-abarbeiten/app.ts",

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   kandidatAlsHinweis,
+  kantonsmitteilungAlsHinweis,
   mitteilungAlsHinweis,
   publikationAlsHinweis,
   reicheWeiter,
@@ -233,5 +234,50 @@ describe('mitteilungAlsHinweis', () => {
     expect(felder.fundort).toBe('Mitteilung auf der Gemeindewebsite')
     expect(felder.begruendung).toBe('Erst nachfragen.')
     expect(felder.quelltext).toBe('T\nhttps://www.riehen.ch/x.php')
+  })
+})
+
+describe('kantonsmitteilungAlsHinweis', () => {
+  const zeile = {
+    id: 'k-1',
+    titel: 'Tempo 30 in Muenchenstein',
+    url: 'https://www.baselland.ch/politik-und-behorden/direktionen/sicherheitsdirektion/medienmitteilungen/tempo-30',
+    quelle: 'medienmitteilung' as const,
+    behoerde: 'Sicherheitsdirektion',
+    publiziert_am: '2026-09-02',
+    teaser: null,
+    text: 'Die Anträge werden teilweise gutgeheissen.',
+    vorschlag_begruendung: 'Trifft die Hauptstrasse.',
+    gemeinde: { id: 'g-1' }
+  }
+
+  it('nennt den Kanton mit Behoerde und Datum als Fundort und haengt die Mitteilung als Herkunft an', () => {
+    const felder = kantonsmitteilungAlsHinweis(zeile, null)
+    expect(felder).toEqual({
+      gemeinde: 'g-1',
+      titel: 'Tempo 30 in Muenchenstein',
+      fundort:
+        'Medienmitteilung des Kantons Basel-Landschaft vom 2. September 2026 (Sicherheitsdirektion)',
+      begruendung: 'Trifft die Hauptstrasse.',
+      quelltext: `Tempo 30 in Muenchenstein
+Die Anträge werden teilweise gutgeheissen.
+${zeile.url}`,
+      status: 'offen',
+      kantonsmitteilung: 'k-1'
+    })
+  })
+
+  it('nennt bei einer Polizeimeldung die Polizei und zieht die Begruendung des Editors vor', () => {
+    const felder = kantonsmitteilungAlsHinweis(
+      {
+        ...zeile,
+        quelle: 'polizeimeldung',
+        behoerde: 'Polizei Basel-Landschaft',
+        publiziert_am: null
+      },
+      'Erst nachfragen.'
+    )
+    expect(felder.fundort).toBe('Polizeimeldung der Polizei Basel-Landschaft')
+    expect(felder.begruendung).toBe('Erst nachfragen.')
   })
 })

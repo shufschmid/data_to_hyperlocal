@@ -133,6 +133,8 @@ export interface LernEintrag {
 
 const GRUND_TEXT: Record<string, string> = {
   nicht_relevant: 'nicht relevant',
+  // The Kanton desk's own reason: the municipality was one name in a list.
+  nur_erwaehnt: 'nur am Rand erwaehnt',
   zu_privat: 'zu privat',
   doublette: 'Doublette',
   veraltet: 'veraltet',

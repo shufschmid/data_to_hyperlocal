@@ -8,11 +8,12 @@ describe('Bereiche', () => {
   it('fuehren jede Werkbank genau einmal', () => {
     const alle = BEREICHE.flatMap((b) => b.werkbaenke.map((w) => w.wert))
     expect(new Set(alle).size).toBe(alle.length)
-    expect(alle).toHaveLength(10)
+    expect(alle).toHaveLength(11)
   })
 
   it('kennen den Bereich einer Werkbank, nicht aber die Einstellungen', () => {
     expect(bereichVon('amtsblatt')?.wert).toBe('gemeinde')
+    expect(bereichVon('kanton')?.wert).toBe('gemeinde')
     expect(bereichVon('punkt6')?.wert).toBe('medien')
     expect(bereichVon('statistik')?.wert).toBe('daten')
     expect(bereichVon('gemeinden')).toBeNull()

@@ -1,0 +1,575 @@
+{
+  "@components": {
+    "actions": {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/@actions"
+    },
+    "aliases": {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/@aliases"
+    },
+    "breadcrumbs": {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/@breadcrumbs"
+    },
+    "contextnavigation": {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/@contextnavigation"
+    },
+    "footer": {
+      "@id": "https://bl-api.webcloud7.ch/@footer",
+      "data": {
+        "msg": "Not extandable for caching reasons, please call @id in a separate request."
+      }
+    },
+    "linklist": {
+      "@id": "https://bl-api.webcloud7.ch/@linklist",
+      "data": {
+        "msg": "Not extandable for caching reasons, please call @id in a separate request."
+      }
+    },
+    "navigation": {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/@navigation"
+    },
+    "navroot": {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/@navroot"
+    },
+    "types": {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/@types"
+    },
+    "workflow": {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/@workflow"
+    }
+  },
+  "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt",
+  "@type": "News",
+  "UID": "06832544e9204e3ab8095b6cd458798e",
+  "allow_discussion": false,
+  "created": "2026-09-24T09:15:53+00:00",
+  "description": "In der Mittwochnacht, 23. September 2026, kurz nach 23.00 Uhr, kam es auf einem Hof im Grien in Buus BL zu einem Brandausbruch. Eine Person wurde verletzt.",
+  "effective": "2026-09-24T09:20:26+00:00",
+  "exclude_from_nav": false,
+  "expires": null,
+  "id": "brand-in-scheunenanbau-eine-person-verletzt",
+  "image": null,
+  "image_caption": null,
+  "is_folderish": true,
+  "items": [],
+  "items_total": 0,
+  "language": {
+    "title": "Deutsch",
+    "token": "de"
+  },
+  "layout": "@@simplelayout-view",
+  "lock": {},
+  "migration_date": null,
+  "modified": "2026-09-24T09:20:26+00:00",
+  "news_date": "2026-09-24T11:15:00",
+  "next_item": {},
+  "parent": {
+    "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen",
+    "@type": "NewsFolder",
+    "description": "",
+    "effective": "2023-02-10T11:59:00+00:00",
+    "end": null,
+    "getObjSize": null,
+    "getRemoteUrl": null,
+    "head_title": null,
+    "image_field": null,
+    "image_scales": {},
+    "mime_type": null,
+    "nav_title": null,
+    "review_state": "website_workflow--STATUS--veroffentlicht",
+    "start": null,
+    "title": "Polizeimeldungen",
+    "type_title": "News Folder"
+  },
+  "previous_item": {},
+  "relatedItems": [],
+  "review_state": "website_workflow--STATUS--veroffentlicht",
+  "slblocks": {
+    "0b74fb4484694236a45f5be21f5ec019": {
+      "@components": {
+        "actions": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-1/@actions"
+        },
+        "aliases": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-1/@aliases"
+        },
+        "breadcrumbs": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-1/@breadcrumbs"
+        },
+        "contextnavigation": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-1/@contextnavigation"
+        },
+        "footer": {
+          "@id": "https://bl-api.webcloud7.ch/@footer",
+          "data": {
+            "msg": "Not extandable for caching reasons, please call @id in a separate request."
+          }
+        },
+        "linklist": {
+          "@id": "https://bl-api.webcloud7.ch/@linklist",
+          "data": {
+            "msg": "Not extandable for caching reasons, please call @id in a separate request."
+          }
+        },
+        "navigation": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-1/@navigation"
+        },
+        "navroot": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-1/@navroot"
+        },
+        "types": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-1/@types"
+        },
+        "workflow": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-1/@workflow"
+        }
+      },
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-1",
+      "@type": "Block",
+      "UID": "0b74fb4484694236a45f5be21f5ec019",
+      "allow_discussion": false,
+      "block_template": {
+        "title": "Bild oben",
+        "token": "image_top"
+      },
+      "button_link": "",
+      "button_position": {
+        "title": "Links",
+        "token": "left"
+      },
+      "button_text": null,
+      "collapsable": false,
+      "created": "2026-09-24T09:18:38+00:00",
+      "external_link": null,
+      "float_image": false,
+      "id": "-1",
+      "image": null,
+      "image_alt_text": null,
+      "image_caption": null,
+      "internal_link": null,
+      "is_folderish": true,
+      "layout": "view",
+      "lock": {},
+      "modified": "2026-09-24T09:18:38+00:00",
+      "next_item": {},
+      "parent": {
+        "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt",
+        "@type": "News",
+        "description": "In der Mittwochnacht, 23. September 2026, kurz nach 23.00 Uhr, kam es auf einem Hof im Grien in Buus BL zu einem Brandausbruch. Eine Person wurde verletzt.",
+        "effective": "2026-09-24T09:20:26+00:00",
+        "end": null,
+        "getObjSize": null,
+        "getRemoteUrl": null,
+        "head_title": null,
+        "image_field": null,
+        "image_scales": {},
+        "mime_type": null,
+        "nav_title": null,
+        "review_state": "website_workflow--STATUS--veroffentlicht",
+        "start": null,
+        "title": "Brand in Scheunenanbau \u2013 Eine Person verletzt",
+        "type_title": "News"
+      },
+      "previous_item": {},
+      "review_state": null,
+      "show_in_overlay": false,
+      "show_title": false,
+      "text": {
+        "content-type": "text/html",
+        "data": "<p>Das Feuer brach in einem Anbau einer Scheune aus.</p>\n<p>Der Hofbetreiber wurde durch den Brand geweckt und versuchte umgehend die Flammen zu l\u00f6schen. Dadurch konnte verhindert werden, dass sich das Feuer auf den angrenzenden Stall ausbreitete.</p>\n<p>Die Feuerwehr konnte den Brand rasch unter Kontrolle bringen und l\u00f6schen.</p>\n<p>Beim L\u00f6schversuch zog sich der Hofbetreiber eine Rauchgasvergiftung zu. Er wurde durch den Rettungsdienst zur weiteren medizinischen Versorgung in ein Spital gebracht.</p>\n<p>Die im Stall untergebrachten Tiere blieben vom Feuer verschont. Sie wurden vorsorglich durch eine Tier\u00e4rztin untersucht.</p>\n<p>Die Brandursache ist Gegenstand der Ermittlungen der Spezialisten der Polizei Basel-Landschaft.</p>\n<p>Im Einsatz standen die Feuerwehren Buus/Maisprach und Rheinfelden, der Rettungsdienst und die Polizei Basel-Landschaft.</p>",
+        "encoding": "utf-8"
+      },
+      "title": ".",
+      "type_title": "Text und Bild",
+      "version": "current"
+    },
+    "2719c18e31cc490780827961ca1b24e0": {
+      "@components": {
+        "actions": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-3/@actions"
+        },
+        "aliases": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-3/@aliases"
+        },
+        "breadcrumbs": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-3/@breadcrumbs"
+        },
+        "contextnavigation": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-3/@contextnavigation"
+        },
+        "footer": {
+          "@id": "https://bl-api.webcloud7.ch/@footer",
+          "data": {
+            "msg": "Not extandable for caching reasons, please call @id in a separate request."
+          }
+        },
+        "linklist": {
+          "@id": "https://bl-api.webcloud7.ch/@linklist",
+          "data": {
+            "msg": "Not extandable for caching reasons, please call @id in a separate request."
+          }
+        },
+        "navigation": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-3/@navigation"
+        },
+        "navroot": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-3/@navroot"
+        },
+        "types": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-3/@types"
+        },
+        "workflow": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-3/@workflow"
+        }
+      },
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-3",
+      "@type": "Block",
+      "UID": "2719c18e31cc490780827961ca1b24e0",
+      "allow_discussion": false,
+      "block_template": {
+        "title": "Bild oben",
+        "token": "image_top"
+      },
+      "button_link": "",
+      "button_position": {
+        "title": "Links",
+        "token": "left"
+      },
+      "button_text": null,
+      "collapsable": false,
+      "created": "2026-09-24T09:20:04+00:00",
+      "external_link": null,
+      "float_image": false,
+      "id": "-3",
+      "image": {
+        "content-type": "image/jpeg",
+        "download": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-3/@@images/image-2000-3ba3c81d213264ddf676219970bba947.jpeg",
+        "filename": "2026_09_24_Buus_Brand_Hof_Scheune2.jpg",
+        "height": 1406,
+        "scales": {
+          "great": {
+            "download": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-3/@@images/image-1200-e4ea7651243833a925005014dcbb3bfc.jpeg",
+            "height": 843,
+            "width": 1200
+          },
+          "huge": {
+            "download": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-3/@@images/image-1600-03b74b978b57abb77e287de073fe8762.jpeg",
+            "height": 1124,
+            "width": 1600
+          },
+          "icon": {
+            "download": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-3/@@images/image-32-c11db92a9f518104b2997f5d0483922b.jpeg",
+            "height": 22,
+            "width": 32
+          },
+          "large": {
+            "download": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-3/@@images/image-800-4d96442becc56f78ba9a6731884a9e00.jpeg",
+            "height": 562,
+            "width": 800
+          },
+          "larger": {
+            "download": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-3/@@images/image-1000-9660264d948b799879abb600f3678e38.jpeg",
+            "height": 703,
+            "width": 1000
+          },
+          "listing": {
+            "download": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-3/@@images/image-16-2367ce71b01e1d47c1b0d4513297d244.jpeg",
+            "height": 11,
+            "width": 16
+          },
+          "mini": {
+            "download": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-3/@@images/image-200-ea32a8b53c3fbf41b3e90f9c4d084b0c.jpeg",
+            "height": 140,
+            "width": 200
+          },
+          "preview": {
+            "download": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-3/@@images/image-670-1f5564a25637f2571b598fc5454bb033.jpeg",
+            "height": 471,
+            "width": 670
+          },
+          "slider": {
+            "download": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-3/@@images/image-1000-0b2bdf5b5176c7aa6329cd8186b6ee57.jpeg",
+            "height": 703,
+            "width": 1000
+          },
+          "teaser": {
+            "download": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-3/@@images/image-800-4d96442becc56f78ba9a6731884a9e00.jpeg",
+            "height": 562,
+            "width": 800
+          },
+          "thumb": {
+            "download": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-3/@@images/image-128-058d2a35db34b9badd6cf1c62442cee2.jpeg",
+            "height": 89,
+            "width": 128
+          },
+          "tile": {
+            "download": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-3/@@images/image-64-2a3d955225735842e1f83e7223627766.jpeg",
+            "height": 44,
+            "width": 64
+          }
+        },
+        "size": 766212,
+        "width": 2000
+      },
+      "image_alt_text": null,
+      "image_caption": null,
+      "internal_link": null,
+      "is_folderish": true,
+      "layout": "view",
+      "lock": {},
+      "modified": "2026-09-24T09:20:04+00:00",
+      "next_item": {},
+      "parent": {
+        "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt",
+        "@type": "News",
+        "description": "In der Mittwochnacht, 23. September 2026, kurz nach 23.00 Uhr, kam es auf einem Hof im Grien in Buus BL zu einem Brandausbruch. Eine Person wurde verletzt.",
+        "effective": "2026-09-24T09:20:26+00:00",
+        "end": null,
+        "getObjSize": null,
+        "getRemoteUrl": null,
+        "head_title": null,
+        "image_field": null,
+        "image_scales": {},
+        "mime_type": null,
+        "nav_title": null,
+        "review_state": "website_workflow--STATUS--veroffentlicht",
+        "start": null,
+        "title": "Brand in Scheunenanbau \u2013 Eine Person verletzt",
+        "type_title": "News"
+      },
+      "previous_item": {},
+      "review_state": null,
+      "show_in_overlay": true,
+      "show_title": false,
+      "text": null,
+      "title": ".",
+      "type_title": "Text und Bild",
+      "version": "current"
+    },
+    "f2ce25698c3b4710bd4e5ef82805076e": {
+      "@components": {
+        "actions": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-2/@actions"
+        },
+        "aliases": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-2/@aliases"
+        },
+        "breadcrumbs": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-2/@breadcrumbs"
+        },
+        "contextnavigation": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-2/@contextnavigation"
+        },
+        "footer": {
+          "@id": "https://bl-api.webcloud7.ch/@footer",
+          "data": {
+            "msg": "Not extandable for caching reasons, please call @id in a separate request."
+          }
+        },
+        "linklist": {
+          "@id": "https://bl-api.webcloud7.ch/@linklist",
+          "data": {
+            "msg": "Not extandable for caching reasons, please call @id in a separate request."
+          }
+        },
+        "navigation": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-2/@navigation"
+        },
+        "navroot": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-2/@navroot"
+        },
+        "types": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-2/@types"
+        },
+        "workflow": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-2/@workflow"
+        }
+      },
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-2",
+      "@type": "Block",
+      "UID": "f2ce25698c3b4710bd4e5ef82805076e",
+      "allow_discussion": false,
+      "block_template": {
+        "title": "Bild oben",
+        "token": "image_top"
+      },
+      "button_link": "",
+      "button_position": {
+        "title": "Links",
+        "token": "left"
+      },
+      "button_text": null,
+      "collapsable": false,
+      "created": "2026-09-24T09:19:42+00:00",
+      "external_link": null,
+      "float_image": false,
+      "id": "-2",
+      "image": {
+        "content-type": "image/jpeg",
+        "download": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-2/@@images/image-2000-659bcd12e6cd770304a149580cab7d65.jpeg",
+        "filename": "2026_09_24_Buus_Brand_Hof_Scheune1.jpg",
+        "height": 1301,
+        "scales": {
+          "great": {
+            "download": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-2/@@images/image-1200-e608a559350f808c3310a2f2422e733a.jpeg",
+            "height": 780,
+            "width": 1200
+          },
+          "huge": {
+            "download": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-2/@@images/image-1600-7cd54f62faffc2dbab0e497e5bc75ebe.jpeg",
+            "height": 1040,
+            "width": 1600
+          },
+          "icon": {
+            "download": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-2/@@images/image-32-b4699aa58e69d828bd79fd26e3a9ee07.jpeg",
+            "height": 20,
+            "width": 32
+          },
+          "large": {
+            "download": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-2/@@images/image-800-1f02f7bf7126c64e958980ce4a58f31f.jpeg",
+            "height": 520,
+            "width": 800
+          },
+          "larger": {
+            "download": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-2/@@images/image-1000-8ae93760fb848fc25f621abb084b3ddf.jpeg",
+            "height": 650,
+            "width": 1000
+          },
+          "listing": {
+            "download": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-2/@@images/image-16-a569817c68fea268a859d91f54a07978.jpeg",
+            "height": 10,
+            "width": 16
+          },
+          "mini": {
+            "download": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-2/@@images/image-200-d394924b4b210760c0417c3c6415152f.jpeg",
+            "height": 130,
+            "width": 200
+          },
+          "preview": {
+            "download": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-2/@@images/image-670-1e05fa9c5417795d5ac98a0074f10e8c.jpeg",
+            "height": 435,
+            "width": 670
+          },
+          "slider": {
+            "download": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-2/@@images/image-1000-41e231512bd6e3a5574ae5a279dcae45.jpeg",
+            "height": 650,
+            "width": 1000
+          },
+          "teaser": {
+            "download": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-2/@@images/image-800-1f02f7bf7126c64e958980ce4a58f31f.jpeg",
+            "height": 520,
+            "width": 800
+          },
+          "thumb": {
+            "download": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-2/@@images/image-128-44974532fcd31a17f62a3751c7927f4a.jpeg",
+            "height": 83,
+            "width": 128
+          },
+          "tile": {
+            "download": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt/-2/@@images/image-64-ff71fc42ca0a5fbd09ff10e702327f1b.jpeg",
+            "height": 41,
+            "width": 64
+          }
+        },
+        "size": 1056122,
+        "width": 2000
+      },
+      "image_alt_text": null,
+      "image_caption": null,
+      "internal_link": null,
+      "is_folderish": true,
+      "layout": "view",
+      "lock": {},
+      "modified": "2026-09-24T09:19:42+00:00",
+      "next_item": {},
+      "parent": {
+        "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/polizeimeldungen/brand-in-scheunenanbau-eine-person-verletzt",
+        "@type": "News",
+        "description": "In der Mittwochnacht, 23. September 2026, kurz nach 23.00 Uhr, kam es auf einem Hof im Grien in Buus BL zu einem Brandausbruch. Eine Person wurde verletzt.",
+        "effective": "2026-09-24T09:20:26+00:00",
+        "end": null,
+        "getObjSize": null,
+        "getRemoteUrl": null,
+        "head_title": null,
+        "image_field": null,
+        "image_scales": {},
+        "mime_type": null,
+        "nav_title": null,
+        "review_state": "website_workflow--STATUS--veroffentlicht",
+        "start": null,
+        "title": "Brand in Scheunenanbau \u2013 Eine Person verletzt",
+        "type_title": "News"
+      },
+      "previous_item": {},
+      "review_state": null,
+      "show_in_overlay": true,
+      "show_title": false,
+      "text": null,
+      "title": ".",
+      "type_title": "Text und Bild",
+      "version": "current"
+    }
+  },
+  "slblocks_layout": {
+    "items": [
+      {
+        "@type": "row",
+        "items": [
+          {
+            "@type": "col",
+            "items": ["0b74fb4484694236a45f5be21f5ec019"],
+            "width": "12"
+          }
+        ],
+        "properties": {
+          "columns": 1,
+          "css_classes": ["single-column", "columns-1", "single-block"],
+          "single_block": true,
+          "single_column": true,
+          "title_only_block": false
+        }
+      },
+      {
+        "@type": "row",
+        "items": [
+          {
+            "@type": "col",
+            "items": ["f2ce25698c3b4710bd4e5ef82805076e"],
+            "width": "6"
+          },
+          {
+            "@type": "col",
+            "items": ["2719c18e31cc490780827961ca1b24e0"],
+            "width": "6"
+          }
+        ],
+        "properties": {
+          "columns": 2,
+          "css_classes": ["columns-2"],
+          "single_column": false
+        }
+      },
+      {
+        "@type": "row",
+        "items": [
+          {
+            "@type": "col",
+            "items": [],
+            "width": "12"
+          }
+        ],
+        "properties": {
+          "columns": 1,
+          "css_classes": ["single-column", "columns-1"],
+          "single_block": false,
+          "single_column": true
+        }
+      }
+    ]
+  },
+  "subjects": ["Polizeimeldungen"],
+  "title": "Brand in Scheunenanbau \u2013 Eine Person verletzt",
+  "type_title": "News",
+  "version": "current",
+  "working_copy": null,
+  "working_copy_of": null
+}

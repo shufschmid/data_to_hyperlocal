@@ -34,6 +34,7 @@ function zeile(ueber: Partial<Rohzeile> = {}): Rohzeile {
     amtsblattmeldung: null,
     gemeindemitteilung: null,
     veranstaltung: null,
+    kantonsmitteilung: null,
     spiel: null,
     gemeinde: { id: 'g-1', name: 'Münchenstein', bfs_nummer: 2769 },
     datengrundlage: null,
@@ -897,5 +898,33 @@ describe('termin', () => {
       projektion(zeile({ termin: { ideal: '17.10.2026' }, wichtig: true }))
         .termin
     ).toBeNull()
+  })
+})
+
+describe('Rubrik kanton', () => {
+  it('erkennt eine Kantonsmitteilung an ihrer Relation und nennt den Sprecher aus der Datengrundlage', () => {
+    expect(rubrikVon(zeile({ kantonsmitteilung: 'k-1' }))).toBe('kanton')
+    expect(
+      quelleVon(
+        zeile({
+          kantonsmitteilung: 'k-1',
+          datengrundlage: {
+            quelle: 'kanton',
+            quelle_name: 'Polizei Basel-Landschaft',
+            url: 'https://www.baselland.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/medienmitteilungen/x'
+          }
+        }),
+        'kanton'
+      )
+    ).toEqual({
+      name: 'Polizei Basel-Landschaft',
+      url: 'https://www.baselland.ch/politik-und-behorden/direktionen/sicherheitsdirektion/polizei/medienmitteilungen/x'
+    })
+    expect(
+      quelleVon(
+        zeile({ kantonsmitteilung: 'k-1', datengrundlage: null }),
+        'kanton'
+      )
+    ).toEqual({ name: 'Kanton Basel-Landschaft', url: null })
   })
 })

@@ -60,8 +60,14 @@ describe('Die Liste erlaubter Aktionen', () => {
   })
 
   it('liest nur die drei Pfade, deren Zustand im Prozess lebt', () => {
-    expect(LESBAR).toHaveLength(4)
-    for (const pfad of ['quellen/lauf', 'gemeindeseiten/lauf', 'wochenblaetter/formulieren', 'bilanz'])
+    expect(LESBAR).toHaveLength(5)
+    for (const pfad of [
+      'quellen/lauf',
+      'gemeindeseiten/lauf',
+      'kanton/lauf',
+      'wochenblaetter/formulieren',
+      'bilanz'
+    ])
       expect(darfLesen(pfad)).toBe(true)
     expect(darfLesen('artikel')).toBe(false)
   })

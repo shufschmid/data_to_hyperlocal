@@ -52,6 +52,7 @@ export function herkunftVon(h: RecherchehinweisFelder): string {
   if (h.amtsblattmeldung !== null) return 'Amtsblatt'
   if (h.gemeindemitteilung !== null) return 'Gemeindeseite'
   if (h.veranstaltung !== null) return 'Veranstaltungskalender'
+  if ((h.kantonsmitteilung ?? null) !== null) return 'Kanton'
   if (h.sendungskandidat !== null) {
     return h.sendungskandidat.quelle === 'punkt6' ? 'punkt6' : 'Regionaljournal'
   }

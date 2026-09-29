@@ -198,6 +198,7 @@ import type { WissenBereich, WissenStufe } from '../../types/schema'
 import {
   anlassAlsHinweis,
   kandidatAlsHinweis,
+  kantonsmitteilungAlsHinweis,
   mitteilungAlsHinweis,
   publikationAlsHinweis,
   reicheWeiter,
@@ -243,6 +244,19 @@ import {
 import { nachgelesenePayload } from '../../redaktion/veranstaltungslauf'
 import { pruefeQuelle, pruefeQuellenAenderung } from './veranstaltungsquelle'
 import gemeindeseitenPruefen from '../../operations/gemeindeseiten-pruefen/api'
+import kantonPruefen from '../../operations/kanton-pruefen/api'
+import {
+  hatMaterial as hatKantonMaterial,
+  kantonFakten,
+  kantonMeldungMitChecks,
+  schreibeKantonMeldung,
+  KANTON_FELDER,
+  type KantonRohzeile
+} from '../../redaktion/kantonmeldungen'
+import {
+  buildKantonRevision,
+  mitQuelle as mitKantonQuelle
+} from '../../redaktion/kanton'
 import { wissenFelderManuell } from '../../redaktion/wissen'
 import {
   extrahiereText,
@@ -537,6 +551,12 @@ const GemeindeseitenLaufLaeuftBereits = createError(
   409
 )
 
+const KantonLaufLaeuftBereits = createError(
+  'RUN_IN_PROGRESS',
+  'Die Mitteilungen des Kantons werden gerade gelesen. Bitte kurz warten.',
+  409
+)
+
 const MitteilungSchonEntschieden = createError(
   'ALREADY_DECIDED',
   'Ueber diese Mitteilung ist bereits entschieden.',
@@ -710,6 +730,7 @@ export default defineEndpoint(
               'amtsblattmeldung',
               'gemeindemitteilung',
               'veranstaltung',
+              'kantonsmitteilung',
               'sendungskandidat',
               'erscheint_am',
               'date_created',
@@ -3177,6 +3198,378 @@ export default defineEndpoint(
       }
     )
 
+    // --- the Kanton desk: what the canton and its police say about a municipality ---
+    //
+    // The same shape as the Gemeindeseiten desk: a single-flight run the
+    // workspace polls, one row per municipality named, three decisions that
+    // teach, a draft the run wrote and a grip that publishes them all. What
+    // differs is the speaker — the canton, never the municipality — and that
+    // the public page is only ever linked.
+    interface KantonLaufStatus {
+      laeuft: boolean
+      gestartet_um: string | null
+      beendet_um: string | null
+      ergebnis: Record<string, unknown> | null
+      fehler: string | null
+    }
+    const kantonLauf: KantonLaufStatus = {
+      laeuft: false,
+      gestartet_um: null,
+      beendet_um: null,
+      ergebnis: null,
+      fehler: null
+    }
+
+    function starteKantonLauf(): boolean {
+      if (kantonLauf.laeuft) return false
+      kantonLauf.laeuft = true
+      kantonLauf.gestartet_um = new Date().toISOString()
+      kantonLauf.beendet_um = null
+      kantonLauf.ergebnis = null
+      kantonLauf.fehler = null
+
+      const kontext = { services, getSchema, logger, database } as Parameters<
+        typeof kantonPruefen.handler
+      >[1]
+      void Promise.resolve(kantonPruefen.handler({}, kontext))
+        .then((ergebnis: unknown) => {
+          logger.info(ergebnis, 'redaktion: Kanton-Lauf beendet')
+          kantonLauf.ergebnis =
+            typeof ergebnis === 'object' && ergebnis !== null
+              ? (ergebnis as Record<string, unknown>)
+              : null
+        })
+        .catch((fehler: unknown) => {
+          logger.error(fehler, 'redaktion: Kanton-Lauf fehlgeschlagen')
+          kantonLauf.fehler =
+            fehler instanceof Error ? fehler.message : String(fehler)
+        })
+        .finally(() => {
+          kantonLauf.laeuft = false
+          kantonLauf.beendet_um = new Date().toISOString()
+        })
+      return true
+    }
+
+    router.get(
+      '/kanton/lauf',
+      (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        return res.json({ data: kantonLauf })
+      }
+    )
+
+    router.post(
+      '/kanton/pruefen',
+      (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        if (!starteKantonLauf()) return next(new KantonLaufLaeuftBereits())
+        return res.status(202).json({ data: { gestartet: true } })
+      }
+    )
+
+    async function ladeKantonsZeile(
+      id: string,
+      accountability: ApiRequest['accountability']
+    ): Promise<KantonRohzeile> {
+      const service = new ItemsService('kantonsmitteilungen', {
+        schema: await getSchema(),
+        accountability
+      })
+      return (await service.readOne(id, {
+        fields: KANTON_FELDER
+      })) as KantonRohzeile
+    }
+
+    async function ueberarbeiteKanton(
+      meldung: {
+        id: string
+        titel: string | null
+        lead: string | null
+        text: string | null
+      },
+      mitteilungId: string,
+      anweisung: string
+    ): Promise<string[]> {
+      const schema = await getSchema()
+      const meldungen = new ItemsService('meldungen', { schema })
+
+      // Loaded fresh: the notice's wording is the article's only source, and
+      // it must be the same on a revision as on the first write.
+      const zeile = await ladeKantonsZeile(mitteilungId, undefined)
+      const fakten = kantonFakten(zeile)
+      const { bericht, warnungen } = await kantonMeldungMitChecks(
+        fakten,
+        buildKantonRevision(
+          fakten,
+          meldung,
+          anweisung,
+          await regelnFuer('kanton', 'text')
+        )
+      )
+
+      await meldungen.updateOne(meldung.id, {
+        titel: bericht.titel,
+        lead: bericht.lead,
+        text: mitKantonQuelle(bericht.text, fakten),
+        zeit_warnungen: warnungen.length > 0 ? warnungen : null,
+        verarbeitung: 'idle',
+        anweisung: null,
+        fehler: null
+      })
+
+      return warnungen
+    }
+
+    router.post(
+      '/kanton/:id/meldung',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const schema = await getSchema()
+          const mitteilungen = new ItemsService('kantonsmitteilungen', {
+            schema,
+            accountability: req.accountability
+          })
+          const meldungenService = new ItemsService('meldungen', {
+            schema,
+            accountability: req.accountability
+          })
+
+          const zeile = await ladeKantonsZeile(id, req.accountability)
+
+          const vorhandene = (await meldungenService.readByQuery({
+            filter: {
+              kantonsmitteilung: { _eq: id },
+              status: { _neq: 'verworfen' }
+            },
+            fields: ['id'],
+            limit: 1
+          })) as { id: string }[]
+          if (vorhandene.length > 0)
+            return next(new MitteilungSchonEntschieden())
+
+          // No article from a title and a teaser — the same refusal the
+          // Gemeindeseiten desk makes.
+          if (!hatKantonMaterial(kantonFakten(zeile))) {
+            throw new MitteilungOhneText()
+          }
+
+          // Derselbe Weg, den der 14-Uhr-Lauf geht.
+          const { meldung: meldungId, warnungen } = await schreibeKantonMeldung(
+            {
+              mitteilungen,
+              meldungen: meldungenService,
+              regeln: await regelnFuer('kanton', 'text'),
+              wichtigkeit: wichtigkeitDigest(
+                await ladeWichtigkeitSignale(
+                  meldungenService,
+                  'kantonsmitteilung'
+                )
+              )
+            },
+            zeile
+          )
+
+          return res.json({ data: { meldung: meldungId, warnungen } })
+        } catch (error) {
+          const status = (error as { status?: unknown }).status
+          if (
+            status === 403 ||
+            status === 404 ||
+            status === 400 ||
+            status === 409 ||
+            status === 422
+          ) {
+            return next(uebersetze(error))
+          }
+          logger.error(error, 'redaktion: Kanton-Meldung fehlgeschlagen')
+          return next(new UeberarbeitungFehlgeschlagen())
+        }
+      }
+    )
+
+    router.post(
+      '/kanton/:id/ablehnen',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        // `nur_erwaehnt` is this desk's own lesson: a list of twenty
+        // municipalities is not a notice about Aesch.
+        const GRUENDE = [
+          'nicht_relevant',
+          'nur_erwaehnt',
+          'doublette',
+          'veraltet',
+          'andere'
+        ]
+        const koerper = (req.body ?? {}) as {
+          grund?: unknown
+          kommentar?: unknown
+        }
+        if (
+          typeof koerper.grund !== 'string' ||
+          !GRUENDE.includes(koerper.grund)
+        ) {
+          return next(new UngueltigerAblehnungsgrund())
+        }
+        const kommentar =
+          typeof koerper.kommentar === 'string' &&
+          koerper.kommentar.trim() !== ''
+            ? koerper.kommentar.trim()
+            : null
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const mitteilungen = new ItemsService('kantonsmitteilungen', {
+            schema: await getSchema(),
+            accountability: req.accountability
+          })
+
+          await mitteilungen.updateOne(id, {
+            entscheid: 'abgelehnt',
+            ablehnungsgrund: koerper.grund,
+            ablehnungskommentar: kommentar
+          })
+          // The run wrote a draft beside the proposal; rejecting takes the
+          // DRAFT with it, never what the newsroom already published or gave
+          // to the counter-check.
+          await verwirfEntwurfZu(
+            new ItemsService('meldungen', {
+              schema: await getSchema(),
+              accountability: req.accountability
+            }),
+            { kantonsmitteilung: { _eq: id } },
+            `Mitteilung abgelehnt: ${koerper.grund}`
+          )
+          lerne({
+            tisch: 'kanton',
+            art: 'entscheid',
+            zeileId: id,
+            entscheid: 'abgelehnt',
+            grund: koerper.grund,
+            kommentar
+          })
+
+          return res.json({ data: { mitteilung: id, entscheid: 'abgelehnt' } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    router.post(
+      '/kanton/:id/weiterreichen',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        const koerper = (req.body ?? {}) as { begruendung?: unknown }
+        const begruendung =
+          typeof koerper.begruendung === 'string' &&
+          koerper.begruendung.trim() !== ''
+            ? koerper.begruendung.trim()
+            : null
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const schema = await getSchema()
+          const mitteilungen = new ItemsService('kantonsmitteilungen', {
+            schema,
+            accountability: req.accountability
+          })
+          const hinweiseService = new ItemsService('recherchehinweise', {
+            schema,
+            accountability: req.accountability
+          })
+
+          const zeile = await ladeKantonsZeile(id, req.accountability)
+          if (zeile.entscheid !== 'offen') {
+            return next(new MitteilungSchonEntschieden())
+          }
+
+          const hinweisId = await reicheWeiter(
+            { hinweise: hinweiseService, ursprung: mitteilungen },
+            {
+              ursprungId: id,
+              felder: kantonsmitteilungAlsHinweis(zeile, begruendung)
+            }
+          )
+          await verwirfEntwurfZu(
+            new ItemsService('meldungen', {
+              schema,
+              accountability: req.accountability
+            }),
+            { kantonsmitteilung: { _eq: id } },
+            'Mitteilung an die Chefredaktion weitergereicht'
+          )
+
+          lerne({
+            tisch: 'kanton',
+            art: 'entscheid',
+            zeileId: id,
+            entscheid: 'weitergereicht',
+            grund: null,
+            kommentar: begruendung
+          })
+
+          return res.json({ data: { hinweis: hinweisId } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    router.post(
+      '/kanton/publizieren',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        try {
+          const meldungen = new ItemsService('meldungen', {
+            schema: await getSchema(),
+            accountability: req.accountability
+          })
+
+          // `in_pruefung` stays out, as on every desk with this grip.
+          const offen = (await meldungen.readByQuery({
+            filter: {
+              _and: [
+                { kantonsmitteilung: { _nnull: true } },
+                { status: { _in: ['entwurf', 'freigegeben'] } }
+              ]
+            },
+            fields: ['id'],
+            limit: -1
+          })) as Array<{ id: string }>
+
+          if (offen.length === 0) return next(new NichtsZuTun())
+
+          const erledigt: string[] = []
+          const abgelehnt: Array<{ id: string; grund: string }> = []
+
+          // One at a time, so the status hook names its reason per row.
+          for (const meldung of offen) {
+            try {
+              await meldungen.updateOne(meldung.id, { status: 'publiziert' })
+              erledigt.push(meldung.id)
+            } catch (fehler) {
+              abgelehnt.push({
+                id: meldung.id,
+                grund: fehler instanceof Error ? fehler.message : String(fehler)
+              })
+            }
+          }
+
+          res.json({ data: { erledigt: erledigt.length, abgelehnt } })
+        } catch (error) {
+          logger.error(error, 'redaktion: Kanton publizieren fehlgeschlagen')
+          next(error)
+        }
+      }
+    )
+
     // --- the events desk: Anlässe from the municipalities' calendars ----------
     //
     // The same three decisions as the news desk, the same checks, one more
@@ -4729,6 +5122,7 @@ export default defineEndpoint(
               'amtsblattmeldung',
               'gemeindemitteilung',
               'veranstaltung',
+              'kantonsmitteilung',
               'sendungskandidat',
               'regel'
             ]
@@ -4737,6 +5131,7 @@ export default defineEndpoint(
             amtsblattmeldung: string | null
             gemeindemitteilung: string | null
             veranstaltung: string | null
+            kantonsmitteilung: string | null
             sendungskandidat: string | null
             regel: string | null
           }
@@ -4752,15 +5147,18 @@ export default defineEndpoint(
                   ? 'gemeinde'
                   : herkunft.veranstaltung !== null
                     ? 'veranstaltung'
-                    : herkunft.sendungskandidat !== null
-                      ? 'sendung'
-                      : 'presseschau',
+                    : herkunft.kantonsmitteilung !== null
+                      ? 'kanton'
+                      : herkunft.sendungskandidat !== null
+                        ? 'sendung'
+                        : 'presseschau',
             art: 'faehrte',
             zeileId:
               herkunft.kandidat ??
               herkunft.amtsblattmeldung ??
               herkunft.gemeindemitteilung ??
               herkunft.veranstaltung ??
+              herkunft.kantonsmitteilung ??
               herkunft.sendungskandidat ??
               null,
             hinweisId: id,
@@ -4827,6 +5225,7 @@ export default defineEndpoint(
               'amtsblattmeldung',
               'gemeindemitteilung',
               'veranstaltung',
+              'kantonsmitteilung',
               'sendungskandidat',
               'regel'
             ]
@@ -4836,6 +5235,7 @@ export default defineEndpoint(
             amtsblattmeldung: string | null
             gemeindemitteilung: string | null
             veranstaltung: string | null
+            kantonsmitteilung: string | null
             sendungskandidat: string | null
             regel: string | null
           }
@@ -4851,9 +5251,11 @@ export default defineEndpoint(
                   ? ['gemeindemitteilungen', lead.gemeindemitteilung]
                   : lead.veranstaltung !== null
                     ? ['veranstaltungen', lead.veranstaltung]
-                    : lead.sendungskandidat !== null
-                      ? ['sendungskandidaten', lead.sendungskandidat]
-                      : null
+                    : lead.kantonsmitteilung !== null
+                      ? ['kantonsmitteilungen', lead.kantonsmitteilung]
+                      : lead.sendungskandidat !== null
+                        ? ['sendungskandidaten', lead.sendungskandidat]
+                        : null
           if (ursprung === null) return next(new FaehrteOhneTisch())
 
           await new ItemsService(ursprung[0], {
@@ -5241,6 +5643,7 @@ export default defineEndpoint(
               'amtsblattmeldung',
               'gemeindemitteilung',
               'veranstaltung',
+              'kantonsmitteilung',
               'sendungskandidat',
               'suedanflugquote',
               'abstimmung',
@@ -5260,6 +5663,7 @@ export default defineEndpoint(
             amtsblattmeldung: string | null
             gemeindemitteilung: string | null
             veranstaltung: string | null
+            kantonsmitteilung: string | null
             sendungskandidat: string | null
             suedanflugquote: string | null
             abstimmung: string | null
@@ -5458,6 +5862,40 @@ export default defineEndpoint(
               logger.error(
                 fehler,
                 'redaktion: Gemeindeseiten-Ueberarbeitung fehlgeschlagen'
+              )
+              throw new UeberarbeitungFehlgeschlagen()
+            }
+          }
+
+          // A Kanton article: the canton or its police speaking about the
+          // municipality, revised from the notice's own wording.
+          if (meldung.kantonsmitteilung !== null) {
+            await meldungen.updateOne(id, { verarbeitung: 'laeuft', anweisung })
+            try {
+              const warnungen = await ueberarbeiteKanton(
+                meldung,
+                meldung.kantonsmitteilung,
+                anweisung
+              )
+              merkeAnweisung(anweisung, 'kanton', 'Kanton-Meldung')
+              await chat.createOne({
+                meldung: id,
+                rolle: 'assistant',
+                inhalt:
+                  warnungen.length === 0
+                    ? 'Neu formuliert.'
+                    : `Neu formuliert — mit Hinweisen: ${warnungen.join(' · ')}`,
+                position: position + 1
+              })
+              return res.json({ data: { meldung: id, warnungen } })
+            } catch (fehler) {
+              await meldungen.updateOne(id, {
+                verarbeitung: 'idle',
+                fehler: fehlerText(fehler)
+              })
+              logger.error(
+                fehler,
+                'redaktion: Kanton-Ueberarbeitung fehlgeschlagen'
               )
               throw new UeberarbeitungFehlgeschlagen()
             }
@@ -5706,6 +6144,7 @@ export default defineEndpoint(
                 'amtsblattmeldung',
                 'gemeindemitteilung',
                 'veranstaltung',
+                'kantonsmitteilung',
                 'sendungskandidat',
                 'spiel',
                 'erscheint_am',
@@ -5716,6 +6155,7 @@ export default defineEndpoint(
               amtsblattmeldung: string | null
               gemeindemitteilung: string | null
               veranstaltung: string | null
+              kantonsmitteilung: string | null
               sendungskandidat: string | null
               spiel: string | null
               erscheint_am: string | null
@@ -5730,9 +6170,11 @@ export default defineEndpoint(
                     ? 'gemeinde'
                     : herkunft.veranstaltung !== null
                       ? 'veranstaltung'
-                      : herkunft.sendungskandidat !== null
-                        ? 'sendung'
-                        : null
+                      : herkunft.kantonsmitteilung !== null
+                        ? 'kanton'
+                        : herkunft.sendungskandidat !== null
+                          ? 'sendung'
+                          : null
             if (tisch !== null) {
               lerne({
                 tisch,
@@ -5742,6 +6184,7 @@ export default defineEndpoint(
                   herkunft.amtsblattmeldung ??
                   herkunft.gemeindemitteilung ??
                   herkunft.veranstaltung ??
+                  herkunft.kantonsmitteilung ??
                   herkunft.sendungskandidat,
                 entscheid: 'verworfen',
                 grund: null,
@@ -7976,7 +8419,9 @@ export default defineEndpoint(
                 ? 'gemeindemitteilungen'
                 : signal.tisch === 'veranstaltung'
                   ? 'veranstaltungen'
-                  : 'sendungskandidaten'
+                  : signal.tisch === 'kanton'
+                    ? 'kantonsmitteilungen'
+                    : 'sendungskandidaten'
         await lerneAusEntscheid(
           {
             zeilen: new ItemsService(sammlung, { schema }),

@@ -12,6 +12,7 @@ function zeile(teil: Partial<BilanzZeile> = {}): BilanzZeile {
     amtsblattmeldung: null,
     gemeindemitteilung: null,
     veranstaltung: null,
+    kantonsmitteilung: null,
     sendungskandidat: null,
     suedanflugquote: null,
     erscheint_am: null,
@@ -31,6 +32,7 @@ describe('tischVon', () => {
     expect(tischVon(zeile({ amtsblattmeldung: 'a' }))).toBe('amtsblatt')
     expect(tischVon(zeile({ gemeindemitteilung: 'a' }))).toBe('gemeindeseite')
     expect(tischVon(zeile({ veranstaltung: 'a' }))).toBe('veranstaltung')
+    expect(tischVon(zeile({ kantonsmitteilung: 'a' }))).toBe('kanton')
     expect(tischVon(zeile({ sendungskandidat: 'a' }))).toBe('sendung')
     expect(tischVon(zeile({ erscheint_am: '2026-09-18' }))).toBe('entsorgung')
   })
@@ -199,6 +201,7 @@ describe('redaktionsbilanz', () => {
       'amtsblatt',
       'gemeindeseite',
       'veranstaltung',
+      'kanton',
       'sendung',
       'entsorgung',
       'ohne'

@@ -37,6 +37,10 @@
         {
           "text": "EuroAirport ILS-33 (Suedanfluege)",
           "value": "euroairport"
+        },
+        {
+          "text": "Kanton Basel-Landschaft (Medien- und Polizeimeldungen)",
+          "value": "kanton"
         }
       ]
     },

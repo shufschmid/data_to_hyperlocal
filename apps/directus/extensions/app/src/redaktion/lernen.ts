@@ -67,6 +67,7 @@ export type LernTisch =
   | 'gemeinde'
   | 'sendung'
   | 'veranstaltung'
+  | 'kanton'
 
 export type LernEntscheid =
   | 'abgelehnt'
@@ -98,7 +99,8 @@ const TISCH_NAME: Record<LernTisch, string> = {
   amtsblatt: 'Amtsblatt',
   gemeinde: 'Gemeindeseiten (Mitteilungen der Gemeinden)',
   sendung: 'Sendungen (Regionaljournal, punkt6)',
-  veranstaltung: 'Veranstaltungen (Veranstaltungskalender der Gemeinden)'
+  veranstaltung: 'Veranstaltungen (Veranstaltungskalender der Gemeinden)',
+  kanton: 'Kanton (Medien- und Polizeimeldungen des Kantons Basel-Landschaft)'
 }
 
 export const ENTSCHEID_TEXT: Record<LernEntscheid, string> = {

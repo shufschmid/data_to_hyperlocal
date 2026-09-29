@@ -1,0 +1,213 @@
+{
+  "@components": {
+    "actions": {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/medienmitteilungen/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt/@actions"
+    },
+    "aliases": {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/medienmitteilungen/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt/@aliases"
+    },
+    "breadcrumbs": {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/medienmitteilungen/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt/@breadcrumbs"
+    },
+    "contextnavigation": {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/medienmitteilungen/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt/@contextnavigation"
+    },
+    "footer": {
+      "@id": "https://bl-api.webcloud7.ch/@footer",
+      "data": {
+        "msg": "Not extandable for caching reasons, please call @id in a separate request."
+      }
+    },
+    "linklist": {
+      "@id": "https://bl-api.webcloud7.ch/@linklist",
+      "data": {
+        "msg": "Not extandable for caching reasons, please call @id in a separate request."
+      }
+    },
+    "navigation": {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/medienmitteilungen/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt/@navigation"
+    },
+    "navroot": {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/medienmitteilungen/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt/@navroot"
+    },
+    "types": {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/medienmitteilungen/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt/@types"
+    },
+    "workflow": {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/medienmitteilungen/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt/@workflow"
+    }
+  },
+  "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/medienmitteilungen/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt",
+  "@type": "News",
+  "UID": "db71f3b22f5d4010826ed5b4bb019ca0",
+  "allow_discussion": false,
+  "created": "2026-09-01T12:15:40+00:00",
+  "description": "",
+  "effective": "2026-09-02T08:00:00+00:00",
+  "exclude_from_nav": false,
+  "expires": null,
+  "id": "tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt",
+  "image": null,
+  "image_caption": null,
+  "is_folderish": true,
+  "items": [],
+  "items_total": 0,
+  "language": {
+    "title": "Deutsch",
+    "token": "de"
+  },
+  "layout": "@@simplelayout-view",
+  "lock": {},
+  "migration_date": null,
+  "modified": "2026-09-01T12:16:50+00:00",
+  "news_date": "2026-09-02T10:00:00",
+  "next_item": {},
+  "parent": {
+    "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/medienmitteilungen",
+    "@type": "NewsFolder",
+    "description": "",
+    "effective": "2022-11-29T12:11:00+00:00",
+    "end": null,
+    "getObjSize": null,
+    "getRemoteUrl": null,
+    "head_title": null,
+    "image_field": null,
+    "image_scales": {},
+    "mime_type": null,
+    "nav_title": null,
+    "review_state": "website_workflow--STATUS--veroffentlicht",
+    "start": null,
+    "title": "Medienmitteilungen",
+    "type_title": "News Folder"
+  },
+  "previous_item": {},
+  "relatedItems": [],
+  "review_state": "website_workflow--STATUS--veroffentlicht",
+  "slblocks": {
+    "1904bbff1f5241b6adb238c7d8f94ffb": {
+      "@components": {
+        "actions": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/medienmitteilungen/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt/@actions"
+        },
+        "aliases": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/medienmitteilungen/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt/@aliases"
+        },
+        "breadcrumbs": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/medienmitteilungen/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt/@breadcrumbs"
+        },
+        "contextnavigation": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/medienmitteilungen/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt/@contextnavigation"
+        },
+        "footer": {
+          "@id": "https://bl-api.webcloud7.ch/@footer",
+          "data": {
+            "msg": "Not extandable for caching reasons, please call @id in a separate request."
+          }
+        },
+        "linklist": {
+          "@id": "https://bl-api.webcloud7.ch/@linklist",
+          "data": {
+            "msg": "Not extandable for caching reasons, please call @id in a separate request."
+          }
+        },
+        "navigation": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/medienmitteilungen/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt/@navigation"
+        },
+        "navroot": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/medienmitteilungen/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt/@navroot"
+        },
+        "types": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/medienmitteilungen/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt/@types"
+        },
+        "workflow": {
+          "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/medienmitteilungen/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt/@workflow"
+        }
+      },
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/medienmitteilungen/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt",
+      "@type": "Block",
+      "UID": "1904bbff1f5241b6adb238c7d8f94ffb",
+      "allow_discussion": false,
+      "block_template": {
+        "title": "Bild oben",
+        "token": "image_top"
+      },
+      "button_link": "",
+      "button_position": {
+        "title": "Links",
+        "token": "left"
+      },
+      "button_text": null,
+      "collapsable": false,
+      "created": "2026-09-01T12:16:23+00:00",
+      "external_link": null,
+      "float_image": false,
+      "id": "tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt",
+      "image": null,
+      "image_alt_text": null,
+      "image_caption": null,
+      "internal_link": null,
+      "is_folderish": true,
+      "layout": "view",
+      "lock": {},
+      "modified": "2026-09-01T12:16:23+00:00",
+      "next_item": {},
+      "parent": {
+        "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/medienmitteilungen/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt",
+        "@type": "News",
+        "description": "",
+        "effective": "2026-09-02T08:00:00+00:00",
+        "end": null,
+        "getObjSize": null,
+        "getRemoteUrl": null,
+        "head_title": null,
+        "image_field": null,
+        "image_scales": {},
+        "mime_type": null,
+        "nav_title": null,
+        "review_state": "website_workflow--STATUS--veroffentlicht",
+        "start": null,
+        "title": "Tempo-30-Antr\u00e4gen in M\u00fcnchenstein und Birsfelden wird teilweise zugestimmt",
+        "type_title": "News"
+      },
+      "previous_item": {},
+      "review_state": null,
+      "show_in_overlay": false,
+      "show_title": false,
+      "text": {
+        "content-type": "text/html",
+        "data": "<p><b>Die Sicherheitsdirektion (SID) und die Bau- und Umweltschutzdirektion (BUD) haben die Antr\u00e4ge der Gemeinden M\u00fcnchenstein und Birsfelden zur Einf\u00fchrung von Tempo 30 nach dem j\u00fcngsten Bundesgerichtsurteil zu den Beschwerden in Oberwil, Bottmingen und Therwil anhand eines Gutachtens gepr\u00fcft. Die Antr\u00e4ge werden teilweise gutgeheissen.</b></p>\n<p>Die Gemeinden M\u00fcnchenstein und Birsfelden haben Antr\u00e4ge zur Einf\u00fchrung von Tempo 30 auf verschiedenen Strassenabschnitten eingereicht. Nach dem Bundesgerichtsurteil vom 27. M\u00e4rz 2026, mit dem die Beschwerden gegen die Tempo-30-Anordnungen in Bottmingen, Oberwil und Therwil abgewiesen wurden, haben die Sicherheitsdirektion (SID) und die Bau- und Umweltschutzdirektion (BUD) die Gesuche anhand eines verkehrstechnischen Gutachtens gepr\u00fcft.</p>\n<p>Die Pr\u00fcfung kommt zum Schluss, dass den Antr\u00e4gen teilweise entsprochen werden kann. In M\u00fcnchenstein umfasst dies einen Abschnitt auf der Hauptstrasse von rund 440 m im Dorfkern. In Birsfelden erstrecken sich die genehmigten Abschnitte \u00fcber den Zentrumsbereich der Hauptstrasse (ca. 600 m), die Rheinfelderstrasse (ca. 420 m) und die Muttenzer- / Birseckstrasse (ca. 180m).</p>\n<p>Die entsprechenden Verkehrsanordnungen werden am 3. September 2026 im Amtsblatt des Kantons Basel-Landschaft publiziert. Die angeordneten Massnahmen k\u00f6nnen nach Ablauf der Rechtsmittelfrist und unter Vorbehalt allf\u00e4lliger Beschwerden umgesetzt werden.</p>",
+        "encoding": "utf-8"
+      },
+      "title": "Tempo-30-Antr\u00e4gen in M\u00fcnchenstein und Birsfelden wird teilweise zugestimmt",
+      "type_title": "Text und Bild",
+      "version": "current"
+    }
+  },
+  "slblocks_layout": {
+    "items": [
+      {
+        "@type": "row",
+        "items": [
+          {
+            "@type": "col",
+            "items": ["1904bbff1f5241b6adb238c7d8f94ffb"],
+            "width": "12"
+          }
+        ],
+        "properties": {
+          "columns": 1,
+          "css_classes": ["single-column", "columns-1", "single-block"],
+          "single_block": true,
+          "single_column": true,
+          "title_only_block": false
+        }
+      }
+    ]
+  },
+  "subjects": ["BL-Home", "SID-Startseite", "BUD-Startseite"],
+  "title": "Tempo-30-Antr\u00e4gen in M\u00fcnchenstein und Birsfelden wird teilweise zugestimmt",
+  "type_title": "News",
+  "version": "current",
+  "working_copy": null,
+  "working_copy_of": null
+}

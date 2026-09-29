@@ -1,0 +1,28 @@
+{
+  "collection": "kantonsmitteilungen",
+  "meta": {
+    "accountability": "all",
+    "archive_app_filter": true,
+    "archive_field": null,
+    "archive_value": null,
+    "collapse": "open",
+    "collection": "kantonsmitteilungen",
+    "color": null,
+    "display_template": "{{titel}} ({{gemeinde.name}})",
+    "group": null,
+    "hidden": false,
+    "icon": "account_balance",
+    "item_duplication_fields": null,
+    "note": "Was der Kanton Basel-Landschaft und seine Polizei ueber eine Gemeinde mitteilen: Medien- und Polizeimeldungen aus den zwei Listenbloecken der Startseite, gelesen ueber die Datentuer (bl-api.webcloud7.ch). Nur Eintraege, die eine bespielte Gemeinde beim Namen nennen; eine Zeile je Gemeinde und Eintrag, Identitaet (url, gemeinde) per Migration. Drei Entscheide wie bei den Gemeindeseiten.",
+    "preview_url": null,
+    "singleton": false,
+    "sort": null,
+    "sort_field": null,
+    "translations": null,
+    "unarchive_value": null,
+    "versioning": false
+  },
+  "schema": {
+    "name": "kantonsmitteilungen"
+  }
+}

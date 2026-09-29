@@ -22,6 +22,8 @@ export type WichtigkeitUrsprung =
   | 'veranstaltung'
   // The press review since 27 September 2026: a weekly paper's piece.
   | 'kandidat'
+  // The Kanton desk since 29 September 2026: a cantonal press or police notice.
+  | 'kantonsmitteilung'
 
 export interface WichtigkeitBeispiel {
   titel: string

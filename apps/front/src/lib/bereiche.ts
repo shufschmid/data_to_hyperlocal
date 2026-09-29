@@ -11,6 +11,7 @@ export type Werkbank =
   | 'gemeindeseiten'
   | 'veranstaltungen'
   | 'amtsblatt'
+  | 'kanton'
   | 'wochenblaetter'
   | 'regionaljournal'
   | 'punkt6'
@@ -34,7 +35,8 @@ export const BEREICHE: readonly Bereich[] = [
     werkbaenke: [
       { wert: 'gemeindeseiten', text: 'Gemeindeseiten' },
       { wert: 'veranstaltungen', text: 'Veranstaltungen' },
-      { wert: 'amtsblatt', text: 'Amtsblatt' }
+      { wert: 'amtsblatt', text: 'Amtsblatt' },
+      { wert: 'kanton', text: 'Kanton' }
     ]
   },
   {

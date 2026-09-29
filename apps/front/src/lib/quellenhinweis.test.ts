@@ -34,6 +34,7 @@ describe('laufFuer', () => {
     expect(laufFuer('statbl')).toBe('quellen/lauf')
     expect(laufFuer('amtsblatt')).toBe('amtsblatt/pruefen')
     expect(laufFuer('simap')).toBe('amtsblatt/pruefen')
+    expect(laufFuer('kanton')).toBe('kanton/pruefen')
   })
 
   it('gibt einem unbekannten Typ lieber keinen Knopf als einen falschen', () => {

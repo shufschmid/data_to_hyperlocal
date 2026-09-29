@@ -191,15 +191,17 @@ function Beitrag({
         ? 'Gemeindeseite'
         : beitrag.veranstaltung !== null
           ? 'Veranstaltungskalender'
-          : beitrag.amtsblattmeldung !== null
-            ? 'Amtsblatt'
-            : beitrag.kandidat !== null
-              ? 'Wochenblatt'
-              : beitrag.sendungskandidat !== null
-                ? 'Sendung'
-                : beitrag.erscheint_am !== null
-                  ? 'Entsorgung'
-                  : 'Statistik'
+          : (beitrag.kantonsmitteilung ?? null) !== null
+            ? 'Kanton'
+            : beitrag.amtsblattmeldung !== null
+              ? 'Amtsblatt'
+              : beitrag.kandidat !== null
+                ? 'Wochenblatt'
+                : beitrag.sendungskandidat !== null
+                  ? 'Sendung'
+                  : beitrag.erscheint_am !== null
+                    ? 'Entsorgung'
+                    : 'Statistik'
 
   // Nur was auch publiziert werden darf: „in_pruefung“ gehoert den
   // Gegenlesenden, „verworfen“ ist entschieden.

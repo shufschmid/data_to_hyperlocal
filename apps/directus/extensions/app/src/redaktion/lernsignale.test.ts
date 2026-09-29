@@ -5,6 +5,7 @@ import {
   deklariereKappung,
   ladeAmtsblattSignale,
   ladeGemeindeSignale,
+  ladeKantonSignale,
   ladeSendungSignale,
   ladeWochenblattSignale,
   type ItemsServiceLike
@@ -421,5 +422,75 @@ describe('ladeGemeindeSignale', () => {
       })
     ])
     expect(signale.rahmen.kappung).toBe('')
+  })
+})
+
+describe('ladeKantonSignale', () => {
+  it('liest je Gemeinde ueber die Behoerde und die Kantonsmitteilung als Herkunft', async () => {
+    const zeilen = dienst((q) => {
+      const felder = felderVon(q)
+      if (felder.includes('behoerde')) {
+        return [
+          {
+            id: 'k1',
+            titel: 'Kantonale Statistik erschienen',
+            behoerde: 'Finanz- und Kirchendirektion',
+            entscheid: 'abgelehnt',
+            ablehnungsgrund: 'nur_erwaehnt',
+            ablehnungskommentar: 'Gemeinde nur in der Tabelle'
+          },
+          {
+            id: 'k2',
+            titel: 'Tempo 30',
+            behoerde: null,
+            entscheid: 'weitergereicht',
+            ablehnungsgrund: null,
+            ablehnungskommentar: null
+          }
+        ]
+      }
+      if (felder.length === 1 && felder[0] === 'id')
+        return [{ id: 'k1' }, { id: 'k2' }]
+      return []
+    })
+    const hinweise = dienst((q) => {
+      expect(filterVon(q)).toEqual({ kantonsmitteilung: { _in: ['k2'] } })
+      return [
+        {
+          kantonsmitteilung: 'k2',
+          status: 'brauchbar',
+          kommentar: null,
+          automatisch: false
+        }
+      ]
+    })
+    const meldungen = dienst((q) => {
+      expect(Object.keys(filterVon(q))).toContain('kantonsmitteilung')
+      return []
+    })
+
+    const signale = await ladeKantonSignale(
+      { zeilen, hinweise, meldungen },
+      'gem-1',
+      '2026-09-29'
+    )
+
+    expect(filterVon(zeilen.aufrufe[0] ?? {})).toEqual({
+      gemeinde: { _eq: 'gem-1' },
+      entscheid: { _in: ['uebernommen', 'abgelehnt', 'weitergereicht'] }
+    })
+    expect(signale.entscheide).toEqual([
+      expect.objectContaining({
+        titel: 'Kantonale Statistik erschienen',
+        rubrikName: 'Finanz- und Kirchendirektion',
+        grund: 'nur_erwaehnt',
+        kommentar: 'Gemeinde nur in der Tabelle'
+      }),
+      expect.objectContaining({
+        titel: 'Tempo 30',
+        rubrikName: 'Kanton',
+        faehrte: expect.objectContaining({ status: 'brauchbar' })
+      })
+    ])
   })
 })

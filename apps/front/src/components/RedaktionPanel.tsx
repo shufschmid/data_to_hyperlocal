@@ -68,6 +68,8 @@ import {
   type AmtsblattErgebnis,
   GEMEINDEMITTEILUNGEN_QUERY,
   type GemeindemitteilungenErgebnis,
+  KANTONSMITTEILUNGEN_QUERY,
+  type KantonsmitteilungenErgebnis,
   VERANSTALTUNGEN_QUERY,
   type VeranstaltungenErgebnis,
   VERANSTALTUNGSQUELLEN_QUERY,
@@ -102,6 +104,7 @@ import {
 import { vorschauVorbei } from '@/lib/presseschau'
 import { Amtsblatt } from './Amtsblatt'
 import { Gemeindeseiten } from './Gemeindeseiten'
+import { Kanton } from './Kanton'
 import { Veranstaltungen } from './Veranstaltungen'
 import { SendungsDurchsicht } from './SendungsDurchsicht'
 import IconButton from '@mui/material/IconButton'
@@ -111,6 +114,7 @@ import MenuItem from '@mui/material/MenuItem'
 import { anzahlOffen as anzahlSendungskandidaten, verarbeitungsergebnis } from '@/lib/sendungen'
 import { anzahlOffen, liestUnterlagen } from '@/lib/amtsblatt'
 import { anzahlOffen as anzahlMitteilungen, type GemeindeseitenLaufStatus } from '@/lib/gemeindeseiten'
+import { anzahlOffen as anzahlKantonsmitteilungen, type KantonLaufStatus } from '@/lib/kanton'
 import { anzahlOffen as anzahlAnlaesse } from '@/lib/veranstaltungen'
 import { Chefredaktion } from './Chefredaktion'
 import { Gelerntes } from './Gelerntes'
@@ -159,6 +163,7 @@ type Reiter =
   | 'amtsblatt'
   | 'gemeindeseiten'
   | 'veranstaltungen'
+  | 'kanton'
   | 'regionaljournal'
   | 'punkt6'
   | 'chefredaktion'
@@ -329,6 +334,9 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
   const gemeindeseiten = useQuery<GemeindemitteilungenErgebnis>(GEMEINDEMITTEILUNGEN_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY
   })
+  const kanton = useQuery<KantonsmitteilungenErgebnis>(KANTONSMITTEILUNGEN_QUERY, {
+    fetchPolicy: LIVE_FETCH_POLICY
+  })
   const veranstaltungen = useQuery<VeranstaltungenErgebnis>(VERANSTALTUNGEN_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY
   })
@@ -478,6 +486,12 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
       m.gemeindemitteilung === null ? [] : [[m.gemeindemitteilung.id, m.status] as const]
     )
   )
+  const meldungStatusJeKantonsmitteilung = new Map(
+    meldungenAlle.flatMap((m) => {
+      const ursprung = m.kantonsmitteilung ?? null
+      return ursprung === null ? [] : [[ursprung.id, m.status] as const]
+    })
+  )
   const meldungStatusJeAnlass = new Map(
     meldungenAlle.flatMap((m) => (m.veranstaltung === null ? [] : [[m.veranstaltung.id, m.status] as const]))
   )
@@ -502,6 +516,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
       amtsblatt.refetch(),
       gemeindeseiten.refetch(),
       veranstaltungen.refetch(),
+      kanton.refetch(),
       suedanflug.refetch(),
       abstimmungen.refetch()
     ])
@@ -513,6 +528,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
     amtsblatt,
     gemeindeseiten,
     veranstaltungen,
+    kanton,
     suedanflug,
     abstimmungen
   ])
@@ -654,6 +670,35 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
     gemeindenRefetch,
     alleMeldungenRefetch
   ])
+
+  // The Kanton run, mirrored the same way: polled while under way, the desk
+  // and the articles refetched once when it is over.
+  const [kantonLaufStatus, setKantonLaufStatus] = useState<KantonLaufStatus | null>(null)
+  const ladeKantonLauf = useCallback(async () => {
+    try {
+      const antwort = await sitzungsFetch('/api/redaktion/kanton/lauf')
+      if (!antwort.ok) return
+      const inhalt = (await antwort.json()) as { data?: KantonLaufStatus }
+      setKantonLaufStatus(inhalt.data ?? null)
+    } catch {
+      // Komfortanzeige; ein verpasster Abruf wird beim naechsten Poll nachgeholt.
+    }
+  }, [])
+  useEffect(() => {
+    void ladeKantonLauf()
+  }, [ladeKantonLauf])
+  const kantonRefetch = kanton.refetch
+  const kantonWarUnterwegs = useRef(false)
+  useEffect(() => {
+    const unterwegs = kantonLaufStatus?.laeuft === true
+    if (kantonWarUnterwegs.current && !unterwegs) {
+      void Promise.all([kantonRefetch(), alleMeldungenRefetch()])
+    }
+    kantonWarUnterwegs.current = unterwegs
+    if (!unterwegs) return
+    const intervall = setInterval(() => void ladeKantonLauf(), 10_000)
+    return () => clearInterval(intervall)
+  }, [kantonLaufStatus?.laeuft, ladeKantonLauf, kantonRefetch, alleMeldungenRefetch])
 
   /**
    * Fuehrt eine Aktion aus und GIBT das Problem zurueck.
@@ -847,6 +892,13 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
     },
     veranstaltungen: {
       anzahl: anzahlAnlaesse(veranstaltungen.data?.veranstaltungen ?? [], meldungStatusJeAnlass),
+      art: 'arbeit'
+    },
+    kanton: {
+      anzahl: anzahlKantonsmitteilungen(
+        kanton.data?.kantonsmitteilungen ?? [],
+        meldungStatusJeKantonsmitteilung
+      ),
       art: 'arbeit'
     },
     regionaljournal: { anzahl: anzahlSendungOffen('regionaljournal'), art: 'arbeit' },
@@ -1448,6 +1500,50 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
         </Stack>
       )}
 
+      {reiter === 'kanton' && (
+        <Stack spacing={2}>
+          <Typography variant="body2" color="text.secondary">
+            Was der Kanton Basel-Landschaft und seine Polizei über eine Gemeinde mitteilen — täglich um 14 Uhr
+            aus den zwei Listen der Startseite gelesen, über die Datentür, die die Seite selbst ruft. Nur
+            Mitteilungen, die eine Gemeinde beim Namen nennen; eine Sichtung sortiert, was einen Blick lohnt,
+            und der Lauf schreibt zu jedem Vorschlag die Meldung gleich mit.
+          </Typography>
+          <Kanton
+            eintraege={kanton.data?.kantonsmitteilungen ?? []}
+            lauf={kantonLaufStatus}
+            gemeinden={gemeinden.data?.gemeinden ?? []}
+            meldungen={meldungenAlle}
+            onChat={async (id, anweisung) => {
+              await fuehreAus(`meldungen/${id}/chat`, { anweisung })
+            }}
+            onAktion={async (id, was, koerper) => {
+              await fuehreAus(`meldungen/${id}/${was}`, koerper)
+            }}
+            onTermin={async (id, eingabe) => {
+              await fuehreAus(`meldungen/${id}/termin`, eingabe)
+            }}
+            heute={new Date().toISOString().slice(0, 10)}
+            laeuft={sendet}
+            onLauf={async () => {
+              await fuehreAus('kanton/pruefen')
+              await ladeKantonLauf()
+            }}
+            onUebernehmen={async (id) => {
+              await fuehreAus(`kanton/${id}/meldung`)
+            }}
+            onAblehnen={async (id, grund, kommentar) => {
+              await fuehreAus(`kanton/${id}/ablehnen`, { grund, kommentar })
+            }}
+            onWeiterreichen={async (id, begruendung) => {
+              await fuehreAus(`kanton/${id}/weiterreichen`, { begruendung })
+            }}
+            onAllePublizieren={async () => {
+              await fuehreAus('kanton/publizieren')
+            }}
+          />
+        </Stack>
+      )}
+
       {reiter === 'veranstaltungen' && (
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
@@ -1592,6 +1688,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
                 amtsblatt.refetch(),
                 gemeindeseiten.refetch(),
                 veranstaltungen.refetch(),
+                kanton.refetch(),
                 sendungskandidaten.refetch()
               ])
             }}

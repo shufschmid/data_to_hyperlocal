@@ -96,6 +96,8 @@ export type QuellenTyp =
   | 'amtsblatt'
   | 'simap'
   | 'euroairport'
+  /** The canton's own data door: Medien- und Polizeimeldungen of Kanton Basel-Landschaft (`shared/kanton/`). */
+  | 'kanton'
 
 export interface Quelle {
   id: string
@@ -267,6 +269,8 @@ export interface Meldung {
   amtsblattmeldung: string | null
   /** Set for articles written from a municipality's own news page. Null otherwise. */
   gemeindemitteilung: string | null
+  /** Set for articles written from a cantonal press or police notice naming the municipality. Null otherwise. */
+  kantonsmitteilung: string | null
   /**
    * Set for articles written from a broadcast contribution. Null otherwise.
    *
@@ -479,6 +483,7 @@ export type WissenBereich =
   | 'suedanflug'
   | 'abstimmung'
   | 'veranstaltung'
+  | 'kanton'
 /** A Sichtung rule steers what is proposed; a text rule, how a Meldung is written. */
 export type WissenStufe = 'sichtung' | 'text'
 /** `weiterreichen` lets a Sichtung hand a matching proposal to the Chefredaktion by itself. */
@@ -784,6 +789,7 @@ export interface Recherchehinweis {
   kandidat: string | null
   amtsblattmeldung: string | null
   gemeindemitteilung: string | null
+  kantonsmitteilung: string | null
   sendungskandidat: string | null
   veranstaltung: string | null
   /** Handed up by a learned rule, not by a person. */
@@ -874,6 +880,7 @@ export interface Schema {
   wochenblattgemeinden: Wochenblattgemeinde[]
   recherchehinweise: Recherchehinweis[]
   gemeindemitteilungen: Gemeindemitteilung[]
+  kantonsmitteilungen: Kantonsmitteilung[]
   suedanflugquoten: Suedanflugquote[]
   abstimmungen: Abstimmung[]
   abstimmungstermine: Abstimmungstermin[]
@@ -979,6 +986,48 @@ export interface Gemeindemitteilung {
   vorschlag_begruendung: string | null
   entscheid: MitteilungsEntscheid
   ablehnungsgrund: MitteilungsGrund | null
+  ablehnungskommentar: string | null
+  date_created: string | null
+  date_updated: string | null
+}
+
+/** Which of the canton's two listing blocks a notice came from — see `shared/kanton/`. */
+export type KantonQuelle = 'medienmitteilung' | 'polizeimeldung'
+
+export type KantonsGrund =
+  | 'nicht_relevant'
+  /** The municipality is one name in a list — the lesson this desk teaches. */
+  | 'nur_erwaehnt'
+  | 'doublette'
+  | 'veraltet'
+  | 'andere'
+
+/**
+ * One cantonal notice for ONE municipality it names. An item naming several
+ * covered municipalities is several rows; identity is (url, gemeinde), a
+ * composite unique index in `migrations/20260929A-kanton.mts`.
+ */
+export interface Kantonsmitteilung {
+  id: string
+  gemeinde: string
+  /** The public page on www.baselland.ch — linked, never fetched. */
+  url: string
+  quelle: KantonQuelle
+  /** Who published, read off the path: Sicherheitsdirektion, Polizei Basel-Landschaft, Regierungsrat … */
+  behoerde: string | null
+  titel: string
+  teaser: string | null
+  text: string | null
+  text_abgeschnitten: boolean
+  publiziert_am: string | null
+  gelesen_am: string | null
+  hinweise: string[] | null
+  /** Every covered municipality the item names — so the Sichtung can say «nennt auch». */
+  gemeinden_genannt: string[] | null
+  vorschlag: boolean | null
+  vorschlag_begruendung: string | null
+  entscheid: MitteilungsEntscheid
+  ablehnungsgrund: KantonsGrund | null
   ablehnungskommentar: string | null
   date_created: string | null
   date_updated: string | null

@@ -160,6 +160,7 @@ type UrsprungsFeld =
   | 'gemeindemitteilung'
   | 'sendungskandidat'
   | 'veranstaltung'
+  | 'kantonsmitteilung'
 
 /** Discarded Meldungen written from these rows, by row id. */
 async function ladeVerwuerfe(
@@ -463,8 +464,23 @@ export function ladeVeranstaltungSignale(
   )
 }
 
+/** The Kanton desk's examples per municipality — keyed on who published (`behoerde`). */
+export async function ladeKantonSignale(
+  dienste: LernDienste,
+  gemeindeId: string,
+  heute: string
+): Promise<AmtsblattSignale> {
+  return ladeGemeindebezogeneSignale(
+    dienste,
+    gemeindeId,
+    heute,
+    'behoerde',
+    'kantonsmitteilung'
+  )
+}
+
 /**
- * One loader for the three desks scoped by MUNICIPALITY. What differs is the
+ * One loader for the four desks scoped by MUNICIPALITY. What differs is the
  * column that carries the class hint (`rubrik_name` / `kategorie` / `anker`)
  * and the origin field a hand-up's lead points back through.
  */
@@ -472,7 +488,7 @@ async function ladeGemeindebezogeneSignale(
   dienste: LernDienste,
   gemeindeId: string,
   heute: string,
-  merkmalFeld: 'rubrik_name' | 'kategorie' | 'anker',
+  merkmalFeld: 'rubrik_name' | 'kategorie' | 'anker' | 'behoerde',
   ursprung: UrsprungsFeld
 ): Promise<AmtsblattSignale> {
   const beispiele = (
@@ -553,7 +569,11 @@ async function ladeGemeindebezogeneSignale(
         merkmalFeld === 'anker'
           ? ankerName(z.rubrik_name)
           : (z.rubrik_name ??
-            (merkmalFeld === 'kategorie' ? 'Mitteilung' : '')),
+            (merkmalFeld === 'kategorie'
+              ? 'Mitteilung'
+              : merkmalFeld === 'behoerde'
+                ? 'Kanton'
+                : '')),
       entscheid: z.entscheid as AmtsblattEintrag['entscheid'],
       grund: z.ablehnungsgrund,
       kommentar: z.ablehnungskommentar,
@@ -565,7 +585,9 @@ async function ladeGemeindebezogeneSignale(
         bilanz(imFenster),
         merkmalFeld === 'anker'
           ? `der letzten ${BILANZ_TAGE} Tage in dieser Gemeinde (Veranstaltungen)`
-          : `der letzten ${BILANZ_TAGE} Tage in dieser Gemeinde`
+          : merkmalFeld === 'behoerde'
+            ? `der letzten ${BILANZ_TAGE} Tage in dieser Gemeinde (Kanton)`
+            : `der letzten ${BILANZ_TAGE} Tage in dieser Gemeinde`
       ),
       verfallene: verfallene.map((z) => z.titel),
       kappung: deklariereKappung(alleEntschiedenen.length, beispiele.length)

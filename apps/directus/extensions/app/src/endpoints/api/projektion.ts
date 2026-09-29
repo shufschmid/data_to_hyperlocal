@@ -36,6 +36,7 @@ export type Rubrik =
   | 'beschaffung'
   | 'gemeinde'
   | 'veranstaltung'
+  | 'kanton'
   | 'presseschau'
   | 'sendung'
 
@@ -93,6 +94,8 @@ export interface Rohzeile {
   /** Set for articles written from a municipality's own news page. */
   gemeindemitteilung: string | null
   veranstaltung: string | null
+  /** Set for articles written from a press or police notice of the canton. */
+  kantonsmitteilung: string | null
   spiel: {
     sportart: string | null
     wettbewerb: string | null
@@ -273,6 +276,7 @@ export function rubrikVon(zeile: Rohzeile): Rubrik | null {
     return quelleTypVon(zeile) === 'simap' ? 'beschaffung' : 'amtsblatt'
   if (zeile.gemeindemitteilung !== null) return 'gemeinde'
   if (zeile.veranstaltung !== null) return 'veranstaltung'
+  if (zeile.kantonsmitteilung !== null) return 'kanton'
   if (zeile.sendungskandidat !== null) return 'sendung'
   return null
 }
@@ -411,6 +415,15 @@ export function quelleVon(zeile: Rohzeile, rubrik: Rubrik | null): Quelle {
           (zeile.gemeinde === null
             ? null
             : `Veranstaltungskalender der Gemeinde ${zeile.gemeinde.name}`),
+        url: text(daten['url'])
+      }
+
+    // The canton or its police speaking ABOUT a municipality: the desk writes
+    // the speaker's name and the public page into `datengrundlage`, and the
+    // page is only ever linked (it sits behind a challenge) — never fetched.
+    case 'kanton':
+      return {
+        name: text(daten['quelle_name']) ?? 'Kanton Basel-Landschaft',
         url: text(daten['url'])
       }
 

@@ -341,6 +341,7 @@ schlimmer als die Lücke.
 | `beschaffung`   | öffentliche Beschaffung auf simap.ch                                  | „simap.ch"                                                                                                      | die Projektseite                                                                                       |
 | `gemeinde`      | Mitteilung auf der offiziellen Website der Gemeinde                   | „Gemeinde ‹Name›"                                                                                               | die Unterseite, auf der die Mitteilung steht                                                           |
 | `veranstaltung` | Anlass aus einem Veranstaltungskalender einer Gemeinde                | der Name des Kalenders — heute „Veranstaltungskalender der Gemeinde ‹Name›", später eine Plattform oder ein Ort | die Seite des Anlasses                                                                                 |
+| `kanton`        | Medien- oder Polizeimeldung des Kantons, die eine Gemeinde nennt      | der Sprecher — „Kanton Basel-Landschaft" oder „Polizei Basel-Landschaft"                                        | die Mitteilung auf baselland.ch                                                                        |
 | `presseschau`   | Wochenblatt-Beitrag                                                   | der Name des Blattes                                                                                            | die Seite im PDF bzw. im issuu-Reader                                                                  |
 | `sendung`       | Regionaljournal / punkt6                                              | der Sendungsname                                                                                                | Deeplink mit Zeitmarke (`#t=` bzw. `?t=`)                                                              |
 | `null`          | kommt heute nicht vor — ehrlicher als eine geratene Rubrik            | null                                                                                                            | null                                                                                                   |
@@ -358,6 +359,14 @@ Kalendern (die eigene Website heute, Plattformen wie Crossiety und
 Veranstaltungsorte wie das Z7 in Pratteln danach), und ein Konzert aus dem Z7
 ist keine „Gemeinde ‹Name›"-Quelle. `quelle_name` nennt darum den Kalender,
 `quelle_url` die Seite des Anlasses selbst, nie die Liste.
+
+**Der Kanton ist seit dem 29. September 2026 die elfte Rubrik.** `kanton` ist
+ein Beitrag aus einer Medienmitteilung des Kantons Basel-Landschaft oder einer
+Polizeimeldung, die eine bespielte Gemeinde beim Namen nennt — der Kanton
+spricht ÜBER die Gemeinde, darum ist es weder `gemeinde` (das ist die Gemeinde
+selbst) noch `amtsblatt` (das ist die amtliche Publikation). `quelle_name`
+nennt den Sprecher, `quelle_url` die Mitteilung auf baselland.ch. Ein neuer
+Wert im Enum, keine neue Form.
 
 Was gleich bleibt: der Termin steht ABSOLUT im Text („am Freitag, 25.
 September 2026, von 13 bis 18 Uhr im Kultur- und Sportzentrum"), weil die
@@ -426,15 +435,15 @@ der Beitrag, den sie hervorbringen.
 
 Je Tisch:
 
-| Feld                        | Typ             | Bedeutung                                                                                                           |
-| --------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `tisch`                     | enum            | `statistik`, `sport`, `presseschau`, `amtsblatt`, `gemeindeseite`, `veranstaltung`, `sendung`, `entsorgung`, `ohne` |
-| `offen`                     | integer         | wartet auf einen Menschen (`entwurf`, `in_pruefung`)                                                                |
-| `freigegeben`               | integer         | unterschrieben, wartet auf den Zeitlauf                                                                             |
-| `aeltester_tage`            | integer \| null | Alter des ältesten wartenden Beitrags in ganzen Tagen; `null`, wenn keiner wartet                                   |
-| `publiziert_im_fenster`     | integer         | im Fenster publiziert                                                                                               |
-| `freigegeben_im_fenster`    | integer         | im Fenster unterschrieben                                                                                           |
-| `zurueckgezogen_im_fenster` | integer         | im Fenster zurückgezogen                                                                                            |
+| Feld                        | Typ             | Bedeutung                                                                                                                     |
+| --------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `tisch`                     | enum            | `statistik`, `sport`, `presseschau`, `amtsblatt`, `gemeindeseite`, `veranstaltung`, `kanton`, `sendung`, `entsorgung`, `ohne` |
+| `offen`                     | integer         | wartet auf einen Menschen (`entwurf`, `in_pruefung`)                                                                          |
+| `freigegeben`               | integer         | unterschrieben, wartet auf den Zeitlauf                                                                                       |
+| `aeltester_tage`            | integer \| null | Alter des ältesten wartenden Beitrags in ganzen Tagen; `null`, wenn keiner wartet                                             |
+| `publiziert_im_fenster`     | integer         | im Fenster publiziert                                                                                                         |
+| `freigegeben_im_fenster`    | integer         | im Fenster unterschrieben                                                                                                     |
+| `zurueckgezogen_im_fenster` | integer         | im Fenster zurückgezogen                                                                                                      |
 
 **Ein Tisch ohne Arbeit fällt nicht heraus**, er steht mit Nullen da: «kommt
 nicht vor» liest sich wie «gibt es nicht» und nicht wie «hat nichts zu tun».
@@ -555,4 +564,7 @@ des Dorfkönigs; die Liste ohne `abnehmer` ist unverändert, nur die Sortierung
 hat bei gleichem Zeitpunkt jetzt die `id` als zweiten Schlüssel. Version 1.6.0
 am 28. September 2026: jede Entsorgungserinnerung trägt einen `termin`, dessen
 drei Angaben ihr `erscheint_am` sind — bisher war er dort `null`, und der
-Dorfkönig las das Ende aus dem Text, also einen Tag zu spät._
+Dorfkönig las das Ende aus dem Text, also einen Tag zu spät. Version 1.7.0
+am 29. September 2026: Rubrik `kanton` mit dem Sprecher als `quelle_name`,
+ein zehnter Tisch `kanton` in der Bilanz — wieder ein neuer Wert je Enum,
+keine neue Form._

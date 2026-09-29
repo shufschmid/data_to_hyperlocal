@@ -183,5 +183,19 @@
     },
     "operation": "d4b2e48c-a6c4-409d-8b38-79cd64b42ec7",
     "_syncId": "1fc01521-ee78-4705-a7f9-847b70a7acb4"
+  },
+  {
+    "name": "Kanton pruefen",
+    "icon": "account_balance",
+    "color": null,
+    "description": "Liest um 14 Uhr die zwei Listen des Kantons Basel-Landschaft (Medienmitteilungen, Polizeimeldungen) ueber die Datentuer der Seite, oeffnet jeden neuen Eintrag und behaelt nur, was eine bespielte Gemeinde beim Namen nennt. Je Gemeinde sortiert eine Sichtung die neuen Zeilen, und jeder Vorschlag bekommt seinen Entwurf.",
+    "status": "active",
+    "trigger": "schedule",
+    "accountability": "all",
+    "options": {
+      "cron": "0 14 * * *"
+    },
+    "operation": "d5b2f8e3-6c4a-4f9b-8d7e-3a2c8b9f0e14",
+    "_syncId": "c4a1e7d2-5b3f-4e8a-9c6d-2f1b7a8e9d03"
   }
 ]

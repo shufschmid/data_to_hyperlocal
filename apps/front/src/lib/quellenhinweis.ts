@@ -57,6 +57,8 @@ export function laufFuer(typ: string): string | null {
     case 'amtsblatt':
     case 'simap':
       return 'amtsblatt/pruefen'
+    case 'kanton':
+      return 'kanton/pruefen'
     default:
       return null
   }

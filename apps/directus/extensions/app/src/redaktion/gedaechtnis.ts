@@ -296,6 +296,17 @@ async function ladeFall(
       'gemeinde.id',
       'gemeinde.name'
     ],
+    kanton: [
+      'id',
+      'titel',
+      'quelle',
+      'behoerde',
+      'teaser',
+      'text',
+      'vorschlag_begruendung',
+      'gemeinde.id',
+      'gemeinde.name'
+    ],
     sendung: [
       'id',
       'titel',
@@ -381,6 +392,25 @@ async function ladeFall(
       kommentar: signal.kommentar
     }
     scope = gemeinde === null ? {} : { gemeinde: { _eq: gemeinde.id } }
+  } else if (signal.tisch === 'kanton') {
+    const gemeinde = zeile['gemeinde'] as { id: string; name: string } | null
+    const teaser = text(zeile['teaser'])
+    const inhalt = text(zeile['text'])
+    fall = {
+      tisch: 'kanton',
+      quelleName: gemeinde?.name ?? 'Gemeinde',
+      titel: String(zeile['titel'] ?? ''),
+      // Who published is the class hint: a police notice and a directorate's
+      // release are decided for different reasons.
+      merkmal: text(zeile['behoerde']) ?? text(zeile['quelle']),
+      zusammenfassung:
+        teaser ?? (inhalt === null ? null : inhalt.slice(0, 600)),
+      modellBegruendung: text(zeile['vorschlag_begruendung']),
+      entscheid: signal.entscheid,
+      grund: signal.grund,
+      kommentar: signal.kommentar
+    }
+    scope = gemeinde === null ? {} : { gemeinde: { _eq: gemeinde.id } }
   } else if (signal.tisch === 'veranstaltung') {
     const gemeinde = zeile['gemeinde'] as { id: string; name: string } | null
     const beschreibung = text(zeile['beschreibung'])
@@ -430,9 +460,11 @@ async function ladeFall(
           ? 'amtsblattmeldung'
           : signal.tisch === 'gemeinde'
             ? 'gemeindemitteilung'
-            : signal.tisch === 'veranstaltung'
-              ? 'veranstaltung'
-              : 'sendungskandidat'
+            : signal.tisch === 'kanton'
+              ? 'kantonsmitteilung'
+              : signal.tisch === 'veranstaltung'
+                ? 'veranstaltung'
+                : 'sendungskandidat'
     const andere = (await dienste.hinweise.readByQuery({
       filter: {
         [fk]: { _nnull: true, _neq: zeileId },

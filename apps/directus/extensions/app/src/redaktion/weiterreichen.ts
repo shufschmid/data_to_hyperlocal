@@ -31,6 +31,7 @@ export interface HinweisFelder {
   kandidat?: string
   amtsblattmeldung?: string
   gemeindemitteilung?: string
+  kantonsmitteilung?: string
   sendungskandidat?: string
   veranstaltung?: string
 }
@@ -264,4 +265,46 @@ export async function reicheWeiter(
   })
 
   return hinweisId
+}
+
+/** A cantonal notice the editor (or a rule) hands to the Chefredaktion. */
+export function kantonsmitteilungAlsHinweis(
+  zeile: {
+    id: string
+    titel: string
+    url: string
+    quelle: 'medienmitteilung' | 'polizeimeldung'
+    behoerde: string | null
+    publiziert_am: string | null
+    teaser: string | null
+    text: string | null
+    vorschlag_begruendung: string | null
+    gemeinde: { id: string }
+  },
+  begruendung: string | null
+): HinweisFelder {
+  const datum =
+    zeile.publiziert_am === null
+      ? ''
+      : ` vom ${datumDeutsch(zeile.publiziert_am)}`
+  const fundort =
+    zeile.quelle === 'polizeimeldung'
+      ? `Polizeimeldung der Polizei Basel-Landschaft${datum}`
+      : `Medienmitteilung des Kantons Basel-Landschaft${datum}${zeile.behoerde === null ? '' : ` (${zeile.behoerde})`}`
+  return {
+    gemeinde: zeile.gemeinde.id,
+    titel: zeile.titel,
+    fundort,
+    begruendung: begruendung ?? zeile.vorschlag_begruendung ?? null,
+    quelltext: [
+      zeile.titel,
+      zeile.teaser ?? '',
+      gekuerzt(zeile.text ?? '', 12_000),
+      zeile.url
+    ]
+      .filter((z) => z.trim() !== '')
+      .join('\n'),
+    status: 'offen',
+    kantonsmitteilung: zeile.id
+  }
 }

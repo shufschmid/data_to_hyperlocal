@@ -1,0 +1,2629 @@
+{
+  "@components": {
+    "actions": {
+      "@id": "https://bl-api.webcloud7.ch/startseite/ftw-news-newslistingblock/@actions"
+    },
+    "aliases": {
+      "@id": "https://bl-api.webcloud7.ch/startseite/ftw-news-newslistingblock/@aliases"
+    },
+    "breadcrumbs": {
+      "@id": "https://bl-api.webcloud7.ch/startseite/ftw-news-newslistingblock/@breadcrumbs"
+    },
+    "contextnavigation": {
+      "@id": "https://bl-api.webcloud7.ch/startseite/ftw-news-newslistingblock/@contextnavigation"
+    },
+    "footer": {
+      "@id": "https://bl-api.webcloud7.ch/@footer",
+      "data": {
+        "msg": "Not extandable for caching reasons, please call @id in a separate request."
+      }
+    },
+    "linklist": {
+      "@id": "https://bl-api.webcloud7.ch/@linklist",
+      "data": {
+        "msg": "Not extandable for caching reasons, please call @id in a separate request."
+      }
+    },
+    "navigation": {
+      "@id": "https://bl-api.webcloud7.ch/startseite/ftw-news-newslistingblock/@navigation"
+    },
+    "navroot": {
+      "@id": "https://bl-api.webcloud7.ch/startseite/ftw-news-newslistingblock/@navroot"
+    },
+    "types": {
+      "@id": "https://bl-api.webcloud7.ch/startseite/ftw-news-newslistingblock/@types"
+    },
+    "workflow": {
+      "@id": "https://bl-api.webcloud7.ch/startseite/ftw-news-newslistingblock/@workflow"
+    }
+  },
+  "@id": "https://bl-api.webcloud7.ch/startseite/ftw-news-newslistingblock",
+  "@type": "NewsListingBlock",
+  "UID": "c7210eed7e3e44d18d812e5e87a0faf7",
+  "allow_discussion": false,
+  "archiv_url": null,
+  "batching": {
+    "@id": "https://bl-api.webcloud7.ch/startseite/ftw-news-newslistingblock?b_size=100",
+    "first": "https://bl-api.webcloud7.ch/startseite/ftw-news-newslistingblock?b_size=100&b_start=0",
+    "last": "https://bl-api.webcloud7.ch/startseite/ftw-news-newslistingblock?b_size=100&b_start=7900",
+    "next": "https://bl-api.webcloud7.ch/startseite/ftw-news-newslistingblock?b_size=100&b_start=100"
+  },
+  "block_template": {
+    "title": "Normal",
+    "token": "normal"
+  },
+  "created": "2023-05-25T14:41:51+00:00",
+  "current_context": false,
+  "id": "ftw-news-newslistingblock",
+  "is_folderish": true,
+  "items": [
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/besondere-behoerden/landeskanzlei/medienmitteilungen/mehrwertabgabe-stimmbevoelkerung-lehnt-initiative-und-gegenvorschlag-ab",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-27T12:16:51+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Mehrwertabgabe: Stimmbev\u00f6lkerung lehnt Initiative und Gegenvorschlag ab",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/landratssaal-bleibt-voraussichtlich-bis-mitte-august-2027-geschlossen",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-25T09:01:14+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Landratssaal bleibt voraussichtlich bis Mitte August 2027 geschlossen",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bildungs-kultur-und-sportdirektion/medienmitteilungen/kantonsbeitraege-fuer-kinderbetreuung-voraussichtlich-ab-august-2027",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-24T07:59:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Kantonsbeitr\u00e4ge f\u00fcr Kinderbetreuung voraussichtlich ab August 2027",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/finanzplan-2027-2030-planung-und-risiken",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-23T08:30:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Finanzplan 2027\u20132030: Planung und Risiken",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/kantonaler-richtplan-wird-erstmals-gesamthaft-ueberprueft",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-23T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Kantonaler Richtplan wird erstmals gesamthaft \u00fcberpr\u00fcft",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/beschlossene-vorlagen-und-stellungnahmen-des-regierungsrats-1790081809.055965",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-23T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Beschlossene Vorlagen und Stellungnahmen des Regierungsrats",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/anpassung-2026-abbau-und-deponie",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-23T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Anpassung 2026, Abbau und Deponie",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/regierungsrat-schlaegt-uebergangsloesung-zur-entlastung-der-gemeinden-im-asylbereich-vor-1",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-22T12:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Regierungsrat schl\u00e4gt \u00dcbergangsl\u00f6sung zur Entlastung der Gemeinden im Asylbereich vor",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/regierungsbulletin-vom-22-september-2026",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-22T12:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Regierungsbulletin vom 22. September 2026",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/volkswirtschafts-und-gesundheitsdirektion/medienmitteilungen/gemeinsame-gesundheitsregion-ggr-naechste-schritte-in-der-spitalplanung",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-21T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "2.0 MB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": {
+        "image": [
+          {
+            "content-type": "image/jpeg",
+            "download": "@@images/image-4800-8bd1d4ecf1a6601ee2e0943426fee412.jpeg",
+            "filename": "pexels-printexstar-11660581.jpg",
+            "height": 3200,
+            "scales": {
+              "great": {
+                "download": "@@images/image-1200-15942ae2a5e3c9caeaab45843bed708d.jpeg",
+                "height": 800,
+                "width": 1200
+              },
+              "huge": {
+                "download": "@@images/image-1600-f8d103f6d08057df2a77bbce54068a11.jpeg",
+                "height": 1066,
+                "width": 1600
+              },
+              "icon": {
+                "download": "@@images/image-32-2ce3777995ff3b0ffc2fa8cd35f4d5e1.jpeg",
+                "height": 21,
+                "width": 32
+              },
+              "large": {
+                "download": "@@images/image-800-9f865b5663398f13860bcc8e61b32574.jpeg",
+                "height": 533,
+                "width": 800
+              },
+              "larger": {
+                "download": "@@images/image-1000-d8cf4706dbb7d9dde2f2a3b7fcc7ed9f.jpeg",
+                "height": 666,
+                "width": 1000
+              },
+              "listing": {
+                "download": "@@images/image-16-a26ce3cbf0d50f9f0787310362facd82.jpeg",
+                "height": 10,
+                "width": 16
+              },
+              "mini": {
+                "download": "@@images/image-200-dfe2552ef62a2dfe0c318c39fcf51f2a.jpeg",
+                "height": 133,
+                "width": 200
+              },
+              "preview": {
+                "download": "@@images/image-670-0aa77d9c8e79304293da34dfa653258a.jpeg",
+                "height": 446,
+                "width": 670
+              },
+              "slider": {
+                "download": "@@images/image-1000-81ce25c2d330958feef2f8756e1301b7.jpeg",
+                "height": 666,
+                "width": 1000
+              },
+              "teaser": {
+                "download": "@@images/image-800-9f865b5663398f13860bcc8e61b32574.jpeg",
+                "height": 533,
+                "width": 800
+              },
+              "thumb": {
+                "download": "@@images/image-128-b2b9b40d09c73703e100b8c8497ba930.jpeg",
+                "height": 85,
+                "width": 128
+              },
+              "tile": {
+                "download": "@@images/image-64-2abcd12b483029bb397d0361b0a1d6d6.jpeg",
+                "height": 42,
+                "width": 64
+              }
+            },
+            "size": 2055948,
+            "width": 4800
+          }
+        ]
+      },
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Gemeinsame Gesundheitsregion GGR: N\u00e4chste Schritte in der Spitalplanung",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/therwil-eroeffnung-ara-birsig-wegen-ammoniak-vorfall-bei-wot-teilweise-abgesagt",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-18T14:19:55+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Therwil - Trotz Ammoniak-Vorfall bei WOT zu Wochenbeginn: Tag der offenen T\u00fcr in der ARA Birsig findet statt",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bildungs-kultur-und-sportdirektion/medienmitteilungen/matur-sportklassen-ab-schuljahr-2028-29-in-muttenz",
+      "@type": "News",
+      "description": "Die Matur-Sportklassen der Leistungssportf\u00f6rderung des Kantons Basel-Landschaft werden ab Schuljahr 2028/29 neu am Gymnasium Muttenz gef\u00fchrt. Der Standortwechsel von Liestal nach Muttenz ergibt verk\u00fcrzte Reisewege f\u00fcr die \u00fcberwiegende Mehrheit der Sch\u00fclerinnen und Sch\u00fcler. Zudem besteht am Gymnasium Muttenz gr\u00f6ssere r\u00e4umliche Flexibilit\u00e4t.",
+      "effective": "2026-09-17T08:30:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Matur-Sportklassen ab Schuljahr 2028/29 in Muttenz",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/energienachweise-neu-digital-einreichen",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-17T08:00:11+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Energienachweise neu digital einreichen",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/volkswirtschafts-und-gesundheitsdirektion/medienmitteilungen/tuberkulosefall-an-der-primarschule-bottmingen-vorsorgliche-medizinische-untersuchungen-eingeleitet",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-16T14:44:21+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Tuberkulosefall an der Primarschule Bottmingen: Vorsorgliche medizinische Untersuchungen eingeleitet",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/beschlossene-vorlagen-und-stellungnahmen-des-regierungsrats-1789472656.9922614",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-16T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Beschlossene Vorlagen und Stellungnahmen des Regierungsrats",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/medienmitteilungen/zunahme-von-strassenverkehrsdelikten-durch-elektro-trendfahrzeuge-bei-kindern-und-jugendlichen",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-15T12:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Zunahme von Strassenverkehrsdelikten durch Elektro-Trendfahrzeuge bei Kindern und Jugendlichen",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/baselbieter-sportpreise-2026-gehen-an-zwei-weltmeister",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-15T12:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Baselbieter Sportpreise 2026 gehen an zwei Weltmeister",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/regierungsbulletin-vom-15-september-2026",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-15T12:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Regierungsbulletin vom 15. September 2026",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/raumplanungsgesetz-bauzonengroesse-der-nachfrage-anpassen",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-15T08:45:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Raumplanungsgesetz: Bauzonengr\u00f6sse der Nachfrage anpassen",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/laeufelfingen-instandstellung-der-bahnhofstrasse",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-14T08:04:10+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "L\u00e4ufelfingen: Instandstellung der Bahnhofstrasse",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/volkswirtschafts-und-gesundheitsdirektion/medienmitteilungen/kantonaler-fuehrungsstab-teilstab-trockenheit-wird-deaktiviert",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-10T14:13:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Kantonaler F\u00fchrungsstab: Teilstab Trockenheit wird deaktiviert",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/beschlossene-vorlagen-und-stellungnahmen-des-regierungsrats-1788868205.5055072",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-09T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Beschlossene Vorlagen und Stellungnahmen des Regierungsrats",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/baselland-baugesuchsverfahren-soll-vollstaendig-digital-werden",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-09T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Baselland: Baugesuchsverfahren soll vollst\u00e4ndig digital werden",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bildungs-kultur-und-sportdirektion/medienmitteilungen/befragung-bestaetigt-heutige-schulferienregelung",
+      "@type": "News",
+      "description": "Die Auswertung einer gemeinsamen Befragung zur k\u00fcnftigen Verteilung der Schulferien der Kantone Basel-Landschaft und Basel-Stadt zeigt, dass die heutige Regelung bei Erziehungsberechtigten und Anspruchsgruppen die gr\u00f6sste Unterst\u00fctzung geniesst. Die beiden Basel halten deshalb an der heutigen Schulferienregelung fest.",
+      "effective": "2026-09-09T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Befragung best\u00e4tigt heutige Schulferienregelung",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/regierungsbulletin-vom-8-september-2026",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-08T12:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Regierungsbulletin vom 8. September 2026",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/wahltermin-fuer-ein-mitglied-des-staenderats-und-zusaetzliche-abstimmungstermine-2027",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-08T12:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Wahltermin f\u00fcr ein Mitglied des St\u00e4nderats und zus\u00e4tzliche Abstimmungstermine 2027",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/versorgungssicherheit-klimavertraeglichkeit-und-bezahlbarkeit-im-fokus",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-08T12:04:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Versorgungssicherheit, Klimavertr\u00e4glichkeit und Bezahlbarkeit im Fokus",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/abwasserrechnung-2025-faellt-insgesamt-tiefer-aus-als-im-vorjahr",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-08T09:00:13+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Abwasserrechnung 2025 f\u00e4llt insgesamt tiefer aus als im Vorjahr",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bildungs-kultur-und-sportdirektion/medienmitteilungen/pisa-ergebnisse-2025-baselbieter-jugendliche-leicht-besser-als-schweizer-durchschnitt",
+      "@type": "News",
+      "description": "Die Konferenz der kantonalen Erziehungsdirektor/innen (EDK) hat die Resultate der PISA-Erhebung 2025 der Schweiz ver\u00f6ffentlicht. Im Kanton Basel-Landschaft wurde die Stichprobe erh\u00f6ht, um repr\u00e4sentative Ergebnisse f\u00fcr das Baselbiet zu erhalten. 15-j\u00e4hrige Jugendliche an Baselbieter Schulen liegen in den getesteten Kompetenzen Mathematik, Lesen und Naturwissenschaften leicht \u00fcber dem Schweizer Durchschnitt.",
+      "effective": "2026-09-08T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "PISA-Ergebnisse 2025: Baselbieter Jugendliche leicht besser als Schweizer Durchschnitt",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/hauptstrasse-in-lampenberg-wird-umfassend-erneuert",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-08T08:00:53+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Hauptstrasse in Lampenberg wird umfassend erneuert",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/gerichte/mitteilungen/gerichte-baselland-lehnen-sensationsjournalismus-ab",
+      "@type": "News",
+      "description": "Die Gerichte des Kantons Basel-Landschaft replizieren in einer gemeinsamen Mitteilung der Gesch\u00e4ftsleitung, des Strafgerichts sowie der Abteilung Steuergericht des Steuer- und Enteignungsgerichts auf den BZ-Artikel \u00abNeue Episoden im Baselbieter Intrigantenstadel\u00bb vom 5. September 2026 und berichtigen wesentliche Fakten und Zusammenh\u00e4nge.",
+      "effective": "2026-09-08T06:45:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Gerichte Baselland lehnen Sensationsjournalismus ab",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/anpassung-an-das-bundesgesetz-ueber-velowege-und-loeschungen-in-zwei-paragrafen",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-07T07:59:33+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Anpassung an das Bundesgesetz \u00fcber Velowege und L\u00f6schungen in zwei Paragrafen",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/vernehmlassung-botschaft-2027-1",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-07T06:56:03+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Vernehmlassung Botschaft 2027: Kantone fordern mehr Planungssicherheit vom Bund",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/volkswirtschafts-und-gesundheitsdirektion/medienmitteilungen/ebenraintag-2026-1",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-06T16:00:00+00:00",
+      "end": null,
+      "getObjSize": "298.8 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": {
+        "image": [
+          {
+            "content-type": "image/webp",
+            "download": "@@images/image-945-0b77f846c1bbcb392863f5c1c2b31fa8.webp",
+            "filename": "0148e1d5-7e99-46b1-9a4b-7d4be725a339.webp",
+            "height": 827,
+            "scales": {
+              "icon": {
+                "download": "@@images/image-32-a0b5d5e0a8971c279054d6dd05f10811.webp",
+                "height": 28,
+                "width": 32
+              },
+              "large": {
+                "download": "@@images/image-800-0847e4480f4f74588a4bdc6be1b1d9a2.webp",
+                "height": 700,
+                "width": 800
+              },
+              "listing": {
+                "download": "@@images/image-16-5afd3799afb38d67a348f35071816bfb.webp",
+                "height": 14,
+                "width": 16
+              },
+              "mini": {
+                "download": "@@images/image-200-0d03af985eb446b11bd61b51273ca6c9.webp",
+                "height": 175,
+                "width": 200
+              },
+              "preview": {
+                "download": "@@images/image-670-a363b5c9475fae70d617b0ea056d07dc.webp",
+                "height": 586,
+                "width": 670
+              },
+              "teaser": {
+                "download": "@@images/image-800-0847e4480f4f74588a4bdc6be1b1d9a2.webp",
+                "height": 700,
+                "width": 800
+              },
+              "thumb": {
+                "download": "@@images/image-128-a5b233a3b8e0521fdecfdba1c509e7a6.webp",
+                "height": 112,
+                "width": 128
+              },
+              "tile": {
+                "download": "@@images/image-64-f0354f3bb14beba67c5375d4e91e3a1b.webp",
+                "height": 56,
+                "width": 64
+              }
+            },
+            "size": 305930,
+            "width": 945
+          }
+        ]
+      },
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Ebenraintag 2026",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/landratssaal-bleibt-bis-ende-jahr-geschlossen",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-04T12:28:53+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Landratssaal bleibt bis Ende Jahr geschlossen",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bildungs-kultur-und-sportdirektion/medienmitteilungen/bikantonales-netzwerk-zur-staerkung-der-berufsbildung",
+      "@type": "News",
+      "description": "Die Kantone Basel-Landschaft und Basel-Stadt schaffen mit dem ersten \u00abNetzwerk Schule und Wirtschaft beider Basel\u00bb eine gemeinsame Plattform f\u00fcr den Austausch zwischen Schulen, Wirtschaft und Bildungsverwaltung. Ziel ist es, die Zusammenarbeit in der Berufsbildung zu st\u00e4rken, gemeinsame Herausforderungen anzugehen und die Vernetzung \u00fcber die Kantonsgrenzen hinweg auszubauen.",
+      "effective": "2026-09-03T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Bikantonales Netzwerk zur St\u00e4rkung der Berufsbildung",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/medienmitteilungen/tempo-30-antraegen-in-muenchenstein-und-birsfelden-wird-teilweise-zugestimmt",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-02T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Tempo-30-Antr\u00e4gen in M\u00fcnchenstein und Birsfelden wird teilweise zugestimmt",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/regierungsrat-beantragt-ueberbrueckungskredite-fuer-landwirtschaftsbetriebe",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-02T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Regierungsrat beantragt \u00dcberbr\u00fcckungskredite f\u00fcr Landwirtschaftsbetriebe",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/beschlossene-vorlagen-und-stellungnahmen-des-regierungsrats-1788268933.9976823",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-02T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Beschlossene Vorlagen und Stellungnahmen des Regierungsrats",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/nachfolge-der-leitung-des-amts-fuer-volksschulen-geregelt",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-01T12:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Nachfolge der Leitung des Amts f\u00fcr Volksschulen geregelt",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/regierungsbulletin-vom-1-september-2026",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-01T12:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Regierungsbulletin vom 1. September 2026",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/wintersingen-hauptstrasse-wegen-belagsarbeiten-gesperrt",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-08-31T08:58:07+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Wintersingen: Hauptstrasse wegen Belagsarbeiten gesperrt",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/zwingen-strassensperrung-wegen-werkleitungsarbeiten",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-08-31T08:01:57+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Zwingen: Strassensperrung wegen Werkleitungsarbeiten",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/tarifverbund-nordwestschweiz-beteiligte-kantone-vereinfachen-finanzierung",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-08-28T06:59:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Tarifverbund Nordwestschweiz: Beteiligte Kantone vereinfachen Finanzierung",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/volkswirtschafts-und-gesundheitsdirektion/medienmitteilungen/kanton-basel-landschaft-lockert-massnahmen-bezueglich-trockenheit",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-08-27T15:06:41+00:00",
+      "end": null,
+      "getObjSize": "1.2 MB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": {
+        "image": [
+          {
+            "content-type": "image/jpeg",
+            "download": "@@images/image-1181-d9dde097ce778124c1af138ec3b02786.jpeg",
+            "filename": "_MG_9760\u00a9FotoSch\u00e4rliH\u00f6lstein.jpg",
+            "height": 787,
+            "scales": {
+              "icon": {
+                "download": "@@images/image-32-dfe71689ad5e42939b25bb1582772ff6.jpeg",
+                "height": 21,
+                "width": 32
+              },
+              "large": {
+                "download": "@@images/image-800-8255568f6ed6fb0407590187a424de26.jpeg",
+                "height": 533,
+                "width": 800
+              },
+              "larger": {
+                "download": "@@images/image-1000-67584c406a019938604110e60775b179.jpeg",
+                "height": 666,
+                "width": 1000
+              },
+              "listing": {
+                "download": "@@images/image-16-5f07282d7d23fa1db6ab5e737a5888c7.jpeg",
+                "height": 10,
+                "width": 16
+              },
+              "mini": {
+                "download": "@@images/image-200-d82bef4460083bff2b2c6dc6513ccd38.jpeg",
+                "height": 133,
+                "width": 200
+              },
+              "preview": {
+                "download": "@@images/image-670-dca74616d4a84490c98255d38f51e890.jpeg",
+                "height": 446,
+                "width": 670
+              },
+              "slider": {
+                "download": "@@images/image-1000-0b116c74310dfadac9d7bbd194376cca.jpeg",
+                "height": 666,
+                "width": 1000
+              },
+              "teaser": {
+                "download": "@@images/image-800-8255568f6ed6fb0407590187a424de26.jpeg",
+                "height": 533,
+                "width": 800
+              },
+              "thumb": {
+                "download": "@@images/image-128-7b57fe3c4ce9cfe11a3789191529a4c9.jpeg",
+                "height": 85,
+                "width": 128
+              },
+              "tile": {
+                "download": "@@images/image-64-a01819c5fc15258fe989c65fa99185c1.jpeg",
+                "height": 42,
+                "width": 64
+              }
+            },
+            "size": 1257978,
+            "width": 1181
+          }
+        ]
+      },
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Kanton Basel-Landschaft lockert Massnahmen bez\u00fcglich Trockenheit",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/beschlossene-vorlagen-und-stellungnahmen-des-regierungsrats-1787650101.5130887",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-08-26T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Beschlossene Vorlagen und Stellungnahmen des Regierungsrats",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/schloss-bottmingen-sanierung-der-weihermauer",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-08-25T12:56:48+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Schloss Bottmingen: Sanierung der Weihermauer",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/regierungsbulletin-vom-25-august-2026",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-08-25T12:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Regierungsbulletin vom 25. August 2026",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/kantonsbeitraege-fuer-kinderbetreuung-start-der-umsetzungsarbeiten",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-08-25T12:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Kantonsbeitr\u00e4ge f\u00fcr Kinderbetreuung \u2013 Start der Umsetzungsarbeiten",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/finanz-und-kirchendirektion/medienmitteilungen/aktionsplan-fuer-die-gleichstellung-der-geschlechter-und-menschen-mit-behinderungen",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-08-25T06:00:00+00:00",
+      "end": null,
+      "getObjSize": "526.5 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": {
+        "image": [
+          {
+            "content-type": "image/png",
+            "download": "@@images/image-662-ad0885829a6be7a9d4c2ede1f088116b.png",
+            "filename": "GLBL BIld.png",
+            "height": 608,
+            "scales": {
+              "icon": {
+                "download": "@@images/image-32-723c8e7d0b987807d98f350f83fa5fab.png",
+                "height": 29,
+                "width": 32
+              },
+              "listing": {
+                "download": "@@images/image-16-35f1bb91e8d7a594ec29117f27f64cfb.png",
+                "height": 14,
+                "width": 16
+              },
+              "mini": {
+                "download": "@@images/image-200-04317152a3dc87af164f237ed419c80a.png",
+                "height": 183,
+                "width": 200
+              },
+              "thumb": {
+                "download": "@@images/image-128-ff0656a36072953d957aa3fa93d4347c.png",
+                "height": 117,
+                "width": 128
+              },
+              "tile": {
+                "download": "@@images/image-64-53c60895a714e72e280650a0356124e6.png",
+                "height": 58,
+                "width": 64
+              }
+            },
+            "size": 539114,
+            "width": 662
+          }
+        ]
+      },
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Aktionsplan f\u00fcr die Gleichstellung der Geschlechter und Menschen mit Behinderungen",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/pratteln-altlastensanierung-rheinlehne-1",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-08-24T08:56:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Pratteln: Altlastensanierung Rheinlehne",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/online-mitwirkung-zur-tramnetzoptimierung",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-08-24T06:58:31+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Online-Mitwirkung zur Tramnetzoptimierung",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/der-denkmaltag-in-sissach",
+      "@type": "News",
+      "description": "",
+      "effective": "1969-12-30T22:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Der Denkmaltag in Sissach",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/regierungsfoto-2026-250-jahre-schloss-ebenrain",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-08-20T12:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Regierungsfoto 2026: 250 Jahre Schloss Ebenrain",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/regierungsrat-schlaegt-uebergangsloesung-zur-entlastung-der-gemeinden-im-asylbereich-vor",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-08-19T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Regierungsrat schl\u00e4gt \u00dcbergangsl\u00f6sung zur Entlastung der Gemeinden im Asylbereich vor",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/beschlossenen-vorlagen-und-stellungnahmen-des-regierungsrats",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-08-19T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Beschlossene Vorlagen und Stellungnahmen des Regierungsrats",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/regierungsbulletin-vom-18-august-2026",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-08-18T12:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Regierungsbulletin vom 18. August 2026",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/externe-untersuchung-soll-klarheit-in-die-vorfaelle-beim-amt-fuer-migration-integration-und-buergerrecht-bringen",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-08-18T12:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Externe Untersuchung soll Klarheit in die Vorf\u00e4lle beim Amt f\u00fcr Migration, Integration und B\u00fcrgerrecht bringen",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/landrat-parlament/medienmitteilungen/landratssitzungen-vom-august-bis-oktober-2026-finden-im-stadtsaal-liestal-statt",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-08-14T09:56:31+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Landratssitzungen vom August bis Oktober 2026 finden im Stadtsaal Liestal statt",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/volkswirtschafts-und-gesundheitsdirektion/medienmitteilungen/runder-tisch-zu-wildschaeden-an-landwirtschaftlichen-kulturen",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-08-14T07:50:57+00:00",
+      "end": null,
+      "getObjSize": "795.6 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": {
+        "image": [
+          {
+            "content-type": "image/jpeg",
+            "download": "@@images/image-2016-155c973e8405c2860a1d649c35b74c73.jpeg",
+            "filename": "Runder Tisch.jpg",
+            "height": 1134,
+            "scales": {
+              "great": {
+                "download": "@@images/image-1200-07dbe0a7dccf39d2602818c4dd0c76e5.jpeg",
+                "height": 675,
+                "width": 1200
+              },
+              "huge": {
+                "download": "@@images/image-1600-4a9a8a113678d45d66c0ed5c8c234743.jpeg",
+                "height": 900,
+                "width": 1600
+              },
+              "icon": {
+                "download": "@@images/image-32-ea6c11f05175785277a2cba195f26971.jpeg",
+                "height": 18,
+                "width": 32
+              },
+              "large": {
+                "download": "@@images/image-800-c87becbe38faf06f5743aea2e78a85ec.jpeg",
+                "height": 450,
+                "width": 800
+              },
+              "larger": {
+                "download": "@@images/image-1000-9f0764774210d29137351e660c3b8d89.jpeg",
+                "height": 562,
+                "width": 1000
+              },
+              "listing": {
+                "download": "@@images/image-16-c3a77ee66a5bc7d6fa600a0025ccc229.jpeg",
+                "height": 9,
+                "width": 16
+              },
+              "mini": {
+                "download": "@@images/image-200-84e9d7e3068f437d17c4e736df451376.jpeg",
+                "height": 112,
+                "width": 200
+              },
+              "preview": {
+                "download": "@@images/image-670-2bc8c128b9c1400359f2234d933d1f92.jpeg",
+                "height": 376,
+                "width": 670
+              },
+              "slider": {
+                "download": "@@images/image-1000-fc039cdb35fb3f3fe659b6a2bce3aaa2.jpeg",
+                "height": 562,
+                "width": 1000
+              },
+              "teaser": {
+                "download": "@@images/image-800-c87becbe38faf06f5743aea2e78a85ec.jpeg",
+                "height": 450,
+                "width": 800
+              },
+              "thumb": {
+                "download": "@@images/image-128-b4938b445f9463b0a95d9ca194541f60.jpeg",
+                "height": 72,
+                "width": 128
+              },
+              "tile": {
+                "download": "@@images/image-64-03883d1ed4e63550c3e6293716f42c46.jpeg",
+                "height": 36,
+                "width": 64
+              }
+            },
+            "size": 814713,
+            "width": 2016
+          }
+        ]
+      },
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Runder Tisch zu Wildsch\u00e4den an landwirtschaftlichen Kulturen",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/volkswirtschafts-und-gesundheitsdirektion/medienmitteilungen/geschwaechte-baeume-erhoehte-vorsicht-geboten",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-08-13T13:52:13+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Geschw\u00e4chte B\u00e4ume \u2013 erh\u00f6hte Vorsicht geboten",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/beschlossene-vorlagen-und-stellungnahmen-des-regierungsrats-1786451249.9500818",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-08-12T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Beschlossene Vorlagen und Stellungnahmen des Regierungsrats",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/eidgenoessische-und-kantonale-volksabstimmungen-vom-29-november-2026",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-08-11T12:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Eidgen\u00f6ssische und kantonale Volksabstimmungen vom 29. November 2026",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/abloesung-deckenverkleidung-im-regierungszimmer-stand-der-untersuchungen",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-08-11T11:59:55+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Abl\u00f6sung Deckenverkleidung im Regierungszimmer: Stand der Untersuchungen",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/regierungsbulletin-vom-11-august-2026",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-08-11T12:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Regierungsbulletin vom 11. August 2026",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bildungs-kultur-und-sportdirektion/medienmitteilungen/baselbieter-schulen-sind-erfolgreich-ins-schuljahr-2026-27-gestartet",
+      "@type": "News",
+      "description": "37'000 Baselbieter Kinder und Jugendliche starten heute ins neue Schuljahr \u2013 ob  im Kindergarten, in der Primar-, Sekundar- oder Mittelschule. 2'180 Lernende starten an  einer der Baselbieter Berufsfachschulen ihre Ausbildung. Bildungsdirektor Markus  Eigenmann besucht an seinem ersten 1. Schultag im Amt die Sch\u00fclerinnen und Sch\u00fcler  der Primarschule Langenbruck.",
+      "effective": "2026-08-10T08:15:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Baselbieter Schulen sind erfolgreich ins Schuljahr 2026/27 gestartet",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/ramlinsburg-instandstellung-der-kantonsstrasse-gassenbrunnen",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-08-10T07:56:44+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Ramlinsburg: Instandstellung der Kantonsstrasse \u00abGassenbrunnen\u00bb",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/nenzlingen-verbesserung-der-businfrastruktur-auf-dem-dorfplatz",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-08-03T08:55:06+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Nenzlingen: Verbesserung der Businfrastruktur auf dem Dorfplatz",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/pfeffingen-strassenerneuerung-und-werkleitungsarbeiten",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-08-03T08:22:32+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Pfeffingen: Strassenerneuerung und Werkleitungsarbeiten",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/seewenstrasse-duggingen-verkehrsbehinderungen-wegen-strassenerneuerung",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-08-03T07:58:48+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Seewenstrasse Duggingen: Verkehrsbehinderungen wegen Strassenerneuerung",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/volkswirtschafts-und-gesundheitsdirektion/medienmitteilungen/der-kanton-basel-landschaft-erlaesst-ein-bade-betretungs-und-fischereiverbot-fuer-saemtliche-fliessgewaesser-mit-ausnahme-vom-rhein-und-teilen-der-birs",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-07-30T15:14:00+00:00",
+      "end": null,
+      "getObjSize": "162.6 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": {
+        "image": [
+          {
+            "content-type": "image/jpeg",
+            "download": "@@images/image-800-60c85bbba15041a1ab148a9e60184431.jpeg",
+            "filename": "image-800-4916624a48d4caea16d2f8328578bfff.jpeg",
+            "height": 600,
+            "scales": {
+              "icon": {
+                "download": "@@images/image-32-bcfe4fe1dd9b136da426668f7621cc5e.jpeg",
+                "height": 24,
+                "width": 32
+              },
+              "large": {
+                "download": "@@images/image-800-80a2f2cf6a6dda81a49ee80e494bd457.jpeg",
+                "height": 600,
+                "width": 800
+              },
+              "listing": {
+                "download": "@@images/image-16-29ebe2f83592461337cfed3a306d2dc9.jpeg",
+                "height": 12,
+                "width": 16
+              },
+              "mini": {
+                "download": "@@images/image-200-68bfd01c8e3de121f477dd0ca585ae49.jpeg",
+                "height": 150,
+                "width": 200
+              },
+              "preview": {
+                "download": "@@images/image-670-f537ed0967b128aade3baa9ac4b6c6c6.jpeg",
+                "height": 502,
+                "width": 670
+              },
+              "teaser": {
+                "download": "@@images/image-800-80a2f2cf6a6dda81a49ee80e494bd457.jpeg",
+                "height": 600,
+                "width": 800
+              },
+              "thumb": {
+                "download": "@@images/image-128-3547c63e18e9a9d2b2e9ea6ce8d7116e.jpeg",
+                "height": 96,
+                "width": 128
+              },
+              "tile": {
+                "download": "@@images/image-64-74a0e7397c97b6e05bfb2facc6dc3b6d.jpeg",
+                "height": 48,
+                "width": 64
+              }
+            },
+            "size": 166489,
+            "width": 800
+          }
+        ]
+      },
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Der Kanton Basel-Landschaft erl\u00e4sst ein Bade-, Betretungs- und Fischereiverbot f\u00fcr s\u00e4mtliche Fliessgew\u00e4sser mit Ausnahme vom Rhein und Teilen der Birs",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/kantonsstrasse-zwischen-baerenwil-und-egerkingen-wird-saniert",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-07-24T10:43:32+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Kantonsstrasse zwischen B\u00e4renwil und Egerkingen wird saniert",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/volkswirtschafts-und-gesundheitsdirektion/medienmitteilungen/der-kanton-basel-landschaft-erlaesst-ein-absolutes-feuerverbot-im-freien",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-07-23T14:20:00+00:00",
+      "end": null,
+      "getObjSize": "154.1 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": {
+        "image": [
+          {
+            "content-type": "image/jpeg",
+            "download": "@@images/image-800-8249a6298c97dd8d4413aa449bdab26f.jpeg",
+            "filename": "image-800-2608897ae15c2ad659a35ed8e4e7fcec.jpeg",
+            "height": 554,
+            "scales": {
+              "icon": {
+                "download": "@@images/image-32-5ccd93f2de7ad343a29fc7d1e9f4a52a.jpeg",
+                "height": 22,
+                "width": 32
+              },
+              "large": {
+                "download": "@@images/image-800-1c41f5eb7fff16efe2ad77e6a2e3acde.jpeg",
+                "height": 554,
+                "width": 800
+              },
+              "listing": {
+                "download": "@@images/image-16-fdccc79ac495ab7fe8cad469ed7772bd.jpeg",
+                "height": 11,
+                "width": 16
+              },
+              "mini": {
+                "download": "@@images/image-200-cd5e79f0753338f309dde550d0be0415.jpeg",
+                "height": 138,
+                "width": 200
+              },
+              "preview": {
+                "download": "@@images/image-670-d124f5324805576d5a29321b7e91eb3d.jpeg",
+                "height": 463,
+                "width": 670
+              },
+              "teaser": {
+                "download": "@@images/image-800-1c41f5eb7fff16efe2ad77e6a2e3acde.jpeg",
+                "height": 554,
+                "width": 800
+              },
+              "thumb": {
+                "download": "@@images/image-128-3ff5a3a37c0323816f6b2147c1107602.jpeg",
+                "height": 88,
+                "width": 128
+              },
+              "tile": {
+                "download": "@@images/image-64-6f1e1c7cec60316735790343397cc9ae.jpeg",
+                "height": 44,
+                "width": 64
+              }
+            },
+            "size": 157795,
+            "width": 800
+          }
+        ]
+      },
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Der Kanton Basel-Landschaft erl\u00e4sst ein absolutes Feuerverbot im Freien",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/volkswirtschafts-und-gesundheitsdirektion/medienmitteilungen/der-kanton-basel-landschaft-erlaesst-ein-absolutes-feuerwerksverbot",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-07-16T14:27:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Der Kanton Basel-Landschaft erl\u00e4sst ein absolutes Feuerwerksverbot",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/volkswirtschafts-und-gesundheitsdirektion/medienmitteilungen/kanton-basel-landschaft-erlaesst-wasserentnahmeverbot-fuer-die-birsig-und-ihre-zufluesse",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-07-13T12:25:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Kanton Basel-Landschaft erl\u00e4sst Wasserentnahmeverbot f\u00fcr den Birsig und seine Zufl\u00fcsse",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/neue-erkenntnisse-aus-instandstellungsarbeiten",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-07-10T14:05:13+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Neue Erkenntnisse aus Instandstellungsarbeiten",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/medienmitteilungen/oeffnungszeiten-verlaengert-viertelfinal-darf-drinnen-gezeigt-werden",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-07-09T07:22:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "\u00d6ffnungszeiten verl\u00e4ngert \u2013 Viertelfinal darf drinnen gezeigt werden",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/finanz-und-kirchendirektion/medienmitteilungen/kantonale-verwaltung-gratuliert-zum-erfolgreichen-lehrabschluss",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-07-06T10:46:34+00:00",
+      "end": null,
+      "getObjSize": "237.3 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": {
+        "image": [
+          {
+            "content-type": "image/jpeg",
+            "download": "@@images/image-800-d0d7eb368478e17d640b390dabb201d0.jpeg",
+            "filename": "Lehrabschluss.jpeg",
+            "height": 1065,
+            "scales": {
+              "icon": {
+                "download": "@@images/image-32-bc56cc4ba0e16fc2eb95b7b78caa3099.jpeg",
+                "height": 32,
+                "width": 24
+              },
+              "large": {
+                "download": "@@images/image-800-2858a919996250571ddfcbbc08e4e65d.jpeg",
+                "height": 1065,
+                "width": 800
+              },
+              "listing": {
+                "download": "@@images/image-16-6482a1c42a993dcbc5e780ab80b37a5a.jpeg",
+                "height": 16,
+                "width": 12
+              },
+              "mini": {
+                "download": "@@images/image-200-de487939f20ffd99505d61b29dea7d87.jpeg",
+                "height": 266,
+                "width": 200
+              },
+              "preview": {
+                "download": "@@images/image-670-5fe54e442521d61c3308be7c9b47ca3e.jpeg",
+                "height": 891,
+                "width": 670
+              },
+              "teaser": {
+                "download": "@@images/image-800-2858a919996250571ddfcbbc08e4e65d.jpeg",
+                "height": 1065,
+                "width": 800
+              },
+              "thumb": {
+                "download": "@@images/image-128-10b6b94302a787896a8a2d40f47473b2.jpeg",
+                "height": 128,
+                "width": 96
+              },
+              "tile": {
+                "download": "@@images/image-64-66d8fcda7d45cc4ab9ec7a52a25b620d.jpeg",
+                "height": 64,
+                "width": 48
+              }
+            },
+            "size": 243040,
+            "width": 800
+          }
+        ]
+      },
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Kantonale Verwaltung gratuliert zum erfolgreichen Lehrabschluss",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/grellingen-deckbelagseinbau-nunningerstrasse-ausserorts",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-07-06T07:18:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Grellingen: Deckbelagseinbau Nunningerstrasse ausserorts",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/volkswirtschafts-und-gesundheitsdirektion/medienmitteilungen/kanton-basel-landschaft-erlaesst-feuerverbot-im-wald-und-an-waldraendern",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-07-02T14:46:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Kanton Basel-Landschaft erl\u00e4sst Feuerverbot im Wald und an Waldr\u00e4ndern",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/volkswirtschafts-und-gesundheitsdirektion/medienmitteilungen/kooperationsvertrag-ermoeglicht-notfallversorgung-von-kindern-aus-dem-suedelsass-am-universitaets-kinderspital-beider-basel",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-07-02T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Kooperationsvertrag erm\u00f6glicht Notfallversorgung von Kindern aus dem S\u00fcdelsass am Universit\u00e4ts-Kinderspital beider Basel",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bildungs-kultur-und-sportdirektion/medienmitteilungen/erfolgreiche-lehrabschluesse-und-maturitaeten-in-den-beiden-basel-1",
+      "@type": "News",
+      "description": "In den Kantonen Basel-Landschaft und Basel-Stadt haben in den vergangenen Wochen insgesamt 6'046 junge Erwachsene ihre beruflichen oder schulischen Abschl\u00fcsse auf Sekundarstufe II erlangt \u2013 darunter Eidgen\u00f6ssische F\u00e4higkeitszeugnisse (EFZ), Eidgen\u00f6ssische Berufsatteste (EBA) sowie Fachmaturit\u00e4ten und gymnasiale Maturit\u00e4ten.",
+      "effective": "2026-07-01T09:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Erfolgreiche Lehrabschl\u00fcsse und Maturit\u00e4ten in den beiden Basel",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/volkswirtschafts-und-gesundheitsdirektion/medienmitteilungen/update-kanton-basel-landschaft-erlaesst-neue-zusaetzliche-massnahmen-wegen-anhaltender-trockenheit",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-06-29T15:31:00+00:00",
+      "end": null,
+      "getObjSize": "3.7 MB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": {
+        "image": [
+          {
+            "content-type": "image/jpeg",
+            "download": "@@images/image-8227-2ce95f248a32ceaad6adc03fffcbb4d0.jpeg",
+            "filename": "pexels-suki-lee-110686949-15247231.jpg",
+            "height": 5485,
+            "scales": {
+              "great": {
+                "download": "@@images/image-1200-bba032a00bf9e04727f3fd4c26d95ab8.jpeg",
+                "height": 800,
+                "width": 1200
+              },
+              "huge": {
+                "download": "@@images/image-1600-4067c4f97dd20e478d76978b4cca046f.jpeg",
+                "height": 1066,
+                "width": 1600
+              },
+              "icon": {
+                "download": "@@images/image-32-e4af6f74e7318683c08ecb851cb08c7f.jpeg",
+                "height": 21,
+                "width": 32
+              },
+              "large": {
+                "download": "@@images/image-800-8b1c35dc08d777a68e0b292cff1e74f8.jpeg",
+                "height": 533,
+                "width": 800
+              },
+              "larger": {
+                "download": "@@images/image-1000-dc79f12bfc7040962aa5999e5e889a6c.jpeg",
+                "height": 666,
+                "width": 1000
+              },
+              "listing": {
+                "download": "@@images/image-16-639747ffcdbc03559be65c32ecddf38a.jpeg",
+                "height": 10,
+                "width": 16
+              },
+              "mini": {
+                "download": "@@images/image-200-bdca85b1e348ae212c8edccf26a0bdf4.jpeg",
+                "height": 133,
+                "width": 200
+              },
+              "preview": {
+                "download": "@@images/image-670-11585f42c707d5e13d92d48267c1e064.jpeg",
+                "height": 446,
+                "width": 670
+              },
+              "slider": {
+                "download": "@@images/image-1000-214512a4e78c03565098fb2f857300d7.jpeg",
+                "height": 666,
+                "width": 1000
+              },
+              "teaser": {
+                "download": "@@images/image-800-8b1c35dc08d777a68e0b292cff1e74f8.jpeg",
+                "height": 533,
+                "width": 800
+              },
+              "thumb": {
+                "download": "@@images/image-128-d4b72c46ff9a4e91a5378bc88a9db997.jpeg",
+                "height": 85,
+                "width": 128
+              },
+              "tile": {
+                "download": "@@images/image-64-8b01b8ed5f0ee3e28d3057f29e725580.jpeg",
+                "height": 42,
+                "width": 64
+              }
+            },
+            "size": 3853123,
+            "width": 8227
+          }
+        ]
+      },
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Update: Kanton Basel-Landschaft erl\u00e4sst neue zus\u00e4tzliche Massnahmen wegen anhaltender Trockenheit",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/gewaltfreie-erziehung-ein-meilenstein-fuer-die-kinderrechte-in-der-schweiz",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-06-29T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Gewaltfreie Erziehung: ein Meilenstein f\u00fcr die Kinderrechte in der Schweiz",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/aquarium-und-gartenteichlebewesen-gehoeren-nicht-in-unsere-gewaesser",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-06-29T07:12:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Aquarium- und Gartenteichlebewesen geh\u00f6ren nicht in unsere Gew\u00e4sser",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/update-deckeneinsturz-im-regierungszimmer-regierungsgebaeude-naechste-woche-groesstenteils-wieder-zugaenglich",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-06-26T14:51:58+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Update Deckeneinsturz im Regierungszimmer: Regierungsgeb\u00e4ude n\u00e4chste Woche gr\u00f6sstenteils wieder zug\u00e4nglich",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/volkswirtschafts-und-gesundheitsdirektion/medienmitteilungen/18-neue-landwirtinnen-und-landwirte-am-ebenrain-2",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-06-26T12:37:41+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "18 neue Landwirtinnen und Landwirte am Ebenrain",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/volkswirtschafts-und-gesundheitsdirektion/medienmitteilungen/kanton-basel-landschaft-erlaesst-massnahmen-wegen-anhaltender-trockenheit",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-06-25T14:51:00+00:00",
+      "end": null,
+      "getObjSize": "455.5 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": {
+        "image": [
+          {
+            "content-type": "image/webp",
+            "download": "@@images/image-1920-faff39896c7c98b3355cbfe774981e70.webp",
+            "filename": "f766ea01-6eba-16d5-b05f-72b9e505e051-104753.webp",
+            "height": 1280,
+            "scales": {
+              "great": {
+                "download": "@@images/image-1200-f170b2222d2038bd69e876eda7922ff5.webp",
+                "height": 800,
+                "width": 1200
+              },
+              "huge": {
+                "download": "@@images/image-1600-40bca3f787078233e6e10eec8f0193bb.webp",
+                "height": 1066,
+                "width": 1600
+              },
+              "icon": {
+                "download": "@@images/image-32-a251536f1d17fa3a1c342d814948f4f4.webp",
+                "height": 21,
+                "width": 32
+              },
+              "large": {
+                "download": "@@images/image-800-8d3c22424800cac0976cd81c718d2fdb.webp",
+                "height": 533,
+                "width": 800
+              },
+              "larger": {
+                "download": "@@images/image-1000-28693be5cb1ecf7b66b0152c22e82662.webp",
+                "height": 666,
+                "width": 1000
+              },
+              "listing": {
+                "download": "@@images/image-16-50e3d6cf50b97b877c42cf612d3a3da3.webp",
+                "height": 10,
+                "width": 16
+              },
+              "mini": {
+                "download": "@@images/image-200-26084a895d550c94f9e20d1f046fd1e6.webp",
+                "height": 133,
+                "width": 200
+              },
+              "preview": {
+                "download": "@@images/image-670-f5b262a774b34a449ffcc340fbfde451.webp",
+                "height": 446,
+                "width": 670
+              },
+              "slider": {
+                "download": "@@images/image-1000-42806ee0ff8ae4b3b346c3d2bc298343.webp",
+                "height": 666,
+                "width": 1000
+              },
+              "teaser": {
+                "download": "@@images/image-800-8d3c22424800cac0976cd81c718d2fdb.webp",
+                "height": 533,
+                "width": 800
+              },
+              "thumb": {
+                "download": "@@images/image-128-6615193f9a5f16d0708411c3b5593bd1.webp",
+                "height": 85,
+                "width": 128
+              },
+              "tile": {
+                "download": "@@images/image-64-72310837bb524c8160875749867fb185.webp",
+                "height": 42,
+                "width": 64
+              }
+            },
+            "size": 466468,
+            "width": 1920
+          }
+        ]
+      },
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Kanton Basel-Landschaft erl\u00e4sst Massnahmen wegen anhaltender Trockenheit",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/besondere-behoerden/landeskanzlei/medienmitteilungen/wahlen-der-praesidien-von-landrat-und-regierungsrat-fuer-das-amtsjahr-2026-2027",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-06-25T08:36:56+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Wahlen der Pr\u00e4sidien von Landrat und Regierungsrat f\u00fcr das Amtsjahr 2026/2027",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/medienmitteilungen/neue-pruefstelle-der-motorfahrzeug-pruefstation-beider-basel-in-itingen-1",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-06-25T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Neue Pr\u00fcfstelle der Motorfahrzeug-Pr\u00fcfstation beider Basel in Itingen",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/mehr-licht-fuer-die-schuetzenstube-gelungener-umbau-in-liestal",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-06-25T10:43:50+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Mehr Licht f\u00fcr die Sch\u00fctzenstube: Gelungener Umbau in Liestal",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/volkswirtschafts-und-gesundheitsdirektion/medienmitteilungen/bade-und-betretungsverbot-fuer-mensch-und-tier-sowie-fischereiverbot-am-unterlauf-der-birs-1",
+      "@type": "News",
+      "description": "",
+      "effective": "1969-12-30T22:00:00+00:00",
+      "end": null,
+      "getObjSize": "162.6 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": {
+        "image": [
+          {
+            "content-type": "image/jpeg",
+            "download": "@@images/image-800-1264a88015a57d974719c358bce16294.jpeg",
+            "filename": "birs.jpeg",
+            "height": 600,
+            "scales": {
+              "icon": {
+                "download": "@@images/image-32-593d3e71c96c89809abb1962043e57c7.jpeg",
+                "height": 24,
+                "width": 32
+              },
+              "large": {
+                "download": "@@images/image-800-4916624a48d4caea16d2f8328578bfff.jpeg",
+                "height": 600,
+                "width": 800
+              },
+              "listing": {
+                "download": "@@images/image-16-6765b76f0a983b561a2b0d60a83fd166.jpeg",
+                "height": 12,
+                "width": 16
+              },
+              "mini": {
+                "download": "@@images/image-200-e5769d55595ac329418add293e52b3ee.jpeg",
+                "height": 150,
+                "width": 200
+              },
+              "preview": {
+                "download": "@@images/image-670-90eea548c5233b50083442235efa3752.jpeg",
+                "height": 502,
+                "width": 670
+              },
+              "teaser": {
+                "download": "@@images/image-800-4916624a48d4caea16d2f8328578bfff.jpeg",
+                "height": 600,
+                "width": 800
+              },
+              "thumb": {
+                "download": "@@images/image-128-f916e4ea478cf84138747abddbacb800.jpeg",
+                "height": 96,
+                "width": 128
+              },
+              "tile": {
+                "download": "@@images/image-64-64a5bee117a25bc6ba243367fb18ddf3.jpeg",
+                "height": 48,
+                "width": 64
+              }
+            },
+            "size": 166540,
+            "width": 800
+          }
+        ]
+      },
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Bade- und Betretungsverbot f\u00fcr Mensch und Tier sowie Fischereiverbot am Unterlauf der Birs",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/landrat-parlament/medienmitteilungen/landratssitzung-vom-25-juni-2026-findet-im-stadtsaal-liestal-statt",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-06-24T10:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Landratssitzung vom 25. Juni 2026 findet im Stadtsaal Liestal statt",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/beschlossene-vorlagen-und-stellungnahmen-des-regierungsrats-1782214097.6149137",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-06-24T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Beschlossene Vorlagen und Stellungnahmen des Regierungsrats",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/pfas-kanton-basel-landschaft-beschliesst-interdirektionale-arbeitsgruppe-und-veroeffentlicht-ergebnisse-des-milchmonitorings",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-06-24T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "PFAS: Kanton Basel-Landschaft beschliesst interdirektionale Arbeitsgruppe und ver\u00f6ffentlicht Ergebnisse des Milchmonitorings",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/regierungsrat-schafft-grundlage-fuer-tagesschulen-im-baselbiet",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-06-24T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Regierungsrat schafft Grundlage f\u00fcr Tagesschulen im Baselbiet",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/volkswirtschafts-und-gesundheitsdirektion/medienmitteilungen/flugzeit-der-japankaefer-hat-begonnen-allgemeinverfuegung-tritt-in-kraft-1",
+      "@type": "News",
+      "description": "",
+      "effective": "1969-12-30T22:00:00+00:00",
+      "end": null,
+      "getObjSize": "1.2 MB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": {
+        "image": [
+          {
+            "content-type": "image/jpeg",
+            "download": "@@images/image-2880-c6afe0682baa5fff197231b39b6db991.jpeg",
+            "filename": "250519_Japank\u00e4fer_Shutterstock.jpg",
+            "height": 1920,
+            "scales": {
+              "great": {
+                "download": "@@images/image-1200-cb022c5842f505c46df1e0b3897dabed.jpeg",
+                "height": 800,
+                "width": 1200
+              },
+              "huge": {
+                "download": "@@images/image-1600-3fdca9e2078168d09a7e5e1c561981e5.jpeg",
+                "height": 1066,
+                "width": 1600
+              },
+              "icon": {
+                "download": "@@images/image-32-3588b1b6aea1a4dca3459d3ca816648e.jpeg",
+                "height": 21,
+                "width": 32
+              },
+              "large": {
+                "download": "@@images/image-800-0de575067a7c005b2e43064e4865f7f6.jpeg",
+                "height": 533,
+                "width": 800
+              },
+              "larger": {
+                "download": "@@images/image-1000-fe2fc781ff256d1bde1c39acd1f33ae0.jpeg",
+                "height": 666,
+                "width": 1000
+              },
+              "listing": {
+                "download": "@@images/image-16-25caf8903cb85e0c183f1e5acf56ec7e.jpeg",
+                "height": 10,
+                "width": 16
+              },
+              "mini": {
+                "download": "@@images/image-200-41f69045d511d2bfa38184b475da5e08.jpeg",
+                "height": 133,
+                "width": 200
+              },
+              "preview": {
+                "download": "@@images/image-670-21347a40d3aacf05303914a973ef6660.jpeg",
+                "height": 446,
+                "width": 670
+              },
+              "slider": {
+                "download": "@@images/image-1000-1a1dafe8cc74fce384411f55f2c397e9.jpeg",
+                "height": 666,
+                "width": 1000
+              },
+              "teaser": {
+                "download": "@@images/image-800-0de575067a7c005b2e43064e4865f7f6.jpeg",
+                "height": 533,
+                "width": 800
+              },
+              "thumb": {
+                "download": "@@images/image-128-b7587e9e12a6bbb2697cbc4c72d7d4fa.jpeg",
+                "height": 85,
+                "width": 128
+              },
+              "tile": {
+                "download": "@@images/image-64-fb2ca860448d50d704866fa4d91d32c5.jpeg",
+                "height": 42,
+                "width": 64
+              }
+            },
+            "size": 1296097,
+            "width": 2880
+          }
+        ]
+      },
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Flugzeit der Japank\u00e4fer hat begonnen \u2013 Allgemeinverf\u00fcgung tritt in Kraft",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/allschwil-neugestaltung-binningerstrasse-und-verlaengerung-8er-tram",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-06-24T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Allschwil: Neugestaltung Binningerstrasse und Verl\u00e4ngerung 8er-Tram",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/deckeneinsturz-im-regierungszimmer-zwischenstand-der-untersuchungen",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-06-23T14:00:05+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Deckeneinsturz im Regierungszimmer: Zwischenstand der Untersuchungen",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/regierungsbulletin-vom-23-juni-2026",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-06-23T12:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Regierungsbulletin vom 23. Juni 2026",
+      "type_title": "News"
+    }
+  ],
+  "items_total": 7976,
+  "layout": "view",
+  "lock": {},
+  "maximum_age": 0,
+  "modified": "2025-10-29T14:35:48+00:00",
+  "next_item": {},
+  "parent": {
+    "@id": "https://bl-api.webcloud7.ch/startseite",
+    "@type": "ContentPage",
+    "description": "",
+    "effective": "2022-08-25T17:51:00+00:00",
+    "end": null,
+    "getObjSize": null,
+    "getRemoteUrl": null,
+    "head_title": null,
+    "image_field": null,
+    "image_scales": {},
+    "mime_type": null,
+    "nav_title": null,
+    "review_state": "website_workflow--STATUS--veroffentlicht",
+    "start": null,
+    "title": "Kanton Basel-Landschaft",
+    "type_title": "Inhaltsseite"
+  },
+  "previous_item": {},
+  "quantity": 5,
+  "review_state": null,
+  "show_title": true,
+  "subjects": [
+    {
+      "title": "BL-Home",
+      "token": "QkwtSG9tZQ=="
+    }
+  ],
+  "title": "Medienmitteilungen",
+  "type_title": "News-Auflistung",
+  "version": "current"
+}

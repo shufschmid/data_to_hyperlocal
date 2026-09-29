@@ -171,7 +171,8 @@ const WISSEN_BEREICHE: readonly WissenBereich[] = [
   'amtsblatt',
   'gemeinde',
   'sendung',
-  'veranstaltung'
+  'veranstaltung',
+  'kanton'
 ]
 const WISSEN_STUFEN: readonly WissenStufe[] = ['sichtung', 'text']
 const WISSEN_WIRKUNGEN: readonly WissenWirkung[] = ['hinweis', 'weiterreichen']

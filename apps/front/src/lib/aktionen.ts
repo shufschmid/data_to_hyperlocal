@@ -33,6 +33,10 @@ export const ERLAUBT: RegExp[] = [
   /^gemeindeseiten\/pruefen$/i,
   /^gemeindeseiten\/publizieren$/i,
   /^gemeindeseiten\/[0-9a-f-]{36}\/(meldung|ablehnen|weiterreichen)$/i,
+  // Der Kanton-Tisch: dieselben drei Entscheide, derselbe Lauf und Griff.
+  /^kanton\/pruefen$/i,
+  /^kanton\/publizieren$/i,
+  /^kanton\/[0-9a-f-]{36}\/(meldung|ablehnen|weiterreichen)$/i,
   // Die Anlaesse und ihre Kalender. `dauerangebot` ist der Schalter auf einer
   // Routine; die Kalenderpflege laeuft als POST-Verben, weil der Proxy nur
   // GET und POST weiterleitet.
@@ -67,6 +71,7 @@ export const ERLAUBT: RegExp[] = [
 export const LESBAR: RegExp[] = [
   /^quellen\/lauf$/i,
   /^gemeindeseiten\/lauf$/i,
+  /^kanton\/lauf$/i,
   /^wochenblaetter\/formulieren$/i,
   /^bilanz$/i
 ]

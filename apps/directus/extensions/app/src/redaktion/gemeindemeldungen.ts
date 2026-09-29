@@ -158,17 +158,22 @@ export function hatMaterial(fakten: MitteilungFakten): boolean {
  * einen Aufruf und heilt einen Zufall — hilft er nicht, scheitert die Zeile
  * laut wie bisher.
  */
-async function schreibeEinmalMitNachfassen(prompt: string): Promise<unknown> {
+export async function schreibeEinmalMitNachfassen(
+  prompt: string,
+  // The Kanton desk (29.09.2026) writes with its own system prompt and the
+  // same one-retry rule — shared here rather than copied.
+  system: string = MELDUNG_SYSTEM_PROMPT
+): Promise<unknown> {
   try {
     return await completeJson<unknown>({
-      system: MELDUNG_SYSTEM_PROMPT,
+      system,
       prompt,
       maxTokens: 1500
     })
   } catch (fehler) {
     if (!(fehler instanceof ClaudeFormatError)) throw fehler
     return completeJson<unknown>({
-      system: MELDUNG_SYSTEM_PROMPT,
+      system,
       prompt,
       maxTokens: 1500
     })

@@ -1,0 +1,531 @@
+{
+  "@components": {
+    "actions": {
+      "@id": "https://bl-api.webcloud7.ch/startseite/ftw-news-newslistingblock/@actions"
+    },
+    "aliases": {
+      "@id": "https://bl-api.webcloud7.ch/startseite/ftw-news-newslistingblock/@aliases"
+    },
+    "breadcrumbs": {
+      "@id": "https://bl-api.webcloud7.ch/startseite/ftw-news-newslistingblock/@breadcrumbs"
+    },
+    "contextnavigation": {
+      "@id": "https://bl-api.webcloud7.ch/startseite/ftw-news-newslistingblock/@contextnavigation"
+    },
+    "footer": {
+      "@id": "https://bl-api.webcloud7.ch/@footer",
+      "data": {
+        "msg": "Not extandable for caching reasons, please call @id in a separate request."
+      }
+    },
+    "linklist": {
+      "@id": "https://bl-api.webcloud7.ch/@linklist",
+      "data": {
+        "msg": "Not extandable for caching reasons, please call @id in a separate request."
+      }
+    },
+    "navigation": {
+      "@id": "https://bl-api.webcloud7.ch/startseite/ftw-news-newslistingblock/@navigation"
+    },
+    "navroot": {
+      "@id": "https://bl-api.webcloud7.ch/startseite/ftw-news-newslistingblock/@navroot"
+    },
+    "types": {
+      "@id": "https://bl-api.webcloud7.ch/startseite/ftw-news-newslistingblock/@types"
+    },
+    "workflow": {
+      "@id": "https://bl-api.webcloud7.ch/startseite/ftw-news-newslistingblock/@workflow"
+    }
+  },
+  "@id": "https://bl-api.webcloud7.ch/startseite/ftw-news-newslistingblock",
+  "@type": "NewsListingBlock",
+  "UID": "c7210eed7e3e44d18d812e5e87a0faf7",
+  "allow_discussion": false,
+  "archiv_url": null,
+  "batching": {
+    "@id": "https://bl-api.webcloud7.ch/startseite/ftw-news-newslistingblock?b_size=20",
+    "first": "https://bl-api.webcloud7.ch/startseite/ftw-news-newslistingblock?b_size=20&b_start=0",
+    "last": "https://bl-api.webcloud7.ch/startseite/ftw-news-newslistingblock?b_size=20&b_start=7960",
+    "next": "https://bl-api.webcloud7.ch/startseite/ftw-news-newslistingblock?b_size=20&b_start=20"
+  },
+  "block_template": {
+    "title": "Normal",
+    "token": "normal"
+  },
+  "created": "2023-05-25T14:41:51+00:00",
+  "current_context": false,
+  "id": "ftw-news-newslistingblock",
+  "is_folderish": true,
+  "items": [
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/besondere-behoerden/landeskanzlei/medienmitteilungen/mehrwertabgabe-stimmbevoelkerung-lehnt-initiative-und-gegenvorschlag-ab",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-27T12:16:51+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Mehrwertabgabe: Stimmbev\u00f6lkerung lehnt Initiative und Gegenvorschlag ab",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/landratssaal-bleibt-voraussichtlich-bis-mitte-august-2027-geschlossen",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-25T09:01:14+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Landratssaal bleibt voraussichtlich bis Mitte August 2027 geschlossen",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bildungs-kultur-und-sportdirektion/medienmitteilungen/kantonsbeitraege-fuer-kinderbetreuung-voraussichtlich-ab-august-2027",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-24T07:59:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Kantonsbeitr\u00e4ge f\u00fcr Kinderbetreuung voraussichtlich ab August 2027",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/finanzplan-2027-2030-planung-und-risiken",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-23T08:30:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Finanzplan 2027\u20132030: Planung und Risiken",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/kantonaler-richtplan-wird-erstmals-gesamthaft-ueberprueft",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-23T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Kantonaler Richtplan wird erstmals gesamthaft \u00fcberpr\u00fcft",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/beschlossene-vorlagen-und-stellungnahmen-des-regierungsrats-1790081809.055965",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-23T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Beschlossene Vorlagen und Stellungnahmen des Regierungsrats",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/anpassung-2026-abbau-und-deponie",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-23T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Anpassung 2026, Abbau und Deponie",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/regierungsrat-schlaegt-uebergangsloesung-zur-entlastung-der-gemeinden-im-asylbereich-vor-1",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-22T12:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Regierungsrat schl\u00e4gt \u00dcbergangsl\u00f6sung zur Entlastung der Gemeinden im Asylbereich vor",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/regierungsbulletin-vom-22-september-2026",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-22T12:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Regierungsbulletin vom 22. September 2026",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/volkswirtschafts-und-gesundheitsdirektion/medienmitteilungen/gemeinsame-gesundheitsregion-ggr-naechste-schritte-in-der-spitalplanung",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-21T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "2.0 MB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": {
+        "image": [
+          {
+            "content-type": "image/jpeg",
+            "download": "@@images/image-4800-8bd1d4ecf1a6601ee2e0943426fee412.jpeg",
+            "filename": "pexels-printexstar-11660581.jpg",
+            "height": 3200,
+            "scales": {
+              "great": {
+                "download": "@@images/image-1200-15942ae2a5e3c9caeaab45843bed708d.jpeg",
+                "height": 800,
+                "width": 1200
+              },
+              "huge": {
+                "download": "@@images/image-1600-f8d103f6d08057df2a77bbce54068a11.jpeg",
+                "height": 1066,
+                "width": 1600
+              },
+              "icon": {
+                "download": "@@images/image-32-2ce3777995ff3b0ffc2fa8cd35f4d5e1.jpeg",
+                "height": 21,
+                "width": 32
+              },
+              "large": {
+                "download": "@@images/image-800-9f865b5663398f13860bcc8e61b32574.jpeg",
+                "height": 533,
+                "width": 800
+              },
+              "larger": {
+                "download": "@@images/image-1000-d8cf4706dbb7d9dde2f2a3b7fcc7ed9f.jpeg",
+                "height": 666,
+                "width": 1000
+              },
+              "listing": {
+                "download": "@@images/image-16-a26ce3cbf0d50f9f0787310362facd82.jpeg",
+                "height": 10,
+                "width": 16
+              },
+              "mini": {
+                "download": "@@images/image-200-dfe2552ef62a2dfe0c318c39fcf51f2a.jpeg",
+                "height": 133,
+                "width": 200
+              },
+              "preview": {
+                "download": "@@images/image-670-0aa77d9c8e79304293da34dfa653258a.jpeg",
+                "height": 446,
+                "width": 670
+              },
+              "slider": {
+                "download": "@@images/image-1000-81ce25c2d330958feef2f8756e1301b7.jpeg",
+                "height": 666,
+                "width": 1000
+              },
+              "teaser": {
+                "download": "@@images/image-800-9f865b5663398f13860bcc8e61b32574.jpeg",
+                "height": 533,
+                "width": 800
+              },
+              "thumb": {
+                "download": "@@images/image-128-b2b9b40d09c73703e100b8c8497ba930.jpeg",
+                "height": 85,
+                "width": 128
+              },
+              "tile": {
+                "download": "@@images/image-64-2abcd12b483029bb397d0361b0a1d6d6.jpeg",
+                "height": 42,
+                "width": 64
+              }
+            },
+            "size": 2055948,
+            "width": 4800
+          }
+        ]
+      },
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Gemeinsame Gesundheitsregion GGR: N\u00e4chste Schritte in der Spitalplanung",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/therwil-eroeffnung-ara-birsig-wegen-ammoniak-vorfall-bei-wot-teilweise-abgesagt",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-18T14:19:55+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Therwil - Trotz Ammoniak-Vorfall bei WOT zu Wochenbeginn: Tag der offenen T\u00fcr in der ARA Birsig findet statt",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bildungs-kultur-und-sportdirektion/medienmitteilungen/matur-sportklassen-ab-schuljahr-2028-29-in-muttenz",
+      "@type": "News",
+      "description": "Die Matur-Sportklassen der Leistungssportf\u00f6rderung des Kantons Basel-Landschaft werden ab Schuljahr 2028/29 neu am Gymnasium Muttenz gef\u00fchrt. Der Standortwechsel von Liestal nach Muttenz ergibt verk\u00fcrzte Reisewege f\u00fcr die \u00fcberwiegende Mehrheit der Sch\u00fclerinnen und Sch\u00fcler. Zudem besteht am Gymnasium Muttenz gr\u00f6ssere r\u00e4umliche Flexibilit\u00e4t.",
+      "effective": "2026-09-17T08:30:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Matur-Sportklassen ab Schuljahr 2028/29 in Muttenz",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/energienachweise-neu-digital-einreichen",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-17T08:00:11+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Energienachweise neu digital einreichen",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/volkswirtschafts-und-gesundheitsdirektion/medienmitteilungen/tuberkulosefall-an-der-primarschule-bottmingen-vorsorgliche-medizinische-untersuchungen-eingeleitet",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-16T14:44:21+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Tuberkulosefall an der Primarschule Bottmingen: Vorsorgliche medizinische Untersuchungen eingeleitet",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/beschlossene-vorlagen-und-stellungnahmen-des-regierungsrats-1789472656.9922614",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-16T08:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Beschlossene Vorlagen und Stellungnahmen des Regierungsrats",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/sicherheitsdirektion/medienmitteilungen/zunahme-von-strassenverkehrsdelikten-durch-elektro-trendfahrzeuge-bei-kindern-und-jugendlichen",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-15T12:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Zunahme von Strassenverkehrsdelikten durch Elektro-Trendfahrzeuge bei Kindern und Jugendlichen",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/baselbieter-sportpreise-2026-gehen-an-zwei-weltmeister",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-15T12:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Baselbieter Sportpreise 2026 gehen an zwei Weltmeister",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/regierungsrat/medienmitteilungen/regierungsbulletin-vom-15-september-2026",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-15T12:00:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Regierungsbulletin vom 15. September 2026",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/raumplanungsgesetz-bauzonengroesse-der-nachfrage-anpassen",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-15T08:45:00+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "Raumplanungsgesetz: Bauzonengr\u00f6sse der Nachfrage anpassen",
+      "type_title": "News"
+    },
+    {
+      "@id": "https://bl-api.webcloud7.ch/politik-und-behorden/direktionen/bau-und-umweltschutzdirektion/medienmitteilungen/laeufelfingen-instandstellung-der-bahnhofstrasse",
+      "@type": "News",
+      "description": "",
+      "effective": "2026-09-14T08:04:10+00:00",
+      "end": null,
+      "getObjSize": "0 KB",
+      "getRemoteUrl": null,
+      "head_title": null,
+      "image_field": null,
+      "image_scales": null,
+      "mime_type": "text/plain",
+      "nav_title": null,
+      "review_state": "website_workflow--STATUS--veroffentlicht",
+      "start": null,
+      "title": "L\u00e4ufelfingen: Instandstellung der Bahnhofstrasse",
+      "type_title": "News"
+    }
+  ],
+  "items_total": 7976,
+  "layout": "view",
+  "lock": {},
+  "maximum_age": 0,
+  "modified": "2025-10-29T14:35:48+00:00",
+  "next_item": {},
+  "parent": {
+    "@id": "https://bl-api.webcloud7.ch/startseite",
+    "@type": "ContentPage",
+    "description": "",
+    "effective": "2022-08-25T17:51:00+00:00",
+    "end": null,
+    "getObjSize": null,
+    "getRemoteUrl": null,
+    "head_title": null,
+    "image_field": null,
+    "image_scales": {},
+    "mime_type": null,
+    "nav_title": null,
+    "review_state": "website_workflow--STATUS--veroffentlicht",
+    "start": null,
+    "title": "Kanton Basel-Landschaft",
+    "type_title": "Inhaltsseite"
+  },
+  "previous_item": {},
+  "quantity": 5,
+  "review_state": null,
+  "show_title": true,
+  "subjects": [
+    {
+      "title": "BL-Home",
+      "token": "QkwtSG9tZQ=="
+    }
+  ],
+  "title": "Medienmitteilungen",
+  "type_title": "News-Auflistung",
+  "version": "current"
+}

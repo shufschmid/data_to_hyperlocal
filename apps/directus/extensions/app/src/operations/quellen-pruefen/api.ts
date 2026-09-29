@@ -206,6 +206,9 @@ export default defineOperationApi<Options>({
     >
 
     for (const quelle of quellen) {
+      // The Kanton desk reads its source in its own Flow at 14:00 (a Sichtung
+      // plus drafts, too heavy for the catalogue walk) — not a missing adapter.
+      if (quelle.typ === 'kanton') continue
       if (
         quelle.typ !== 'ods' &&
         quelle.typ !== 'agenda' &&

@@ -223,5 +223,22 @@
     "reject": null,
     "flow": "1fc01521-ee78-4705-a7f9-847b70a7acb4",
     "_syncId": "d4b2e48c-a6c4-409d-8b38-79cd64b42ec7"
+  },
+  {
+    "name": "Pruefen",
+    "key": "pruefen",
+    "type": "kanton-pruefen",
+    "position_x": 19,
+    "position_y": 1,
+    "options": {
+      "bSize": 50,
+      "nachlauf": 3,
+      "erstlauf": 7,
+      "pause": 2000
+    },
+    "resolve": null,
+    "reject": null,
+    "flow": "c4a1e7d2-5b3f-4e8a-9c6d-2f1b7a8e9d03",
+    "_syncId": "d5b2f8e3-6c4a-4f9b-8d7e-3a2c8b9f0e14"
   }
 ]

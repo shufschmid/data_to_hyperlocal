@@ -284,6 +284,11 @@ export interface AlleMeldungFelder {
   abstimmung: { id: string } | null
   /** Set for articles written from an Anlass of an events calendar. */
   veranstaltung: { id: string } | null
+  /**
+   * Set for articles written from a press or police notice of the canton.
+   * Optional, `?? null` when read: an older answer may omit the field.
+   */
+  kantonsmitteilung?: { id: string } | null
   /** Decided at publish time on press reviews: interesting for the city too. */
   perle: boolean | null
 }
@@ -335,6 +340,9 @@ export const ALLE_MELDUNGEN_QUERY = gql`
         id
       }
       gemeindemitteilung {
+        id
+      }
+      kantonsmitteilung {
         id
       }
       sendungskandidat {
@@ -1146,6 +1154,7 @@ export interface RecherchehinweisFelder {
   amtsblattmeldung: { id: string } | null
   gemeindemitteilung: { id: string } | null
   veranstaltung: { id: string } | null
+  kantonsmitteilung?: { id: string } | null
   sendungskandidat: { id: string; quelle: string } | null
   gemeinde: { id: string; name: string } | null
   ausgabe: {
@@ -1187,6 +1196,9 @@ export const RECHERCHEHINWEISE_QUERY = gql`
         id
       }
       veranstaltung {
+        id
+      }
+      kantonsmitteilung {
         id
       }
       sendungskandidat {
@@ -1452,6 +1464,75 @@ export const GEMEINDEMITTEILUNGEN_QUERY = gql`
       anhaenge
       hinweise
       gelesen_am
+      vorschlag
+      vorschlag_begruendung
+      entscheid
+      ablehnungsgrund
+      date_created
+      gemeinde {
+        id
+        name
+      }
+    }
+  }
+`
+
+// --- Kanton: was der Kanton und seine Polizei ueber eine Gemeinde sagen ----
+//
+// Eine Zeile je genannter Gemeinde: dieselbe Mitteilung liegt dreimal da, wenn
+// sie drei bespielte Gemeinden nennt, und jede Zeile sagt, welche weiteren.
+// `url` ist die oeffentliche Seite auf baselland.ch — verlinkt, nie geholt.
+
+export interface KantonsmitteilungFelder {
+  id: string
+  /** The public page on baselland.ch — the identity together with the municipality. */
+  url: string
+  /** `medienmitteilung` or `polizeimeldung` — which of the two lists it came from. */
+  quelle: string
+  /** The office behind it, read off the path: a Direktion, the Regierungsrat, the police. */
+  behoerde: string | null
+  titel: string
+  teaser: string | null
+  text: string | null
+  text_abgeschnitten: boolean
+  publiziert_am: string | null
+  gelesen_am: string | null
+  /** Every inference the reader made, in words. */
+  hinweise: string[] | null
+  /** Every covered municipality the notice names — this row's own included. */
+  gemeinden_genannt: string[] | null
+  /** Null means the Sichtung has not judged it — NOT that it said no. */
+  vorschlag: boolean | null
+  vorschlag_begruendung: string | null
+  entscheid: string
+  ablehnungsgrund: string | null
+  date_created: string | null
+  gemeinde: { id: string; name: string } | null
+}
+
+export interface KantonsmitteilungenErgebnis {
+  kantonsmitteilungen: KantonsmitteilungFelder[]
+}
+
+export const KANTONSMITTEILUNGEN_QUERY = gql`
+  query Kantonsmitteilungen {
+    kantonsmitteilungen(
+      filter: { entscheid: { _in: ["offen", "uebernommen"] } }
+      sort: ["-publiziert_am", "-date_created"]
+      limit: -1
+    ) {
+      id
+      url
+      quelle
+      behoerde
+      titel
+      teaser
+      text
+      text_abgeschnitten
+      publiziert_am
+      gelesen_am
+      hinweise
+      gemeinden_genannt
       vorschlag
       vorschlag_begruendung
       entscheid
