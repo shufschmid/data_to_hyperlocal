@@ -956,7 +956,8 @@ them is wrong even if it works.
    were wrong as well and are fixed in the Flows: SMD mails at about 22:05
    every evening (measured 20.–27.09.), but „punkt6 holen" ran at 19:00, so a
    show reached the desk at 19:15 the NEXT day — the Flow is „punkt6 holen und
-   verarbeiten" now, at 22:10, fetching and processing in ONE chain like the
+   verarbeiten" now, at 21:10 (SMD moved its mail to 21:00 on 29 September
+   2026), fetching and processing in ONE chain like the
    Regionaljournal's, with 06:10 as a safety; and a waiting dossier was
    retried once a day, so markers set an hour after the run waited a day —
    „punkt6 verarbeiten" retries at 12:45 and 18:45 besides the chain. The broadcast's
