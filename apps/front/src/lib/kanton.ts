@@ -90,7 +90,7 @@ function alterInTagen(datum: string | null, heute: string): number | null {
 }
 
 /**
- * The view's half of the rule the 14:00 run enforces (`aufraeumAktionKanton`
+ * The view's half of the rule the 12:00 run enforces (`aufraeumAktionKanton`
  * in `redaktion/kanton.ts`, which owns it): without the mirror the desk would
  * show for up to a day what the next run retires.
  */

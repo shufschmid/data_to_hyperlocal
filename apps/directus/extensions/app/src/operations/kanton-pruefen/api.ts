@@ -33,7 +33,7 @@ import {
   SICHTUNGSREGELN_UEBERSCHRIFT
 } from '../../redaktion/lernen'
 
-// The 14:00 look at what the canton says about the municipalities.
+// The 12:00 look at what the canton says about the municipalities.
 //
 // Two listing blocks of www.baselland.ch, read through the data door the
 // page itself calls (`shared/kanton/`): the general Medienmitteilungen and

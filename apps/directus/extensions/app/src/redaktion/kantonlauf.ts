@@ -1,5 +1,5 @@
 // The Directus-bound half of the Kanton desk: the row builder, the cleanup
-// and the Sichtung, shared by the 14:00 run and the "Jetzt prüfen" button.
+// and the Sichtung, shared by the 12:00 run and the "Jetzt prüfen" button.
 //
 // Services are injected as the small interfaces below, so everything here is
 // tested against stubs. No fetching — `shared/kanton/` hands items in.

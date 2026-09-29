@@ -1,9 +1,9 @@
 import { defineOperationApp } from '@directus/extensions-sdk'
 
 // How the operation presents itself inside the Flow editor. Hang it on a
-// Schedule trigger at 14:00 — after the 13:00 municipal run, and after the
-// canton's own morning (measured news_dates: 10:00 for a press release,
-// 11:15 for a police notice).
+// Schedule trigger at 12:00 — the newsroom's time (29 September 2026), after
+// the canton's own morning (measured news_dates: 10:00 for a press release,
+// 11:15 for a police notice) and before the 13:00 municipal run.
 export default defineOperationApp({
   id: 'kanton-pruefen',
   name: 'Kanton pruefen',

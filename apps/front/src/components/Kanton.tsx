@@ -299,7 +299,7 @@ export function Kanton({
 
       {vorschlaege.length === 0 && uebrige.length === 0 ? (
         <Alert severity="info">
-          Nichts auf dem Tisch. Der nächste Lauf um 14 Uhr holt, was der Kanton seither über eine Gemeinde
+          Nichts auf dem Tisch. Der nächste Lauf um 12 Uhr holt, was der Kanton seither über eine Gemeinde
           mitgeteilt hat.
         </Alert>
       ) : (

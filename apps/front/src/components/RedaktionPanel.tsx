@@ -1503,7 +1503,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
       {reiter === 'kanton' && (
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
-            Was der Kanton Basel-Landschaft und seine Polizei über eine Gemeinde mitteilen — täglich um 14 Uhr
+            Was der Kanton Basel-Landschaft und seine Polizei über eine Gemeinde mitteilen — täglich um 12 Uhr
             aus den zwei Listen der Startseite gelesen, über die Datentür, die die Seite selbst ruft. Nur
             Mitteilungen, die eine Gemeinde beim Namen nennen; eine Sichtung sortiert, was einen Blick lohnt,
             und der Lauf schreibt zu jedem Vorschlag die Meldung gleich mit.

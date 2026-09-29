@@ -3357,7 +3357,7 @@ export default defineEndpoint(
             throw new MitteilungOhneText()
           }
 
-          // Derselbe Weg, den der 14-Uhr-Lauf geht.
+          // Derselbe Weg, den der 12-Uhr-Lauf geht.
           const { meldung: meldungId, warnungen } = await schreibeKantonMeldung(
             {
               mitteilungen,
