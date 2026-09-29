@@ -44,6 +44,8 @@ import {
   PORTAL_QUERY,
   QUELLEN_QUERY,
   WISSEN_QUERY,
+  TISCHEINSTELLUNGEN_QUERY,
+  type TischeinstellungenErgebnis,
   WISSEN_AKTIV_MUTATION,
   WISSEN_WIRKUNG_MUTATION,
   type WissenSchalterErgebnis,
@@ -116,6 +118,7 @@ import { anzahlOffen, liestUnterlagen } from '@/lib/amtsblatt'
 import { anzahlOffen as anzahlMitteilungen, type GemeindeseitenLaufStatus } from '@/lib/gemeindeseiten'
 import { anzahlOffen as anzahlKantonsmitteilungen, type KantonLaufStatus } from '@/lib/kanton'
 import { anzahlOffen as anzahlAnlaesse } from '@/lib/veranstaltungen'
+import { einstellungFuer } from '@/lib/tische'
 import { Chefredaktion } from './Chefredaktion'
 import { Gelerntes } from './Gelerntes'
 import { Zeitleiste } from './Zeitleiste'
@@ -301,6 +304,13 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
   const wissen = useQuery<WissenErgebnis>(WISSEN_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY
   })
+  const tische = useQuery<TischeinstellungenErgebnis>(TISCHEINSTELLUNGEN_QUERY, {
+    fetchPolicy: LIVE_FETCH_POLICY
+  })
+  // Die Regler der zwei benotenden Tische — der Tisch rechnet die Schwelle
+  // selbst, darum liegt sie hier und nicht nur im Lauf.
+  const einstellungGemeinde = einstellungFuer(tische.data?.tischeinstellungen ?? [], 'gemeinde')
+  const einstellungAnlass = einstellungFuer(tische.data?.tischeinstellungen ?? [], 'veranstaltung')
   const gemeinden = useQuery<GemeindenErgebnis>(GEMEINDEN_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY
   })
@@ -887,11 +897,20 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
       art: 'arbeit'
     },
     gemeindeseiten: {
-      anzahl: anzahlMitteilungen(gemeindeseiten.data?.gemeindemitteilungen ?? [], meldungStatusJeMitteilung),
+      anzahl: anzahlMitteilungen(
+        gemeindeseiten.data?.gemeindemitteilungen ?? [],
+        meldungStatusJeMitteilung,
+        einstellungGemeinde.schwelle
+      ),
       art: 'arbeit'
     },
     veranstaltungen: {
-      anzahl: anzahlAnlaesse(veranstaltungen.data?.veranstaltungen ?? [], meldungStatusJeAnlass),
+      anzahl: anzahlAnlaesse(
+        veranstaltungen.data?.veranstaltungen ?? [],
+        meldungStatusJeAnlass,
+        heuteIsoTag,
+        einstellungAnlass
+      ),
       art: 'arbeit'
     },
     kanton: {
@@ -1461,6 +1480,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             — ein Ausfall oder eine Verschiebung schon.
           </Typography>
           <Gemeindeseiten
+            schwelle={einstellungGemeinde.schwelle}
             eintraege={gemeindeseiten.data?.gemeindemitteilungen ?? []}
             lauf={gemeindeseitenLaufStatus}
             gemeinden={gemeinden.data?.gemeinden ?? []}
@@ -1553,6 +1573,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             und stuft nie herab, weil ein Verein oder eine Partei dahintersteht.
           </Typography>
           <Veranstaltungen
+            einstellung={einstellungAnlass}
             anlaesse={veranstaltungen.data?.veranstaltungen ?? []}
             quellen={veranstaltungsquellen.data?.veranstaltungsquellen ?? []}
             gemeinden={gemeinden.data?.gemeinden ?? []}
@@ -1735,6 +1756,11 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
           onAnlegen={async (regel) => {
             await fuehreAus('wissen', regel)
             await wissen.refetch()
+          }}
+          tische={tische.data?.tischeinstellungen ?? []}
+          onTisch={async (tisch, felder) => {
+            await fuehreAus(`tische/${tisch}`, felder)
+            await Promise.all([tische.refetch(), gemeindeseiten.refetch(), veranstaltungen.refetch()])
           }}
         />
       )}

@@ -8,12 +8,18 @@
 // hands pages in.
 
 import type { Anker, Dauerangebot, Zugang } from '../types/schema'
+import { parseStufenSichtung, STUFEN_SCHEMA } from './sichtung'
+import {
+  anlassVorschlag,
+  imVorlauf,
+  STANDARD_EINSTELLUNG,
+  type Tischeinstellung
+} from './tischeinstellungen'
 import { completeJson, type MessageSender } from '../shared/claude'
 import { kappe, TEXT_MAX_ZEICHEN, type Heute } from '../shared/gemeindeseite'
 import {
   berechneAnker,
   DAUERANGEBOTE_JE_WOCHE,
-  imVorschlagsfenster,
   naechsteSeite,
   waehleDauerangebote,
   type Anlass,
@@ -31,8 +37,6 @@ import {
   datumDeutsch,
   lernDigest,
   NEWS_KONTEXT_TAGE,
-  parseSichtung,
-  SICHTUNG_SCHEMA,
   SICHTUNG_SYSTEM_PROMPT,
   buildSichtungPrompt,
   type AufraeumAnlass,
@@ -112,6 +116,8 @@ export interface BekannteZeile {
   anker_am: string | null
   entscheid: string
   vorschlag: boolean | null
+  /** The grade of the Sichtung, 1–4; null until graded. */
+  vorschlag_wert?: number | null
   gelesen_am: string | null
   zuletzt_vorgelegt_am: string | null
   zuletzt_gemeldet_am: string | null
@@ -139,6 +145,7 @@ export async function ladeBekannteSerien(
       'anker_am',
       'entscheid',
       'vorschlag',
+      'vorschlag_wert',
       'gelesen_am',
       'zuletzt_vorgelegt_am',
       'zuletzt_gemeldet_am',
@@ -373,12 +380,19 @@ export function falschGelesen(
 export function brauchtDetail(
   g: GeschriebenerAnlass,
   heute: string,
-  vorschlagTage: number
+  einstellung: Tischeinstellung = STANDARD_EINSTELLUNG
 ): boolean {
   if (g.vorher?.gelesen_am != null && !falschGelesen(g.vorher)) return false
   if (OHNE_TISCH.has(g.befund.anker)) return false
   if (SOFORT.has(g.befund.anker)) return true
-  return imVorschlagsfenster(g.befund.ankerAm, heute, vorschlagTage)
+  // The lead is the grade's: a Dorffest graded 4 gets its page a month out,
+  // an ungraded row at the desk's normal lead.
+  return imVorlauf(
+    g.befund.ankerAm,
+    g.vorher?.vorschlag_wert ?? null,
+    heute,
+    einstellung
+  )
 }
 
 /**
@@ -586,23 +600,84 @@ export function nachgelesenePayload(
   }
 }
 
-/** A row the Sichtung has not judged for its current anchor, inside the window. */
+/**
+ * A row the Sichtung has not graded yet, whatever its distance from today.
+ *
+ * Graded on FIRST SIGHT since 29 September 2026, not on entering a window:
+ * the calendar is read sixty days ahead, and a Dorffest has to be known as
+ * important a month before it happens, or the desk sees it ten days ahead
+ * like a Jass evening. When the grade becomes a proposal is code
+ * (`anlassVorschlag`) — the grade's lead, set by the newsroom.
+ */
 export function sichtungsKandidat(
   zeile: {
     anker: Anker | null
     anker_am: string | null
     vorschlag: boolean | null
+    vorschlag_wert?: number | null
     entscheid: string
     frist_am?: string | null
     zugang?: Zugang
   },
-  heute: string,
-  vorschlagTage: number
+  heute: string
 ): boolean {
   if (zeile.entscheid !== 'offen' || zeile.vorschlag !== null) return false
+  if (zeile.vorschlag_wert != null) return false
   if (zeile.anker === null || OHNE_TISCH.has(zeile.anker)) return false
-  if (verpassteAnmeldung(zeile, heute) !== null) return false
-  return imVorschlagsfenster(zeile.anker_am, heute, vorschlagTage)
+  if (zeile.anker_am === null) return false
+  return verpassteAnmeldung(zeile, heute) === null
+}
+
+/**
+ * Re-applies threshold and lead to every open, graded row — the run's half of
+ * the dial (`gleicheSchwelleAb` on the news side). A row whose registration
+ * deadline passed keeps its demotion; the rest follows the grade: a row
+ * entering its lead today moves up, one above a raised threshold moves down.
+ */
+export async function gleicheAnlassSchwelleAb(
+  dienst: AnlaesseDienst,
+  heute: string,
+  einstellung: Tischeinstellung,
+  logger: Logger
+): Promise<number> {
+  const zeilen = (await dienst.readByQuery({
+    filter: { entscheid: { _eq: 'offen' }, vorschlag_wert: { _nnull: true } },
+    fields: [
+      'id',
+      'anker',
+      'anker_am',
+      'vorschlag',
+      'vorschlag_wert',
+      'frist_am',
+      'zugang'
+    ],
+    limit: -1
+  })) as Array<{
+    id: string
+    anker: Anker | null
+    anker_am: string | null
+    vorschlag: boolean | null
+    vorschlag_wert: number | null
+    frist_am: string | null
+    zugang: Zugang
+  }>
+  let geaendert = 0
+  for (const z of zeilen) {
+    if (z.anker === null || OHNE_TISCH.has(z.anker)) continue
+    if (verpassteAnmeldung(z, heute) !== null) continue
+    const soll = anlassVorschlag(z, heute, einstellung)
+    if (soll === z.vorschlag) continue
+    try {
+      await dienst.updateOne(z.id, { vorschlag: soll })
+      geaendert += 1
+    } catch (fehler) {
+      logger.warn(
+        fehler,
+        `veranstaltungen: Schwelle auf ${z.id} nicht angewandt.`
+      )
+    }
+  }
+  return geaendert
 }
 
 /**
@@ -742,6 +817,8 @@ export interface SichtungKontext {
   logger: Logger
   model?: string | null
   send?: MessageSender
+  /** The desk's threshold and leads; the standard when the run has no row. */
+  einstellung?: Tischeinstellung
 }
 
 /**
@@ -829,16 +906,30 @@ export async function sichteAnlaesse(
         // the whole municipality its judgement.
         maxTokens: 8000,
         ...(kontext.model == null ? {} : { model: kontext.model }),
-        schema: SICHTUNG_SCHEMA
+        schema: STUFEN_SCHEMA
       },
       kontext.send
     )
-    for (const urteil of parseSichtung(antwort, anlaesse)) {
+    const einstellung = kontext.einstellung ?? STANDARD_EINSTELLUNG
+    const ankerVon = new Map(zeilen.map((z) => [z.id, z.anker_am]))
+    for (const urteil of parseStufenSichtung(antwort, anlaesse)) {
+      // The grade is the model's; whether it is a proposal TODAY is the
+      // newsroom's threshold and the grade's lead — code, re-applied by
+      // every run, so a Dorffest graded 4 waits until its month begins.
+      const vorschlag = anlassVorschlag(
+        {
+          vorschlag_wert: urteil.stufe,
+          anker_am: ankerVon.get(urteil.id) ?? null
+        },
+        kontext.heute,
+        einstellung
+      )
       await kontext.anlaesse.updateOne(urteil.id, {
-        vorschlag: urteil.vorschlag,
+        vorschlag,
+        vorschlag_wert: urteil.stufe,
         vorschlag_begruendung: urteil.begruendung
       })
-      if (urteil.vorschlag) vorschlaege += 1
+      if (vorschlag) vorschlaege += 1
       const regel = automatischeWeitergabe(
         urteil,
         kontext.sichtungsregeln.nummern,

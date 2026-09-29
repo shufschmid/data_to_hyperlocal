@@ -281,3 +281,22 @@ describe('publizierbare', () => {
     ).toEqual(['1', '2'])
   })
 })
+
+// Seit dem 29. September 2026 benotet die Sichtung (1–4), und die Schwelle
+// des Tischs entscheidet, was zuoberst liegt — sofort, ohne neuen Lauf.
+describe('Schwelle', () => {
+  it('legt eine Stufe-2-Zeile erst grosszuegig nach oben, eine ohne Stufe nach ihrem alten Urteil', () => {
+    const zwei = eintrag({ id: 'zwei', vorschlag: false, vorschlag_wert: 2 })
+    const alt = eintrag({ id: 'alt', vorschlag: true })
+    expect(tisch([zwei, alt], OHNE_FILTER, new Map(), '2026-09-14').vorschlaege.map((e) => e.id)).toEqual([
+      'alt'
+    ])
+    expect(
+      tisch([zwei, alt], OHNE_FILTER, new Map(), '2026-09-14', 2)
+        .vorschlaege.map((e) => e.id)
+        .sort()
+    ).toEqual(['alt', 'zwei'])
+    expect(anzahlOffen([zwei, alt])).toBe(1)
+    expect(anzahlOffen([zwei, alt], new Map(), 2)).toBe(2)
+  })
+})

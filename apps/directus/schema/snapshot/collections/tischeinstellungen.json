@@ -1,0 +1,28 @@
+{
+  "collection": "tischeinstellungen",
+  "meta": {
+    "accountability": "all",
+    "archive_app_filter": true,
+    "archive_field": null,
+    "archive_value": null,
+    "collapse": "open",
+    "collection": "tischeinstellungen",
+    "color": null,
+    "display_template": "{{tisch}} — Schwelle {{schwelle}}",
+    "group": null,
+    "hidden": false,
+    "icon": "tune",
+    "item_duplication_fields": null,
+    "note": "Was die Redaktion je Tisch einstellt: ab welcher Stufe (1-4) eine Zeile ein Vorschlag ist, und beim Veranstaltungstisch, wie viele Tage vor dem Anker eine Zeile je Stufe auf den Tisch kommt. Eine Zeile je Tisch; ohne Zeile gilt der Standard des Codes.",
+    "preview_url": null,
+    "singleton": false,
+    "sort": null,
+    "sort_field": null,
+    "translations": null,
+    "unarchive_value": null,
+    "versioning": false
+  },
+  "schema": {
+    "name": "tischeinstellungen"
+  }
+}

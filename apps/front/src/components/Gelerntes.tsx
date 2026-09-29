@@ -17,7 +17,8 @@ import Stack from '@mui/material/Stack'
 import Switch from '@mui/material/Switch'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
-import type { RecherchehinweisFelder, WissenFelder } from '@/graphql/redaktion'
+import type { RecherchehinweisFelder, TischeinstellungFelder, WissenFelder } from '@/graphql/redaktion'
+import { EINSTELLBARE_TISCHE, einstellungFuer, SCHWELLEN } from '@/lib/tische'
 import {
   automatikBilanz,
   automatikText,
@@ -52,6 +53,118 @@ export interface GelerntesProps {
   onAktiv: (id: string, aktiv: boolean) => Promise<void>
   onWirkung: (id: string, wirkung: 'hinweis' | 'weiterreichen') => Promise<void>
   onAnlegen: (regel: NeueRegel) => Promise<void>
+  /** Die Regler je Tisch — Schwelle und Vorlauf; ohne `onTisch` bleibt der Abschnitt weg. */
+  tische?: readonly TischeinstellungFelder[]
+  onTisch?: (tisch: string, felder: Record<string, number>) => Promise<void>
+}
+
+/** Die Zahlenfelder des Veranstaltungstischs, als Formular. */
+type Vorlaufe = {
+  vorlauf_stufe4: number
+  vorlauf_stufe3: number
+  vorlauf_stufe2: number
+  dauerangebote_je_woche: number
+}
+
+/**
+ * Die Regler eines Tischs. Die Schwelle wirkt beim Umstellen sofort — der
+ * Tisch rechnet sie selbst —, die Vorlaeufe braucht nur der Veranstaltungstisch
+ * und sie gehen mit einem Klick auf „Speichern" hinaus.
+ */
+function TischRegler({
+  tisch,
+  text,
+  zeilen,
+  laeuft,
+  onTisch
+}: {
+  tisch: 'gemeinde' | 'veranstaltung'
+  text: string
+  zeilen: readonly TischeinstellungFelder[]
+  laeuft: boolean
+  onTisch: (tisch: string, felder: Record<string, number>) => Promise<void>
+}) {
+  const aktuell = einstellungFuer(zeilen, tisch)
+  const [vorlaeufe, setVorlaeufe] = useState<Vorlaufe | null>(null)
+  const werte: Vorlaufe = vorlaeufe ?? {
+    vorlauf_stufe4: aktuell.vorlauf[4],
+    vorlauf_stufe3: aktuell.vorlauf[3],
+    vorlauf_stufe2: aktuell.vorlauf[2],
+    dauerangebote_je_woche: aktuell.dauerangebote_je_woche
+  }
+  const zahl = (feld: keyof Vorlaufe, roh: string) =>
+    setVorlaeufe({ ...werte, [feld]: Number.isFinite(Number(roh)) ? Number(roh) : 0 })
+
+  return (
+    <Stack spacing={1.5}>
+      <Stack direction="row" spacing={2} sx={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 1.5 }}>
+        <Typography variant="body2" sx={{ minWidth: 140, fontWeight: 600 }}>
+          {text}
+        </Typography>
+        <TextField
+          select
+          size="small"
+          label={`Schwelle ${text}`}
+          value={aktuell.schwelle}
+          disabled={laeuft}
+          onChange={(e) => void onTisch(tisch, { schwelle: Number(e.target.value) })}
+          sx={{ minWidth: 240 }}
+        >
+          {SCHWELLEN.map((s) => (
+            <MenuItem key={s.wert} value={s.wert}>
+              {s.text}
+            </MenuItem>
+          ))}
+        </TextField>
+      </Stack>
+      {tisch === 'veranstaltung' && (
+        <Stack direction="row" spacing={2} sx={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 1.5 }}>
+          <TextField
+            size="small"
+            type="number"
+            label="Vorlauf Stufe 4 (Tage)"
+            value={werte.vorlauf_stufe4}
+            onChange={(e) => zahl('vorlauf_stufe4', e.target.value)}
+            sx={{ width: 170 }}
+          />
+          <TextField
+            size="small"
+            type="number"
+            label="Vorlauf Stufe 3 (Tage)"
+            value={werte.vorlauf_stufe3}
+            onChange={(e) => zahl('vorlauf_stufe3', e.target.value)}
+            sx={{ width: 170 }}
+          />
+          <TextField
+            size="small"
+            type="number"
+            label="Vorlauf Stufe 2 (Tage)"
+            value={werte.vorlauf_stufe2}
+            onChange={(e) => zahl('vorlauf_stufe2', e.target.value)}
+            sx={{ width: 170 }}
+          />
+          <TextField
+            size="small"
+            type="number"
+            label="Dauerangebote je Woche"
+            value={werte.dauerangebote_je_woche}
+            onChange={(e) => zahl('dauerangebote_je_woche', e.target.value)}
+            sx={{ width: 190 }}
+          />
+          <Button
+            size="small"
+            variant="outlined"
+            disabled={laeuft || vorlaeufe === null}
+            onClick={() => {
+              void onTisch(tisch, werte).then(() => setVorlaeufe(null))
+            }}
+          >
+            Speichern
+          </Button>
+        </Stack>
+      )}
+    </Stack>
+  )
 }
 
 export function Gelerntes({
@@ -60,7 +173,9 @@ export function Gelerntes({
   laeuft = false,
   onAktiv,
   onWirkung,
-  onAnlegen
+  onAnlegen,
+  tische = [],
+  onTisch
 }: GelerntesProps) {
   const gruppen = useMemo(() => gruppiereRegeln(regeln), [regeln])
   const [offeneBelege, setOffeneBelege] = useState<Set<string>>(new Set())
@@ -173,6 +288,34 @@ export function Gelerntes({
           Regel erfassen
         </Button>
       </Stack>
+
+      {/* Die Regler: die Sichtung benotet, die Redaktion stellt den Appetit ein.
+          Nicht gelernt, sondern eingestellt — darum ein eigener Kasten zuoberst. */}
+      {onTisch !== undefined && (
+        <Paper sx={{ p: 2 }}>
+          <Stack spacing={2}>
+            <Typography variant="subtitle2">Tische — wie viel auf den Tisch kommt</Typography>
+            <Typography variant="caption" color="text.secondary">
+              Die Sichtung benotet jede Zeile mit einer Stufe: 4 wichtig · 3 klare Meldung · 2 möglich · 1
+              Routine. Ab welcher Stufe etwas zuoberst liegt, stellst du hier ein — in einer ruhigen Woche
+              grosszügiger, sonst normal. Die Schwelle wirkt sofort auf den Tisch; die Entwürfe zu neu
+              vorgeschlagenen Zeilen schreibt der nächste Lauf. Beim Veranstaltungstisch bestimmt der Vorlauf,
+              wie viele Tage vor dem Anlass eine Zeile dieser Stufe kommt — ein Dorffest (Stufe 4) einen Monat
+              vorher, ein Konzert (Stufe 3) zehn Tage.
+            </Typography>
+            {EINSTELLBARE_TISCHE.map((t) => (
+              <TischRegler
+                key={t.wert}
+                tisch={t.wert}
+                text={t.text}
+                zeilen={tische}
+                laeuft={laeuft}
+                onTisch={onTisch}
+              />
+            ))}
+          </Stack>
+        </Paper>
+      )}
 
       {gruppen.length === 0 && <Alert severity="info">Noch nichts gelernt.</Alert>}
 

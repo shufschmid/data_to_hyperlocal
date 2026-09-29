@@ -57,9 +57,8 @@ laufende Vernehmlassungs-, Anmelde- und Einsprachefristen.
 
 Dagegen: Routine ohne Neuigkeit — Oeffnungszeiten und Feiertagsschliessungen,
 Stellenausschreibungen, Schalter- und Formularhinweise, Wahlwerbung,
-weitergereichte Vereinsanlaesse (die kommen ueber die Wochenblaetter),
 Baupublikationen und amtliche Anzeigen (die kommen ueber das Amtsblatt),
-Rueckblicke, Fotogalerien, Gratulationen, Hinweise auf den eigenen Newsletter.
+Gratulationen, Hinweise auf den eigenen Newsletter.
 
 Abfuhren: Eine Mitteilung, die nur Abfuhrtermine ankuendigt, die im
 mitgegebenen Abfuhrkalender schon stehen, ist KEIN Vorschlag — die Erinnerung
@@ -67,13 +66,24 @@ schreibt der Entsorgungs-Tisch. Faellt eine Abfuhr aus, wird sie verschoben,
 kommt eine neue hinzu oder aendert sich der Ablauf, ist das eine Meldung.
 Begruende mit dem Abgleich, der bei der Mitteilung steht.
 
-Im Zweifel: nein. Die nicht vorgeschlagenen Mitteilungen verschwinden nicht,
-sie stehen der Redaktion weiterhin zur Verfuegung — ein falsches Ja kostet
-Aufmerksamkeit, ein falsches Nein kostet einen Klick. Die Bilanz und die
-Beispiele der Redaktion zeigen, was sie tatsaechlich aufgreift: ein Vorschlag,
-den sie liegen liess, war ein Fehlvorschlag.
+Vergib jeder Mitteilung eine STUFE ihres Nachrichtenwerts. Die Note ist
+deine; ab welcher Stufe etwas auf den Tisch kommt, stellt die Redaktion ein —
+in einer ruhigen Woche tiefer, sonst hoeher. Benote darum die Sache, nicht
+die Lage:
+4 = wichtig: ein Beschluss, eine Sperrung, ein Unterbruch, ein Ausfall, eine
+    Frist, ein Ereignis mit Wirkung fuer viele
+3 = klare Meldung: was eine Redaktion an einem normalen Tag aufgreift
+2 = moeglich: in einer ruhigen Woche eine Meldung wert — ein weitergereichter
+    Vereinsanlass, ein Service-Hinweis ohne Dringlichkeit, ein Rueckblick
+    oder eine Fotogalerie mit Substanz
+1 = Routine ohne Neuigkeit (siehe oben)
+Im Zweifel zwischen zwei Stufen die tiefere. Nichts verschwindet: die
+Redaktion sieht jede Mitteilung, die Stufe entscheidet nur, was zuoberst
+liegt. Die Bilanz und die Beispiele der Redaktion zeigen, was sie
+tatsaechlich aufgreift: ein Vorschlag, den sie liegen liess, war zu hoch
+benotet.
 
-Begruende jeden Entscheid in EINEM kurzen Satz, der sagt WARUM, nicht WAS.
+Begruende jede Stufe in EINEM kurzen Satz, der sagt WARUM, nicht WAS.
 
 Weiterreichen an die Chefredaktion: NUR wenn eine der nummerierten Regeln der
 Redaktion (R1, R2, …) verlangt, dass solche Mitteilungen an die Chefredaktion
@@ -81,7 +91,7 @@ gehen, setze "empfehlung": "weiterreichen" und nenne die Nummer dieser Regel
 in "empfehlung_regel". Ohne eine solche Regel sind beide null.
 
 Antworte ausschliesslich mit JSON:
-{"urteile": [{"nummer": 1, "vorschlag": true, "begruendung": "...", "empfehlung": null, "empfehlung_regel": null}]}`
+{"urteile": [{"nummer": 1, "stufe": 3, "begruendung": "...", "empfehlung": null, "empfehlung_regel": null}]}`
 
 /** One item as the Sichtung sees it: title, an excerpt, the caveats the reader left. */
 export interface SichtungsZeile {

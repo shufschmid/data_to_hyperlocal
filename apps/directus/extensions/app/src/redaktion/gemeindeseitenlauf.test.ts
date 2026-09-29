@@ -211,14 +211,14 @@ describe('sichteMitteilungen', () => {
           urteile: [
             {
               nummer: 1,
-              vorschlag: false,
+              stufe: 1,
               begruendung: 'Steht im Abfuhrkalender.',
               empfehlung: null,
               empfehlung_regel: null
             },
             {
               nummer: 2,
-              vorschlag: true,
+              stufe: 3,
               begruendung: 'Beschluss mit Wirkung.',
               empfehlung: 'weiterreichen',
               empfehlung_regel: 'R1'
@@ -261,11 +261,19 @@ describe('sichteMitteilungen', () => {
     expect(dienst.updates).toEqual([
       [
         'm-1',
-        { vorschlag: false, vorschlag_begruendung: 'Steht im Abfuhrkalender.' }
+        {
+          vorschlag: false,
+          vorschlag_wert: 1,
+          vorschlag_begruendung: 'Steht im Abfuhrkalender.'
+        }
       ],
       [
         'm-2',
-        { vorschlag: true, vorschlag_begruendung: 'Beschluss mit Wirkung.' }
+        {
+          vorschlag: true,
+          vorschlag_wert: 3,
+          vorschlag_begruendung: 'Beschluss mit Wirkung.'
+        }
       ],
       ['m-2', { entscheid: 'weitergereicht' }]
     ])
@@ -322,7 +330,7 @@ describe('sichteMitteilungen: Termine', () => {
           urteile: [
             {
               nummer: 1,
-              vorschlag: true,
+              stufe: 3,
               begruendung: 'Einwohnerratssitzung.',
               empfehlung: null,
               empfehlung_regel: null

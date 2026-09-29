@@ -259,6 +259,10 @@ import {
 } from '../../redaktion/kanton'
 import { wissenFelderManuell } from '../../redaktion/wissen'
 import {
+  istEinstellbarerTisch,
+  tischeinstellungFelder
+} from '../../redaktion/tischeinstellungen'
+import {
   extrahiereText,
   fetchAusgabenliste,
   type WochenblattKonnektor
@@ -543,6 +547,18 @@ const PublikationSchonEntschieden = createError(
   'ALREADY_DECIDED',
   'Ueber diese Publikation ist bereits entschieden.',
   409
+)
+
+const UnbekannterTisch = createError(
+  'UNKNOWN_DESK',
+  'Diesen Tisch gibt es nicht — einstellbar sind Gemeindeseiten und Veranstaltungen.',
+  404
+)
+
+const UngueltigeEinstellung = createError<{ reason: string }>(
+  'INVALID_SETTING',
+  ({ reason }) => reason,
+  400
 )
 
 const GemeindeseitenLaufLaeuftBereits = createError(
@@ -4739,6 +4755,58 @@ export default defineEndpoint(
           })
           const id = (await wissen.createOne(felder)) as string
           return res.json({ data: { id } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    // --- the dials of a desk: threshold and leads ----------------------------
+    //
+    // One row per grading desk in `tischeinstellungen`; the rules of what a
+    // value may be are `tischeinstellungFelder`. Upsert, so the gear works
+    // before the seed row exists.
+    router.post(
+      '/tische/:tisch',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        const tisch = req.params['tisch']
+        if (!istEinstellbarerTisch(tisch)) return next(new UnbekannterTisch())
+
+        let felder: Record<string, unknown>
+        try {
+          felder = tischeinstellungFelder(
+            (req.body ?? {}) as Record<string, unknown>
+          )
+        } catch (fehler) {
+          return next(
+            new UngueltigeEinstellung({
+              reason:
+                fehler instanceof Error
+                  ? fehler.message
+                  : 'Ungueltige Einstellung.'
+            })
+          )
+        }
+
+        try {
+          const tische = new ItemsService('tischeinstellungen', {
+            schema: await getSchema(),
+            accountability: req.accountability
+          })
+          const [vorhanden] = (await tische.readByQuery({
+            filter: { tisch: { _eq: tisch } },
+            fields: ['id'],
+            limit: 1
+          })) as Array<{ id: string }>
+          let id: string
+          if (vorhanden === undefined) {
+            id = (await tische.createOne({ tisch, ...felder })) as string
+          } else {
+            await tische.updateOne(vorhanden.id, felder)
+            id = vorhanden.id
+          }
+          return res.json({ data: { id, tisch, ...felder } })
         } catch (error) {
           return next(uebersetze(error))
         }

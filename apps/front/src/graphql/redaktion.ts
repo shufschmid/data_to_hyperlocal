@@ -916,6 +916,39 @@ export const WISSEN_QUERY = gql`
   }
 `
 
+// --- Tische: Schwelle und Vorlauf je Tisch ------------------------------------
+//
+// Eine Zeile je benotendem Tisch. Gelesen vom Arbeitsplatz, weil der Tisch die
+// Regel selbst rechnet: ein Umstellen hinter dem Zahnrad wirkt sofort.
+
+export interface TischeinstellungFelder {
+  id: string
+  tisch: string
+  schwelle: number
+  vorlauf_stufe4: number
+  vorlauf_stufe3: number
+  vorlauf_stufe2: number
+  dauerangebote_je_woche: number
+}
+
+export interface TischeinstellungenErgebnis {
+  tischeinstellungen: TischeinstellungFelder[]
+}
+
+export const TISCHEINSTELLUNGEN_QUERY = gql`
+  query Tischeinstellungen {
+    tischeinstellungen(limit: -1) {
+      id
+      tisch
+      schwelle
+      vorlauf_stufe4
+      vorlauf_stufe3
+      vorlauf_stufe2
+      dauerangebote_je_woche
+    }
+  }
+`
+
 // --- Entsorgung ------------------------------------------------------------
 //
 // The printed waste calendar of a municipality, and the exceptional collection
@@ -1431,6 +1464,8 @@ export interface GemeindemitteilungFelder {
   gelesen_am: string | null
   /** Null means the Sichtung has not judged it — NOT that it said no. */
   vorschlag: boolean | null
+  /** Die Stufe der Sichtung (1–4); optional, weil aeltere Antworten sie nicht tragen. */
+  vorschlag_wert?: number | null
   vorschlag_begruendung: string | null
   entscheid: string
   ablehnungsgrund: string | null
@@ -1465,6 +1500,7 @@ export const GEMEINDEMITTEILUNGEN_QUERY = gql`
       hinweise
       gelesen_am
       vorschlag
+      vorschlag_wert
       vorschlag_begruendung
       entscheid
       ablehnungsgrund
@@ -1598,6 +1634,8 @@ export interface VeranstaltungFelder {
   zuletzt_gesehen_am: string
   /** Null heisst: die Sichtung hat nicht geurteilt — nicht, dass sie Nein sagte. */
   vorschlag: boolean | null
+  /** Die Stufe der Sichtung (1–4); ob sie heute ein Vorschlag ist, rechnet `lib/tische.ts`. */
+  vorschlag_wert?: number | null
   vorschlag_begruendung: string | null
   entscheid: string
   ablehnungsgrund: string | null
@@ -1654,6 +1692,7 @@ export const VERANSTALTUNGEN_QUERY = gql`
       gelesen_am
       zuletzt_gesehen_am
       vorschlag
+      vorschlag_wert
       vorschlag_begruendung
       entscheid
       ablehnungsgrund

@@ -884,6 +884,7 @@ export interface Schema {
   suedanflugquoten: Suedanflugquote[]
   abstimmungen: Abstimmung[]
   abstimmungstermine: Abstimmungstermin[]
+  tischeinstellungen: Tischeinstellung[]
   veranstaltungsquellen: Veranstaltungsquelle[]
   veranstaltungen: Veranstaltung[]
   abnehmer: Abnehmer[]
@@ -983,6 +984,8 @@ export interface Gemeindemitteilung {
   gelesen_am: string | null
   /** Sichtung verdict; null = not judged, not "no". */
   vorschlag: boolean | null
+  /** The Sichtung's grade 1–4; `vorschlag` is this against the desk's threshold. */
+  vorschlag_wert: number | null
   vorschlag_begruendung: string | null
   entscheid: MitteilungsEntscheid
   ablehnungsgrund: MitteilungsGrund | null
@@ -1351,6 +1354,18 @@ export interface Suedanflugquote {
  * article per municipality rather than three.
  */
 /** A coming federal vote day, from LINDAS (`shared/abstimmung/termine.ts`). */
+/** One row per grading desk: the newsroom's threshold and leads — see `redaktion/tischeinstellungen.ts`. */
+export interface Tischeinstellung {
+  id: string
+  tisch: 'gemeinde' | 'veranstaltung'
+  schwelle: number
+  vorlauf_stufe4: number
+  vorlauf_stufe3: number
+  vorlauf_stufe2: number
+  dauerangebote_je_woche: number
+  date_updated: string | null
+}
+
 export interface Abstimmungstermin {
   id: string
   datum: string
@@ -1554,6 +1569,8 @@ export interface Veranstaltung {
   zuletzt_gesehen_am: string
   /** Sichtung verdict; null = not judged, not "no". */
   vorschlag: boolean | null
+  /** The Sichtung's grade 1–4; `vorschlag` is this against threshold and lead. */
+  vorschlag_wert: number | null
   vorschlag_begruendung: string | null
   entscheid: MitteilungsEntscheid
   ablehnungsgrund: MitteilungsGrund | null

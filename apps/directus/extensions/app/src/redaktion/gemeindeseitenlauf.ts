@@ -4,6 +4,12 @@
 // Services are injected as the small interfaces below, so both functions are
 // tested against stubs. No fetching here — the reader hands rows in.
 
+import { parseStufenSichtung, STUFEN_SCHEMA } from './sichtung'
+import {
+  istVorschlag,
+  STANDARD_EINSTELLUNG,
+  type Tischeinstellung
+} from './tischeinstellungen'
 import { completeJson, type MessageSender } from '../shared/claude'
 import { verschiebe } from './feiertage'
 import type { RegelZeile } from './gedaechtnis'
@@ -16,8 +22,6 @@ import {
   hatAbfuhrbezug,
   heuteFuer,
   lernDigest,
-  parseSichtung,
-  SICHTUNG_SCHEMA,
   SICHTUNG_SYSTEM_PROMPT,
   sichtungsAuswahl,
   VORBEI_BEGRUENDUNG,
@@ -161,6 +165,8 @@ export interface SichtungKontext {
   logger: Logger
   model?: string | null
   send?: MessageSender
+  /** The desk's threshold; the standard when the run has no row. */
+  einstellung?: Tischeinstellung
 }
 
 /**
@@ -263,16 +269,21 @@ export async function sichteMitteilungen(
         // streams from 8192 up) — cheaper than a lost judgement by any measure.
         maxTokens: 8000,
         ...(kontext.model == null ? {} : { model: kontext.model }),
-        schema: SICHTUNG_SCHEMA
+        schema: STUFEN_SCHEMA
       },
       kontext.send
     )
-    for (const urteil of parseSichtung(antwort, zeilen)) {
+    const schwelle = (kontext.einstellung ?? STANDARD_EINSTELLUNG).schwelle
+    for (const urteil of parseStufenSichtung(antwort, zeilen)) {
+      // The grade is the model's, the threshold the newsroom's: stored
+      // apart, so a changed dial re-sorts the desk without a second call.
+      const vorschlag = istVorschlag(urteil.stufe, schwelle)
       await kontext.mitteilungen.updateOne(urteil.id, {
-        vorschlag: urteil.vorschlag,
+        vorschlag,
+        vorschlag_wert: urteil.stufe,
         vorschlag_begruendung: urteil.begruendung
       })
-      if (urteil.vorschlag) vorschlaege += 1
+      if (vorschlag) vorschlaege += 1
       const regel = automatischeWeitergabe(
         urteil,
         kontext.sichtungsregeln.nummern,
@@ -334,4 +345,45 @@ export async function sichteMitteilungen(
   }
 
   return { vorschlaege, weitergereicht, fehler: sichtungsFehler }
+}
+
+/**
+ * Re-applies the desk's threshold to every open, graded row — the run's half
+ * of the dial: a threshold lowered in the gear at noon shows on the desk at
+ * once (the workspace computes the same rule) and the next run writes the
+ * drafts for what moved up. No model call; a row without a grade is left
+ * exactly as it is.
+ */
+export async function gleicheSchwelleAb(
+  dienst: {
+    readByQuery(query: Record<string, unknown>): Promise<unknown[]>
+    updateOne(key: string, payload: Record<string, unknown>): Promise<unknown>
+  },
+  einstellung: Tischeinstellung,
+  logger: Logger
+): Promise<number> {
+  const zeilen = (await dienst.readByQuery({
+    filter: { entscheid: { _eq: 'offen' }, vorschlag_wert: { _nnull: true } },
+    fields: ['id', 'vorschlag', 'vorschlag_wert'],
+    limit: -1
+  })) as Array<{
+    id: string
+    vorschlag: boolean | null
+    vorschlag_wert: number | null
+  }>
+  let geaendert = 0
+  for (const z of zeilen) {
+    const soll = istVorschlag(z.vorschlag_wert, einstellung.schwelle)
+    if (soll === z.vorschlag) continue
+    try {
+      await dienst.updateOne(z.id, { vorschlag: soll })
+      geaendert += 1
+    } catch (fehler) {
+      logger.warn(
+        fehler,
+        `gemeindeseiten: Schwelle auf ${z.id} nicht angewandt.`
+      )
+    }
+  }
+  return geaendert
 }

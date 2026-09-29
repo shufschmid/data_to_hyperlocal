@@ -137,3 +137,18 @@ describe('Gelerntes', () => {
     ).toBeInTheDocument()
   })
 })
+
+describe('Gelerntes: die Regler der Tische', () => {
+  it('stellt die Schwelle eines Tischs um und schickt sie sofort hinaus', async () => {
+    const onTisch = jest.fn().mockResolvedValue(undefined)
+    render(<Gelerntes regeln={[]} {...NICHTS} tische={[]} onTisch={onTisch} />)
+    await userEvent.click(screen.getByRole('combobox', { name: 'Schwelle Gemeindeseiten' }))
+    await userEvent.click(screen.getByRole('option', { name: 'Grosszügig (ab Stufe 2)' }))
+    expect(onTisch).toHaveBeenCalledWith('gemeinde', { schwelle: 2 })
+  })
+
+  it('ohne Regler-Funktion bleibt der Abschnitt weg', () => {
+    render(<Gelerntes regeln={[]} {...NICHTS} />)
+    expect(screen.queryByText(/Tische — wie viel/)).not.toBeInTheDocument()
+  })
+})

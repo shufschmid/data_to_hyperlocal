@@ -1,5 +1,6 @@
 'use client'
 
+import { stufeText, type Tischeinstellung } from '@/lib/tische'
 import { useMemo, useState } from 'react'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -52,6 +53,8 @@ import {
 } from '@/lib/veranstaltungen'
 
 export interface VeranstaltungenProps {
+  /** Schwelle und Vorlauf je Stufe — die Einstellung hinter dem Zahnrad. */
+  einstellung?: Tischeinstellung
   anlaesse: VeranstaltungFelder[]
   /** Die erfassten Kalender — ihre Statuszeilen stehen hier, nicht bei den Gemeindeseiten. */
   quellen: VeranstaltungsquelleFelder[]
@@ -94,6 +97,7 @@ export function Veranstaltungen({
   gemeinden,
   meldungen = [],
   heute,
+  einstellung,
   laeuft = false,
   lauf = null,
   onChat,
@@ -122,8 +126,8 @@ export function Veranstaltungen({
     [meldungZu]
   )
   const { vorschlaege, verankert, routine } = useMemo(
-    () => tisch(anlaesse, filter, statusJeAnlass, heute),
-    [anlaesse, filter, statusJeAnlass, heute]
+    () => tisch(anlaesse, filter, statusJeAnlass, heute, einstellung),
+    [anlaesse, filter, statusJeAnlass, heute, einstellung]
   )
   const ohneKalender = useMemo(() => gemeindenOhneKalender(gemeinden, quellen), [gemeinden, quellen])
   const gestoerte = useMemo(() => quellenMitFehler(quellen), [quellen])
@@ -147,6 +151,9 @@ export function Veranstaltungen({
       <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start', flexWrap: 'wrap', rowGap: 0.5 }}>
         <Chip size="small" label={anlass.gemeinde?.name ?? '—'} />
         <Chip size="small" color={ankerFarbe(anlass.anker)} label={ankerText(anlass.anker)} />
+        {stufeText(anlass.vorschlag_wert) !== null && (
+          <Chip size="small" variant="outlined" label={stufeText(anlass.vorschlag_wert)} />
+        )}
         {anlass.kategorie !== null && anlass.kategorie !== '' && (
           <Chip size="small" variant="outlined" label={anlass.kategorie} />
         )}

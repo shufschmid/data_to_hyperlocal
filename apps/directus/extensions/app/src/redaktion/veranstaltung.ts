@@ -115,10 +115,23 @@ Was schon auf der Newsseite der Gemeinde stand, ist KONTEXT, kein
 Ausschluss: der Kalender bringt dieselbe Sache zum richtigen Zeitpunkt.
 Nenne es in der Begruendung, wenn es dir auffaellt.
 
-Die Bilanz und die Beispiele der Redaktion zeigen, was sie tatsaechlich
-aufgreift: ein Vorschlag, den sie liegen liess, war ein Fehlvorschlag.
+Vergib jedem Anlass eine STUFE seines Nachrichtenwerts. Die Note ist deine;
+ab welcher Stufe und wie viele Tage im Voraus etwas auf den Tisch kommt,
+stellt die Redaktion ein — benote darum die Sache, nicht die Lage:
+4 = wichtig: Dorffest, Gemeindeversammlung, Einwohnerrat, Abstimmung, ein
+    grosses Jubilaeum, der Ausfall oder die Verschiebung eines bekannten
+    Anlasses — was Wochen im Voraus angekuendigt gehoert
+3 = klare Meldung: was oben "ein Vorschlag" heisst — Konzert, Vortrag, Kurs
+    mit offener Anmeldung, eine Erinnerung, eine letzte Gelegenheit
+2 = moeglich: in einer ruhigen Woche eine Meldung wert — ein kleiner
+    Vereinsanlass, ein Rueckblick, eine Fotogalerie
+1 = mit GENANNTEM Grund herabgestuft (siehe oben), oder ohne Datum, Zeit und
+    Ort nicht meldbar
+Im Zweifel zwischen zwei Stufen die tiefere. Die Bilanz und die Beispiele
+der Redaktion zeigen, was sie tatsaechlich aufgreift: ein Vorschlag, den sie
+liegen liess, war zu hoch benotet.
 
-Begruende jeden Entscheid in EINEM kurzen Satz, der sagt WARUM, nicht WAS.
+Begruende jede Stufe in EINEM kurzen Satz, der sagt WARUM, nicht WAS.
 
 Weiterreichen an die Chefredaktion: NUR wenn eine der nummerierten Regeln der
 Redaktion (R1, R2, …) verlangt, dass solche Anlaesse an die Chefredaktion
@@ -126,7 +139,7 @@ gehen, setze "empfehlung": "weiterreichen" und nenne die Nummer dieser Regel
 in "empfehlung_regel". Ohne eine solche Regel sind beide null.
 
 Antworte ausschliesslich mit JSON:
-{"urteile": [{"nummer": 1, "vorschlag": true, "begruendung": "...", "empfehlung": null, "empfehlung_regel": null}]}`
+{"urteile": [{"nummer": 1, "stufe": 3, "begruendung": "...", "empfehlung": null, "empfehlung_regel": null}]}`
 
 /** One Anlass as the Sichtung sees it: the anchor as a fact, the fields, the caveats. */
 export interface SichtungsAnlass {

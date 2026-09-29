@@ -60,6 +60,8 @@ export const ERLAUBT: RegExp[] = [
   /^kandidaten\/[0-9a-f-]{36}\/(meldung|ablehnen|gemeinde|weiterreichen|perle)$/i,
   /^hinweise\/[0-9a-f-]{36}\/(bewerten|zurueck)$/i,
   /^wissen$/i,
+  // Die Regler je Tisch hinter dem Zahnrad: Schwelle und Vorlauf.
+  /^tische\/(gemeinde|veranstaltung)$/i,
   /^sendungen\/[0-9a-f-]{36}\/(meldung|ablehnen|weiterreichen)$/i,
   /^amtsblatt\/pruefen$/i,
   /^amtsblatt\/[0-9a-f-]{36}\/(meldung|ablehnen|weiterreichen|unterlagen|vorgeschichte)$/i

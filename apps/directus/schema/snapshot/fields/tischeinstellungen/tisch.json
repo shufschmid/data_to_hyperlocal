@@ -1,0 +1,55 @@
+{
+  "collection": "tischeinstellungen",
+  "field": "tisch",
+  "type": "string",
+  "meta": {
+    "collection": "tischeinstellungen",
+    "conditions": null,
+    "display": null,
+    "display_options": null,
+    "field": "tisch",
+    "group": null,
+    "hidden": false,
+    "interface": "select-dropdown",
+    "note": "Der Tisch: gemeinde (Gemeindeseiten) oder veranstaltung (Veranstaltungen).",
+    "options": {
+      "choices": [
+        {
+          "text": "Gemeindeseiten",
+          "value": "gemeinde"
+        },
+        {
+          "text": "Veranstaltungen",
+          "value": "veranstaltung"
+        }
+      ]
+    },
+    "readonly": false,
+    "required": true,
+    "searchable": true,
+    "sort": 2,
+    "special": null,
+    "translations": null,
+    "validation": null,
+    "validation_message": null,
+    "width": "half"
+  },
+  "schema": {
+    "name": "tisch",
+    "table": "tischeinstellungen",
+    "data_type": "character varying",
+    "default_value": null,
+    "max_length": 40,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "is_nullable": false,
+    "is_unique": true,
+    "is_indexed": true,
+    "is_primary_key": false,
+    "is_generated": false,
+    "generation_expression": null,
+    "has_auto_increment": false,
+    "foreign_key_table": null,
+    "foreign_key_column": null
+  }
+}

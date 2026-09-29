@@ -104,7 +104,8 @@ field is still empty), `20260917B-suedanflug.mts` (the composite unique
 `(jahr, monat)` on `suedanflugquoten`, plus the EuroAirport source row seeded
 **inactive**), `20260918B-abstimmungsdatensatz.mts` (which dataset the
 data.bl.ch row carries its vote results in — one key in `konfiguration`, written
-only where it is absent, with a real `down`), `20260929A-kanton.mts` (the
+only where it is absent, with a real `down`), `20260929B-tischeinstellungen.mts` (the two settings rows of the grading
+desks, seeded with the code's standard, insert-only), `20260929A-kanton.mts` (the
 composite unique `(url, gemeinde)` on `kantonsmitteilungen` — one notice is one
 row per municipality it names, so `url` alone is NOT unique — plus the partial
 unique on `meldungen.kantonsmitteilung`, and the `quellen` row `typ: kanton`

@@ -41,6 +41,7 @@ import {
   type Filter,
   type GemeindeseitenLaufStatus
 } from '@/lib/gemeindeseiten'
+import { stufeText } from '@/lib/tische'
 
 export interface GemeindeseitenProps {
   eintraege: GemeindemitteilungFelder[]
@@ -62,6 +63,8 @@ export interface GemeindeseitenProps {
   /** Publiziert alle geschriebenen Meldungen dieses Tischs auf einen Griff. */
   onAllePublizieren?: () => Promise<void> | void
   onZuGemeinden?: () => void
+  /** Ab welcher Stufe eine Zeile zuoberst liegt — die Einstellung hinter dem Zahnrad. */
+  schwelle?: number
 }
 
 /**
@@ -88,7 +91,8 @@ export function Gemeindeseiten({
   onAblehnen,
   onWeiterreichen,
   onAllePublizieren,
-  onZuGemeinden
+  onZuGemeinden,
+  schwelle
 }: GemeindeseitenProps) {
   const [filter, setFilter] = useState<Filter>({ gemeinde: null, suche: '' })
   const [uebrigeOffen, setUebrigeOffen] = useState(false)
@@ -105,8 +109,8 @@ export function Gemeindeseiten({
     [meldungZu]
   )
   const { vorschlaege, uebrige } = useMemo(
-    () => tisch(eintraege, filter, statusJeMitteilung, heute),
-    [eintraege, filter, statusJeMitteilung, heute]
+    () => tisch(eintraege, filter, statusJeMitteilung, heute, schwelle),
+    [eintraege, filter, statusJeMitteilung, heute, schwelle]
   )
   const fehlende = useMemo(() => ohneNewsseite(gemeinden), [gemeinden])
   const gestoerte = useMemo(() => lesefehler(gemeinden), [gemeinden])
@@ -136,6 +140,9 @@ export function Gemeindeseiten({
         <Stack spacing={1}>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start', flexWrap: 'wrap' }}>
             <Chip size="small" label={eintrag.gemeinde?.name ?? '—'} />
+            {stufeText(eintrag.vorschlag_wert) !== null && (
+              <Chip size="small" variant="outlined" label={stufeText(eintrag.vorschlag_wert)} />
+            )}
             {eintrag.kategorie !== null && <Chip size="small" variant="outlined" label={eintrag.kategorie} />}
             {eintrag.inhalt_typ === 'pdf' && <Chip size="small" variant="outlined" label="PDF" />}
             {eintrag.text_abgeschnitten && (

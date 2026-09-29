@@ -347,15 +347,15 @@ describe('brauchtDetail und sichtungsKandidat', () => {
   })
 
   it('liest, was im Fenster verankert ist oder von der Sorte ist, die sofort zaehlt — einmal je Anlass', () => {
-    expect(brauchtDetail(g({}), HEUTE, 10)).toBe(true)
-    expect(brauchtDetail(g({ ankerAm: '2026-10-20' }), HEUTE, 10)).toBe(false)
+    expect(brauchtDetail(g({}), HEUTE)).toBe(true)
+    expect(brauchtDetail(g({ ankerAm: '2026-10-20' }), HEUTE)).toBe(false)
     expect(
-      brauchtDetail(g({ anker: 'gremium', ankerAm: '2026-10-20' }), HEUTE, 10)
+      brauchtDetail(g({ anker: 'gremium', ankerAm: '2026-10-20' }), HEUTE)
     ).toBe(true)
-    expect(
-      brauchtDetail(g({ anker: 'routine', ankerAm: null }), HEUTE, 10)
-    ).toBe(false)
-    expect(brauchtDetail(g({ anker: 'abfuhr' }), HEUTE, 10)).toBe(false)
+    expect(brauchtDetail(g({ anker: 'routine', ankerAm: null }), HEUTE)).toBe(
+      false
+    )
+    expect(brauchtDetail(g({ anker: 'abfuhr' }), HEUTE)).toBe(false)
     expect(
       brauchtDetail(
         g(
@@ -366,71 +366,38 @@ describe('brauchtDetail und sichtungsKandidat', () => {
             gelesen_am: '2026-09-10T00:00:00Z'
           })
         ),
-        HEUTE,
-        10
+        HEUTE
       )
     ).toBe(false)
   })
 
-  it('ein Sichtungskandidat ist offen, unbeurteilt, verankert und im Fenster', () => {
+  // Seit dem 29. September 2026 wird beim ERSTEN Sehen benotet, nicht erst im
+  // Fenster: ein Dorffest muss einen Monat vorher als wichtig bekannt sein.
+  it('ein Sichtungskandidat ist offen, unbenotet und verankert — auch weit draussen', () => {
+    const offen = {
+      anker: 'einmalig' as const,
+      anker_am: '2026-09-25',
+      vorschlag: null,
+      entscheid: 'offen'
+    }
+    expect(sichtungsKandidat(offen, HEUTE)).toBe(true)
+    expect(sichtungsKandidat({ ...offen, anker_am: '2026-11-20' }, HEUTE)).toBe(
+      true
+    )
+    expect(sichtungsKandidat({ ...offen, vorschlag: false }, HEUTE)).toBe(false)
+    expect(sichtungsKandidat({ ...offen, vorschlag_wert: 2 }, HEUTE)).toBe(
+      false
+    )
     expect(
-      sichtungsKandidat(
-        {
-          anker: 'einmalig',
-          anker_am: '2026-09-25',
-          vorschlag: null,
-          entscheid: 'offen'
-        },
-        HEUTE,
-        10
-      )
-    ).toBe(true)
-    expect(
-      sichtungsKandidat(
-        {
-          anker: 'einmalig',
-          anker_am: '2026-09-25',
-          vorschlag: false,
-          entscheid: 'offen'
-        },
-        HEUTE,
-        10
-      )
+      sichtungsKandidat({ ...offen, anker: 'routine', anker_am: null }, HEUTE)
     ).toBe(false)
+    expect(sichtungsKandidat({ ...offen, entscheid: 'abgelehnt' }, HEUTE)).toBe(
+      false
+    )
     expect(
       sichtungsKandidat(
-        {
-          anker: 'einmalig',
-          anker_am: '2026-10-25',
-          vorschlag: null,
-          entscheid: 'offen'
-        },
-        HEUTE,
-        10
-      )
-    ).toBe(false)
-    expect(
-      sichtungsKandidat(
-        {
-          anker: 'routine',
-          anker_am: null,
-          vorschlag: null,
-          entscheid: 'offen'
-        },
-        HEUTE,
-        10
-      )
-    ).toBe(false)
-    expect(
-      sichtungsKandidat(
-        {
-          anker: 'einmalig',
-          anker_am: '2026-09-25',
-          vorschlag: null,
-          entscheid: 'abgelehnt'
-        },
-        HEUTE,
-        10
+        { ...offen, frist_am: '2026-09-01', zugang: 'programm' },
+        HEUTE
       )
     ).toBe(false)
   })
@@ -671,7 +638,7 @@ describe('sichteAnlaesse', () => {
       urteile: [
         {
           nummer: 1,
-          vorschlag: true,
+          stufe: 3,
           begruendung: 'Gemeinde als Veranstalterin.',
           empfehlung: null,
           empfehlung_regel: null
@@ -693,6 +660,7 @@ describe('sichteAnlaesse', () => {
         id: 'a1',
         payload: {
           vorschlag: true,
+          vorschlag_wert: 3,
           vorschlag_begruendung: 'Gemeinde als Veranstalterin.'
         }
       }
@@ -796,12 +764,11 @@ describe('verpassteAnmeldung', () => {
       vorschlag: null,
       entscheid: 'offen'
     }
-    expect(sichtungsKandidat(basis, HEUTE, 10)).toBe(true)
+    expect(sichtungsKandidat(basis, HEUTE)).toBe(true)
     expect(
       sichtungsKandidat(
         { ...basis, frist_am: '2026-09-17', zugang: 'programm' },
-        HEUTE,
-        10
+        HEUTE
       )
     ).toBe(false)
   })

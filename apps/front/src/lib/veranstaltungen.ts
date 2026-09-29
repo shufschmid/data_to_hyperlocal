@@ -1,3 +1,4 @@
+import { anlassVorschlag, STANDARD_EINSTELLUNG, type Tischeinstellung } from './tische'
 import type { GemeindeFelder, VeranstaltungFelder, VeranstaltungsquelleFelder } from '@/graphql/redaktion'
 import type { GemeindeseitenLaufStatus } from './gemeindeseiten'
 
@@ -231,6 +232,31 @@ export function sortiere(eintraege: readonly VeranstaltungFelder[], heute: strin
   })
 }
 
+/** Der Spiegel von `verpassteAnmeldung` im Lauf: Frist vorbei und kein offener Zugang. */
+export function fristVerpasst(
+  eintrag: Pick<VeranstaltungFelder, 'frist_am' | 'zugang'>,
+  heute: string
+): boolean {
+  return eintrag.frist_am !== null && eintrag.frist_am < heute && eintrag.zugang !== 'offen'
+}
+
+/**
+ * Ob ein Anlass heute zuoberst liegt: seine Stufe gegen die Schwelle, und
+ * der Vorlauf dieser Stufe — dieselbe Regel wie im Lauf, hier gerechnet,
+ * damit ein Umstellen hinter dem Zahnrad sofort wirkt. Ein Anlass ohne Stufe
+ * behaelt das Urteil, das er traegt; eine verpasste Anmeldefrist bleibt eine
+ * Herabstufung, wie hoch die Note auch ist.
+ */
+export function vorgeschlagen(
+  eintrag: Pick<VeranstaltungFelder, 'vorschlag' | 'vorschlag_wert' | 'anker_am' | 'frist_am' | 'zugang'>,
+  heute: string,
+  einstellung: Tischeinstellung = STANDARD_EINSTELLUNG
+): boolean {
+  if (fristVerpasst(eintrag, heute)) return false
+  if (eintrag.vorschlag_wert == null) return eintrag.vorschlag === true
+  return anlassVorschlag(eintrag, heute, einstellung)
+}
+
 export interface Tisch {
   /** Was die Sichtung vorgelegt hat — der Kopf des Tischs. */
   vorschlaege: VeranstaltungFelder[]
@@ -244,7 +270,8 @@ export function tisch(
   eintraege: readonly VeranstaltungFelder[],
   filter: Filter,
   meldungStatus: ReadonlyMap<string, string> = new Map(),
-  heute: string
+  heute: string,
+  einstellung: Tischeinstellung = STANDARD_EINSTELLUNG
 ): Tisch {
   const offen = sortiere(
     eintraege.filter(
@@ -253,21 +280,25 @@ export function tisch(
     ),
     heute
   )
+  const oben = (e: VeranstaltungFelder) => vorgeschlagen(e, heute, einstellung)
   return {
-    vorschlaege: offen.filter((e) => e.vorschlag === true),
-    verankert: offen.filter((e) => e.vorschlag !== true && !istRuhend(e)),
-    routine: offen.filter((e) => e.vorschlag !== true && istRuhend(e))
+    vorschlaege: offen.filter(oben),
+    verankert: offen.filter((e) => !oben(e) && !istRuhend(e)),
+    routine: offen.filter((e) => !oben(e) && istRuhend(e))
   }
 }
 
 /** Der Zaehler im Reiter: die Vorschlaege, plus was uebernommen und noch nicht fertig ist. */
 export function anzahlOffen(
   eintraege: readonly VeranstaltungFelder[],
-  meldungStatus: ReadonlyMap<string, string> = new Map()
+  meldungStatus: ReadonlyMap<string, string> = new Map(),
+  heute: string | null = null,
+  einstellung: Tischeinstellung = STANDARD_EINSTELLUNG
 ): number {
   return eintraege.filter((e) => {
     if (!bleibtAufDemTisch(e, meldungStatus.get(e.id) ?? null)) return false
-    return e.vorschlag === true || e.entscheid === 'uebernommen'
+    const oben = heute === null ? e.vorschlag === true : vorgeschlagen(e, heute, einstellung)
+    return oben || e.entscheid === 'uebernommen'
   }).length
 }
 

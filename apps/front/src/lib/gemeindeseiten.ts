@@ -1,4 +1,5 @@
 import type { GemeindeFelder, GemeindemitteilungFelder } from '@/graphql/redaktion'
+import { istVorschlag, STANDARD_EINSTELLUNG } from './tische'
 
 // Presentation rules for the municipal-news desk. Pure, so they are tested
 // without a component. The same shape as `lib/amtsblatt.ts` on purpose — the
@@ -135,6 +136,20 @@ export function abgelaufen(eintrag: GemeindemitteilungFelder, heute: string): bo
   return eintrag.vorschlag === true ? alter >= VORSCHLAG_VERFALL_TAGE : alter >= AUFRAEUM_TAGE
 }
 
+/**
+ * Ob eine Zeile zuoberst liegt: ihre Stufe gegen die Schwelle des Tischs —
+ * dieselbe Regel wie im Lauf, hier gerechnet, damit ein Umstellen sofort
+ * wirkt. Eine Zeile ohne Stufe (vor dem 29. September 2026 benotet) behaelt
+ * das Urteil, das sie traegt.
+ */
+export function vorgeschlagen(
+  eintrag: Pick<GemeindemitteilungFelder, 'vorschlag' | 'vorschlag_wert'>,
+  schwelle: number = STANDARD_EINSTELLUNG.schwelle
+): boolean {
+  const wert = eintrag.vorschlag_wert ?? null
+  return wert !== null ? istVorschlag(wert, schwelle) : eintrag.vorschlag === true
+}
+
 export interface Tisch {
   /** What the Sichtung put forward — the top of the desk. */
   vorschlaege: GemeindemitteilungFelder[]
@@ -146,7 +161,8 @@ export function tisch(
   eintraege: readonly GemeindemitteilungFelder[],
   filter: Filter,
   meldungStatus: ReadonlyMap<string, string> = new Map(),
-  heute: string | null = null
+  heute: string | null = null,
+  schwelle: number = STANDARD_EINSTELLUNG.schwelle
 ): Tisch {
   const offen = sortiere(
     eintraege.filter(
@@ -158,8 +174,8 @@ export function tisch(
     heute
   )
   return {
-    vorschlaege: offen.filter((e) => e.vorschlag === true),
-    uebrige: offen.filter((e) => e.vorschlag !== true)
+    vorschlaege: offen.filter((e) => vorgeschlagen(e, schwelle)),
+    uebrige: offen.filter((e) => !vorgeschlagen(e, schwelle))
   }
 }
 
@@ -182,14 +198,15 @@ export function publizierbare<T extends { gemeindemitteilung: { id: string } | n
 /** The badge on the tab: the proposals, plus what is taken over and not finished. */
 export function anzahlOffen(
   eintraege: readonly GemeindemitteilungFelder[],
-  meldungStatus: ReadonlyMap<string, string> = new Map()
+  meldungStatus: ReadonlyMap<string, string> = new Map(),
+  schwelle: number = STANDARD_EINSTELLUNG.schwelle
 ): number {
   return eintraege.filter((e) => {
     if (!bleibtAufDemTisch(e, meldungStatus.get(e.id) ?? null)) return false
     // Eine Zeile der alten Veranstaltungsform zaehlt nicht mehr — sie liegt
     // auf dem Veranstaltungstisch, und der Lauf raeumt sie hier weg.
     if (terminVon(e) !== null && e.entscheid === 'offen') return false
-    return e.vorschlag === true || e.entscheid === 'uebernommen'
+    return vorgeschlagen(e, schwelle) || e.entscheid === 'uebernommen'
   }).length
 }
 

@@ -42,9 +42,14 @@ import {
 } from '../../redaktion/gemeindemeldungen'
 import {
   raeumeMitteilungenAuf,
+  gleicheSchwelleAb,
   sichteMitteilungen,
   type ZeileFuerSichtung
 } from '../../redaktion/gemeindeseitenlauf'
+import {
+  ladeTischeinstellung,
+  STANDARD_EINSTELLUNG
+} from '../../redaktion/tischeinstellungen'
 import {
   regelnBlock,
   SICHTUNGSREGELN_UEBERSCHRIFT
@@ -56,6 +61,7 @@ import {
   ladeBekannteSerien,
   raeumeAnlaesseAuf,
   schreibeAnlaesse,
+  gleicheAnlassSchwelleAb,
   sichteAnlaesse,
   sichtungsKandidat,
   verpassteAnmeldung,
@@ -205,6 +211,29 @@ export default defineOperationApi<Optionen>({
     const kontakt = optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch')
     const heute = heuteIso()
     const heuteObj = heuteAus(heute)
+
+    // The newsroom's dials, one row per desk (`tischeinstellungen`): the
+    // threshold a grade has to reach, and on the events desk the lead per
+    // grade. The Flow's `vorschlag` option is only the standard lead of
+    // grade 3 for a run before the row exists.
+    const tische = new ItemsService('tischeinstellungen', { schema })
+    const reglerLog = {
+      warn: (...args: unknown[]) => logger.warn(args[0], String(args[1] ?? ''))
+    }
+    const einstellungGemeinde = await ladeTischeinstellung(
+      tische,
+      'gemeinde',
+      reglerLog
+    )
+    const einstellungAnlass = await ladeTischeinstellung(
+      tische,
+      'veranstaltung',
+      reglerLog,
+      {
+        ...STANDARD_EINSTELLUNG,
+        vorlauf: { ...STANDARD_EINSTELLUNG.vorlauf, 3: vorschlagTage }
+      }
+    )
 
     const gemeindenService = new ItemsService('gemeinden', { schema })
     const mitteilungen = new ItemsService('gemeindemitteilungen', { schema })
@@ -570,7 +599,7 @@ export default defineOperationApi<Optionen>({
       // news to a Christmas market in November.
       const anlassKandidaten = kalenderArbeit.flatMap((k) =>
         k.geschrieben
-          .filter((g) => brauchtDetail(g, heute, vorschlagTage))
+          .filter((g) => brauchtDetail(g, heute, einstellungAnlass))
           .map((g) => {
             const termin =
               naechsterTermin(g.anlass.termine, heute) ?? g.anlass.von
@@ -763,7 +792,8 @@ export default defineOperationApi<Optionen>({
             sichtungsregeln,
             heute,
             logger,
-            model: optionen.model ?? null
+            model: optionen.model ?? null,
+            einstellung: einstellungGemeinde
           })
           ergebnis.vorschlaege += sichtung.vorschlaege
           ergebnis.weitergereicht += sichtung.weitergereicht
@@ -795,7 +825,8 @@ export default defineOperationApi<Optionen>({
               'zuletzt_vorgelegt_am',
               'dauerangebot',
               'frist_am',
-              'zugang'
+              'zugang',
+              'vorschlag_wert'
             ],
             limit: -1
           })) as Array<{
@@ -803,6 +834,7 @@ export default defineOperationApi<Optionen>({
             anker: Anker | null
             anker_am: string | null
             vorschlag: boolean | null
+            vorschlag_wert: number | null
             entscheid: string
             zuletzt_vorgelegt_am: string | null
             dauerangebot: 'intervall' | 'nie' | null
@@ -810,7 +842,7 @@ export default defineOperationApi<Optionen>({
             zugang: Zugang
           }>
           const kandidatenIds = offene
-            .filter((z) => sichtungsKandidat(z, heute, vorschlagTage))
+            .filter((z) => sichtungsKandidat(z, heute))
             .map((z) => z.id)
 
           // Eine verpasste Anmeldefrist macht den Hinweis unbrauchbar. Die
@@ -838,7 +870,8 @@ export default defineOperationApi<Optionen>({
           // first, the rest counted for the result.
           const dosis = dauerangeboteHeute(
             offene.filter((z) => z.anker === 'routine'),
-            heute
+            heute,
+            einstellungAnlass.dauerangebote_je_woche
           )
           ergebnis.dauerangeboteWarten += dosis.warten
           for (const id of dosis.vorgelegt) {
@@ -867,7 +900,8 @@ export default defineOperationApi<Optionen>({
             sichtungsregeln: anlassRegeln,
             heute,
             logger,
-            model: optionen.model ?? null
+            model: optionen.model ?? null,
+            einstellung: einstellungAnlass
           })
           ergebnis.anlaesseVorschlaege += sichtung.vorschlaege
           ergebnis.anlaesseWeitergereicht += sichtung.weitergereicht
@@ -933,6 +967,29 @@ export default defineOperationApi<Optionen>({
         ergebnis.fehler.push(`${gemeinde.name}: ${f}`)
       for (const h of eigeneHinweise)
         ergebnis.hinweise.push(`${gemeinde.name}: ${h}`)
+    }
+
+    // The dials, re-applied: a threshold the newsroom moved since the last
+    // run, and on the events desk the rows whose lead began today. No model
+    // call — the grade is stored, only its reading changes.
+    try {
+      const mitteilungenBewegt = await gleicheSchwelleAb(
+        mitteilungen,
+        einstellungGemeinde,
+        logger
+      )
+      const anlaesseBewegt = await gleicheAnlassSchwelleAb(
+        anlaesse,
+        heute,
+        einstellungAnlass,
+        logger
+      )
+      ergebnis.hinweise.push(
+        `Schwelle Gemeindeseiten ${einstellungGemeinde.schwelle}, Veranstaltungen ${einstellungAnlass.schwelle} (Vorlauf ${einstellungAnlass.vorlauf[4]}/${einstellungAnlass.vorlauf[3]}/${einstellungAnlass.vorlauf[2]} Tage): ${mitteilungenBewegt} Mitteilungen und ${anlaesseBewegt} Anlaesse neu eingeordnet.`
+      )
+    } catch (fehler) {
+      logger.warn(fehler, 'gemeindeseiten: Schwellen nicht angewandt.')
+      ergebnis.fehler.push(`Schwellen: ${fehlerText(fehler)}`)
     }
 
     // Jeder Vorschlag bekommt seinen Artikel — erst jetzt, wenn alle

@@ -4,6 +4,7 @@ import {
   ankerFarbe,
   ankerText,
   anzahlOffen,
+  vorgeschlagen,
   bleibtAufDemTisch,
   dringlichkeit,
   gemeindenOhneKalender,
@@ -339,5 +340,34 @@ describe('laufText', () => {
     expect(text).toContain('7 Vorschläge')
     expect(text).toContain('23 Dauerangebote warten')
     expect(text).toContain('1 Fehler')
+  })
+})
+
+// Seit dem 29. September 2026 benotet die Sichtung beim ersten Sehen, und der
+// Vorlauf haengt an der Stufe: das Dorffest kommt einen Monat vorher.
+describe('vorgeschlagen', () => {
+  it('rechnet Stufe, Schwelle und Vorlauf wie der Lauf — sofort', () => {
+    const dorffest = anlass({ id: 'fest', vorschlag: false, vorschlag_wert: 4, anker_am: '2026-10-15' })
+    const konzert = anlass({ id: 'konzert', vorschlag: false, vorschlag_wert: 3, anker_am: '2026-10-15' })
+    const jass = anlass({ id: 'jass', vorschlag: false, vorschlag_wert: 2, anker_am: '2026-09-23' })
+    expect(vorgeschlagen(dorffest, HEUTE)).toBe(true)
+    expect(vorgeschlagen(konzert, HEUTE)).toBe(false)
+    expect(vorgeschlagen(jass, HEUTE)).toBe(false)
+    expect(
+      vorgeschlagen(jass, HEUTE, { schwelle: 2, vorlauf: { 4: 30, 3: 10, 2: 5 }, dauerangebote_je_woche: 1 })
+    ).toBe(true)
+    expect(
+      tisch([dorffest, konzert, jass], OHNE_FILTER, new Map(), HEUTE).vorschlaege.map((e) => e.id)
+    ).toEqual(['fest'])
+  })
+
+  it('eine verpasste Anmeldefrist bleibt eine Herabstufung, eine Zeile ohne Stufe ihr Urteil', () => {
+    expect(
+      vorgeschlagen(
+        anlass({ vorschlag_wert: 4, anker_am: '2026-09-25', frist_am: '2026-09-10', zugang: 'programm' }),
+        HEUTE
+      )
+    ).toBe(false)
+    expect(vorgeschlagen(anlass({ vorschlag: true }), HEUTE)).toBe(true)
   })
 })
