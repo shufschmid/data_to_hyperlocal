@@ -511,13 +511,17 @@ describe('aufraeumAktion: Termine', () => {
     )
   })
 
-  it('laesst einen kommenden Termin in Ruhe, auch ausserhalb des Nachlauf-Fensters', () => {
-    expect(
-      aufraeumAktion(termin('2026-10-30', true), '2026-09-14', 4)
-    ).toBeNull()
-    expect(
-      aufraeumAktion(termin('2026-10-30', false), '2026-09-14', 4)
-    ).toBeNull()
+  // Seit dem 20. September 2026 traegt der Veranstaltungstisch die Anlaesse;
+  // eine Zeile der alten Form wartet auf nichts mehr und geht auch vor ihrem
+  // Tag — sonst stand ein Strick-Treff zwei Monate lang zwischen den
+  // Nachrichten (gemessen am 29. September 2026).
+  it('raeumt auch einen kommenden Termin der alten Form weg', () => {
+    expect(aufraeumAktion(termin('2026-10-30', true), '2026-09-14', 4)).toBe(
+      'verfallen'
+    )
+    expect(aufraeumAktion(termin('2026-10-30', false), '2026-09-14', 4)).toBe(
+      'loeschen'
+    )
   })
 
   it('raeumt einen vergangenen Termin auch innerhalb des Lauf-Fensters weg', () => {

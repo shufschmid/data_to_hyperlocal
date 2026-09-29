@@ -647,9 +647,11 @@ them is wrong even if it works.
    perishable, unlike a permit with a deadline. The Dorfkönig sees these
    articles as `rubrik: gemeinde` with `quelle_url` = the municipality's page
    (SCHNITTSTELLE.md). Rows carrying `veranstaltung_am` are the events of the
-   old shape, before 20.09.2026: they are still rendered and still decidable,
-   they simply stop arriving, and they lapse on their own day rather than by
-   age.
+   old shape, before 20.09.2026: nothing arrives here with a date any more,
+   and since 29 September 2026 the run retires them outright
+   (`aufraeumAktion`, mirrored by `abgelaufen`) — waiting for their own day
+   kept a Strick-Treff two months out between the news for nine days, while
+   the events desk had carried the same Anlass since the switch.
 
    „Veranstaltungen" is the TENTH feed and the FIFTH desk, and it is the only
    one whose unit is not a row of its source. **An Anlass is a SERIES, not a
@@ -995,8 +997,9 @@ them is wrong even if it works.
    were wrong as well and are fixed in the Flows: SMD mails at about 22:05
    every evening (measured 20.–27.09.), but „punkt6 holen" ran at 19:00, so a
    show reached the desk at 19:15 the NEXT day — the Flow is „punkt6 holen und
-   verarbeiten" now, at 21:10 (SMD moved its mail to 21:00 on 29 September
-   2026), fetching and processing in ONE chain like the
+   verarbeiten" now, at 22:10 — the mail does not arrive before 22:00; a
+   21:10 slot tried on 29 September 2026 was too early — fetching and
+   processing in ONE chain like the
    Regionaljournal's, with 06:10 as a safety; and a waiting dossier was
    retried once a day, so markers set an hour after the run waited a day —
    „punkt6 verarbeiten" retries at 12:45 and 18:45 besides the chain. The broadcast's

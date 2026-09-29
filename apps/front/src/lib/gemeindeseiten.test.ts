@@ -242,7 +242,10 @@ describe('Termine auf dem Tisch', () => {
     expect(vorbei(eintrag(), '2026-09-14')).toBe(false)
   })
 
-  it('der Tisch laesst einen vergangenen Termin nicht mehr stehen', () => {
+  // Seit dem 20. September 2026 liegen die Anlaesse auf dem
+  // Veranstaltungstisch; eine Zeile der alten Form steht hier nicht mehr,
+  // auch wenn ihr Tag noch kommt.
+  it('der Tisch laesst keinen Termin der alten Form mehr stehen', () => {
     const offen = tisch(
       [
         termin('gestern', '2026-09-13', { vorschlag: true }),
@@ -252,7 +255,8 @@ describe('Termine auf dem Tisch', () => {
       new Map(),
       '2026-09-14'
     )
-    expect(offen.vorschlaege.map((e) => e.id)).toEqual(['bald'])
+    expect(offen.vorschlaege).toEqual([])
+    expect(anzahlOffen([termin('bald', '2026-09-20', { vorschlag: true })])).toBe(0)
   })
 })
 

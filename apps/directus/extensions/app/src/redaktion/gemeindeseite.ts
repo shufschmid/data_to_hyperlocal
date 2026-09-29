@@ -352,14 +352,16 @@ export function aufraeumAktion(
 ): 'verfallen' | 'loeschen' | null {
   if (zeile.entscheid !== 'offen') return null
 
-  // A Termin retires on its own day, not by age — an event proposed yesterday
-  // for this morning is done, and no waiting period makes it news again. The
-  // run's look-back window does not protect it either, because the forward
-  // window can never fetch a past event back: the loop the floor guards
-  // against on the news side cannot happen here.
-  if (terminVorbei(zeile, heute))
+  // An events row is a row of the OLD shape: since 20 September 2026 the
+  // events desk carries every Anlass, and nothing arrives here with a date
+  // any more. Such a row waits for nothing — it is retired outright, on its
+  // day or before it, what was a proposal lapsing as memory and the rest
+  // going. Measured on 29 September 2026: a Strick-Treff two months out stood
+  // between the news for nine days because the old rule let it wait for its
+  // day. The run's look-back window does not protect it either — the forward
+  // window can never fetch such a row back.
+  if (typeof zeile.veranstaltung_am === 'string')
     return zeile.vorschlag === true ? 'verfallen' : 'loeschen'
-  if (typeof zeile.veranstaltung_am === 'string') return null
 
   const alter = alterInTagen(zeile.publiziert_am ?? zeile.date_created, heute)
   if (alter === null || alter < fensterTage) return null

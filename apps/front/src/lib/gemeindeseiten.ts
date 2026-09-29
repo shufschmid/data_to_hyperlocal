@@ -127,8 +127,9 @@ function alterInTagen(datum: string | null, heute: string): number | null {
  */
 export function abgelaufen(eintrag: GemeindemitteilungFelder, heute: string): boolean {
   if (eintrag.entscheid !== 'offen') return false
-  // Ein Termin verfaellt an seinem eigenen Tag, nicht mit dem Alter.
-  if (terminVon(eintrag) !== null) return vorbei(eintrag, heute)
+  // Ein Termin gehoert seit dem 20. September 2026 auf den Veranstaltungstisch;
+  // eine Zeile der alten Form ist hier vorbei, ob ihr Tag schon war oder nicht.
+  if (terminVon(eintrag) !== null) return true
   const alter = alterInTagen(eintrag.publiziert_am ?? eintrag.date_created, heute)
   if (alter === null) return false
   return eintrag.vorschlag === true ? alter >= VORSCHLAG_VERFALL_TAGE : alter >= AUFRAEUM_TAGE
@@ -185,6 +186,9 @@ export function anzahlOffen(
 ): number {
   return eintraege.filter((e) => {
     if (!bleibtAufDemTisch(e, meldungStatus.get(e.id) ?? null)) return false
+    // Eine Zeile der alten Veranstaltungsform zaehlt nicht mehr — sie liegt
+    // auf dem Veranstaltungstisch, und der Lauf raeumt sie hier weg.
+    if (terminVon(e) !== null && e.entscheid === 'offen') return false
     return e.vorschlag === true || e.entscheid === 'uebernommen'
   }).length
 }
