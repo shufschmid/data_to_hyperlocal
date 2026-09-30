@@ -152,6 +152,7 @@ export async function merkeWissenAus(
   try {
     const antwort = await completeJson<unknown>(
       {
+        zweck: 'lernen:wissen',
         system: WISSEN_SYSTEM_PROMPT,
         prompt: buildWissenPrompt(anweisung, bezug.titel, bezug.erlaubt),
         maxTokens: 600,
@@ -531,6 +532,7 @@ export function lerneAusEntscheid(
 
       const antwort = await completeJson<unknown>(
         {
+          zweck: 'lernen:entscheid',
           system: LERN_SYSTEM_PROMPT,
           prompt: buildLernPrompt(fall, block.text, gleichgerichtete),
           maxTokens: 700,

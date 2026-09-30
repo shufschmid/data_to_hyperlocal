@@ -7,7 +7,8 @@ import {
   processPunkt6Dossier,
   type ItemsServiceLike,
   type ProcessPunkt6DossierDeps,
-  type Punkt6Logger
+  type Punkt6Logger,
+  markenSignatur
 } from './process-punkt6-dossier'
 import { parsePunkt6Dossier, type Punkt6Segment } from './pdf-parser'
 import {
@@ -114,6 +115,7 @@ async function buildDeps(overrides: Partial<ProcessPunkt6DossierDeps> = {}) {
       source_subject: 'punkt6',
       error_message: null,
       processed_at: null,
+      marken_signatur: null,
       date_created: null,
       date_updated: null
     }
@@ -240,6 +242,9 @@ describe('processPunkt6Dossier', () => {
     expect(result.grund).toBe('passt_nicht')
     expect(dossiers.all()[0]!.status).toBe('pending')
     expect(dossiers.all()[0]!.error_message).toContain('passen nicht')
+    // The judged markers are fingerprinted, so the next run does not buy the
+    // same verdict again (30.09.2026: up to twelve lead calls over three days).
+    expect(dossiers.all()[0]!.marken_signatur).toBe(markenSignatur(EPISODE))
 
     const edition = editions.all()[0]!
     expect(edition.headline).toBe(SEGMENT.headline)
@@ -505,5 +510,37 @@ describe('processPunkt6Dossier (real PDF + real telebasel.ch fixtures)', () => {
     )!
     expect(kunsttage.startSeconds).toBe(606)
     expect(kunsttage.endSeconds).toBe(816)
+  })
+})
+
+describe('markers already judged not to fit', () => {
+  it('skips the lead call while the markers are unchanged, and keeps waiting', async () => {
+    const sendToClaude = vi.fn()
+    const { deps, dossiers } = await buildDeps({
+      sendToClaude,
+      heute: '2026-08-26'
+    })
+    await dossiers.service.updateOne('dossier-1', {
+      marken_signatur: markenSignatur(EPISODE)
+    })
+
+    const result = await processPunkt6Dossier('dossier-1', deps)
+
+    expect(sendToClaude).not.toHaveBeenCalled()
+    expect(result.status).toBe('wartet')
+    expect(result.grund).toBe('passt_nicht')
+    expect(dossiers.all()[0]!.marken_signatur).toBe(markenSignatur(EPISODE))
+  })
+
+  it('the fingerprint changes with any marker', () => {
+    const a = markenSignatur(EPISODE)
+    const andere = {
+      ...EPISODE,
+      segments: EPISODE.segments.map((s, i) =>
+        i === 0 ? { ...s, endSeconds: s.endSeconds + 1 } : s
+      )
+    }
+    expect(markenSignatur(andere)).not.toBe(a)
+    expect(markenSignatur(EPISODE)).toBe(a)
   })
 })

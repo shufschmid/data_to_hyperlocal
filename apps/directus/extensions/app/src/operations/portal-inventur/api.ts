@@ -327,6 +327,7 @@ export default defineOperationApi<Options>({
           }
 
           const antwort = await completeJson<unknown>({
+            zweck: 'statistik:portal-inventur',
             system,
             prompt: buildAbdeckungPrompt({
               pfad: seite.pfad,

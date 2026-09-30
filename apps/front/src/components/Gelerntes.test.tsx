@@ -152,3 +152,73 @@ describe('Gelerntes: die Regler der Tische', () => {
     expect(screen.queryByText(/Tische — wie viel/)).not.toBeInTheDocument()
   })
 })
+
+// Die Kosten: was die Modellaufrufe kosteten, je Tisch, und was fuer nichts
+// bezahlt wurde. Tokens, keine Franken.
+describe('Gelerntes — Kosten', () => {
+  it('zeigt je Tisch Aufrufe und Tokens und nennt Verluste rot', async () => {
+    const summe = { cache_gelesen_tokens: 0, cache_geschrieben_tokens: 0, abgebrochen: 0, fehler: 0 }
+    const onVerbrauchTage = jest.fn()
+    render(
+      <Gelerntes
+        regeln={[]}
+        {...NICHTS}
+        verbrauch={{
+          tage: 7,
+          gesamt: { ...summe, aufrufe: 12, eingabe_tokens: 150_000, ausgabe_tokens: 32_000, abgebrochen: 3 },
+          tische: [
+            {
+              tisch: 'veranstaltungen',
+              ...summe,
+              aufrufe: 9,
+              eingabe_tokens: 120_000,
+              ausgabe_tokens: 24_000,
+              abgebrochen: 3,
+              modelle: [
+                {
+                  modell: 'claude-sonnet-5',
+                  ...summe,
+                  aufrufe: 9,
+                  eingabe_tokens: 120_000,
+                  ausgabe_tokens: 24_000,
+                  abgebrochen: 3
+                }
+              ],
+              zwecke: [
+                {
+                  zweck: 'veranstaltungen:sichtung',
+                  ...summe,
+                  aufrufe: 9,
+                  eingabe_tokens: 120_000,
+                  ausgabe_tokens: 24_000,
+                  abgebrochen: 3
+                }
+              ]
+            },
+            {
+              tisch: 'lernen',
+              ...summe,
+              aufrufe: 3,
+              eingabe_tokens: 30_000,
+              ausgabe_tokens: 8_000,
+              modelle: [],
+              zwecke: []
+            }
+          ]
+        }}
+        onVerbrauchTage={onVerbrauchTage}
+      />
+    )
+    expect(screen.getByText(/Kosten — was die Modellaufrufe der letzten 7 Tage/)).toBeInTheDocument()
+    expect(screen.getByText('Veranstaltungen')).toBeInTheDocument()
+    expect(screen.getByText('Lernschicht')).toBeInTheDocument()
+    expect(screen.getByText('3 abgebrochen')).toBeInTheDocument()
+    expect(screen.getAllByText('24,0 k').length).toBeGreaterThan(0)
+
+    await userEvent.click(screen.getByText('Veranstaltungen'))
+    expect(screen.getByText('veranstaltungen:sichtung')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: '30 Tage' }))
+    expect(onVerbrauchTage).toHaveBeenCalledWith(30)
+  })
+})

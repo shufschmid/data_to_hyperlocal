@@ -155,6 +155,7 @@ export async function schreibeAbstimmungsmeldung(
 ): Promise<Meldungsentwurf> {
   let bericht = parseAbstimmungsmeldung(
     await completeJson<unknown>({
+      zweck: 'abstimmungen:meldung',
       system: ABSTIMMUNGS_SYSTEM_PROMPT,
       prompt,
       maxTokens: 1500
@@ -167,6 +168,7 @@ export async function schreibeAbstimmungsmeldung(
   if (attribution !== null) {
     bericht = parseAbstimmungsmeldung(
       await completeJson<unknown>({
+        zweck: 'abstimmungen:meldung:nachfassen',
         system: ABSTIMMUNGS_SYSTEM_PROMPT,
         prompt: buildAbstimmungsRevision(
           fakten,

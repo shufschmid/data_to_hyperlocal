@@ -128,7 +128,8 @@ export async function kantonMeldungMitChecks(
 ): Promise<GeschriebeneKantonMeldung> {
   let antwort = await schreibeEinmalMitNachfassen(
     prompt,
-    KANTON_MELDUNG_SYSTEM_PROMPT
+    KANTON_MELDUNG_SYSTEM_PROMPT,
+    'kanton:meldung'
   )
   let bericht = parseKantonMeldung(antwort)
 
@@ -138,6 +139,7 @@ export async function kantonMeldungMitChecks(
   )
   if (attribution !== null) {
     antwort = await completeJson<unknown>({
+      zweck: 'kanton:meldung:nachfassen',
       system: KANTON_MELDUNG_SYSTEM_PROMPT,
       prompt: buildKantonRevision(fakten, bericht, attributionsSatz(fakten)),
       maxTokens: 1500

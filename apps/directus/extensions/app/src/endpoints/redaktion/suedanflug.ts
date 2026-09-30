@@ -146,6 +146,7 @@ export async function schreibeSuedanflugmeldung(
 ): Promise<Meldungsentwurf> {
   let bericht = parseSuedanflugmeldung(
     await completeJson<unknown>({
+      zweck: 'suedanflug:meldung',
       system: SUEDANFLUG_SYSTEM_PROMPT,
       prompt,
       maxTokens: 1500
@@ -159,6 +160,7 @@ export async function schreibeSuedanflugmeldung(
   if (attribution !== null) {
     bericht = parseSuedanflugmeldung(
       await completeJson<unknown>({
+        zweck: 'suedanflug:meldung:nachfassen',
         system: SUEDANFLUG_SYSTEM_PROMPT,
         prompt: buildSuedanflugRevision(
           fakten,

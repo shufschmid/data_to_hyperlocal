@@ -3,7 +3,8 @@ import {
   zweiteTuerSeit
 } from '../../shared/crawler/fallback'
 import { defineOperationApi } from '@directus/extensions-sdk'
-import { completeJson } from '../../shared/claude'
+import { cacheableSystem, completeJson } from '../../shared/claude'
+import { pakete, SICHTUNG_AUFRUF } from '../../redaktion/sichtungspakete'
 import { optionalEnv } from '../../shared/env'
 import {
   fetchPublikationen,
@@ -90,6 +91,8 @@ interface Optionen {
   /** How many days back a run looks, on top of the last successful check. */
   nachlauf?: number
   model?: string | null
+  /** The model of the triage alone — the Haiku trial since 30.09.2026; null means `model`, then the house default. */
+  sichtungsmodell?: string | null
 }
 
 interface Ergebnis {
@@ -520,43 +523,60 @@ export default defineOperationApi<Optionen>({
 
         const zeilen: TriageZeile[] = angelegt.map(({ zeile }) => zeile)
         const weiterzureichen = new Map<string, { id: string; regel: string }>()
+        const digest = lernDigest(
+          signale.entscheide,
+          LERN_FENSTER,
+          signale.rahmen
+        )
 
-        try {
-          const antwort = await completeJson<unknown>({
-            system: TRIAGE_SYSTEM_PROMPT,
-            prompt: buildTriagePrompt(
-              gemeinde.name,
-              zeilen,
-              lernDigest(signale.entscheide, LERN_FENSTER, signale.rahmen),
-              sichtungsregeln.text
-            ),
-            maxTokens: 4096,
-            model: optionen.model ?? undefined,
-            schema: TRIAGE_SCHEMA
-          })
-
-          for (const urteil of parseTriage(antwort, zeilen)) {
-            await meldungen.updateOne(urteil.id, {
-              vorschlag: urteil.vorschlag,
-              vorschlag_begruendung: urteil.begruendung
+        // In packets, thinking off, prefix cached (`sichtungspakete.ts`).
+        // The triage is the house's most mechanical sort — title lines — and
+        // since 30.09.2026 the one desk trying Haiku 4.5 for it
+        // (`sichtungsmodell`, a Flow option; compare the desk's Bilanz).
+        const sichtungsmodell =
+          optionen.sichtungsmodell ?? optionen.model ?? undefined
+        for (const paket of pakete(zeilen)) {
+          try {
+            const antwort = await completeJson<unknown>({
+              zweck: 'amtsblatt:sichtung',
+              system: cacheableSystem(TRIAGE_SYSTEM_PROMPT),
+              prompt: buildTriagePrompt(
+                gemeinde.name,
+                paket,
+                digest,
+                sichtungsregeln.text
+              ),
+              ...SICHTUNG_AUFRUF,
+              model: sichtungsmodell,
+              schema: TRIAGE_SCHEMA
             })
-            if (urteil.vorschlag) ergebnis.vorschlaege += 1
-            // Remembered, acted on AFTER the plans were read below — the lead
-            // should carry the facts, not just the title.
-            const regel = urteil.vorschlag
-              ? automatischeWeitergabe(
-                  urteil,
-                  sichtungsregeln.nummern,
-                  regelzeilen
-                )
-              : null
-            if (regel !== null) weiterzureichen.set(urteil.id, regel)
+
+            for (const urteil of parseTriage(antwort, paket)) {
+              await meldungen.updateOne(urteil.id, {
+                vorschlag: urteil.vorschlag,
+                vorschlag_begruendung: urteil.begruendung
+              })
+              if (urteil.vorschlag) ergebnis.vorschlaege += 1
+              // Remembered, acted on AFTER the plans were read below — the lead
+              // should carry the facts, not just the title.
+              const regel = urteil.vorschlag
+                ? automatischeWeitergabe(
+                    urteil,
+                    sichtungsregeln.nummern,
+                    regelzeilen
+                  )
+                : null
+              if (regel !== null) weiterzureichen.set(urteil.id, regel)
+            }
+          } catch (fehler) {
+            // The rows are already on the desk; only the recommendation is
+            // missing, and `vorschlag: null` reads as "not judged", not "no".
+            logger.warn(
+              fehler,
+              `Sichtung fuer ${gemeinde.name} fehlgeschlagen.`
+            )
+            ergebnis.fehler.push(`${gemeinde.name}: Sichtung fehlgeschlagen.`)
           }
-        } catch (fehler) {
-          // The rows are already on the desk; only the recommendation is
-          // missing, and `vorschlag: null` reads as "not judged", not "no".
-          logger.warn(fehler, `Sichtung fuer ${gemeinde.name} fehlgeschlagen.`)
-          ergebnis.fehler.push(`${gemeinde.name}: Sichtung fehlgeschlagen.`)
         }
 
         // --- What the triage proposed: fetch the facts, look at the plans

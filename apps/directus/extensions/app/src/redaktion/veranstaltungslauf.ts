@@ -15,7 +15,12 @@ import {
   STANDARD_EINSTELLUNG,
   type Tischeinstellung
 } from './tischeinstellungen'
-import { completeJson, type MessageSender } from '../shared/claude'
+import {
+  cacheableSystem,
+  completeJson,
+  type MessageSender
+} from '../shared/claude'
+import { pakete, SICHTUNG_AUFRUF, sichtungsFehlerText } from './sichtungspakete'
 import { kappe, TEXT_MAX_ZEICHEN, type Heute } from '../shared/gemeindeseite'
 import {
   berechneAnker,
@@ -933,60 +938,69 @@ export async function sichteAnlaesse(
 
   const weiterzureichen = new Map<string, NummerierteRegel>()
   let vorschlaege = 0
-  let sichtungsFehler: string | null = null
-  try {
-    const antwort = await completeJson<unknown>(
-      {
-        system: SICHTUNG_SYSTEM_PROMPT,
-        prompt: buildSichtungPrompt(
-          gemeinde.name,
-          anlaesse,
-          lernDigest(signale.entscheide, LERN_FENSTER, signale.rahmen),
-          kontext.sichtungsregeln.text,
-          newsKontext
-        ),
-        // The same room the news Sichtung needed: a truncated answer costs
-        // the whole municipality its judgement.
-        maxTokens: 8000,
-        ...(kontext.model == null ? {} : { model: kontext.model }),
-        schema: STUFEN_SCHEMA
-      },
-      kontext.send
-    )
-    const einstellung = kontext.einstellung ?? STANDARD_EINSTELLUNG
-    const ankerVon = new Map(zeilen.map((z) => [z.id, z.anker_am]))
-    for (const urteil of parseStufenSichtung(antwort, anlaesse)) {
-      // The grade is the model's; whether it is a proposal TODAY is the
-      // newsroom's threshold and the grade's lead — code, re-applied by
-      // every run, so a Dorffest graded 4 waits until its month begins.
-      const vorschlag = anlassVorschlag(
+  const einstellung = kontext.einstellung ?? STANDARD_EINSTELLUNG
+  const ankerVon = new Map(zeilen.map((z) => [z.id, z.anker_am]))
+  const digest = lernDigest(signale.entscheide, LERN_FENSTER, signale.rahmen)
+  // In packets (`sichtungspakete.ts`): a failed packet costs its own rows,
+  // never the municipality's whole judgement, and the numbering the parser
+  // reads is the packet's own.
+  const alle = pakete(anlaesse)
+  const fehlerPakete: string[] = []
+  for (const paket of alle) {
+    try {
+      const antwort = await completeJson<unknown>(
         {
-          vorschlag_wert: urteil.stufe,
-          anker_am: ankerVon.get(urteil.id) ?? null
+          zweck: 'veranstaltungen:sichtung',
+          system: cacheableSystem(SICHTUNG_SYSTEM_PROMPT),
+          prompt: buildSichtungPrompt(
+            gemeinde.name,
+            paket,
+            digest,
+            kontext.sichtungsregeln.text,
+            newsKontext
+          ),
+          ...SICHTUNG_AUFRUF,
+          ...(kontext.model == null ? {} : { model: kontext.model }),
+          schema: STUFEN_SCHEMA
         },
-        kontext.heute,
-        einstellung
+        kontext.send
       )
-      await kontext.anlaesse.updateOne(urteil.id, {
-        vorschlag,
-        vorschlag_wert: urteil.stufe,
-        vorschlag_begruendung: urteil.begruendung
-      })
-      if (vorschlag) vorschlaege += 1
-      const regel = automatischeWeitergabe(
-        urteil,
-        kontext.sichtungsregeln.nummern,
-        kontext.regelzeilen
+      for (const urteil of parseStufenSichtung(antwort, paket)) {
+        // The grade is the model's; whether it is a proposal TODAY is the
+        // newsroom's threshold and the grade's lead — code, re-applied by
+        // every run, so a Dorffest graded 4 waits until its month begins.
+        const vorschlag = anlassVorschlag(
+          {
+            vorschlag_wert: urteil.stufe,
+            anker_am: ankerVon.get(urteil.id) ?? null
+          },
+          kontext.heute,
+          einstellung
+        )
+        await kontext.anlaesse.updateOne(urteil.id, {
+          vorschlag,
+          vorschlag_wert: urteil.stufe,
+          vorschlag_begruendung: urteil.begruendung
+        })
+        if (vorschlag) vorschlaege += 1
+        const regel = automatischeWeitergabe(
+          urteil,
+          kontext.sichtungsregeln.nummern,
+          kontext.regelzeilen
+        )
+        if (regel !== null) weiterzureichen.set(urteil.id, regel)
+      }
+    } catch (fehler) {
+      kontext.logger.warn(
+        fehler,
+        `veranstaltungen: Sichtung fuer ${gemeinde.name} fehlgeschlagen.`
       )
-      if (regel !== null) weiterzureichen.set(urteil.id, regel)
+      fehlerPakete.push(
+        fehler instanceof Error ? fehler.message : String(fehler)
+      )
     }
-  } catch (fehler) {
-    kontext.logger.warn(
-      fehler,
-      `veranstaltungen: Sichtung fuer ${gemeinde.name} fehlgeschlagen.`
-    )
-    sichtungsFehler = fehler instanceof Error ? fehler.message : String(fehler)
   }
+  const sichtungsFehler = sichtungsFehlerText(fehlerPakete, alle.length)
 
   let weitergereicht = 0
   for (const [zeileId, regel] of weiterzureichen) {

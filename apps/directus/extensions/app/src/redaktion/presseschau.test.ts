@@ -5,6 +5,8 @@ import {
   blattNamen,
   brauchtTextTransport,
   buildInventarMessages,
+  seitenAuswahl,
+  seitenRubrik,
   buildPresseschauPrompt,
   buildPresseschauRevision,
   formulierbare,
@@ -303,14 +305,14 @@ describe('lernDigest', () => {
     if (!Array.isArray(inhalt)) throw new Error('Content fehlt')
     expect(inhalt.every((b) => b.type === 'text')).toBe(true)
     const ausgabe = inhalt[0] && 'text' in inhalt[0] ? inhalt[0].text : ''
-    expect(ausgabe).toContain('nur der Textlayer')
+    expect(ausgabe).toContain('liegt der Textlayer vor')
     expect(ausgabe).toContain('--- Seite 1 ---\nARLESHEIM Musik unter Sternen')
     expect(ausgabe).toContain('--- Seite 2 ---\nREINACH Rundgang')
   })
 
   it('entscheidet den Transport an der Byte-Grenze, nie das Modell', () => {
-    expect(brauchtTextTransport(12 * 1024 * 1024)).toBe(false)
-    expect(brauchtTextTransport(INVENTAR_PDF_MAX_BYTES)).toBe(false)
+    expect(brauchtTextTransport(12 * 1024 * 1024)).toBe(true)
+    expect(brauchtTextTransport(INVENTAR_PDF_MAX_BYTES)).toBe(true)
     // Die Nr. 35 des Wochenblatts fuer das Birseck: 33.8 MB Original.
     expect(brauchtTextTransport(34 * 1024 * 1024)).toBe(true)
   })
@@ -889,5 +891,70 @@ describe('blattNamen', () => {
         nummer: '39'
       })
     ).toBeNull()
+  })
+})
+
+// Seit 30.09.2026 reist jede Ausgabe als Textlayer, und Seiten mit dem
+// Rubrik-Kopf einer fremden Gemeinde bleiben zu Hause — deklariert, nie
+// still. Die Titelseite reist immer.
+describe('Transport und Seitenauswahl des Inventars', () => {
+  const ALLE = ['Arlesheim', 'Münchenstein', 'Therwil', 'Ettingen', 'Reinach']
+
+  it('der Textlayer ist der Transport, unabhaengig von der Groesse', () => {
+    expect(brauchtTextTransport(1)).toBe(true)
+    expect(brauchtTextTransport(30 * 1024 * 1024)).toBe(true)
+  })
+
+  it('liest den Rubrik-Kopf in Versalien, auch mit Umlaut, sonst nichts', () => {
+    expect(seitenRubrik('ARLESHEIM  Seite 3\nDer Gemeinderat…', ALLE)).toBe(
+      'Arlesheim'
+    )
+    expect(seitenRubrik('MÜNCHENSTEIN 5\nText', ALLE)).toBe('Münchenstein')
+    expect(seitenRubrik('Arlesheim feiert\nText', ALLE)).toBeNull()
+    expect(seitenRubrik('REGION\nText über Therwil', ALLE)).toBeNull()
+    expect(seitenRubrik('SPORT\nFC Reinach gewinnt', ALLE)).toBeNull()
+  })
+
+  it('laesst fremde Rubriken aus, behaelt eigene, unbekannte und die Titelseite', () => {
+    const seiten = [
+      'THERWIL  Titelseite\nAufmacher',
+      'ARLESHEIM 2\nGemeinderat',
+      'THERWIL 3\nVereine',
+      'ETTINGEN 4\nJubilaeum',
+      'REGION 5\nBirseck',
+      'MÜNCHENSTEIN 6\nKuspo'
+    ]
+    expect(seitenAuswahl(seiten, ['Arlesheim', 'Münchenstein'], ALLE)).toEqual([
+      { seite: 3, rubrik: 'Therwil' },
+      { seite: 4, rubrik: 'Ettingen' }
+    ])
+  })
+
+  it('der Prompt nennt jede ausgelassene Seite mit ihrer Rubrik und behaelt die Nummerierung', () => {
+    const messages = buildInventarMessages(
+      {
+        art: 'seitentexte',
+        seitenTexte: ['Titel', 'Arlesheim-Text', 'Therwil-Text'],
+        ausgelassen: [{ seite: 3, rubrik: 'Therwil' }]
+      },
+      {
+        name: 'Wochenblatt',
+        gemeinden: ['Arlesheim'],
+        nummer: '40',
+        datum: '2026-10-01'
+      },
+      ''
+    )
+    const text = (
+      messages[0]?.content as Array<{ type: string; text?: string }>
+    )
+      .map((b) => b.text ?? '')
+      .join('\n')
+    expect(text).toContain('--- Seite 2 ---\nArlesheim-Text')
+    expect(text).toContain(
+      '--- Seite 3: Rubrik Therwil, nicht bespielte Gemeinde — nicht mitgegeben ---'
+    )
+    expect(text).not.toContain('Therwil-Text')
+    expect(text).toContain('1 Seiten mit dem Rubrik-Kopf')
   })
 })

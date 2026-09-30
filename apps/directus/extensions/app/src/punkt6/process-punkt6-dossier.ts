@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { completeJson, type MessageSender } from '../shared/claude'
 import { punkt6EditionFields, type ResolvedBeitrag } from './edition-fields'
 import { parsePunkt6Dossier, type Punkt6Segment } from './pdf-parser'
@@ -73,6 +74,26 @@ export interface ProcessPunkt6DossierDeps {
  * but a different cut — the desk says which.
  */
 export type WarteGrund = 'keine_marken' | 'passt_nicht'
+
+/**
+ * What the markers of an episode look like as one string — the fingerprint
+ * stored on the dossier after a `passt_nicht` verdict. A cut that did not fit
+ * the transcript will not fit until telebasel.ch changes the markers, so the
+ * lead call (the one model call of the waiting loop, up to twelve times over
+ * three days before 30.09.2026) is repeated only when this changes.
+ */
+export function markenSignatur(episode: TelebaselEpisode): string {
+  return createHash('sha1')
+    .update(
+      [
+        episode.id,
+        ...episode.segments.map(
+          (s) => `${s.startSeconds}-${s.endSeconds}:${s.name}`
+        )
+      ].join('|')
+    )
+    .digest('hex')
+}
 
 export interface ProcessPunkt6DossierResult {
   dossierId: string
@@ -157,6 +178,7 @@ async function buildLeads(
   try {
     const answer = await completeJson<unknown>(
       {
+        zweck: 'punkt6:leads',
         system: SUMMARY_SYSTEM_PROMPT,
         prompt: buildSummaryPrompt(summaryInputs),
         maxTokens: 4096
@@ -180,7 +202,9 @@ async function buildLeads(
 async function resolveBeitraege(
   segment: Punkt6Segment,
   episode: TelebaselEpisode | null,
-  deps: ProcessPunkt6DossierDeps
+  deps: ProcessPunkt6DossierDeps,
+  /** The markers already judged `passt_nicht` on this dossier, or null. */
+  bekannteSignatur: string | null = null
 ): Promise<{
   main: ResolvedBeitrag
   extras: ResolvedBeitrag[]
@@ -207,6 +231,17 @@ async function resolveBeitraege(
     ? sliceTranscriptBySegments(segment.paragraphs, episode.segments)
     : []
   if (slices.length === 0) return unsegmentiert
+
+  // The same markers as last time were judged a different cut already: no
+  // second verdict is bought for them. The wait goes on (they may still
+  // change), at the price of two GETs and no model call.
+  if (episode !== null && bekannteSignatur === markenSignatur(episode)) {
+    deps.logger.warn(
+      { signatur: bekannteSignatur },
+      'process-punkt6-dossier: markers unchanged since they were judged not to fit - lead call skipped'
+    )
+    return { ...unsegmentiert, grund: 'passt_nicht' }
+  }
 
   const leads = await buildLeads(slices, deps)
 
@@ -354,7 +389,7 @@ export async function processPunkt6Dossier(
   // untouched - the endpoint maps it to 403 the same way dossier-process does,
   // the operation's per-dossier loop catches and logs it like any other item.
   const dossier = await deps.dossiers.readOne(dossierId, {
-    fields: ['id', 'source_file']
+    fields: ['id', 'source_file', 'marken_signatur']
   })
   await deps.dossiers.updateOne(dossierId, { status: 'processing' })
 
@@ -375,7 +410,8 @@ export async function processPunkt6Dossier(
     const { main, extras, brauchbar, grund } = await resolveBeitraege(
       segment,
       episode,
-      deps
+      deps,
+      dossier.marken_signatur ?? null
     )
 
     const fields = punkt6EditionFields(
@@ -404,9 +440,15 @@ export async function processPunkt6Dossier(
       await deps.dossiers.updateOne(dossierId, {
         status: 'pending',
         processed_at: new Date().toISOString(),
+        // The judged markers' fingerprint: the next run asks the model again
+        // only when telebasel.ch changed them.
+        marken_signatur:
+          grund === 'passt_nicht' && episode !== null
+            ? markenSignatur(episode)
+            : null,
         error_message:
           grund === 'passt_nicht'
-            ? 'Die Beitragsmarken von telebasel.ch passen nicht zu diesem Transkript (anderer Schnitt als die Sendung) — wird bei jedem Lauf erneut versucht.'
+            ? 'Die Beitragsmarken von telebasel.ch passen nicht zu diesem Transkript (anderer Schnitt als die Sendung) — wird erneut versucht, sobald telebasel.ch die Marken aendert.'
             : 'telebasel.ch hat zu dieser Sendung noch keine Beitragsmarken publiziert — wird bei jedem Lauf erneut versucht.'
       })
       return {
@@ -420,6 +462,7 @@ export async function processPunkt6Dossier(
     await deps.dossiers.updateOne(dossierId, {
       status: 'processed',
       processed_at: new Date().toISOString(),
+      marken_signatur: null,
       error_message: null
     })
     return { dossierId, status: 'processed', editionId }

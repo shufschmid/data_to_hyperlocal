@@ -454,19 +454,88 @@ export function lernDigest(
  * How the issue reaches the inventory call: as the PDF itself, or — when the
  * file outgrows an API request — as its text layer, page by page.
  */
+/** A page left out of the inventory's input, and why — declared in the prompt, never silent. */
+export interface AusgelasseneSeite {
+  seite: number
+  rubrik: string
+}
+
 export type InventarQuelle =
   | { art: 'pdf'; base64: string }
-  | { art: 'seitentexte'; seitenTexte: readonly string[] }
+  | {
+      art: 'seitentexte'
+      seitenTexte: readonly string[]
+      /** Pages whose rubric names a municipality the newsroom does not cover — see `seitenAuswahl`. */
+      ausgelassen?: readonly AusgelasseneSeite[]
+    }
 
 /**
- * Past this, the PDF stays home and the text layer travels: the API takes 32
- * MB per request, base64 inflates by a third, and issuu originals measure up
- * to 34 MB. Code decides the transport — never the model, never a retry.
+ * Past this, the PDF cannot travel at all: the API takes 32 MB per request,
+ * base64 inflates by a third, and issuu originals measure up to 34 MB.
  */
 export const INVENTAR_PDF_MAX_BYTES = 20 * 1024 * 1024
 
-export function brauchtTextTransport(pdfBytes: number): boolean {
-  return pdfBytes > INVENTAR_PDF_MAX_BYTES
+/**
+ * Since 30 September 2026 EVERY issue travels as its text layer, whatever
+ * its size. The PDF as a document block was the house's single most
+ * expensive call — Opus over every page as image and text — and the text
+ * transport, measured on the issues past 20 MB since 20.09.2026, kept the
+ * municipality assignment (the un-spaced rubric headers) and the candidates.
+ * What it loses is the pictures; a photo report is recognised by its
+ * captions, and the prompt says so. Code decides the transport — never the
+ * model, never a retry — and the byte limit above stays as the reason the
+ * PDF path cannot simply come back for large issues.
+ */
+export function brauchtTextTransport(_pdfBytes: number): boolean {
+  return true
+}
+
+/**
+ * The rubric head of a page — the municipality name in capitals at the top,
+ * as the paper prints it ("ARLESHEIM", "MÜNCHENSTEIN"), read against the
+ * names it could be. Null where the page carries none (the front page,
+ * "REGION", "SPORT") or one that is no municipality we know.
+ */
+export function seitenRubrik(
+  seitenText: string,
+  gemeindeNamen: readonly string[]
+): string | null {
+  const kopf = seitenText.normalize('NFC').slice(0, 240)
+  const namen = new Map(
+    gemeindeNamen.map((n) => [n.normalize('NFC').toLowerCase(), n])
+  )
+  for (const wort of kopf.split(/[^\p{L}-]+/u)) {
+    if (wort.length < 4 || wort !== wort.toUpperCase()) continue
+    const name = namen.get(wort.toLowerCase())
+    if (name !== undefined) return name
+  }
+  return null
+}
+
+/**
+ * Which pages the inventory is given. A page whose rubric head names a
+ * municipality the newsroom does NOT cover is left out — the paper's
+ * neighbour pages are half the issue and none of it can become a candidate
+ * (`parseInventar` refuses a foreign municipality anyway). The front page
+ * always travels; a page without a recognisable rubric travels too, because
+ * silence is not a foreign rubric. What is left out is DECLARED in the
+ * prompt, page by page, and the numbering stays the issue's own.
+ */
+export function seitenAuswahl(
+  seitenTexte: readonly string[],
+  bespielt: readonly string[],
+  alleGemeinden: readonly string[]
+): AusgelasseneSeite[] {
+  const eigene = new Set(bespielt.map((n) => n.normalize('NFC').toLowerCase()))
+  const ausgelassen: AusgelasseneSeite[] = []
+  seitenTexte.forEach((text, i) => {
+    if (i === 0) return
+    const rubrik = seitenRubrik(text, alleGemeinden)
+    if (rubrik === null || eigene.has(rubrik.normalize('NFC').toLowerCase()))
+      return
+    ausgelassen.push({ seite: i + 1, rubrik })
+  })
+  return ausgelassen
 }
 
 /**
@@ -508,13 +577,22 @@ export function buildInventarMessages(
       : {
           type: 'text',
           text: [
-            'Von dieser Ausgabe liegt nur der Textlayer vor (das PDF ist zu',
-            'gross fuer die Anfrage) — keine Bilder. Fotoberichte erkennst du',
-            'an Bildlegenden und Fototexten.',
+            'Von dieser Ausgabe liegt der Textlayer vor — keine Bilder.',
+            'Fotoberichte erkennst du an Bildlegenden und Fototexten.',
+            ...((quelle.ausgelassen ?? []).length === 0
+              ? []
+              : [
+                  `${(quelle.ausgelassen ?? []).length} Seiten mit dem Rubrik-Kopf einer nicht bespielten Gemeinde sind nicht mitgegeben; sie stehen unten als Luecke mit ihrer Rubrik.`
+                ]),
             '',
-            ...quelle.seitenTexte.map(
-              (text, i) => `--- Seite ${i + 1} ---\n${text}`
-            )
+            ...quelle.seitenTexte.map((text, i) => {
+              const weg = (quelle.ausgelassen ?? []).find(
+                (a) => a.seite === i + 1
+              )
+              return weg === undefined
+                ? `--- Seite ${i + 1} ---\n${text}`
+                : `--- Seite ${i + 1}: Rubrik ${weg.rubrik}, nicht bespielte Gemeinde — nicht mitgegeben ---`
+            })
           ].join('\n')
         }
 

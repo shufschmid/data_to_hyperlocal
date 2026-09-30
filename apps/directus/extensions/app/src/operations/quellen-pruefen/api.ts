@@ -1033,6 +1033,7 @@ export default defineOperationApi<Options>({
 
         try {
           const antwort = await completeJson<unknown>({
+            zweck: 'statistik:bewertung',
             system: RELEVANZ_SYSTEM_PROMPT,
             prompt: buildRelevanzPrompt(alsDataset, municipality),
             maxTokens: 700,
@@ -1553,6 +1554,7 @@ export default defineOperationApi<Options>({
             // them get the announcement, so the timeline shows the topic once
             // instead of the same thing three times.
             const antwort = await completeJson<unknown>({
+              zweck: 'statistik:agenda-zuordnung',
               system,
               prompt: buildArtikelZuordnungPrompt({
                 titel: eintrag.titel,
@@ -1609,6 +1611,7 @@ export default defineOperationApi<Options>({
           }
 
           const antwort = await completeJson<unknown>({
+            zweck: 'statistik:agenda-zuordnung',
             system,
             prompt: buildZuordnungPrompt(eintrag),
             schema: ZUORDNUNG_SCHEMA,

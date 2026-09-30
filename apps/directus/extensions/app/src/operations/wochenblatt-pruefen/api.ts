@@ -15,6 +15,7 @@ import {
 } from '../../shared/wochenblatt'
 import {
   brauchtTextTransport,
+  seitenAuswahl,
   buildInventarMessages,
   INVENTAR_SCHEMA,
   INVENTAR_SYSTEM_PROMPT,
@@ -108,6 +109,18 @@ export default defineOperationApi<Optionen>({
       schema,
       knex: database
     })
+    // Every municipality name of the directory, once per run: what a page's
+    // rubric head can be, so a neighbour's page is recognised and left out.
+    const gemeindenService = new ItemsService('gemeinden', {
+      schema,
+      knex: database
+    })
+    const alleGemeindeNamen = (
+      (await gemeindenService.readByQuery({
+        fields: ['name'],
+        limit: -1
+      })) as Array<{ name: string }>
+    ).map((g) => g.name)
     const files = new FilesService({ schema, knex: database })
 
     const laufStart = Date.now()
@@ -351,13 +364,25 @@ export default defineOperationApi<Optionen>({
       )
       const seiten = layer.seiten
 
-      // A file past the API's request limit travels as its text layer — the
-      // page headers carry the rubric, so nothing the assignment needs is lost.
+      // The text layer travels, never the PDF (30.09.2026) — the page headers
+      // carry the rubric, so nothing the assignment needs is lost — and the
+      // pages of municipalities the newsroom does not cover stay home,
+      // declared page by page in the prompt.
+      const ausgelassen = seitenAuswahl(
+        layer.seitenTexte,
+        abdeckung.map((g) => g.name),
+        alleGemeindeNamen
+      )
       const quelle: InventarQuelle = brauchtTextTransport(pdfDaten.length)
-        ? { art: 'seitentexte', seitenTexte: layer.seitenTexte }
+        ? { art: 'seitentexte', seitenTexte: layer.seitenTexte, ausgelassen }
         : { art: 'pdf', base64: pdfDaten.toString('base64') }
+      if (ausgelassen.length > 0)
+        logger.info(
+          `wochenblatt: ${blatt.name} — ${ausgelassen.length} von ${seiten} Seiten mit fremder Rubrik nicht mitgegeben (${[...new Set(ausgelassen.map((a) => a.rubrik))].join(', ')}).`
+        )
 
       const antwort = await completeChatJson<unknown>({
+        zweck: 'wochenblaetter:inventar',
         system: INVENTAR_SYSTEM_PROMPT,
         messages: buildInventarMessages(
           quelle,

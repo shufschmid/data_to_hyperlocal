@@ -245,6 +245,7 @@ export async function schreibeSpielberichte(
 
       const antwort = await completeJson<unknown>(
         {
+          zweck: 'sport:bericht',
           system: SPIELBERICHT_SYSTEM_PROMPT,
           prompt: buildSpielberichtPrompt(fakten, kontext.regeln ?? []),
           maxTokens: 1200

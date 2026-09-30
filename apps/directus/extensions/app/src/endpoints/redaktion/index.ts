@@ -143,6 +143,7 @@ import {
 import {
   attributionsWarnung,
   brauchtTextTransport,
+  seitenAuswahl,
   formulierbare,
   buildInventarMessages,
   buildPresseschauPrompt,
@@ -168,6 +169,11 @@ import {
   type MitteilungRohzeile
 } from '../../redaktion/gemeindemeldungen'
 import { verwirfEntwurfZu } from '../../redaktion/entwurf'
+import {
+  tageAus,
+  verbrauchsBilanz,
+  type VerbrauchsZeile
+} from '../../redaktion/verbrauch'
 import {
   planeAnlassTermin,
   planeDreiAufrufe,
@@ -719,6 +725,42 @@ export default defineEndpoint(
     // nur hinter der Anmeldung statt hinter dem Schalter der offenen Tuer. Der
     // Arbeitsplatz zeigt die Zahl im Kopf, und er soll sie auch dann sehen, wenn
     // die Schnittstelle nach aussen zu ist: sie ist seine eigene Arbeit.
+    // What the model calls of the last N days cost, by desk — «Gelerntes» →
+    // «Kosten». Read as the system: a usage record belongs to no user, and
+    // the desk that reads it is not a role that owns `modellaufrufe`.
+    router.get(
+      '/verbrauch',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        try {
+          const tage = tageAus(req.query['tage'])
+          const aufrufe = new ItemsService('modellaufrufe', {
+            schema: await getSchema()
+          })
+          const ab = new Date(Date.now() - tage * 86_400_000).toISOString()
+          const zeilen = (await aufrufe.readByQuery({
+            filter: { date_created: { _gte: ab } },
+            fields: [
+              'tisch',
+              'zweck',
+              'modell',
+              'eingabe_tokens',
+              'ausgabe_tokens',
+              'cache_gelesen_tokens',
+              'cache_geschrieben_tokens',
+              'abgebrochen',
+              'fehler'
+            ],
+            limit: -1
+          })) as VerbrauchsZeile[]
+          return res.json({ data: verbrauchsBilanz(zeilen, tage) })
+        } catch (error) {
+          logger.error(error, 'redaktion: Verbrauch nicht gelesen')
+          return next(uebersetze(error))
+        }
+      }
+    )
+
     router.get(
       '/bilanz',
       async (req: ApiRequest, res: Response, next: NextFunction) => {
@@ -1085,11 +1127,28 @@ export default defineEndpoint(
             // stored text layer, which backfills `seiten_texte` on issues
             // read before that column existed.
             const layer = await extrahiereText(pdfDaten)
+            // The same transport and page selection as the 09:00 run.
+            const alleGemeindeNamen = (
+              (await new ItemsService('gemeinden', { schema }).readByQuery({
+                fields: ['name'],
+                limit: -1
+              })) as Array<{ name: string }>
+            ).map((g) => g.name)
+            const ausgelassen = seitenAuswahl(
+              layer.seitenTexte,
+              abdeckung.map((g) => g.name),
+              alleGemeindeNamen
+            )
             const quelle: InventarQuelle = brauchtTextTransport(pdfDaten.length)
-              ? { art: 'seitentexte', seitenTexte: layer.seitenTexte }
+              ? {
+                  art: 'seitentexte',
+                  seitenTexte: layer.seitenTexte,
+                  ausgelassen
+                }
               : { art: 'pdf', base64: pdfDaten.toString('base64') }
 
             const antwort = await completeChatJson<unknown>({
+              zweck: 'wochenblaetter:inventar:klick',
               system: INVENTAR_SYSTEM_PROMPT,
               messages: buildInventarMessages(
                 quelle,
@@ -1385,6 +1444,7 @@ export default defineEndpoint(
     }> {
       let bericht = parseSendungMeldung(
         await completeJson<unknown>({
+          zweck: 'sendung:meldung',
           system: SENDUNG_SYSTEM_PROMPT,
           prompt,
           maxTokens: 1500
@@ -1398,6 +1458,7 @@ export default defineEndpoint(
       if (attribution !== null) {
         bericht = parseSendungMeldung(
           await completeJson<unknown>({
+            zweck: 'sendung:meldung:nachfassen',
             system: SENDUNG_SYSTEM_PROMPT,
             prompt: buildSendungRevision(
               fakten,
@@ -1877,6 +1938,7 @@ export default defineEndpoint(
     }> {
       let bericht = parseAmtsblattMeldung(
         await completeJson<unknown>({
+          zweck: 'amtsblatt:meldung',
           system: AMTSBLATT_SYSTEM_PROMPT,
           prompt,
           maxTokens: 1500
@@ -1890,6 +1952,7 @@ export default defineEndpoint(
       if (attribution !== null) {
         bericht = parseAmtsblattMeldung(
           await completeJson<unknown>({
+            zweck: 'amtsblatt:meldung:nachfassen',
             system: AMTSBLATT_SYSTEM_PROMPT,
             prompt: buildAmtsblattRevision(
               fakten,
@@ -3619,6 +3682,7 @@ export default defineEndpoint(
       wichtig: boolean
     }> {
       let antwort = await completeJson<unknown>({
+        zweck: 'veranstaltungen:meldung',
         system: ANLASS_SYSTEM_PROMPT,
         prompt,
         maxTokens: 1500
@@ -3632,6 +3696,7 @@ export default defineEndpoint(
       )
       if (attribution !== null) {
         antwort = await completeJson<unknown>({
+          zweck: 'veranstaltungen:meldung:nachfassen',
           system: ANLASS_SYSTEM_PROMPT,
           prompt: buildAnlassRevision(
             fakten,
@@ -6955,6 +7020,7 @@ export default defineEndpoint(
               // parses, which is exactly the silent failure this project
               // refuses.
               const antwort = await completeChatJson<unknown>({
+                zweck: 'entsorgung:extraktion',
                 system: EXTRAKTION_SYSTEM_PROMPT,
                 messages: buildExtraktionMessages(
                   pdfBase64,
@@ -7818,6 +7884,7 @@ export default defineEndpoint(
       const schreibe = async (): Promise<unknown> => {
         try {
           return await completeJson<unknown>({
+            zweck: 'wochenblaetter:meldung',
             system: PRESSESCHAU_SYSTEM_PROMPT,
             prompt,
             maxTokens: 1500
@@ -7840,6 +7907,7 @@ export default defineEndpoint(
       )
       if (attribution !== null) {
         antwort = await completeJson<unknown>({
+          zweck: 'wochenblaetter:meldung:nachfassen',
           system: PRESSESCHAU_SYSTEM_PROMPT,
           prompt: buildPresseschauRevision(
             fakten,
@@ -8079,6 +8147,7 @@ export default defineEndpoint(
       }
 
       const antwort = await completeJson<unknown>({
+        zweck: 'sport:revision',
         system: SPIELBERICHT_SYSTEM_PROMPT,
         prompt: buildSpielberichtRevision(
           fakten,
@@ -8254,6 +8323,7 @@ export default defineEndpoint(
       const schreibe = async (prompt: string) =>
         parseErinnerung(
           await completeChatJson<unknown>({
+            zweck: 'entsorgung:erinnerung',
             system: ERINNERUNG_SYSTEM_PROMPT,
             messages: [{ role: 'user', content: prompt }],
             // The budget carries thinking too, and 1200 was observed to be a
@@ -8442,6 +8512,7 @@ export default defineEndpoint(
       )
 
       const antwort = await completeChatJson<unknown>({
+        zweck: 'entsorgung:revision',
         system: ERINNERUNG_SYSTEM_PROMPT,
         messages: [
           {

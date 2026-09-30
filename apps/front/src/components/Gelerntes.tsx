@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -15,9 +15,15 @@ import MenuItem from '@mui/material/MenuItem'
 import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import Switch from '@mui/material/Switch'
+import Table from '@mui/material/Table'
+import TableBody from '@mui/material/TableBody'
+import TableCell from '@mui/material/TableCell'
+import TableHead from '@mui/material/TableHead'
+import TableRow from '@mui/material/TableRow'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import type { RecherchehinweisFelder, TischeinstellungFelder, WissenFelder } from '@/graphql/redaktion'
+import { tischName, tokensKurz, verlustText, type VerbrauchsBilanz } from '@/lib/verbrauch'
 import { EINSTELLBARE_TISCHE, einstellungFuer, SCHWELLEN } from '@/lib/tische'
 import {
   automatikBilanz,
@@ -56,6 +62,104 @@ export interface GelerntesProps {
   /** Die Regler je Tisch — Schwelle und Vorlauf; ohne `onTisch` bleibt der Abschnitt weg. */
   tische?: readonly TischeinstellungFelder[]
   onTisch?: (tisch: string, felder: Record<string, number>) => Promise<void>
+  /** Was die Modellaufrufe kosteten, je Tisch — null, solange nichts geladen ist. */
+  verbrauch?: VerbrauchsBilanz | null
+  onVerbrauchTage?: (tage: number) => void
+}
+
+/**
+ * Die Kosten je Tisch: Aufrufe und Tokens der letzten Tage, mit dem, was fuer
+ * nichts bezahlt wurde (abgebrochene Antworten, gescheiterte Aufrufe) in Rot.
+ * Tokens, keine Franken — die Preise leben in niemandes Code.
+ */
+function Kosten({ bilanz, onTage }: { bilanz: VerbrauchsBilanz; onTage?: (tage: number) => void }) {
+  const [offen, setOffen] = useState<string | null>(null)
+  return (
+    <Paper sx={{ p: 2 }}>
+      <Stack spacing={1.5}>
+        <Stack direction="row" spacing={2} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+          <Typography variant="subtitle2" sx={{ flexGrow: 1 }}>
+            Kosten — was die Modellaufrufe der letzten {bilanz.tage} Tage brauchten
+          </Typography>
+          {onTage !== undefined &&
+            [7, 30].map((t) => (
+              <Button
+                key={t}
+                size="small"
+                variant={bilanz.tage === t ? 'contained' : 'text'}
+                onClick={() => onTage(t)}
+              >
+                {t} Tage
+              </Button>
+            ))}
+        </Stack>
+        <Typography variant="caption" color="text.secondary">
+          {bilanz.gesamt.aufrufe.toLocaleString('de-CH')} Aufrufe, {tokensKurz(bilanz.gesamt.eingabe_tokens)}{' '}
+          Tokens Eingabe, {tokensKurz(bilanz.gesamt.ausgabe_tokens)} Ausgabe,{' '}
+          {tokensKurz(bilanz.gesamt.cache_gelesen_tokens)} aus dem Cache. Ausgabe-Tokens kosten am meisten;
+          ein Klick auf einen Tisch zeigt seine teuersten Zwecke und Modelle.
+        </Typography>
+        {bilanz.tische.length === 0 ? (
+          <Alert severity="info">Noch kein Aufruf aufgezeichnet.</Alert>
+        ) : (
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Tisch</TableCell>
+                <TableCell align="right">Aufrufe</TableCell>
+                <TableCell align="right">Eingabe</TableCell>
+                <TableCell align="right">Ausgabe</TableCell>
+                <TableCell align="right">Cache</TableCell>
+                <TableCell>Für nichts</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {bilanz.tische.map((t) => (
+                <Fragment key={t.tisch}>
+                  <TableRow
+                    hover
+                    sx={{ cursor: 'pointer' }}
+                    onClick={() => setOffen(offen === t.tisch ? null : t.tisch)}
+                  >
+                    <TableCell>{tischName(t.tisch)}</TableCell>
+                    <TableCell align="right">{t.aufrufe.toLocaleString('de-CH')}</TableCell>
+                    <TableCell align="right">{tokensKurz(t.eingabe_tokens)}</TableCell>
+                    <TableCell align="right">{tokensKurz(t.ausgabe_tokens)}</TableCell>
+                    <TableCell align="right">{tokensKurz(t.cache_gelesen_tokens)}</TableCell>
+                    <TableCell>
+                      {verlustText(t) === null ? (
+                        '–'
+                      ) : (
+                        <Typography variant="body2" color="error">
+                          {verlustText(t)}
+                        </Typography>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                  {offen === t.tisch &&
+                    [
+                      ...t.zwecke.map((z) => ({ name: z.zweck, ...z })),
+                      ...t.modelle.map((m) => ({ name: m.modell, ...m }))
+                    ].map((z) => (
+                      <TableRow key={`${t.tisch}-${z.name}`}>
+                        <TableCell sx={{ pl: 4 }}>
+                          <Typography variant="caption">{z.name}</Typography>
+                        </TableCell>
+                        <TableCell align="right">{z.aufrufe.toLocaleString('de-CH')}</TableCell>
+                        <TableCell align="right">{tokensKurz(z.eingabe_tokens)}</TableCell>
+                        <TableCell align="right">{tokensKurz(z.ausgabe_tokens)}</TableCell>
+                        <TableCell align="right">{tokensKurz(z.cache_gelesen_tokens)}</TableCell>
+                        <TableCell>{verlustText(z) ?? '–'}</TableCell>
+                      </TableRow>
+                    ))}
+                </Fragment>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </Stack>
+    </Paper>
+  )
 }
 
 /** Die Zahlenfelder des Veranstaltungstischs, als Formular. */
@@ -175,7 +279,9 @@ export function Gelerntes({
   onWirkung,
   onAnlegen,
   tische = [],
-  onTisch
+  onTisch,
+  verbrauch = null,
+  onVerbrauchTage
 }: GelerntesProps) {
   const gruppen = useMemo(() => gruppiereRegeln(regeln), [regeln])
   const [offeneBelege, setOffeneBelege] = useState<Set<string>>(new Set())
@@ -315,6 +421,10 @@ export function Gelerntes({
             ))}
           </Stack>
         </Paper>
+      )}
+
+      {verbrauch !== undefined && verbrauch !== null && (
+        <Kosten bilanz={verbrauch} onTage={onVerbrauchTage} />
       )}
 
       {gruppen.length === 0 && <Alert severity="info">Noch nichts gelernt.</Alert>}

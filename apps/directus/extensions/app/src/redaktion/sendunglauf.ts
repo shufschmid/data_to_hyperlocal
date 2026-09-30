@@ -350,6 +350,7 @@ export async function sichteBeitraege(
     try {
       const antwort = await completeJson<unknown>(
         {
+          zweck: 'sendung:sichtung',
           system: INVENTAR_SYSTEM_PROMPT,
           prompt: buildInventarPrompt(
             {

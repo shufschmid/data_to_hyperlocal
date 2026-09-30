@@ -1409,6 +1409,8 @@ them is wrong even if it works.
 | the dataset a portal carries its votes in                                               | `quellen.konfiguration.abstimmungen` (JSON, Admin-UI) — die Datensatz-Id des Portals, gesetzt von `migrations/20260918B`. Leer heisst: dieses Portal wird am Abstimmungssonntag nicht gelesen, und der Lauf nennt es                                                                                                                                           |
 | the timing of a vote Sunday                                                             | der Flow «Abstimmungen holen» (`*/30 14-20 * * 0`) plus `operations/abstimmungen-holen`; ausserhalb bleibt es beim Katalogwächter um 06:00                                                                                                                                                                                                                     |
 | a new environment variable                                                              | `apps/directus/.env.example` **and** root `.env.example` **and** docker-compose.yml                                                                                                                                                                                                                                                                            |
+| what a desk's model calls cost, or a new model call                                     | «Gelerntes» → «Kosten» reads `modellaufrufe` (`GET /redaktion/verbrauch?tage=N`, `redaktion/verbrauch.ts`). Every call to `shared/claude.ts` names `zweck: 'tisch:zweck'`; a retry is its own purpose (`…:nachfassen`). Tokens, not francs                                                                                                                     |
+| how big a Sichtung or triage call is, or its model                                      | `redaktion/sichtungspakete.ts` — 25 rows a packet, thinking off, 4000 tokens, prefix cached; the model per desk is the Flow option `model` (Amtsblatt: `sichtungsmodell`, the Haiku 4.5 trial since 30.09.2026)                                                                                                                                                |
 
 A change that spans both apps starts in `apps/directus` — data model first, then the
 GraphQL documents in the frontend.
@@ -2336,6 +2338,47 @@ All of it is bounded on purpose: the rules feed prompts (the statistics ones
 the cached prefix), and an unbounded memory would grow them without limit —
 30 rules per desk and stufe, 20 examples, ten ignored titles, and every cap
 that bites says so.
+
+## What the model calls cost, and what was done about it
+
+**Since 30 September 2026 every call is measured.** The newsroom's words:
+the system works well but costs very many tokens — implement everything and
+measure from now on. So `shared/claude.ts` records the API's usage block of
+every answer under the call site's `zweck` (`tisch:zweck`), the hook
+`modellverbrauch` stores it in `modellaufrufe`, and «Gelerntes» → «Kosten»
+shows it by desk, model and purpose, with what was paid for nothing
+(answers cut at `max_tokens`, calls the API refused) in red. Tokens, not
+francs. Read that table before the next saving; the seven below were
+decided from an inventory of the 43 call sites and one measured failure.
+
+1. **Sichtungen and triages go out in PACKETS of 25, thinking off, 4000
+   tokens, prefix cached** (`redaktion/sichtungspakete.ts`). The events
+   Sichtung had sent every ungraded row of a municipality in one call —
+   since grading on first sight (29.09.) that was 112 rows for Riehen and
+   40 for Reinach — and the answer broke at 8000 tokens; a broken answer
+   graded nothing, so the same rows came back the next day, larger, and
+   three municipalities paid the full input plus 8000 output tokens every
+   run for nothing. A packet that fails costs its own rows.
+2. **The Wochenblatt inventory always reads the TEXT LAYER**, never the PDF
+   as a document block (Opus over every page as image and text was the
+   house's most expensive call), and pages whose rubric head names a
+   municipality the newsroom does not cover stay home — declared in the
+   prompt page by page (`seitenAuswahl`), the front page always travels.
+3. **Plan reading on the default model**, not Opus; `model` on the Amtsblatt
+   Flow overrides it.
+4. **The gazette triage is the one desk trying Haiku 4.5** (Flow option
+   `sichtungsmodell`, verified to accept the house's structured output); its
+   Bilanz against its line in «Kosten» is the comparison, and the option is
+   the way back.
+5. **The 13:00 run writes Gemeinde drafts only from grade 3**
+   (`ENTWURF_AB_STUFE`); a grade-2 row waits for the click.
+6. **punkt6 buys no second verdict on the same markers**: after
+   `passt_nicht` the markers' fingerprint sits on the dossier
+   (`marken_signatur`) and the lead call repeats only when telebasel.ch
+   changes them — instead of up to twelve times over three days.
+7. **Retries are visible before they are tuned**: the attribution and JSON
+   retries file under their own purposes, so «Kosten» says how often a
+   second call fires before anyone sharpens a prompt.
 
 ## Deployment
 

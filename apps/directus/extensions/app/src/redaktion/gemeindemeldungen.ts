@@ -48,6 +48,8 @@ import { ladeWichtigkeitSignale, wichtigkeitDigest } from './wichtigkeit'
 
 /** Wie viele Meldungen ein Lauf schreibt. Ein Modellaufruf je Stueck. */
 export const GEMEINDE_MELDUNGEN_JE_LAUF = 20
+/** The run writes a draft only for proposals of this grade or higher; below it, the click does. */
+export const ENTWURF_AB_STUFE = 3
 
 export interface MitteilungRohzeile {
   id: string
@@ -162,10 +164,13 @@ export async function schreibeEinmalMitNachfassen(
   prompt: string,
   // The Kanton desk (29.09.2026) writes with its own system prompt and the
   // same one-retry rule — shared here rather than copied.
-  system: string = MELDUNG_SYSTEM_PROMPT
+  system: string = MELDUNG_SYSTEM_PROMPT,
+  /** Where the usage is filed (`modellaufrufe`) — the caller's desk, the retry marked. */
+  zweck: string = 'gemeindeseiten:meldung'
 ): Promise<unknown> {
   try {
     return await completeJson<unknown>({
+      zweck,
       system,
       prompt,
       maxTokens: 1500
@@ -173,6 +178,7 @@ export async function schreibeEinmalMitNachfassen(
   } catch (fehler) {
     if (!(fehler instanceof ClaudeFormatError)) throw fehler
     return completeJson<unknown>({
+      zweck: `${zweck}:json-wiederholung`,
       system,
       prompt,
       maxTokens: 1500
@@ -212,6 +218,7 @@ export async function mitteilungMitChecks(
   )
   if (attribution !== null) {
     antwort = await completeJson<unknown>({
+      zweck: 'gemeindeseiten:meldung:nachfassen',
       system: MELDUNG_SYSTEM_PROMPT,
       prompt: buildMitteilungRevision(
         fakten,
@@ -371,8 +378,20 @@ export async function schreibeGemeindeMeldungen(
     )
   )
 
+  // Only from grade 3 up (30.09.2026): a lowered threshold brings grade-2
+  // rows onto the desk, but their article can wait for the click — one
+  // draft in three is written for a row nobody takes, and the model call is
+  // the price. Rows graded before 29.09.2026 carry no grade and keep the
+  // bargain they were made under.
   const vorschlaege = (await kontext.mitteilungen.readByQuery({
-    filter: { vorschlag: { _eq: true }, entscheid: { _eq: 'offen' } },
+    filter: {
+      vorschlag: { _eq: true },
+      entscheid: { _eq: 'offen' },
+      _or: [
+        { vorschlag_wert: { _gte: ENTWURF_AB_STUFE } },
+        { vorschlag_wert: { _null: true } }
+      ]
+    },
     fields: MITTEILUNG_FELDER,
     sort: ['-publiziert_am', '-date_created'],
     limit: -1

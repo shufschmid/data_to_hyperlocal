@@ -1,0 +1,28 @@
+{
+  "collection": "modellaufrufe",
+  "meta": {
+    "accountability": "all",
+    "archive_app_filter": true,
+    "archive_field": null,
+    "archive_value": null,
+    "collapse": "open",
+    "collection": "modellaufrufe",
+    "color": null,
+    "display_template": "{{tisch}} · {{zweck}} · {{eingabe_tokens}}/{{ausgabe_tokens}}",
+    "group": null,
+    "hidden": false,
+    "icon": "receipt_long",
+    "item_duplication_fields": null,
+    "note": "Ein Eintrag je Aufruf der Claude-API: Tisch und Zweck, Modell, Eingabe- und Ausgabe-Tokens, Cache, Dauer, und ob die Antwort abgebrochen wurde oder der Aufruf scheiterte. Geschrieben vom Hook modellverbrauch, gelesen von «Gelerntes» → «Kosten». Seit 30.09.2026.",
+    "preview_url": null,
+    "singleton": false,
+    "sort": null,
+    "sort_field": null,
+    "translations": null,
+    "unarchive_value": null,
+    "versioning": false
+  },
+  "schema": {
+    "name": "modellaufrufe"
+  }
+}

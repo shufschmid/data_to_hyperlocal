@@ -108,6 +108,7 @@ export interface Tagesentwurf {
 async function schreibe(prompt: string): Promise<unknown> {
   try {
     return await completeJson<unknown>({
+      zweck: 'abstimmungen:tagesmeldung',
       system: TAGES_SYSTEM_PROMPT,
       prompt,
       maxTokens: 1800

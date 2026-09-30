@@ -154,6 +154,7 @@ export async function lesePlaene(
 
     const antwort = await completeChatJson<unknown>(
       {
+        zweck: 'amtsblatt:plaene',
         system: PLAN_SYSTEM_PROMPT,
         messages: buildPlanMessages(bilder, {
           titel: zeile.titel,
@@ -161,7 +162,11 @@ export async function lesePlaene(
           angaben: zeile.angaben ?? []
         }),
         maxTokens: 4096,
-        model: kontext.model ?? 'claude-opus-5',
+        // The house default (Sonnet) since 30.09.2026: the sheets are read
+        // as images either way, and a reading Opus did at several times the
+        // price found nothing the checks (`parsePlanbefund`) would not have
+        // demanded of Sonnet too. `model` on the Flow overrides it.
+        ...(kontext.model == null ? {} : { model: kontext.model }),
         schema: PLAN_SCHEMA
       },
       kontext.send

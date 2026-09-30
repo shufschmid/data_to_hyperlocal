@@ -71,6 +71,7 @@ async function extractTopics(
   try {
     const answer = await completeJson<unknown>(
       {
+        zweck: 'regionaljournal:themen',
         system: TOPICS_SYSTEM_PROMPT,
         prompt: buildTopicsPrompt(segment.paragraphs, headlines),
         // A real dossier's transcript can run 30+ paragraphs, and the model has to

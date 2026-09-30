@@ -75,7 +75,9 @@ export const LESBAR: RegExp[] = [
   /^gemeindeseiten\/lauf$/i,
   /^kanton\/lauf$/i,
   /^wochenblaetter\/formulieren$/i,
-  /^bilanz$/i
+  /^bilanz$/i,
+  // Was die Modellaufrufe kosten, je Tisch — «Gelerntes» → «Kosten».
+  /^verbrauch$/i
 ]
 
 export function darfSchreiben(ziel: string): boolean {

@@ -1248,6 +1248,8 @@ export interface Punkt6Dossier {
   source_subject: string | null
   error_message: string | null
   processed_at: string | null
+  /** Fingerprint of the telebasel.ch markers judged `passt_nicht` — null unless waiting on a rejected cut. */
+  marken_signatur: string | null
   date_created: string | null
   date_updated: string | null
 }
@@ -1493,6 +1495,29 @@ export interface Veranstaltungsquelle {
   letzter_hinweis: string | null
   date_created: string | null
   date_updated: string | null
+}
+
+/**
+ * One call to the Claude API — what it served, what it cost. Written by the
+ * `modellverbrauch` hook from the usage block the API returns, read by
+ * `GET /redaktion/verbrauch` for «Gelerntes» → «Kosten». Since 30.09.2026.
+ */
+export interface Modellaufruf {
+  id: string
+  date_created: string | null
+  /** The desk: the part of `zweck` before the colon. */
+  tisch: string
+  /** `tisch:zweck` as the call site names it, e.g. `veranstaltungen:sichtung`. */
+  zweck: string
+  modell: string
+  eingabe_tokens: number
+  ausgabe_tokens: number
+  cache_gelesen_tokens: number
+  cache_geschrieben_tokens: number
+  dauer_ms: number
+  /** The answer hit `max_tokens`: paid for and thrown away. */
+  abgebrochen: boolean
+  fehler: string | null
 }
 
 /** How often an Anlass recurs — decides only what is routine, never news value. */

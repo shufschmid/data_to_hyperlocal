@@ -109,7 +109,8 @@
     "options": {
       "gemeinden": 20,
       "plaene": 6,
-      "nachlauf": 2
+      "nachlauf": 2,
+      "sichtungsmodell": "claude-haiku-4-5-20251001"
     },
     "resolve": null,
     "reject": null,

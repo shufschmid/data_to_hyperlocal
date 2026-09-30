@@ -10,7 +10,12 @@ import {
   STANDARD_EINSTELLUNG,
   type Tischeinstellung
 } from './tischeinstellungen'
-import { completeJson, type MessageSender } from '../shared/claude'
+import {
+  cacheableSystem,
+  completeJson,
+  type MessageSender
+} from '../shared/claude'
+import { pakete, SICHTUNG_AUFRUF, sichtungsFehlerText } from './sichtungspakete'
 import { verschiebe } from './feiertage'
 import type { RegelZeile } from './gedaechtnis'
 import {
@@ -246,61 +251,73 @@ export async function sichteMitteilungen(
 
   const weiterzureichen = new Map<string, NummerierteRegel>()
   let vorschlaege = 0
-  let sichtungsFehler: string | null = null
-  try {
-    const antwort = await completeJson<unknown>(
-      {
-        system: SICHTUNG_SYSTEM_PROMPT,
-        prompt: buildSichtungPrompt(
-          gemeinde.name,
-          zeilen,
-          lernDigest(signale.entscheide, LERN_FENSTER, signale.rahmen),
-          kontext.sichtungsregeln.text,
-          kalender === null ? '' : abfuhrkalenderBlock(gemeinde.name, kalender)
-        ),
-        // Room, deliberately. The answer carries one verdict with a written
-        // reason per item, and a truncated answer costs the WHOLE municipality
-        // its Sichtung: `completeJson` throws on `max_tokens`, so not one of
-        // the day's items is judged and every one of them sits on the desk
-        // unsorted. That happened to Aesch on 18 September 2026 at 4096, with
-        // the Abfuhrkalender block in its prompt on top of the items. The
-        // ceiling costs nothing unless it is used, and 8000 is the house's
-        // highest budget that still goes out as a plain request (the SDK
-        // streams from 8192 up) — cheaper than a lost judgement by any measure.
-        maxTokens: 8000,
-        ...(kontext.model == null ? {} : { model: kontext.model }),
-        schema: STUFEN_SCHEMA
-      },
-      kontext.send
-    )
-    const schwelle = (kontext.einstellung ?? STANDARD_EINSTELLUNG).schwelle
-    for (const urteil of parseStufenSichtung(antwort, zeilen)) {
-      // The grade is the model's, the threshold the newsroom's: stored
-      // apart, so a changed dial re-sorts the desk without a second call.
-      const vorschlag = istVorschlag(urteil.stufe, schwelle)
-      await kontext.mitteilungen.updateOne(urteil.id, {
-        vorschlag,
-        vorschlag_wert: urteil.stufe,
-        vorschlag_begruendung: urteil.begruendung
-      })
-      if (vorschlag) vorschlaege += 1
-      const regel = automatischeWeitergabe(
-        urteil,
-        kontext.sichtungsregeln.nummern,
-        kontext.regelzeilen
+  const schwelle = (kontext.einstellung ?? STANDARD_EINSTELLUNG).schwelle
+  const digest = lernDigest(signale.entscheide, LERN_FENSTER, signale.rahmen)
+  const kalenderBlock =
+    kalender === null ? '' : abfuhrkalenderBlock(gemeinde.name, kalender)
+  // In packets (`sichtungspakete.ts`): a failed packet costs its own rows,
+  // never the municipality's whole judgement.
+  const paketListe = pakete(zeilen)
+  const fehlerPakete: string[] = []
+  for (const paket of paketListe) {
+    try {
+      const antwort = await completeJson<unknown>(
+        {
+          zweck: 'gemeindeseiten:sichtung',
+          system: cacheableSystem(SICHTUNG_SYSTEM_PROMPT),
+          prompt: buildSichtungPrompt(
+            gemeinde.name,
+            paket,
+            digest,
+            kontext.sichtungsregeln.text,
+            kalenderBlock
+          ),
+          // Room, deliberately. The answer carries one verdict with a written
+          // reason per item, and a truncated answer costs the WHOLE municipality
+          // its Sichtung: `completeJson` throws on `max_tokens`, so not one of
+          // the day's items is judged and every one of them sits on the desk
+          // unsorted. That happened to Aesch on 18 September 2026 at 4096, with
+          // the Abfuhrkalender block in its prompt on top of the items. The
+          // ceiling costs nothing unless it is used, and 8000 is the house's
+          // highest budget that still goes out as a plain request (the SDK
+          // streams from 8192 up) — cheaper than a lost judgement by any measure.
+          ...SICHTUNG_AUFRUF,
+          ...(kontext.model == null ? {} : { model: kontext.model }),
+          schema: STUFEN_SCHEMA
+        },
+        kontext.send
       )
-      if (regel !== null) weiterzureichen.set(urteil.id, regel)
+      for (const urteil of parseStufenSichtung(antwort, paket)) {
+        // The grade is the model's, the threshold the newsroom's: stored
+        // apart, so a changed dial re-sorts the desk without a second call.
+        const vorschlag = istVorschlag(urteil.stufe, schwelle)
+        await kontext.mitteilungen.updateOne(urteil.id, {
+          vorschlag,
+          vorschlag_wert: urteil.stufe,
+          vorschlag_begruendung: urteil.begruendung
+        })
+        if (vorschlag) vorschlaege += 1
+        const regel = automatischeWeitergabe(
+          urteil,
+          kontext.sichtungsregeln.nummern,
+          kontext.regelzeilen
+        )
+        if (regel !== null) weiterzureichen.set(urteil.id, regel)
+      }
+    } catch (fehler) {
+      // `vorschlag` stays null: "not judged", which the desk shows as such —
+      // and the run says so, because thirty-two unjudged rows and a quiet log
+      // line are how a broken schema went unnoticed for a whole first run.
+      kontext.logger.warn(
+        fehler,
+        `gemeindeseiten: Sichtung fuer ${gemeinde.name} fehlgeschlagen.`
+      )
+      fehlerPakete.push(
+        fehler instanceof Error ? fehler.message : String(fehler)
+      )
     }
-  } catch (fehler) {
-    // `vorschlag` stays null: "not judged", which the desk shows as such —
-    // and the run says so, because thirty-two unjudged rows and a quiet log
-    // line are how a broken schema went unnoticed for a whole first run.
-    kontext.logger.warn(
-      fehler,
-      `gemeindeseiten: Sichtung fuer ${gemeinde.name} fehlgeschlagen.`
-    )
-    sichtungsFehler = fehler instanceof Error ? fehler.message : String(fehler)
   }
+  const sichtungsFehler = sichtungsFehlerText(fehlerPakete, paketListe.length)
 
   let weitergereicht = 0
   for (const [zeileId, regel] of weiterzureichen) {

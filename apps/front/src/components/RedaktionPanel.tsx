@@ -16,6 +16,7 @@ import Tabs from '@mui/material/Tabs'
 import Typography from '@mui/material/Typography'
 import { LIVE_FETCH_POLICY } from '@/lib/apollo'
 import { sitzungsFetch } from '@/lib/marke.client'
+import type { VerbrauchsBilanz } from '@/lib/verbrauch'
 import {
   ANKUENDIGUNG_DATENSATZ_MUTATION,
   ANKUENDIGUNGEN_QUERY,
@@ -546,6 +547,24 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
   // Die Wochenzahl: einmal beim Aufbau geholt und nach jeder Aktion neu. Sie ist
   // Auskunft und kein Arbeitsmittel, darum kein Poll und kein Ladebalken --
   // schlaegt der Abruf fehl, steht die Zeile einfach nicht da.
+  // Die Kosten: was die Modellaufrufe der letzten Tage kosteten, je Tisch.
+  // Geholt, wenn «Gelerntes» offen ist, und auf Wunsch fuer ein anderes
+  // Fenster — Auskunft, kein Poll.
+  const [verbrauch, setVerbrauch] = useState<VerbrauchsBilanz | null>(null)
+  const ladeVerbrauch = useCallback(async (tage: number) => {
+    try {
+      const antwort = await sitzungsFetch(`/api/redaktion/verbrauch?tage=${tage}`)
+      if (!antwort.ok) return
+      const inhalt = (await antwort.json()) as { data?: VerbrauchsBilanz }
+      setVerbrauch(inhalt.data ?? null)
+    } catch {
+      // Eine fehlende Tabelle ist besser als eine falsche.
+    }
+  }, [])
+  useEffect(() => {
+    if (reiter === 'gelerntes') void ladeVerbrauch(7)
+  }, [reiter, ladeVerbrauch])
+
   const [bilanz, setBilanz] = useState<WochenzahlBilanz | null>(null)
   const ladeBilanz = useCallback(async () => {
     try {
@@ -1762,6 +1781,8 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             await fuehreAus(`tische/${tisch}`, felder)
             await Promise.all([tische.refetch(), gemeindeseiten.refetch(), veranstaltungen.refetch()])
           }}
+          verbrauch={verbrauch}
+          onVerbrauchTage={(tage) => void ladeVerbrauch(tage)}
         />
       )}
 

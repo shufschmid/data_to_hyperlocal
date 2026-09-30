@@ -108,6 +108,12 @@ export interface ClaudeOptions {
    * parse function at the call site.
    */
   schema?: Record<string, unknown>
+  /**
+   * Which desk and purpose this call serves, as `tisch:zweck` — what the
+   * usage record is filed under (`modellaufrufe`). Since 30.09.2026 every
+   * call site names one; a call without it is filed under `unbekannt`.
+   */
+  zweck?: string
 }
 
 export interface ClaudeRequest extends ClaudeOptions {
@@ -165,6 +171,74 @@ export function joinTextBlocks(message: Anthropic.Message): string {
     .trim()
 }
 
+// ---------------------------------------------------------------------------
+// Verbrauch — what every call cost, recorded where the newsroom can see it
+// ---------------------------------------------------------------------------
+
+/** One call's usage, as the API reports it — what `modellaufrufe` stores. */
+export interface Modellaufruf {
+  zweck: string
+  modell: string
+  eingabe_tokens: number
+  ausgabe_tokens: number
+  cache_gelesen_tokens: number
+  cache_geschrieben_tokens: number
+  dauer_ms: number
+  /** The answer hit `max_tokens` — paid for and thrown away. */
+  abgebrochen: boolean
+  /** The API's refusal or a transport failure; null on a completed call. */
+  fehler: string | null
+}
+
+export type VerbrauchsSchreiber = (eintrag: Modellaufruf) => Promise<void>
+
+let verbrauchsSchreiber: VerbrauchsSchreiber | null = null
+
+/**
+ * Where usage records go. Registered once at boot by the `modellverbrauch`
+ * hook, which has the Directus services this module deliberately has not.
+ * Without a writer nothing is recorded — tests and scripts stay silent.
+ */
+export function registriereVerbrauch(
+  schreiber: VerbrauchsSchreiber | null
+): void {
+  verbrauchsSchreiber = schreiber
+}
+
+/** `gemeindeseiten:sichtung` → `gemeindeseiten`; a label without a colon is its own desk. */
+export function tischVon(zweck: string): string {
+  const doppelpunkt = zweck.indexOf(':')
+  return doppelpunkt === -1 ? zweck : zweck.slice(0, doppelpunkt)
+}
+
+/** The usage block of an answer as a record — zeros where the API says nothing. */
+export function verbrauchAus(
+  usage: Partial<Anthropic.Usage> | null | undefined
+): Pick<
+  Modellaufruf,
+  | 'eingabe_tokens'
+  | 'ausgabe_tokens'
+  | 'cache_gelesen_tokens'
+  | 'cache_geschrieben_tokens'
+> {
+  const zahl = (wert: unknown): number =>
+    typeof wert === 'number' && Number.isFinite(wert) ? wert : 0
+  return {
+    eingabe_tokens: zahl(usage?.input_tokens),
+    ausgabe_tokens: zahl(usage?.output_tokens),
+    cache_gelesen_tokens: zahl(usage?.cache_read_input_tokens),
+    cache_geschrieben_tokens: zahl(usage?.cache_creation_input_tokens)
+  }
+}
+
+/** Fire-and-forget: a lost usage record is a warning's worth, never a failed call. */
+function vermerkeVerbrauch(eintrag: Modellaufruf): void {
+  if (verbrauchsSchreiber === null) return
+  void verbrauchsSchreiber(eintrag).catch((fehler: unknown) => {
+    console.warn('claude: Verbrauch nicht vermerkt', fehler)
+  })
+}
+
 function buildBody(
   options: ClaudeOptions,
   messages: Anthropic.MessageParam[],
@@ -196,12 +270,40 @@ function buildBody(
 async function send(
   body: Anthropic.MessageCreateParamsNonStreaming,
   maxTokens: number,
-  sender: MessageSender
+  sender: MessageSender,
+  zweck: string = 'unbekannt'
 ): Promise<string> {
-  const message = await sender(body)
+  const start = Date.now()
+  let message: Anthropic.Message
+  try {
+    message = await sender(body)
+  } catch (fehler) {
+    // A refusal or a dead connection carries no usage, but it is a call the
+    // desk waited for — counted, with its reason, so a broken schema or a
+    // rate limit shows up as a row and not only in a log nobody reads.
+    vermerkeVerbrauch({
+      zweck,
+      modell: body.model,
+      ...verbrauchAus(null),
+      dauer_ms: Date.now() - start,
+      abgebrochen: false,
+      fehler:
+        fehler instanceof Error ? fehler.message.slice(0, 500) : String(fehler)
+    })
+    throw fehler
+  }
 
-  if (message.stop_reason === 'max_tokens')
-    throw new ClaudeTruncatedError(maxTokens)
+  const abgebrochen = message.stop_reason === 'max_tokens'
+  vermerkeVerbrauch({
+    zweck,
+    modell: message.model || body.model,
+    ...verbrauchAus(message.usage),
+    dauer_ms: Date.now() - start,
+    abgebrochen,
+    fehler: null
+  })
+
+  if (abgebrochen) throw new ClaudeTruncatedError(maxTokens)
 
   return joinTextBlocks(message)
 }
@@ -215,7 +317,12 @@ export async function completeText(
     { role: 'user', content: request.prompt }
   ]
 
-  return send(buildBody(request, messages, maxTokens), maxTokens, sender)
+  return send(
+    buildBody(request, messages, maxTokens),
+    maxTokens,
+    sender,
+    request.zweck
+  )
 }
 
 /**
@@ -231,7 +338,8 @@ export async function completeChat(
   return send(
     buildBody(request, request.messages, maxTokens),
     maxTokens,
-    sender
+    sender,
+    request.zweck
   )
 }
 

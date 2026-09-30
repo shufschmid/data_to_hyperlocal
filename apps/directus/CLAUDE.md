@@ -291,6 +291,10 @@ GraphQL, other extensions), which makes it the right place for invariants.
 - Anything derived by an LLM is a cache: invalidate it in a hook when its source
   changes, so a stale summary can never outlive the text it describes. Example:
   `src/hooks/meldung-status/` — it guards the editorial state machine on every write path.
+  `src/hooks/modellverbrauch/` is the odd one out: it reacts to no write at all
+  and only hands `shared/claude.ts` the writer for `modellaufrufe` at boot —
+  the one place with services that every model call, in any operation or
+  endpoint, then reaches.
   `src/hooks/entsorgung-termin/` is the same principle applied to a derived
   article: correcting a collection date — including in the admin UI, which no
   endpoint sees — un-confirms the date and discards the reminder written from
@@ -366,6 +370,28 @@ const validated = parseSummary(answer) // never trust the shape
 - Model: `ANTHROPIC_MODEL`, default `claude-sonnet-5`. Reach for `claude-opus-5` for
   genuinely hard reasoning, not by default.
 - `ANTHROPIC_API_KEY` lives **here**, never in the frontend.
+- **Every call names its desk and purpose — `zweck: 'tisch:zweck'` — and every
+  call is MEASURED** (30 September 2026). `send()` records the API's usage
+  block after each answer — input, output, cache read, cache write, duration,
+  whether the answer hit `max_tokens`, or why the call failed — and the hook
+  `hooks/modellverbrauch` writes it to `modellaufrufe` as the system. The
+  client itself has no services: the hook registers a writer at boot
+  (`registriereVerbrauch`), and without one nothing is recorded, which is what
+  keeps tests silent. `GET /redaktion/verbrauch?tage=N` aggregates it by desk,
+  model and purpose (`redaktion/verbrauch.ts`, pure) for «Gelerntes» →
+  «Kosten». Tokens, not francs: prices live in nobody's code. A retry is a
+  purpose of its own (`…:nachfassen`, `…:json-wiederholung`), so the rate of
+  second calls is readable before anyone sharpens a prompt.
+- **A Sichtung sorts and does not deliberate** (`redaktion/sichtungspakete.ts`,
+  30.09.2026): every Sichtung and triage goes out in packets of 25 rows,
+  thinking off, 4000 tokens, system prompt cached. Measured: the events
+  Sichtung sent 112 ungraded rows of Riehen in one call, the answer broke at
+  8000 tokens, nothing was graded, and the same rows came back the next day
+  with the new ones on top — three municipalities paid the full input plus
+  8000 output tokens every run for nothing. A packet that fails costs its
+  own rows and the run says which. The gazette triage is the one desk trying
+  Haiku 4.5 (`sichtungsmodell` on its Flow, verified to accept the house's
+  structured output); its Bilanz against «Kosten» is the comparison.
 
 ## Learning from the editor
 

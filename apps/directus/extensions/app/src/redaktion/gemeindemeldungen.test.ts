@@ -154,9 +154,15 @@ describe('schreibeGemeindeMeldungen', () => {
       [{ filter: Record<string, unknown> }]
     >
     const frage = rufe[0]?.[0]
+    // Nur ab Stufe 3 schreibt der Lauf (30.09.2026); Zeilen ohne Stufe sind
+    // die von vor dem 29.09. und behalten ihre Abmachung.
     expect(frage?.filter).toEqual({
       vorschlag: { _eq: true },
-      entscheid: { _eq: 'offen' }
+      entscheid: { _eq: 'offen' },
+      _or: [
+        { vorschlag_wert: { _gte: 3 } },
+        { vorschlag_wert: { _null: true } }
+      ]
     })
   })
 

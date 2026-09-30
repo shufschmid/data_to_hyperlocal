@@ -32,9 +32,20 @@ export default defineOperationApp({
       meta: {
         width: 'half',
         interface: 'input',
-        note: 'Wie viele Vorschlaege ihre aufgelegten Plaene angesehen bekommen. Ein Opus-Aufruf mit Bildern je Stueck — hier bremst die Rechnung, nicht die Technik.'
+        note: 'Wie viele Vorschlaege ihre aufgelegten Plaene angesehen bekommen. Ein Aufruf mit bis zu acht Bildern je Stueck (seit 30.09.2026 auf dem Standardmodell, nicht mehr auf Opus) — hier bremst die Rechnung, nicht die Technik.'
       },
       schema: { default_value: 6 }
+    },
+    {
+      field: 'sichtungsmodell',
+      name: 'Modell der Sichtung',
+      type: 'string',
+      meta: {
+        width: 'half',
+        interface: 'input',
+        note: 'Nur fuer die Sichtung der Titelzeilen. Seit 30.09.2026 der Versuch mit claude-haiku-4-5-20251001 — leer heisst das Standardmodell. Vergleichen: die Bilanz des Tischs (uebernommen gegen abgelehnt) und «Gelerntes» → «Kosten».'
+      },
+      schema: { default_value: null }
     },
     {
       field: 'nachlauf',

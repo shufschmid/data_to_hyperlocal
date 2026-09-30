@@ -136,6 +136,11 @@
         "source": "src/hooks/entsorgung-termin/index.ts"
       },
       {
+        "type": "hook",
+        "name": "modellverbrauch",
+        "source": "src/hooks/modellverbrauch/index.ts"
+      },
+      {
         "type": "endpoint",
         "name": "dossier-process",
         "source": "src/endpoints/dossier-process/index.ts"

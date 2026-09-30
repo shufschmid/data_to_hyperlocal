@@ -241,10 +241,18 @@ describe('sichteMitteilungen', () => {
       fehler: null
     })
     const anfrage = send.mock.calls[0]?.[0]
-    // Ein abgeschnittenes Urteil kostet die GANZE Gemeinde ihre Sichtung —
-    // darum Luft, und zwar unter der Grenze, ab der der Aufruf streamt.
-    expect(anfrage?.max_tokens).toBe(8000)
-    const system = typeof anfrage?.system === 'string' ? anfrage.system : ''
+    // In Paketen, ohne Nachdenken, mit gecachtem Praefix (30.09.2026): der
+    // Etat deckt ein Paket, und ein abgeschnittenes kostet nur seine Zeilen.
+    expect(anfrage?.max_tokens).toBe(4000)
+    expect(anfrage?.thinking).toEqual({ type: 'disabled' })
+    const system = Array.isArray(anfrage?.system)
+      ? anfrage.system.map((b) => b.text).join('\n')
+      : (anfrage?.system ?? '')
+    expect(
+      Array.isArray(anfrage?.system) && anfrage.system[0]?.cache_control
+    ).toEqual({
+      type: 'ephemeral'
+    })
     const prompt = (anfrage?.messages[0]?.content as string) ?? ''
     expect(system).not.toContain('Aesch')
     expect(prompt).toContain('Gemeinde: Aesch')

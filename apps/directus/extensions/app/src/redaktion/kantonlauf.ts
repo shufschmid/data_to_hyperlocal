@@ -4,7 +4,12 @@
 // Services are injected as the small interfaces below, so everything here is
 // tested against stubs. No fetching — `shared/kanton/` hands items in.
 
-import { completeJson, type MessageSender } from '../shared/claude'
+import {
+  cacheableSystem,
+  completeJson,
+  type MessageSender
+} from '../shared/claude'
+import { pakete, SICHTUNG_AUFRUF, sichtungsFehlerText } from './sichtungspakete'
 import type { Heute } from '../shared/gemeindeseite/datum'
 import {
   behoerdeAusPfad,
@@ -234,47 +239,54 @@ export async function sichteKantonsmitteilungen(
 
   const weiterzureichen = new Map<string, NummerierteRegel>()
   let vorschlaege = 0
-  let sichtungsFehler: string | null = null
-  try {
-    const antwort = await completeJson<unknown>(
-      {
-        system: KANTON_SICHTUNG_SYSTEM_PROMPT,
-        prompt: buildKantonSichtungPrompt(
-          gemeinde.name,
-          zeilen,
-          lernDigest(signale.entscheide, LERN_FENSTER, signale.rahmen),
-          kontext.sichtungsregeln.text
-        ),
-        // The municipal desk's ceiling, for the same reason: a truncated
-        // answer costs the whole municipality its Sichtung.
-        maxTokens: 8000,
-        ...(kontext.model == null ? {} : { model: kontext.model }),
-        schema: SICHTUNG_SCHEMA
-      },
-      kontext.send
-    )
-    for (const urteil of parseSichtung(antwort, zeilen)) {
-      await kontext.mitteilungen.updateOne(urteil.id, {
-        vorschlag: urteil.vorschlag,
-        vorschlag_begruendung: urteil.begruendung
-      })
-      if (urteil.vorschlag) vorschlaege += 1
-      const regel = automatischeWeitergabe(
-        urteil,
-        kontext.sichtungsregeln.nummern,
-        kontext.regelzeilen
+  const digest = lernDigest(signale.entscheide, LERN_FENSTER, signale.rahmen)
+  // In packets (`sichtungspakete.ts`), like the municipal desk.
+  const alle = pakete(zeilen)
+  const fehlerPakete: string[] = []
+  for (const paket of alle) {
+    try {
+      const antwort = await completeJson<unknown>(
+        {
+          zweck: 'kanton:sichtung',
+          system: cacheableSystem(KANTON_SICHTUNG_SYSTEM_PROMPT),
+          prompt: buildKantonSichtungPrompt(
+            gemeinde.name,
+            paket,
+            digest,
+            kontext.sichtungsregeln.text
+          ),
+          ...SICHTUNG_AUFRUF,
+          ...(kontext.model == null ? {} : { model: kontext.model }),
+          schema: SICHTUNG_SCHEMA
+        },
+        kontext.send
       )
-      if (regel !== null) weiterzureichen.set(urteil.id, regel)
+      for (const urteil of parseSichtung(antwort, paket)) {
+        await kontext.mitteilungen.updateOne(urteil.id, {
+          vorschlag: urteil.vorschlag,
+          vorschlag_begruendung: urteil.begruendung
+        })
+        if (urteil.vorschlag) vorschlaege += 1
+        const regel = automatischeWeitergabe(
+          urteil,
+          kontext.sichtungsregeln.nummern,
+          kontext.regelzeilen
+        )
+        if (regel !== null) weiterzureichen.set(urteil.id, regel)
+      }
+    } catch (fehler) {
+      // `vorschlag` stays null: "not judged", which the desk shows as such —
+      // and the run says so.
+      kontext.logger.warn(
+        fehler,
+        `kanton: Sichtung fuer ${gemeinde.name} fehlgeschlagen.`
+      )
+      fehlerPakete.push(
+        fehler instanceof Error ? fehler.message : String(fehler)
+      )
     }
-  } catch (fehler) {
-    // `vorschlag` stays null: "not judged", which the desk shows as such —
-    // and the run says so.
-    kontext.logger.warn(
-      fehler,
-      `kanton: Sichtung fuer ${gemeinde.name} fehlgeschlagen.`
-    )
-    sichtungsFehler = fehler instanceof Error ? fehler.message : String(fehler)
   }
+  const sichtungsFehler = sichtungsFehlerText(fehlerPakete, alle.length)
 
   let weitergereicht = 0
   for (const [zeileId, regel] of weiterzureichen) {

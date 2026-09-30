@@ -9,7 +9,11 @@ import {
   completeText,
   extractJson,
   joinTextBlocks,
-  type MessageSender
+  registriereVerbrauch,
+  tischVon,
+  verbrauchAus,
+  type MessageSender,
+  type Modellaufruf
 } from './claude'
 
 function message(
@@ -205,5 +209,105 @@ describe('completeJson', () => {
     await expect(
       completeJson({ prompt: 'frage' }, send)
     ).rejects.toBeInstanceOf(ClaudeFormatError)
+  })
+})
+
+// Seit 30.09.2026 zeichnet der Client jeden Aufruf auf — was die Antwort
+// gekostet hat, unter welchem Zweck, und ob sie abgebrochen wurde oder der
+// Aufruf scheiterte. Ohne registrierten Schreiber bleibt alles still.
+describe('Verbrauch', () => {
+  it('meldet Zweck, Modell und Tokens einer vollstaendigen Antwort', async () => {
+    const eintraege: Modellaufruf[] = []
+    registriereVerbrauch(async (e) => {
+      eintraege.push(e)
+    })
+    try {
+      const sender = vi.fn<MessageSender>().mockResolvedValue({
+        ...message('{"ok": true}'),
+        usage: {
+          input_tokens: 120,
+          output_tokens: 30,
+          cache_read_input_tokens: 1000,
+          cache_creation_input_tokens: 0
+        }
+      } as unknown as Anthropic.Message)
+      await completeJson(
+        { prompt: 'x', zweck: 'veranstaltungen:sichtung' },
+        sender
+      )
+      await new Promise((r) => setTimeout(r, 0))
+      expect(eintraege).toHaveLength(1)
+      expect(eintraege[0]).toMatchObject({
+        zweck: 'veranstaltungen:sichtung',
+        modell: 'claude-sonnet-5',
+        eingabe_tokens: 120,
+        ausgabe_tokens: 30,
+        cache_gelesen_tokens: 1000,
+        cache_geschrieben_tokens: 0,
+        abgebrochen: false,
+        fehler: null
+      })
+    } finally {
+      registriereVerbrauch(null)
+    }
+  })
+
+  it('zaehlt eine abgebrochene Antwort und einen gescheiterten Aufruf — und wirft trotzdem', async () => {
+    const eintraege: Modellaufruf[] = []
+    registriereVerbrauch(async (e) => {
+      eintraege.push(e)
+    })
+    try {
+      const abgebrochen = vi
+        .fn<MessageSender>()
+        .mockResolvedValue(message('{"halb', 'max_tokens'))
+      await expect(
+        completeText({ prompt: 'x', maxTokens: 50 }, abgebrochen)
+      ).rejects.toThrow(ClaudeTruncatedError)
+      const kaputt = vi
+        .fn<MessageSender>()
+        .mockRejectedValue(new Error('overloaded'))
+      await expect(
+        completeText({ prompt: 'x', zweck: 'lernen:wissen' }, kaputt)
+      ).rejects.toThrow('overloaded')
+      await new Promise((r) => setTimeout(r, 0))
+      expect(eintraege.map((e) => [e.zweck, e.abgebrochen, e.fehler])).toEqual([
+        ['unbekannt', true, null],
+        ['lernen:wissen', false, 'overloaded']
+      ])
+    } finally {
+      registriereVerbrauch(null)
+    }
+  })
+
+  it('ein Schreiber, der scheitert, kostet den Aufruf nichts', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    registriereVerbrauch(async () => {
+      throw new Error('Datenbank weg')
+    })
+    try {
+      const sender = vi.fn<MessageSender>().mockResolvedValue(message('ok'))
+      await expect(completeText({ prompt: 'x' }, sender)).resolves.toBe('ok')
+      await new Promise((r) => setTimeout(r, 0))
+      expect(warn).toHaveBeenCalled()
+    } finally {
+      registriereVerbrauch(null)
+      warn.mockRestore()
+    }
+  })
+
+  it('tischVon nimmt den Teil vor dem Doppelpunkt, verbrauchAus nullt Fehlendes', () => {
+    expect(tischVon('amtsblatt:meldung:nachfassen')).toBe('amtsblatt')
+    expect(tischVon('unbekannt')).toBe('unbekannt')
+    expect(verbrauchAus(null)).toEqual({
+      eingabe_tokens: 0,
+      ausgabe_tokens: 0,
+      cache_gelesen_tokens: 0,
+      cache_geschrieben_tokens: 0
+    })
+    expect(verbrauchAus({ input_tokens: 5 })).toMatchObject({
+      eingabe_tokens: 5,
+      ausgabe_tokens: 0
+    })
   })
 })

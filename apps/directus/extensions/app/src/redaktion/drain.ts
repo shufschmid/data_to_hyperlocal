@@ -415,6 +415,7 @@ async function erstelleBriefing(
 
   const antwort = await completeJson<unknown>(
     {
+      zweck: 'statistik:briefing',
       system: BRIEFING_SYSTEM_PROMPT,
       prompt: buildBriefingPrompt({
         datensatzTitel: datensatz.titel,
@@ -990,6 +991,7 @@ async function schreibeMeldung(
   let artikel = parseArtikel(
     await completeJson<unknown>(
       {
+        zweck: 'statistik:artikel',
         system,
         prompt: buildArtikelUserPrompt(eingabe),
         ...aufruf,
@@ -1078,6 +1080,7 @@ async function schreibeMeldung(
     artikel = parseArtikel(
       await completeJson<unknown>(
         {
+          zweck: 'statistik:artikel:korrektur',
           system,
           prompt: buildArtikelUserPrompt({ ...eingabe, korrektur }),
           ...aufruf,
