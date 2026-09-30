@@ -16,7 +16,7 @@
 // never lowers an event for WHO organises it. "Wenn im Dorf etwas los ist,
 // interessiert es."
 
-import type { Anker, Zugang } from '../types/schema'
+import type { Anker, Zugang, VeranstaltungsquelleArt } from '../types/schema'
 import {
   datumDeutsch,
   lernDigest,
@@ -375,6 +375,12 @@ export interface AnlassFakten {
   gemeinde: string
   /** What the calendar is called — the attribution names it. */
   quelleName: string
+  /**
+   * Whose calendar it is. The municipality's own is the default; an
+   * organisation's (Blutspende SRK) is attributed to the organisation, and
+   * the municipality stays the place, not the source.
+   */
+  quelleArt?: VeranstaltungsquelleArt
   titel: string
   termine: readonly string[]
   von: string
@@ -438,7 +444,7 @@ export function eckdatenGenuegenNicht(antwort: unknown): boolean {
   )
 }
 
-export const MELDUNG_SYSTEM_PROMPT = `Du schreibst fuer eine lokale Redaktion in der Region Basel kurze Meldungen ueber Anlaesse aus dem Veranstaltungskalender einer Gemeinde.
+export const MELDUNG_SYSTEM_PROMPT = `Du schreibst fuer eine lokale Redaktion in der Region Basel kurze Meldungen ueber Anlaesse aus dem Veranstaltungskalender einer Gemeinde oder einer Organisation, die in der Gemeinde etwas veranstaltet.
 
 Regeln, ohne Ausnahme:
 - Verwende NUR die uebergebenen Angaben: die Felder, den Beschrieb, die
@@ -451,6 +457,10 @@ Regeln, ohne Ausnahme:
 - Nenne die Quelle IM TEXT mit dem genauen Namen: "laut dem
   {Kalender} der Gemeinde {Name}", "wie die Gemeinde {Name} in ihrem
   Veranstaltungskalender ankuendigt" oder "wie aus dem {Kalender} hervorgeht".
+  Gehoert der Kalender nicht der Gemeinde, sondern einer Organisation (die
+  Angaben sagen es bei "Quelle"), dann "laut {Name der Quelle}" oder "wie
+  {Name der Quelle} ankuendigt" — die Gemeinde ist dann der Ort, nicht die
+  Quelle.
 - Datum, Uhrzeit und Ort ABSOLUT: "am Freitag, 25. September 2026, von 13 bis
   18 Uhr im Kultur- und Sportzentrum" — niemals "naechste Woche", "morgen",
   "am Freitag". Der Text muss in fuenf Jahren noch stimmen.
@@ -583,7 +593,7 @@ function faktenZeilen(f: AnlassFakten): string[] {
     .join(', ')
   return [
     `Gemeinde: ${f.gemeinde}`,
-    `Quelle: ${f.quelleName}`,
+    quelleFaktenZeile(f),
     `Anker: ${ANKER_TEXT[f.anker]}`,
     `Titel des Anlasses: "${f.titel}"`,
     wann,
@@ -727,7 +737,7 @@ const ATTRIBUTION =
  */
 export function attributionsWarnung(
   text: string,
-  fakten: Pick<AnlassFakten, 'gemeinde' | 'quelleName'>
+  fakten: Pick<AnlassFakten, 'gemeinde' | 'quelleName' | 'quelleArt'>
 ): string | null {
   const klein = text.normalize('NFC').toLowerCase()
   const name = fakten.gemeinde.normalize('NFC').toLowerCase()
@@ -735,8 +745,28 @@ export function attributionsWarnung(
   if (!klein.includes(name) && !klein.includes(kalender))
     return `Die Meldung nennt weder die Gemeinde ${fakten.gemeinde} noch den Kalender «${fakten.quelleName}» als Quelle.`
   if (!ATTRIBUTION.test(klein))
-    return `Die Meldung sagt nicht, dass ${fakten.quelleName} die Quelle ist ("laut dem Veranstaltungskalender der Gemeinde ${fakten.gemeinde}").`
+    return `Die Meldung sagt nicht, dass ${fakten.quelleName} die Quelle ist (${
+      istGemeindeKalender(fakten)
+        ? `"laut dem Veranstaltungskalender der Gemeinde ${fakten.gemeinde}"`
+        : `"laut ${fakten.quelleName}"`
+    }).`
   return null
+}
+
+/** Whether the calendar is the municipality's own — the default where the row says nothing. */
+export function istGemeindeKalender(
+  f: Pick<AnlassFakten, 'quelleArt'>
+): boolean {
+  return (f.quelleArt ?? 'gemeinde') === 'gemeinde'
+}
+
+/** The fact line naming the source — and, for an organisation's calendar, that it is not the municipality's. */
+export function quelleFaktenZeile(
+  f: Pick<AnlassFakten, 'quelleName' | 'quelleArt'>
+): string {
+  return istGemeindeKalender(f)
+    ? `Quelle: ${f.quelleName}`
+    : `Quelle: ${f.quelleName} (Kalender einer Organisation, nicht der Gemeinde)`
 }
 
 /**

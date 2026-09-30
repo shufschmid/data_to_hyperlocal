@@ -328,8 +328,17 @@ describe('GemeindenAuswahl', () => {
             name: 'Crossiety Aesch',
             url: 'https://crossiety.app/dorfplatz/aesch/agenda',
             art: 'plattform',
+            plattform: null,
             aktiv: false,
             letzte_pruefung: null
+          }),
+          kalenderquelle({
+            id: 'q3',
+            name: 'Blutspende SRK Schweiz',
+            url: 'https://www.blutspende.ch/de/blutspendetermine/terminliste?location_search_form%5Bradius%5D=0&location_search_form%5Bterm%5D=4147',
+            art: 'organisation',
+            plattform: 'blutspende_termine',
+            letzter_hinweis: 'Der Kalender nennt zurzeit keinen Termin für diese Postleitzahl.'
           })
         ]}
         onUmschalten={jest.fn()}
@@ -341,7 +350,12 @@ describe('GemeindenAuswahl', () => {
       'https://www.aesch.bl.ch/anlaesseaktuelles'
     )
     expect(screen.getByRole('link', { name: 'Crossiety Aesch' })).toBeInTheDocument()
-    expect(screen.getByText('noch kein Leser')).toBeInTheDocument()
+    // Genau EIN Chip: die Plattform ohne Vorlage. Die Organisation mit
+    // erkannter Vorlage wird gelesen wie der Kalender der Gemeinde.
+    expect(screen.getAllByText('noch kein Leser')).toHaveLength(1)
+    expect(screen.getByRole('link', { name: 'Blutspende SRK Schweiz' })).toBeInTheDocument()
+    // Eine Postleitzahl ohne Termin ist eine Antwort, keine Stoerung: blau, mit Satz.
+    expect(screen.getByText(/keinen Termin für diese Postleitzahl/)).toBeInTheDocument()
     expect(screen.getByText(/Zuletzt gelesen/)).toBeInTheDocument()
   })
 

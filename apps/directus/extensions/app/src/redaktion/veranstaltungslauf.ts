@@ -27,6 +27,7 @@ import {
   type GeleseneAnlass
 } from '../shared/veranstaltung'
 import { leitetAufUebersicht } from '../shared/gemeindeseite/url'
+import { nurEckdatenVorlage } from '../shared/gemeindeseite/erkennung'
 import { verschiebe } from './feiertage'
 import type { RegelZeile } from './gedaechtnis'
 import { automatischeWeitergabe, type NummerierteRegel } from './lernen'
@@ -187,12 +188,33 @@ const NEU_OEFFNENDE: ReadonlySet<Anker> = new Set<Anker>([
   'frist'
 ])
 
+/**
+ * The grade CODE gives a row of an Eckdaten template, without a Sichtung.
+ *
+ * A Blutspende is graded 4 because the newsroom decided it on 30 September
+ * 2026 — three appearances, two weeks ahead — and a model asked the same
+ * question could only answer 2 or 3 and put the row on the desk too late for
+ * the first of them. The grade-4 lead is the desk's dial
+ * (`tischeinstellungen.vorlauf[4]`, 30 days by default); below about sixteen
+ * days it costs the first appearance. `sichtungsKandidat` skips a graded row,
+ * so no model call is spent on it.
+ */
+export const KODIERTE_STUFE = 4
+export const KODIERTE_BEGRUENDUNG =
+  'Blutspende: drei Aufrufe nach Regel der Redaktion, ohne Sichtung.'
+
+export function kodierteStufe(plattform: string | null): number | null {
+  return nurEckdatenVorlage(plattform) ? KODIERTE_STUFE : null
+}
+
 export interface GeschriebenerAnlass {
   id: string
   anlass: Anlass
   befund: AnkerBefund
   /** The stored row before this run, or null when the row was created now. */
   vorher: BekannteZeile | null
+  /** The grade the row carries after this run — the stored one, else the one code gave it now. */
+  vorschlagWert?: number | null
 }
 
 /**
@@ -218,6 +240,7 @@ export async function schreibeAnlaesse(
 ): Promise<{ geschrieben: GeschriebenerAnlass[]; abfuhren: number }> {
   const geschrieben: GeschriebenerAnlass[] = []
   let abfuhren = 0
+  const stufe = kodierteStufe(quelle.plattform)
   for (const anlass of gruppen) {
     const vorher = bekannt.get(anlass.schluessel) ?? null
     const befund = berechneAnker(
@@ -297,9 +320,23 @@ export async function schreibeAnlaesse(
           ort_ausserhalb: ortAusserhalb(anlass.ort, quelle.gemeinde.name),
           plattform: quelle.plattform,
           hinweise,
-          entscheid: 'offen'
+          entscheid: 'offen',
+          // The grade of an Eckdaten template is code's; the threshold and
+          // the lead are applied by `gleicheAnlassSchwelleAb` like any grade.
+          ...(stufe === null
+            ? {}
+            : {
+                vorschlag_wert: stufe,
+                vorschlag_begruendung: KODIERTE_BEGRUENDUNG
+              })
         })) as string
-        geschrieben.push({ id, anlass, befund, vorher: null })
+        geschrieben.push({
+          id,
+          anlass,
+          befund,
+          vorher: null,
+          vorschlagWert: stufe
+        })
         continue
       }
 
@@ -328,7 +365,13 @@ export async function schreibeAnlaesse(
           ? { entscheid: 'offen', vorschlag: null, vorschlag_begruendung: null }
           : {})
       })
-      geschrieben.push({ id: vorher.id, anlass, befund, vorher })
+      geschrieben.push({
+        id: vorher.id,
+        anlass,
+        befund,
+        vorher,
+        vorschlagWert: vorher.vorschlag_wert ?? stufe
+      })
     } catch (fehler) {
       logger.warn(
         fehler,
@@ -389,7 +432,7 @@ export function brauchtDetail(
   // an ungraded row at the desk's normal lead.
   return imVorlauf(
     g.befund.ankerAm,
-    g.vorher?.vorschlag_wert ?? null,
+    g.vorher?.vorschlag_wert ?? g.vorschlagWert ?? null,
     heute,
     einstellung
   )

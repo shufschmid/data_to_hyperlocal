@@ -19,8 +19,14 @@ export type Plattform =
   | 'iweb_termine'
   | 'backslash_termine'
   | 'drupal_termine'
+  | 'blutspende_termine'
 
-export type DetailFamilie = 'weblication' | 'iweb' | 'backslash' | 'drupal'
+export type DetailFamilie =
+  | 'weblication'
+  | 'iweb'
+  | 'backslash'
+  | 'drupal'
+  | 'blutspende'
 
 /**
  * Vorlagen, deren Liste NICHT im HTML steht, sondern hinter einer Datentuer.
@@ -39,6 +45,37 @@ export function ueberDatentuer(plattform: Plattform): boolean {
 }
 
 /**
+ * Vorlagen, deren Seiten NUR ECKDATEN tragen — keinen Beschrieb.
+ *
+ * Die Terminliste von blutspende.ch (gemessen 30.09.2026) nennt je Termin
+ * Tag, Zeit, Ort und den Blutspendedienst, sonst nichts: es gibt keine
+ * Einladung, aus der sich schreiben liesse. Was daraus folgt, entscheidet
+ * der Code an dieser Menge und nie an einem Host: kein generischer Fallback
+ * beim Lesen der Seite (der machte die ganze Seite zum Beschrieb), eine
+ * leere Liste ist eine gueltige Antwort (eine Postleitzahl ohne Termin), die
+ * Stufe steht fest, weil die Redaktion sie entschieden hat, und der Termin
+ * der Meldung ist eine Regel des Codes (`planeDreiAufrufe`).
+ */
+const ECKDATEN_VORLAGEN: ReadonlySet<Plattform> = new Set<Plattform>([
+  'blutspende_termine'
+])
+
+export function nurEckdatenVorlage(
+  plattform: string | null | undefined
+): boolean {
+  return (
+    plattform !== null &&
+    plattform !== undefined &&
+    ECKDATEN_VORLAGEN.has(plattform as Plattform)
+  )
+}
+
+/** Dieselbe Frage fuer die Detail-Familie: traegt ihre Seite je einen Beschrieb? */
+export function familieOhneBeschrieb(familie: DetailFamilie): boolean {
+  return familie === 'blutspende'
+}
+
+/**
  * What a list is ABOUT — and the one thing that really separates the two.
  *
  * A news item is past, an event lies ahead, so the window that keeps the
@@ -51,7 +88,8 @@ const TERMIN_VORLAGEN: ReadonlySet<Plattform> = new Set<Plattform>([
   'weblication_termine',
   'iweb_termine',
   'backslash_termine',
-  'drupal_termine'
+  'drupal_termine',
+  'blutspende_termine'
 ])
 
 export function listenArt(plattform: Plattform): Seitenart {
@@ -90,6 +128,16 @@ function erkenneTerminliste(html: string): Plattform | null {
   if (/component(?:EventList|EventCalendar)\s*\(/i.test(html)) {
     return 'drupal_termine'
   }
+  // Die Terminliste von blutspende.ch: die Suche nach Postleitzahl antwortet
+  // mit dem Container der mobilen Termine und traegt ihr eigenes Suchformular
+  // — auch dann, wenn sie fuer die Postleitzahl nichts fand. Erkannt wird
+  // die Seite, nicht der Host.
+  if (
+    /\bid="mobile_venue_appointments"/i.test(html) &&
+    /location_search_form/i.test(html)
+  ) {
+    return 'blutspende_termine'
+  }
   return null
 }
 
@@ -125,6 +173,7 @@ export function detailFamilie(plattform: Plattform): DetailFamilie {
   if (plattform === 'weblication_termine') return 'weblication'
   if (plattform === 'backslash_termine') return 'backslash'
   if (plattform === 'drupal_termine') return 'drupal'
+  if (plattform === 'blutspende_termine') return 'blutspende'
   return plattform
 }
 

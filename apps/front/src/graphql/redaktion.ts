@@ -1726,7 +1726,7 @@ export interface VeranstaltungsquelleFelder {
   id: string
   name: string
   url: string
-  /** `gemeinde` | `plattform` | `ort` — nur die erste hat heute einen Leser. */
+  /** `gemeinde` | `plattform` | `ort` | `organisation` — gelesen wird, was ein Leser erkennt. */
   art: string
   /** Die im HTML erkannte Vorlage — Auskunft, kein Schalter. */
   plattform: string | null

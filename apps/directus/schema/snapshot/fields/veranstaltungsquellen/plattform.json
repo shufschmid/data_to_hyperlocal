@@ -11,7 +11,7 @@
     "group": null,
     "hidden": false,
     "interface": "input",
-    "note": "Aus dem HTML erkannte Vorlage (weblication_termine, iweb_termine, backslash_termine). Vom Lauf gestempelt, nur zur Auskunft.",
+    "note": "Aus dem HTML erkannte Vorlage (weblication_termine, iweb_termine, backslash_termine, drupal_termine, blutspende_termine). Vom Lauf gestempelt, nur zur Auskunft; null heisst: noch kein Leser hat diese Seite erkannt.",
     "options": null,
     "readonly": false,
     "required": false,

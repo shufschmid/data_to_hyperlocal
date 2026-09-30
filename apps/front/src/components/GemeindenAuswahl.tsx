@@ -519,7 +519,9 @@ function GemeindeKarte({
             Gemeindekalender. Eine Spalte auf `gemeinden` haette dafuer nie
             gereicht. Plattformen und Veranstaltungsorte duerfen erfasst
             werden, bevor es einen Leser fuer sie gibt — die Zeile steht dann
-            inaktiv da und sagt warum. */}
+            inaktiv da und sagt warum. Eine Organisation (Blutspende SRK seit
+            30.09.2026) wird ueber ihre PLZ-Suche gelesen wie ein Kalender der
+            Gemeinde. */}
         <Abschnitt titel="Veranstaltungskalender">
           {quellen.length === 0 ? (
             <Alert severity="info" sx={{ py: 0 }}>
@@ -534,7 +536,7 @@ function GemeindeKarte({
                       {quelle.name}
                     </Link>
                     {!quelle.aktiv && <Chip size="small" variant="outlined" label="ausgeschaltet" />}
-                    {quelle.art !== 'gemeinde' && (
+                    {quelle.art !== 'gemeinde' && quelle.plattform === null && !quelle.aktiv && (
                       <Chip size="small" variant="outlined" label="noch kein Leser" />
                     )}
                     {onKalenderSchalten !== undefined && (
@@ -601,6 +603,7 @@ function GemeindeKarte({
                 <MenuItem value="gemeinde">Kalender der Gemeinde</MenuItem>
                 <MenuItem value="plattform">Plattform</MenuItem>
                 <MenuItem value="ort">Veranstaltungsort</MenuItem>
+                <MenuItem value="organisation">Organisation (PLZ-Suche)</MenuItem>
               </TextField>
               <TextField
                 size="small"
@@ -640,7 +643,7 @@ function GemeindeKarte({
             <Alert severity="warning" sx={{ mt: 1, py: 0 }} onClose={() => setKalenderProblem(null)}>
               {kalenderProblem}
               {kalenderArt === 'gemeinde' &&
-                ' Liegt der Kalender auf einer eigenen Adresse (eine Plattform oder ein Veranstaltungsort), wähle die passende Art — er wird dann erfasst und ruht, bis es einen Leser dafür gibt.'}
+                ' Liegt der Kalender auf einer eigenen Adresse (eine Plattform, ein Veranstaltungsort oder die PLZ-Suche einer Organisation), wähle die passende Art — erkennt ein Leser die Seite, wird sie gelesen, sonst ruht die Zeile und sagt warum.'}
             </Alert>
           )}
         </Abschnitt>

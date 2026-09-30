@@ -701,7 +701,8 @@ export function parseListe(
       )
     },
     iweb_termine: parseIwebTermine,
-    backslash_termine: parseBackslashTermine
+    backslash_termine: parseBackslashTermine,
+    blutspende_termine: parseBlutspendeTermine
   }
   const roh = parser[plattform](html, seiteUrl, heute)
 
@@ -720,5 +721,87 @@ export function parseListe(
   ) {
     return eintraege.map((e) => ({ ...e, datum: null, datumQuelle: null }))
   }
+  return eintraege
+}
+
+// --- blutspende.ch -----------------------------------------------------------
+
+/** Der Satz, mit dem die Terminliste von blutspende.ch eine leere Suche beantwortet. */
+export function leereBlutspendeListe(html: string): boolean {
+  return /Ihre Suche ergab leider keine Treffer/i.test(html)
+}
+
+/** "4147 Aesch" → Postleitzahl und Ort; null, wo die Zeile nicht so aussieht. */
+export function plzOrt(text: string): { plz: string; ort: string } | null {
+  const treffer = /^(\d{4})\s+(.+)$/.exec(text.trim())
+  if (treffer === null) return null
+  return { plz: treffer[1] ?? '', ort: (treffer[2] ?? '').trim() }
+}
+
+/**
+ * blutspende.ch, die Terminliste einer Suche nach Postleitzahl (gemessen
+ * 30.09.2026): ein `li.blutspendetermine` je Termin mit „4147 Aesch" im
+ * versteckten Titel, dem Datum, der Art („Blutspende"), dem Lokal, der Zeit
+ * und dem Link auf die Seite des Termins. Jeder Termin ist ein Anlass fuer
+ * sich — die Kennung seiner Seite ist seine Serie —, denn die Blutspende im
+ * Januar und die im September sind zwei Meldungen mit je drei Aufrufen, nicht
+ * eine Serie mit zwei Daten.
+ *
+ * Eine Liste ohne Eintrag ist nur dann eine Antwort, wenn die Seite selbst
+ * „keine Treffer" sagt (eine Postleitzahl ohne Termin); sonst hat sich der
+ * Seitenaufbau geaendert, und das ist ein lauter Fehler, nie „nichts los".
+ */
+export function parseBlutspendeTermine(
+  html: string,
+  seiteUrl: string,
+  heute: Heute
+): ListenEintrag[] {
+  const eintraege: ListenEintrag[] = []
+  const muster =
+    /<li\b[^>]*\bclass="[^"]*\bblutspendetermine\b[^"]*"[^>]*>([\s\S]*?)<\/li\s*>/gi
+  for (const treffer of html.matchAll(muster)) {
+    const li = treffer[1] ?? ''
+    const href = ersterAnker(li)?.href ?? null
+    const ort = plzOrt(
+      reinerText(klassenElement(li, 'visually-hidden', 'h3') ?? '')
+    )
+    const typ =
+      oderNull(reinerText(klassenElement(li, 'type', 'p') ?? '')) ??
+      'Blutspende'
+    const ortName = ort?.ort ?? ''
+    const lokal = klassenElement(
+      klassenElement(li, 'location', 'div') ?? '',
+      'mb-0',
+      'p'
+    )
+    const serie =
+      href === null ? null : (/\/termin\/([^/?#]+)/i.exec(href)?.[1] ?? null)
+    const e = eintrag(
+      href,
+      ortName === '' ? typ : `${typ} in ${ortName}`,
+      {
+        teaser: null,
+        datum: null,
+        datumQuelle: null,
+        kategorie: typ,
+        veranstaltungAm: parseDatum(
+          reinerText(klassenElement(li, 'date', 'p') ?? ''),
+          heute
+        ),
+        zeit: zeitText(
+          reinerText(klassenElement(li, 'font-weight-bold', 'div') ?? '')
+        ),
+        lokalitaet: lokal === null ? null : oderNull(reinerText(lokal)),
+        ort: ortName === '' ? null : ortName,
+        serie
+      },
+      seiteUrl
+    )
+    if (e !== null) eintraege.push(e)
+  }
+  if (eintraege.length === 0 && !leereBlutspendeListe(html))
+    throw new Error(
+      'Terminliste erkannt, aber weder Eintraege noch die Meldung «keine Treffer» gefunden — hat sich der Seitenaufbau geaendert?'
+    )
   return eintraege
 }

@@ -105,7 +105,12 @@ field is still empty), `20260917B-suedanflug.mts` (the composite unique
 **inactive**), `20260918B-abstimmungsdatensatz.mts` (which dataset the
 data.bl.ch row carries its vote results in — one key in `konfiguration`, written
 only where it is absent, with a real `down`), `20260929B-tischeinstellungen.mts` (the two settings rows of the grading
-desks, seeded with the code's standard, insert-only), `20260929A-kanton.mts` (the
+desks, seeded with the code's standard, insert-only), `20260930A-blutspende.mts`
+(ten `veranstaltungsquellen` rows, `art: organisation`, one per covered
+municipality with its POSTCODE in the blutspende.ch search address — seeded
+ACTIVE because the newsroom asked for exactly these, `plattform` stamped so the
+card does not read „noch kein Leser" before the first run, `down` throws),
+`20260929A-kanton.mts` (the
 composite unique `(url, gemeinde)` on `kantonsmitteilungen` — one notice is one
 row per municipality it names, so `url` alone is NOT unique — plus the partial
 unique on `meldungen.kantonsmitteilung`, and the `quellen` row `typ: kanton`
@@ -431,12 +436,17 @@ Endpoints of the learning layer, all in `src/endpoints/redaktion/`:
   and `POST /redaktion/veranstaltungsquellen/:id/loeschen` — the calendars a
   municipality reads, a LIST rather than a column
   (`endpoints/redaktion/veranstaltungsquelle.ts`). The same handshake as the
-  news address: the page is read before the row is written, and `art: gemeinde`
-  must parse as an events overview. A `plattform` or an `ort` (Crossiety, the
-  Z7) may be registered although nothing can read it yet — the row is forced
-  `aktiv: false` and says so, so the newsroom's list of calendars is complete
-  before its readers are. Editing takes only the switch and the name; deleting
-  is a POST verb because the frontend proxy forwards GET and POST only.
+  news address: the page is read before the row is written, whatever its
+  `art`, and the TEMPLATE decides whether a reader exists — since 30
+  September 2026 an `organisation` (Blutspende SRK's postcode search on
+  blutspende.ch, family `blutspende_termine`) is read like the municipality's
+  own calendar. A `plattform` or an `ort` (Crossiety, the Z7) whose page no
+  reader recognises may still be registered — the row is created
+  `aktiv: false` with the reason in `letzter_hinweis`, so the newsroom's list
+  of calendars is complete before its readers are; only `art: gemeinde`
+  refuses outright, because there an unreadable page is a wrong address.
+  Editing takes only the switch and the name; deleting is a POST verb because
+  the frontend proxy forwards GET and POST only.
 - `POST /redaktion/suedanflug/:id/meldung` — the south-approach article, ONE
   model call per municipality: the month's row in the path, the municipality in
   the body (`{gemeinde}`), because one sheet yields one article per affected
@@ -524,6 +534,22 @@ into the writer's user turn. It deliberately does NOT go through
 importance is a `text`-level judgement. A standing rule is typed by hand in
 „Gelerntes" with `stufe: text` until the flips are numerous enough to justify
 a learner of their own.
+
+**A Blutspende is the one termin the newsroom fixed as a RULE** (30 September
+2026): `planeDreiAufrufe` in `redaktion/termin.ts` — two weeks before the day
+(the same weekday, else the reading day before), the Monday of the event's week
+(a holiday moves it to the next reading day, a Monday event to the reading day
+before) and the day itself, where the END time decides against the 10:00
+reading time (a 17–20 h donation → the day; a Saturday or an unknown time →
+the reading day before). Exactly three, no „sofort": the article is stored
+with `wichtig: null` and `wichtig_vorschlag: null`, which is what keeps it out
+of `ladeWichtigkeitSignale` — a `false` would teach the writer that blood
+donations are unimportant desk-wide. Days already past when the article is
+written are dropped. The route picks the rule by the row's template
+(`nurEckdatenVorlage`), never by a host; the row itself is graded 4 by code in
+`schreibeAnlaesse` (`kodierteStufe`), so the desk's grade-4 lead (30 days by
+default) puts it forward in time for the first appearance, and no Sichtung
+call is spent on it.
 
 ## Environment variables
 

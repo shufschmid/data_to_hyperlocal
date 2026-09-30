@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest'
 import {
   apiTermin,
   AUFTRITTE_MAX,
+  endZeitVon,
+  lesetagAufOderVor,
   naechsterLesetag,
+  planeDreiAufrufe,
   planeAnlassTermin,
   planeAuftritte,
   planeMitteilungTermin,
@@ -318,5 +321,91 @@ describe('apiTermin — was der Dorfkoenig bekommt', () => {
       auftritte: ['2026-10-17']
     })
     expect(apiTermin(null, true, '2026-09-24T10:00:00Z')).toBeNull()
+  })
+})
+
+// Die Regel der Redaktion vom 30. September 2026 fuer eine Blutspende: zwei
+// Wochen vor dem Termin, in der Woche des Termins (der Montag), am Tag des
+// Termins — genau drei, kein „sofort". Jeder Tag ein Lesetag, gerechnet vom
+// Code. Die Beispiele sind die Termine von blutspende.ch.
+describe('planeDreiAufrufe — die drei Aufrufe einer Blutspende', () => {
+  it('Aesch, Dienstag 26. Januar 2027, 17–20 Uhr: −14, Montag der Woche, der Tag', () => {
+    expect(planeDreiAufrufe('2027-01-26', '17:00–20:00', '2026-12-01')).toEqual(
+      {
+        ideal: '2027-01-26',
+        ende: '2027-01-26',
+        auftritte: ['2027-01-12', '2027-01-25', '2027-01-26']
+      }
+    )
+  })
+
+  it('Muenchenstein, Dienstag 27. Oktober 2026 — was die Karte zeigen wird', () => {
+    expect(
+      planeDreiAufrufe('2026-10-27', '15:00–19:30', '2026-09-30')?.auftritte
+    ).toEqual(['2026-10-13', '2026-10-26', '2026-10-27'])
+  })
+
+  // Ein Montagstermin: der Wochen-Aufruf faellt auf den Tag selbst und rueckt
+  // auf den Lesetag davor, den Freitag.
+  it('Pratteln, Montag 14. Dezember 2026: der Wochen-Aufruf rueckt auf den Freitag davor', () => {
+    expect(
+      planeDreiAufrufe('2026-12-14', '16:30–19:30', '2026-11-01')?.auftritte
+    ).toEqual(['2026-11-30', '2026-12-11', '2026-12-14'])
+  })
+
+  // Ein Samstag ist kein Lesetag: „am Tag" wird der Freitag davor, und auch
+  // die zwei Wochen davor landen auf einem Freitag.
+  it('ein Samstag, 10–13 Uhr: alle drei Aufrufe auf Lesetagen', () => {
+    expect(
+      planeDreiAufrufe('2026-10-10', '10:00–13:00', '2026-09-01')?.auftritte
+    ).toEqual(['2026-09-25', '2026-10-05', '2026-10-09'])
+  })
+
+  // Ostermontag 2027 ist der 29. Maerz. Der Montag der Woche ist ein Feiertag,
+  // der naechste Lesetag waere der Termin selbst — also der Lesetag davor,
+  // und der liegt vor Karfreitag: Donnerstag, 25. Maerz.
+  it('ein Feiertag am Montag: der Wochen-Aufruf weicht auf den Lesetag davor aus', () => {
+    expect(
+      planeDreiAufrufe('2027-03-30', '17:00–20:00', '2027-03-01')?.auftritte
+    ).toEqual(['2027-03-16', '2027-03-25', '2027-03-30'])
+  })
+
+  // Ohne Endzeit ist die sichere Seite der Lesetag davor: das Briefing ist um
+  // zehn gelesen, und eine Spende am Vormittag waere dann vorbei.
+  it('ohne Uhrzeit rueckt „am Tag" auf den Lesetag davor', () => {
+    expect(
+      planeDreiAufrufe('2027-01-26', null, '2026-12-01')?.auftritte
+    ).toEqual(['2027-01-12', '2027-01-22', '2027-01-25'])
+    expect(endZeitVon('17:00–20:00')).toBe('20:00')
+    expect(endZeitVon('9:00')).toBe('09:00')
+    expect(endZeitVon('abends')).toBeNull()
+    expect(endZeitVon(null)).toBeNull()
+  })
+
+  it('was schon vorbei ist, faellt weg — eine spaet uebernommene Zeile bekommt weniger', () => {
+    expect(
+      planeDreiAufrufe('2027-01-26', '17:00–20:00', '2027-01-20')?.auftritte
+    ).toEqual(['2027-01-25', '2027-01-26'])
+    expect(
+      planeDreiAufrufe('2027-01-26', '17:00–20:00', '2027-01-27')?.auftritte
+    ).toEqual([])
+    expect(planeDreiAufrufe('kein Datum', null, '2027-01-01')).toBeNull()
+  })
+
+  it('lesetagAufOderVor: ein Lesetag bleibt, ein Wochenende rueckt auf den Freitag', () => {
+    expect(lesetagAufOderVor('2026-10-13')).toBe('2026-10-13')
+    expect(lesetagAufOderVor('2026-10-10')).toBe('2026-10-09')
+    expect(lesetagAufOderVor('2026-10-11')).toBe('2026-10-09')
+  })
+
+  // Genau drei: die Auslieferung stellt kein „sofort" voran, weil die Meldung
+  // ohne Wichtig-Urteil gespeichert wird.
+  it('ohne Wichtig-Urteil liefert die Auslieferung genau die drei Tage', () => {
+    const termin = planeDreiAufrufe('2027-01-26', '17:00–20:00', '2026-12-01')
+    expect(apiTermin(termin, null, '2026-12-28T10:00:00Z')).toEqual({
+      ideal: '2027-01-26',
+      ende: '2027-01-26',
+      auftritte: ['2027-01-12', '2027-01-25', '2027-01-26']
+    })
   })
 })

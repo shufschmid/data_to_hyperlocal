@@ -4,10 +4,14 @@
 // by its template at the form, not weeks later as a desk that never has
 // anything.
 //
-// A platform or a venue (Crossiety, kalländer, riehenevents, the Z7) can be
-// registered today and is read by nobody yet: the row is created INACTIVE and
-// says so, so the newsroom's list of calendars is complete before the readers
-// are.
+// Every kind of calendar is read the same way, and the template decides
+// whether there is a reader: the municipality's own page, or an
+// organisation's postcode search (blutspende.ch since 30.09.2026). A platform
+// or a venue (Crossiety, kalländer, the Z7) whose page no reader recognises
+// can still be registered today: the row is created INACTIVE and says why, so
+// the newsroom's list of calendars is complete before the readers are. Only
+// the municipality's own calendar refuses outright — an unreadable page there
+// is a wrong address, not a missing reader.
 
 import type { Plattform } from '../../shared/gemeindeseite'
 import type { VeranstaltungsquelleArt } from '../../types/schema'
@@ -40,7 +44,8 @@ export type QuelleErgebnis =
 const ARTEN: readonly VeranstaltungsquelleArt[] = [
   'gemeinde',
   'plattform',
-  'ort'
+  'ort',
+  'organisation'
 ]
 
 function fehlerText(error: unknown): string {
@@ -86,7 +91,14 @@ export async function pruefeQuelle(
       ? koerper['name'].trim().slice(0, 200)
       : standardName(art, gemeinde, url)
 
-  if (art !== 'gemeinde') {
+  let gelesen: { plattform: Plattform; gefunden: number }
+  try {
+    gelesen = await eingabe.liesSeite(url)
+  } catch (fehler) {
+    if (art === 'gemeinde')
+      return { status: 'nicht_lesbar', grund: fehlerText(fehler) }
+    // Registered, declared, not read: the row carries the reason, so the
+    // editor sees whether it is a missing reader or a wrong address.
     return {
       status: 'geprueft',
       felder: {
@@ -95,18 +107,10 @@ export async function pruefeQuelle(
         art,
         aktiv: false,
         plattform: null,
-        letzter_hinweis:
-          'Plattform-Kalender: noch kein Leser — erfasst, aber nicht gelesen.'
+        letzter_hinweis: `Noch kein Leser für diesen Kalender: ${fehlerText(fehler)}`
       },
       gefunden: 0
     }
-  }
-
-  let gelesen: { plattform: Plattform; gefunden: number }
-  try {
-    gelesen = await eingabe.liesSeite(url)
-  } catch (fehler) {
-    return { status: 'nicht_lesbar', grund: fehlerText(fehler) }
   }
   return {
     status: 'geprueft',

@@ -21,8 +21,11 @@ import {
   parseDetail,
   type Dokument
 } from '../gemeindeseite/detail'
-import type { DetailFamilie } from '../gemeindeseite/erkennung'
-import { parseTerminZeile, zeitText } from '../gemeindeseite/liste'
+import {
+  familieOhneBeschrieb,
+  type DetailFamilie
+} from '../gemeindeseite/erkennung'
+import { parseTerminZeile, plzOrt, zeitText } from '../gemeindeseite/liste'
 import { blockZuText, reinerText, schneideElement } from '../gemeindeseite/text'
 import { normalisiereUrl } from '../gemeindeseite/url'
 
@@ -440,6 +443,72 @@ function kanonischVon(html: string, seiteUrl: string): string | null {
   return link === null ? null : normalisiereUrl(link, seiteUrl)
 }
 
+// --- blutspende.ch -----------------------------------------------------------
+
+/**
+ * Die Seite eines Termins auf blutspende.ch (gemessen 30.09.2026): ein
+ * `div.blutspendetermin` mit Wochentag, Datum, Art, „4147 Aesch", dem
+ * Blutspendedienst, Lokal und Strasse, der Zeit und dem Link auf die
+ * Reservation. Kein Beschrieb — die Meldung entsteht aus den Eckdaten.
+ *
+ * Wirft, wo die Seite die LISTE ist (eine abgelaufene Kennung leitet dorthin
+ * um, und die Liste ist ein Geschwister, kein Vorfahr — `leitetAufUebersicht`
+ * saehe das nicht) oder den Block nicht traegt: gelesen wird dann nichts, und
+ * die Zeile sagt es.
+ */
+export function parseBlutspendeAnlass(
+  html: string,
+  seiteUrl: string,
+  heute: Heute
+): AnlassDetail {
+  if (/\bid="mobile_venue_appointments"/i.test(html))
+    throw new Error(
+      'Die Seite ist die Terminliste, nicht die Seite eines Termins.'
+    )
+  const block = drupalFeld(html, 'blutspendetermin')
+  if (block === '')
+    throw new Error(
+      'Die Seite traegt keinen Termin-Block — hat sich der Seitenaufbau geaendert?'
+    )
+  const typ = oderNull(reinerText(drupalFeld(block, 'type'))) ?? 'Blutspende'
+  const ort = plzOrt(
+    reinerText(/<h3\b[^>]*>([\s\S]*?)<\/h3\s*>/i.exec(block)?.[1] ?? '')
+  )
+  // Der Blutspendedienst steht in der Zeile direkt unter „PLZ Ort".
+  const dienst = oderNull(
+    reinerText(
+      /<\/h3\s*>\s*<div\b[^>]*>([\s\S]*?)<\/div\s*>/i.exec(block)?.[1] ?? ''
+    )
+  )
+  const zeilen = drupalFeld(block, 'd-flex')
+    .split(/<br\s*\/?>|<\/(?:p|div)\s*>/i)
+    .map((z) => reinerText(z))
+  const adresse = adresseAus([
+    ...zeilen,
+    ort === null ? '' : `${ort.plz} ${ort.ort}`
+  ])
+  const datum = parseDatum(reinerText(drupalFeld(block, 'date')), heute)
+  return {
+    titel: ort === null ? typ : `${typ} in ${ort.ort}`,
+    zeit: zeitText(reinerText(block)),
+    lokalitaet: adresse.lokalitaet,
+    adresse: adresse.adresse,
+    ort: adresse.ort ?? ort?.ort ?? null,
+    veranstalter: dienst,
+    kategorie: typ,
+    preis: null,
+    anmeldung: /blutspende-trs\.ch/i.test(html)
+      ? 'Termin online reservierbar'
+      : null,
+    beschreibung: '',
+    dokumente: [],
+    weitereTermine: datum === null ? [] : [datum],
+    traktandenLink: null,
+    kanonisch: kanonischVon(html, seiteUrl),
+    verfahren: 'blutspende'
+  }
+}
+
 /**
  * The family parser, with the generic reader behind it: a page whose family
  * parser finds no description is still read as prose, and the result says so.
@@ -457,7 +526,13 @@ export function parseAnlassDetail(
         ? parseIwebAnlass(html, seiteUrl, heute)
         : familie === 'drupal'
           ? parseDrupalAnlass(html, seiteUrl, heute)
-          : parseBackslashAnlass(html, seiteUrl, heute)
+          : familie === 'blutspende'
+            ? parseBlutspendeAnlass(html, seiteUrl, heute)
+            : parseBackslashAnlass(html, seiteUrl, heute)
+  // Eine Eckdaten-Vorlage hat keinen Beschrieb, und der generische Leser
+  // machte die ganze Seite dazu — Navigation, Fusszeile, Erinnerungsformular
+  // — und daraus wuerde ein Artikel (Reinach, 27.09.2026, andersherum).
+  if (familieOhneBeschrieb(familie)) return eigen
   if (eigen.beschreibung.trim() !== '' || eigen.weitereTermine.length > 0)
     return eigen
   const generisch = parseDetail(html, familie, seiteUrl, heute)

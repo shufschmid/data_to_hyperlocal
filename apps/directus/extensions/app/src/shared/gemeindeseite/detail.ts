@@ -403,7 +403,10 @@ export function parseDetail(
       ? parseWeblicationDetail(html, seiteUrl, heute)
       : familie === 'iweb'
         ? parseIwebDetail(html, seiteUrl, heute)
-        : parseBackslashDetail(html, seiteUrl, heute)
+        : familie === 'blutspende'
+          ? // Diese Familie hat keine Nachrichtenseite — nur der generische Leser bleibt.
+            parseGenerischesDetail(html, seiteUrl, heute)
+          : parseBackslashDetail(html, seiteUrl, heute)
   if (eigen.text.trim() !== '') return eigen
 
   const generisch = parseGenerischesDetail(html, seiteUrl, heute)

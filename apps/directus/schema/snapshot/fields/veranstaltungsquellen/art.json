@@ -11,7 +11,7 @@
     "group": null,
     "hidden": false,
     "interface": "select-dropdown",
-    "note": "Wer den Kalender fuehrt. Nur \"gemeinde\" hat heute einen Leser; die anderen Zeilen werden angelegt, aber nicht gelesen, und der Lauf zaehlt sie.",
+    "note": "Wer den Kalender fuehrt. Gelesen wird jede aktive Zeile, deren Seite ein Leser erkennt: der Kalender der Gemeinde, oder eine Organisation ueber ihre PLZ-Suche (Blutspende SRK auf blutspende.ch). Plattformen und Orte ohne Leser werden angelegt, aber inaktiv, und der Lauf zaehlt sie.",
     "options": {
       "choices": [
         {
@@ -25,6 +25,10 @@
         {
           "text": "Veranstaltungsort (z. B. Z7)",
           "value": "ort"
+        },
+        {
+          "text": "Organisation, je Gemeinde ueber die PLZ gelesen (z. B. Blutspende SRK)",
+          "value": "organisation"
         }
       ]
     },

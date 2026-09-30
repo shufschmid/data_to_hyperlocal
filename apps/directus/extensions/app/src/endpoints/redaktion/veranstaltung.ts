@@ -2,8 +2,9 @@
 // becomes the facts an article is written from, and what the Dauerangebot
 // switch accepts. The wiring is in `index.ts`.
 
-import type { Anker, Zugang } from '../../types/schema'
+import type { Anker, VeranstaltungsquelleArt, Zugang } from '../../types/schema'
 import type { AnlassFakten } from '../../redaktion/veranstaltung'
+import { nurEckdatenVorlage } from '../../shared/gemeindeseite/erkennung'
 import { leitetAufUebersicht } from '../../shared/gemeindeseite/url'
 
 export interface AnlassRohzeile {
@@ -41,11 +42,18 @@ export interface AnlassRohzeile {
   url_kanonisch: string | null
   /** Die im HTML erkannte Vorlage — sie sagt, welcher Detailparser gilt. */
   plattform: string | null
+  /** When the detail page was read; null until it was. */
+  gelesen_am: string | null
   entscheid: string
   vorschlag_begruendung: string | null
   dauerangebot: string | null
   gemeinde: { id: string; name: string }
-  quelle: { id: string; name: string; url: string }
+  quelle: {
+    id: string
+    name: string
+    url: string
+    art: VeranstaltungsquelleArt
+  }
 }
 
 export const ANLASS_FELDER = [
@@ -74,6 +82,7 @@ export const ANLASS_FELDER = [
   'url',
   'url_kanonisch',
   'plattform',
+  'gelesen_am',
   'entscheid',
   'vorschlag_begruendung',
   'dauerangebot',
@@ -81,7 +90,8 @@ export const ANLASS_FELDER = [
   'gemeinde.name',
   'quelle.id',
   'quelle.name',
-  'quelle.url'
+  'quelle.url',
+  'quelle.art'
 ]
 
 /**
@@ -96,6 +106,31 @@ export function hatAnlassMaterial(fakten: AnlassFakten): boolean {
   if (fakten.beschreibung.trim() !== '') return true
   if (fakten.traktanden.length > 0) return true
   return fakten.dokumente.some((d) => d.gelesen && (d.text ?? '').trim() !== '')
+}
+
+/**
+ * Ob die Detailseite VOR dem Schreiben nachgelesen werden muss.
+ *
+ * Ja, wo der gespeicherte Text der Uebersicht gehoert (die Seite hatte nach
+ * oben umgeleitet) oder wo die Zeile kein Material traegt. Die Ausnahme ist
+ * eine Eckdaten-Vorlage, deren Seite schon gelesen ist: sie traegt NIE einen
+ * Beschrieb, und ein Nachlesen bei jedem Klick machte aus einem Aussetzer
+ * von blutspende.ch eine Absage fuer eine Zeile, die alle ihre Fakten laengst
+ * hat.
+ */
+export function brauchtNachlesen(
+  zeile: Pick<
+    AnlassRohzeile,
+    'url' | 'url_kanonisch' | 'plattform' | 'gelesen_am'
+  >,
+  fakten: AnlassFakten
+): boolean {
+  const falschGelesen =
+    zeile.url_kanonisch !== null &&
+    leitetAufUebersicht(zeile.url, zeile.url_kanonisch)
+  if (falschGelesen) return true
+  if (hatAnlassMaterial(fakten)) return false
+  return !(nurEckdatenVorlage(zeile.plattform) && zeile.gelesen_am !== null)
 }
 
 /** The row as the writer sees it. `heute` is the day the article is written — the Stand line names it. */
@@ -114,6 +149,7 @@ export function anlassFakten(
   return {
     gemeinde: zeile.gemeinde.name,
     quelleName: zeile.quelle.name,
+    quelleArt: zeile.quelle.art,
     titel: zeile.titel,
     termine: zeile.termine ?? [zeile.von],
     von: zeile.von,

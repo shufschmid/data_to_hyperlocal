@@ -307,7 +307,10 @@ describe('die Kalender', () => {
       quelle({ id: 'kaputt', letzter_fehler: 'Bot-Pruefung' }),
       quelle({ id: 'deckel', letzter_hinweis: '12 weitere Anlässe nicht gelesen' }),
       quelle({ id: 'beides', letzter_fehler: 'Zeitueberschreitung', letzter_hinweis: 'Deckel' }),
-      quelle({ id: 'z7', art: 'ort', aktiv: false, letzter_hinweis: 'noch kein Leser' })
+      quelle({ id: 'z7', art: 'ort', plattform: null, aktiv: false, letzter_hinweis: 'noch kein Leser' }),
+      // Eine Organisation mit erkannter Vorlage hat einen Leser — die
+      // PLZ-Suche von blutspende.ch wird gelesen wie ein Gemeindekalender.
+      quelle({ id: 'blut', art: 'organisation', plattform: 'blutspende_termine' })
     ]
     expect(quellenMitFehler(quellen).map((q) => q.id)).toEqual(['kaputt', 'beides'])
     expect(quellenMitHinweis(quellen).map((q) => q.id)).toEqual(['deckel'])

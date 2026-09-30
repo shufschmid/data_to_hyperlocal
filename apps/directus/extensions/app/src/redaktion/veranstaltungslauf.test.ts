@@ -4,6 +4,9 @@ import type { Anlass, GeleseneAnlass } from '../shared/veranstaltung'
 import type { ListenEintrag } from '../shared/gemeindeseite/liste'
 import {
   brauchtDetail,
+  kodierteStufe,
+  KODIERTE_BEGRUENDUNG,
+  KODIERTE_STUFE,
   dauerangeboteHeute,
   detailPayload,
   kuerzeFelder,
@@ -771,5 +774,89 @@ describe('verpassteAnmeldung', () => {
         HEUTE
       )
     ).toBe(false)
+  })
+})
+
+// Die Stufe einer Blutspende gibt der CODE, ohne Sichtung: die Redaktion hat
+// sie am 30. September 2026 entschieden (drei Aufrufe, zwei Wochen voraus),
+// und ein Modell haette mit 2 oder 3 geantwortet und die Zeile zu spaet auf
+// den Tisch gebracht. Schwelle und Vorlauf gelten wie fuer jede Stufe.
+describe('kodierte Stufe einer Eckdaten-Vorlage', () => {
+  it('gibt nur der Eckdaten-Vorlage eine Stufe', () => {
+    expect(kodierteStufe('blutspende_termine')).toBe(KODIERTE_STUFE)
+    expect(kodierteStufe('iweb_termine')).toBeNull()
+    expect(kodierteStufe(null)).toBeNull()
+  })
+
+  it('legt die Zeile mit Stufe 4 und Begruendung an — und die Sichtung fragt nicht mehr', async () => {
+    const d = dienst()
+    const { geschrieben } = await schreibeAnlaesse(
+      d,
+      { ...QUELLE, plattform: 'blutspende_termine' },
+      [anlass({ titel: 'Blutspende in Aesch' })],
+      new Map(),
+      HEUTE,
+      HEUTE_OBJ,
+      true,
+      logger
+    )
+    expect(d.erstellt[0]).toMatchObject({
+      vorschlag_wert: KODIERTE_STUFE,
+      vorschlag_begruendung: KODIERTE_BEGRUENDUNG,
+      entscheid: 'offen'
+    })
+    expect(geschrieben[0]?.vorschlagWert).toBe(KODIERTE_STUFE)
+    expect(
+      sichtungsKandidat(
+        {
+          anker: 'einmalig',
+          anker_am: '2026-10-27',
+          vorschlag: null,
+          vorschlag_wert: KODIERTE_STUFE,
+          entscheid: 'offen'
+        },
+        HEUTE
+      )
+    ).toBe(false)
+    // Ein Gemeindekalender bekommt keine Stufe vom Code.
+    const e = dienst()
+    await schreibeAnlaesse(
+      e,
+      QUELLE,
+      [anlass({ titel: 'Markt des Alterns' })],
+      new Map(),
+      HEUTE,
+      HEUTE_OBJ,
+      true,
+      logger
+    )
+    expect(e.erstellt[0]).not.toHaveProperty('vorschlag_wert')
+  })
+
+  it('brauchtDetail nimmt die kodierte Stufe: die Seite wird im Vorlauf der Stufe 4 gelesen', () => {
+    const g = (vorschlagWert: number | null): GeschriebenerAnlass => ({
+      id: 'b',
+      anlass: anlass({ titel: 'Blutspende in Aesch' }),
+      vorher: null,
+      vorschlagWert,
+      befund: {
+        anker: 'einmalig',
+        ankerAm: '2026-10-15',
+        grund: '',
+        hinweise: [],
+        rhythmus: {
+          rhythmus: 'einmalig',
+          ausText: false,
+          ganzjaehrig: false,
+          abweichung: null,
+          fehlend: null
+        },
+        zugang: 'unbekannt',
+        fristAm: null
+      }
+    })
+    // 27 Tage voraus: ungestuft (Vorlauf 10) nein, Stufe 4 (Vorlauf 30) ja.
+    expect(brauchtDetail(g(null), HEUTE)).toBe(false)
+    expect(brauchtDetail(g(KODIERTE_STUFE), HEUTE)).toBe(true)
   })
 })

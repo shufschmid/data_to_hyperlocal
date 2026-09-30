@@ -170,6 +170,7 @@ import {
 import { verwirfEntwurfZu } from '../../redaktion/entwurf'
 import {
   planeAnlassTermin,
+  planeDreiAufrufe,
   planeMitteilungTermin,
   pruefeTermin,
   terminVorschlagAus,
@@ -232,6 +233,7 @@ import {
   ANLASS_FELDER,
   anlassFakten,
   dauerangebotJetzt,
+  brauchtNachlesen,
   hatAnlassMaterial,
   pruefeDauerangebotModus,
   type AnlassRohzeile
@@ -239,6 +241,7 @@ import {
 import { liesAnlass } from '../../shared/veranstaltung'
 import {
   detailFamilie,
+  nurEckdatenVorlage,
   type Plattform
 } from '../../shared/gemeindeseite/erkennung'
 import { nachgelesenePayload } from '../../redaktion/veranstaltungslauf'
@@ -3633,7 +3636,7 @@ export default defineEndpoint(
           prompt: buildAnlassRevision(
             fakten,
             bericht,
-            `Nenne die Quelle im Fliesstext: "laut dem ${fakten.quelleName}".`
+            `Nenne die Quelle im Fliesstext mit ihrem Namen: ${fakten.quelleName}.`
           ),
           maxTokens: 1500
         })
@@ -3791,12 +3794,11 @@ export default defineEndpoint(
           // das nichts bringt, ist die Absage die ehrliche Antwort.
           // Also when the stored read landed on the overview: its text and its
           // documents are the overview's, not the Anlass's.
-          const falschGelesen =
-            zeile.url_kanonisch !== null &&
-            leitetAufUebersicht(zeile.url, zeile.url_kanonisch)
+          // An Eckdaten template is the exception (`brauchtNachlesen`): its
+          // page never carries a description, and one read of it is enough.
           let nachgelesen: Awaited<ReturnType<typeof lieseAnlassNach>> | null =
             null
-          if (falschGelesen || !hatAnlassMaterial(anlassFakten(zeile, heute))) {
+          if (brauchtNachlesen(zeile, anlassFakten(zeile, heute))) {
             nachgelesen = await lieseAnlassNach(zeile, heute)
             zeile = await ladeAnlassZeile(id, req.accountability)
           }
@@ -3826,26 +3828,35 @@ export default defineEndpoint(
           // the day, the anchor's day, the last known day. Only the judgement
           // whether it is important comes from the model — and that is what
           // the newsroom's edit teaches (`redaktion/termin.ts`).
-          const termin = planeAnlassTermin(
-            {
-              anker: zeile.anker,
-              anker_am: zeile.anker_am,
-              frist_am: zeile.frist_am,
-              von: zeile.von,
-              bis: zeile.bis,
-              termine: zeile.termine,
-              zugang: zeile.zugang,
-              heute: heuteIso()
-            },
-            wichtig
-          )
+          // A Blutspende (an Eckdaten template) is the newsroom's own rule:
+          // three appearances by code, no "sofort", and no importance
+          // judgement stored at all — `wichtig: null` teaches the writer
+          // nothing, where `false` would teach it that blood donations are
+          // unimportant desk-wide.
+          const dreiAufrufe = nurEckdatenVorlage(zeile.plattform)
+          const termin = dreiAufrufe
+            ? planeDreiAufrufe(zeile.von, zeile.zeit, heute)
+            : planeAnlassTermin(
+                {
+                  anker: zeile.anker,
+                  anker_am: zeile.anker_am,
+                  frist_am: zeile.frist_am,
+                  von: zeile.von,
+                  bis: zeile.bis,
+                  termine: zeile.termine,
+                  zugang: zeile.zugang,
+                  heute: heuteIso()
+                },
+                wichtig
+              )
+          const wichtigWert = dreiAufrufe ? null : wichtig
           const meldungId = (await meldungenService.createOne({
             veranstaltung: id,
             gemeinde: zeile.gemeinde.id,
             termin,
             termin_vorschlag: termin,
-            wichtig,
-            wichtig_vorschlag: wichtig,
+            wichtig: wichtigWert,
+            wichtig_vorschlag: wichtigWert,
             titel: bericht.titel,
             lead: bericht.lead,
             text: mitAnlassQuelle(bericht.text, fakten),

@@ -1456,14 +1456,25 @@ export interface Abstimmungsvergleich {
   gemeinden: Array<{ bfs: string; beteiligung: number }>
 }
 
-/** Who runs a calendar. Only `gemeinde` has a reader today; the others are registered and declared. */
-export type VeranstaltungsquelleArt = 'gemeinde' | 'plattform' | 'ort'
+/**
+ * Who runs a calendar. `gemeinde` is the municipality's own; `organisation`
+ * is the calendar of an organisation that appears in many municipalities and
+ * is read PER MUNICIPALITY through its postcode (Blutspende SRK since
+ * 30.09.2026); `plattform` and `ort` are registered and declared until a
+ * reader recognises their page.
+ */
+export type VeranstaltungsquelleArt =
+  | 'gemeinde'
+  | 'plattform'
+  | 'ort'
+  | 'organisation'
 
 /**
  * One events calendar a municipality reads — its own website's (`art:
- * gemeinde`), or later a platform such as Crossiety or a venue such as the
- * Z7. A LIST per municipality, because the measurement of September 2026
- * showed that the municipality's own calendar is only one of several.
+ * gemeinde`), an organisation's postcode search (`organisation`), or later a
+ * platform such as Crossiety or a venue such as the Z7. A LIST per
+ * municipality, because the measurement of September 2026 showed that the
+ * municipality's own calendar is only one of several.
  */
 export interface Veranstaltungsquelle {
   id: string

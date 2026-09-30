@@ -403,11 +403,17 @@ export function quellenMitHinweis(
   )
 }
 
-/** Erfasste Kalender, fuer die es noch keinen Leser gibt — sichtbar, nicht still. */
+/**
+ * Erfasste Kalender, fuer die es noch keinen Leser gibt — sichtbar, nicht still.
+ *
+ * Seit 30.09.2026 liest der Lauf jede AKTIVE Zeile, deren Seite ein Leser
+ * erkennt (die PLZ-Suche einer Organisation wie Blutspende SRK inklusive);
+ * ohne Leser ist eine Zeile, die inaktiv dasteht und keine Vorlage traegt.
+ */
 export function quellenOhneLeser(
   quellen: readonly VeranstaltungsquelleFelder[]
 ): VeranstaltungsquelleFelder[] {
-  return quellen.filter((q) => q.art !== 'gemeinde')
+  return quellen.filter((q) => q.art !== 'gemeinde' && q.plattform === null && !q.aktiv)
 }
 
 function anzahl(wert: unknown): number {

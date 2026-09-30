@@ -46,6 +46,7 @@ const zeile = (ueber: Partial<AnlassRohzeile> = {}): AnlassRohzeile => ({
   url: 'https://www.pratteln.ch/_rte/anlass/7353004',
   url_kanonisch: null,
   plattform: 'iweb_termine',
+  gelesen_am: '2026-09-20T11:00:00Z',
   entscheid: 'offen',
   vorschlag_begruendung: null,
   dauerangebot: null,
@@ -53,7 +54,8 @@ const zeile = (ueber: Partial<AnlassRohzeile> = {}): AnlassRohzeile => ({
   quelle: {
     id: 'q1',
     name: 'Veranstaltungskalender der Gemeinde Pratteln',
-    url: 'https://www.pratteln.ch/anlaesseaktuelles'
+    url: 'https://www.pratteln.ch/anlaesseaktuelles',
+    art: 'gemeinde'
   },
   ...ueber
 })

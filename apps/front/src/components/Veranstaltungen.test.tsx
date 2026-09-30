@@ -266,7 +266,7 @@ describe('Veranstaltungen', () => {
         anlaesse={[]}
         quellen={[
           quelle({ id: 'kaputt', name: 'Kalender Muttenz', letzter_fehler: 'Zeitüberschreitung' }),
-          quelle({ id: 'z7', name: 'Z7 Pratteln', art: 'ort', aktiv: false })
+          quelle({ id: 'z7', name: 'Z7 Pratteln', art: 'ort', plattform: null, aktiv: false })
         ]}
         gemeinden={[gemeinde(), gemeinde({ id: 'g2', name: 'Riehen' })]}
         heute={HEUTE}

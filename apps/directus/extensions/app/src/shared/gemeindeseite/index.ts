@@ -29,6 +29,7 @@ import { modulAdresse, traegtAnriss, type Beleg } from './beleg'
 import {
   erkennePlattform,
   listenArt,
+  nurEckdatenVorlage,
   ueberDatentuer,
   type DetailFamilie,
   type Plattform,
@@ -547,6 +548,10 @@ export interface Uebersicht {
   luecken?: string[]
 }
 
+/** What a calendar's row says when its postcode search answered with no date at all. */
+export const KEINE_TERMINE_HINWEIS =
+  'Der Kalender nennt zurzeit keinen Termin für diese Postleitzahl.'
+
 const ART_NAME: Record<Seitenart, string> = {
   nachricht: 'Newsuebersicht',
   termin: 'Veranstaltungsuebersicht'
@@ -602,7 +607,12 @@ export async function leseUebersicht(
         fehler: []
       }
   const eintraege = gelesen.eintraege
-  if (eintraege.length === 0 && gelesen.fehler.length === 0) {
+  // Eine Eckdaten-Vorlage darf leer antworten: ihr Parser hat den Satz
+  // «keine Treffer» der Seite selbst gesehen, und eine Postleitzahl ohne
+  // Termin ist eine Antwort, kein Fehler. Gesagt wird sie trotzdem — als
+  // Luecke auf der Zeile des Kalenders, nie als Stille.
+  const leerErlaubt = nurEckdatenVorlage(plattform)
+  if (eintraege.length === 0 && gelesen.fehler.length === 0 && !leerErlaubt) {
     throw new GemeindeseiteFehler(
       'Liste erkannt, aber keine Eintraege gefunden — hat sich der Seitenaufbau geaendert?',
       adresse
@@ -614,19 +624,17 @@ export async function leseUebersicht(
       adresse
     )
   }
+  const luecken = [
+    ...gelesen.abgeschnitten.map((t) => `${t}: Deckel erreicht`),
+    ...gelesen.fehler,
+    ...(leerErlaubt && eintraege.length === 0 ? [KEINE_TERMINE_HINWEIS] : [])
+  ]
   return {
     plattform,
     eintraege,
     url: seite.url,
     transport: seite.transport,
-    ...(gelesen.abgeschnitten.length > 0 || gelesen.fehler.length > 0
-      ? {
-          luecken: [
-            ...gelesen.abgeschnitten.map((t) => `${t}: Deckel erreicht`),
-            ...gelesen.fehler
-          ]
-        }
-      : {})
+    ...(luecken.length > 0 ? { luecken } : {})
   }
 }
 

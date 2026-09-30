@@ -24,7 +24,13 @@
 // bevor er publiziert wird, und ein Lesetag in der Vergangenheit ist fuer den
 // Dorfkoenig kein Auftritt.
 
-import { heuteIso, istNewsletterTag, verschiebe } from './feiertage'
+import {
+  erscheinungstag,
+  heuteIso,
+  istNewsletterTag,
+  verschiebe,
+  wochentag
+} from './feiertage'
 import type { Zugang } from '../types/schema'
 
 /** Wie der Dorfkoenig ihn haben will — hoechstens fuenf Lesetage. */
@@ -397,4 +403,68 @@ export function terminTageZeilen(
     '',
     `Im ${wo} genannte Tage (nur diese darf "termin" nennen): ${tage.join(', ')}`
   ]
+}
+
+// ---------------------------------------------------------------------------
+// Drei Aufrufe — die Regel der Redaktion fuer eine Blutspende
+// ---------------------------------------------------------------------------
+
+/** Wie viele Tage vor dem Termin der erste der drei Aufrufe liegt. */
+export const DREI_AUFRUFE_VORLAUF_TAGE = 14
+
+/** Der Lesetag an einem Tag selbst, sonst der letzte davor. */
+export function lesetagAufOderVor(tag: string): string {
+  return istNewsletterTag(tag) ? tag : erscheinungstag(tag, null)
+}
+
+/** "17:00–20:00" → "20:00", "9:00" → "09:00"; null, wo keine Uhrzeit steht. */
+export function endZeitVon(zeit: string | null): string | null {
+  if (zeit === null) return null
+  const alle = zeit.match(/\d{1,2}:\d{2}/g)
+  const letzte = alle?.[alle.length - 1]
+  if (letzte === undefined) return null
+  return letzte.padStart(5, '0')
+}
+
+/**
+ * Die drei Aufrufe einer Blutspende — die Regel, die die Redaktion am
+ * 30. September 2026 festgelegt hat: zwei Wochen vor dem Termin, in der Woche
+ * des Termins und am Tag des Termins. Genau drei, kein „sofort": die Meldung
+ * wird darum ohne Wichtig-Urteil gespeichert (`wichtig: null`), und die
+ * Auslieferung stellt nichts voran.
+ *
+ * Jeder der drei Tage ist ein LESETAG (Montag bis Freitag, kein Basler
+ * Feiertag), und CODE rechnet ihn, nicht das Modell:
+ * - am Tag: der Tag selbst, wenn die Spende nach der Lesezeit (10 Uhr) noch
+ *   laeuft — darum die ENDZEIT —, sonst der letzte Lesetag davor (ein
+ *   Samstag, eine Spende am Vormittag, eine unbekannte Zeit);
+ * - in der Woche: der Montag der Terminwoche, bei einem Feiertag der naechste
+ *   Lesetag; faellt er auf den Tag-Aufruf selbst (ein Montagstermin), rueckt
+ *   er auf den Lesetag davor;
+ * - zwei Wochen davor: derselbe Wochentag vierzehn Tage frueher, sonst der
+ *   Lesetag davor.
+ * Was schon vorbei ist, wenn die Meldung entsteht, faellt weg — die Redaktion
+ * kann eine Zeile spaet uebernehmen, und ein Lesetag in der Vergangenheit ist
+ * kein Auftritt.
+ */
+export function planeDreiAufrufe(
+  tag: string,
+  zeit: string | null,
+  heute: string
+): Termin | null {
+  if (!istIsoTag(tag)) return null
+  const amTag = erscheinungstag(tag, endZeitVon(zeit))
+  const montag = verschiebe(tag, -((wochentag(tag) + 6) % 7))
+  let inDerWoche = istNewsletterTag(montag) ? montag : naechsterLesetag(montag)
+  if (inDerWoche >= amTag) inDerWoche = erscheinungstag(amTag, null)
+  const zweiWochenDavor = lesetagAufOderVor(
+    verschiebe(tag, -DREI_AUFRUFE_VORLAUF_TAGE)
+  )
+  return {
+    ideal: tag,
+    ende: tag,
+    auftritte: sortiertOhneDoppel(
+      [zweiWochenDavor, inDerWoche, amTag].filter((t) => t >= heute)
+    )
+  }
 }

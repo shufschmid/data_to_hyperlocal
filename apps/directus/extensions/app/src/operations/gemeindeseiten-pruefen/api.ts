@@ -116,9 +116,9 @@ interface Ergebnis {
   ohneUrl: string[]
   /** Active municipalities without an active calendar — the same, for the desk next door. */
   ohneKalender: string[]
-  /** Calendars read (art gemeinde, active). */
+  /** Calendars read: every active row, whatever its art — the template decides whether a reader exists. */
   quellen: number
-  /** Registered calendars nobody can read yet (art plattform/ort) — declared, never silent. */
+  /** Registered calendars nobody can read yet (inactive, no template recognised) — declared, never silent. */
   ohneLeser: string[]
   erstlaeufe: string[]
   neu: number
@@ -359,7 +359,7 @@ export default defineOperationApi<Optionen>({
       )
       .map((g) => g.name)
     ergebnis.ohneLeser = alleQuellen
-      .filter((q) => q.art !== 'gemeinde')
+      .filter((q) => !q.aktiv && q.art !== 'gemeinde' && q.plattform === null)
       .map((q) => q.name)
     const mitArbeit = alleAktiven.filter(
       (g) =>
@@ -496,23 +496,12 @@ export default defineOperationApi<Optionen>({
         hinweise: string[]
       }> = []
       for (const quelle of quellenJeGemeinde.get(gemeinde.id) ?? []) {
+        // Every ACTIVE row is read, whatever its art: the template in the
+        // HTML says whether a reader exists (an organisation's postcode
+        // search since 30.09.2026), and a page no reader recognises is a
+        // loud error on the row — a platform registered ahead of its reader
+        // is inactive and skipped here.
         if (!quelle.aktiv) continue
-        if (quelle.art !== 'gemeinde') {
-          // Registered, declared, not read: the reader for platforms and
-          // venues is not built yet, and the row says so instead of
-          // pretending.
-          await quellenService
-            .updateOne(quelle.id, {
-              letzte_pruefung: new Date().toISOString(),
-              letzter_fehler: null,
-              letzter_hinweis:
-                'Plattform-Kalender: noch kein Leser — die Zeile wird gezaehlt, nicht gelesen.'
-            })
-            .catch((fehler: unknown) =>
-              logger.warn(fehler, 'veranstaltungen: Status nicht gespeichert.')
-            )
-          continue
-        }
         ergebnis.quellen += 1
         const fehlerQ: string[] = []
         const hinweiseQ: string[] = []
