@@ -172,8 +172,14 @@ import { verwirfEntwurfZu } from '../../redaktion/entwurf'
 import {
   tageAus,
   verbrauchsBilanz,
+  type Preis,
   type VerbrauchsZeile
 } from '../../redaktion/verbrauch'
+import {
+  MODELLE,
+  pruefeEinstellung,
+  pruefePreis
+} from '../../redaktion/modelleinstellungen'
 import {
   planeAnlassTermin,
   planeDreiAufrufe,
@@ -749,13 +755,108 @@ export default defineEndpoint(
               'cache_gelesen_tokens',
               'cache_geschrieben_tokens',
               'abgebrochen',
-              'fehler'
+              'fehler',
+              'max_tokens'
             ],
+            sort: ['date_created'],
             limit: -1
           })) as VerbrauchsZeile[]
-          return res.json({ data: verbrauchsBilanz(zeilen, tage) })
+          const schema = await getSchema()
+          const preise = (await new ItemsService('modellpreise', {
+            schema
+          }).readByQuery({
+            fields: [
+              'modell',
+              'eingabe_je_mio',
+              'ausgabe_je_mio',
+              'cache_lesen_je_mio',
+              'cache_schreiben_je_mio',
+              'waehrung',
+              'quelle'
+            ],
+            sort: ['modell'],
+            limit: -1
+          })) as Array<Preis & { quelle: string | null }>
+          const einstellungen = await new ItemsService('modelleinstellungen', {
+            schema
+          }).readByQuery({
+            fields: ['zweck', 'modell', 'max_tokens', 'notiz'],
+            sort: ['zweck'],
+            limit: -1
+          })
+          return res.json({
+            data: {
+              ...verbrauchsBilanz(zeilen, tage, preise),
+              preise,
+              einstellungen,
+              modelle: MODELLE
+            }
+          })
         } catch (error) {
           logger.error(error, 'redaktion: Verbrauch nicht gelesen')
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    // The newsroom's dial per purpose: model and budget, read by the client
+    // on every call. Both fields empty removes the row — back to the code.
+    router.post(
+      '/modelleinstellungen',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        const geprueft = pruefeEinstellung(req.body)
+        if (!geprueft.ok)
+          return next(new UngueltigeStammdaten({ grund: geprueft.grund }))
+        try {
+          const dienst = new ItemsService('modelleinstellungen', {
+            schema: await getSchema()
+          })
+          const { einstellung } = geprueft
+          const [vorhanden] = (await dienst.readByQuery({
+            filter: { zweck: { _eq: einstellung.zweck } },
+            fields: ['id'],
+            limit: 1
+          })) as Array<{ id: string }>
+          if (einstellung.modell === null && einstellung.max_tokens === null) {
+            if (vorhanden !== undefined) await dienst.deleteOne(vorhanden.id)
+            return res.json({
+              data: { zweck: einstellung.zweck, entfernt: true }
+            })
+          }
+          if (vorhanden === undefined) await dienst.createOne(einstellung)
+          else await dienst.updateOne(vorhanden.id, einstellung)
+          return res.json({ data: einstellung })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    router.post(
+      '/modellpreise',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        const geprueft = pruefePreis(req.body)
+        if (!geprueft.ok)
+          return next(new UngueltigeStammdaten({ grund: geprueft.grund }))
+        try {
+          const dienst = new ItemsService('modellpreise', {
+            schema: await getSchema()
+          })
+          const [vorhanden] = (await dienst.readByQuery({
+            filter: { modell: { _eq: geprueft.preis.modell } },
+            fields: ['id'],
+            limit: 1
+          })) as Array<{ id: string }>
+          const felder = {
+            ...geprueft.preis,
+            quelle: `Von der Redaktion gesetzt am ${new Date().toISOString().slice(0, 10)}`
+          }
+          if (vorhanden === undefined) await dienst.createOne(felder)
+          else await dienst.updateOne(vorhanden.id, felder)
+          return res.json({ data: felder })
+        } catch (error) {
           return next(uebersetze(error))
         }
       }

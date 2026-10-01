@@ -1515,9 +1515,38 @@ export interface Modellaufruf {
   cache_gelesen_tokens: number
   cache_geschrieben_tokens: number
   dauer_ms: number
+  /** The budget the call went out with; null on rows from before 01.10.2026. */
+  max_tokens: number | null
   /** The answer hit `max_tokens`: paid for and thrown away. */
   abgebrochen: boolean
   fehler: string | null
+}
+
+/**
+ * What the newsroom set for one purpose — `tisch:zweck` exactly, or the desk
+ * alone for all its purposes. Read by `shared/claude.ts` on every call
+ * through the `modellverbrauch` hook; null fields mean the code's own.
+ */
+export interface Modelleinstellung {
+  id: string
+  zweck: string
+  modell: string | null
+  max_tokens: number | null
+  notiz: string | null
+  date_updated: string | null
+}
+
+/** Prices per million tokens for one model — what «Kosten» multiplies the usage with. */
+export interface Modellpreis {
+  id: string
+  modell: string
+  eingabe_je_mio: number
+  ausgabe_je_mio: number
+  cache_lesen_je_mio: number
+  cache_schreiben_je_mio: number
+  waehrung: string
+  quelle: string | null
+  date_updated: string | null
 }
 
 /** How often an Anlass recurs — decides only what is routine, never news value. */

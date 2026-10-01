@@ -1,9 +1,9 @@
 {
-  "collection": "modellaufrufe",
+  "collection": "modellpreise",
   "field": "id",
   "type": "uuid",
   "meta": {
-    "collection": "modellaufrufe",
+    "collection": "modellpreise",
     "conditions": null,
     "display": null,
     "display_options": null,
@@ -27,7 +27,7 @@
   },
   "schema": {
     "name": "id",
-    "table": "modellaufrufe",
+    "table": "modellpreise",
     "data_type": "uuid",
     "default_value": null,
     "max_length": null,

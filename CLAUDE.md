@@ -1409,7 +1409,9 @@ them is wrong even if it works.
 | the dataset a portal carries its votes in                                               | `quellen.konfiguration.abstimmungen` (JSON, Admin-UI) — die Datensatz-Id des Portals, gesetzt von `migrations/20260918B`. Leer heisst: dieses Portal wird am Abstimmungssonntag nicht gelesen, und der Lauf nennt es                                                                                                                                           |
 | the timing of a vote Sunday                                                             | der Flow «Abstimmungen holen» (`*/30 14-20 * * 0`) plus `operations/abstimmungen-holen`; ausserhalb bleibt es beim Katalogwächter um 06:00                                                                                                                                                                                                                     |
 | a new environment variable                                                              | `apps/directus/.env.example` **and** root `.env.example` **and** docker-compose.yml                                                                                                                                                                                                                                                                            |
-| what a desk's model calls cost, or a new model call                                     | «Gelerntes» → «Kosten» reads `modellaufrufe` (`GET /redaktion/verbrauch?tage=N`, `redaktion/verbrauch.ts`). Every call to `shared/claude.ts` names `zweck: 'tisch:zweck'`; a retry is its own purpose (`…:nachfassen`). Tokens, not francs                                                                                                                     |
+| what a desk's model calls cost, or a new model call                                     | «Gelerntes» → «Kosten» reads `modellaufrufe` (`GET /redaktion/verbrauch?tage=N`, `redaktion/verbrauch.ts`). Every call to `shared/claude.ts` names `zweck: 'tisch:zweck'`; a retry is its own purpose (`…:nachfassen`). In money since 1.10.2026: the prices per model are rows in `modellpreise`, edited in the same card                                     |
+| which model or token budget a desk or one purpose uses                                  | «Gelerntes» → «Kosten» → the desk → «Einstellen»: a row in `modelleinstellungen` per `zweck` or per `tisch` (`POST /redaktion/modelleinstellungen`), read by `shared/claude.ts` before every call (`wirksameOptionen`), cached a minute by `hooks/modellverbrauch`. Empty means: as in the code. Never a constant per desk                                     |
+| a model that is not Claude (Apertus, a local instance)                                  | not without amending hard constraint 2 — see «What the model calls cost»: the decision is the newsroom's, and the place would be a second transport INSIDE `shared/claude.ts`, never a second call site                                                                                                                                                        |
 | how big a Sichtung or triage call is, or its model                                      | `redaktion/sichtungspakete.ts` — 25 rows a packet, thinking off, 4000 tokens, prefix cached; the model per desk is the Flow option `model` (Amtsblatt: `sichtungsmodell`, the Haiku 4.5 trial since 30.09.2026)                                                                                                                                                |
 
 A change that spans both apps starts in `apps/directus` — data model first, then the
@@ -2379,6 +2381,46 @@ decided from an inventory of the 43 call sites and one measured failure.
 7. **Retries are visible before they are tuned**: the attribution and JSON
    retries file under their own purposes, so «Kosten» says how often a
    second call fires before anyone sharpens a prompt.
+
+**Since 1 October 2026 the card also DECIDES, and it counts in money.** The
+newsroom's words: set the model and the max tokens per desk from the
+dashboard, and turn the tokens into costs. Three things, each with its reason.
+
+- **Prices per model are rows in `modellpreise`** (USD per million tokens:
+  input, output, cache read, cache write), seeded by `migrations/20261001A`
+  from the Anthropic price list of 25 September 2026 and edited in the card —
+  a price in the code goes stale with the next list and nobody sees it.
+  `verbrauchsBilanz` prices every call by its model (an undated price row
+  serves a dated id, `preisFuer`); a model without a price is NAMED at the
+  top of the card (`ohnePreis`) and its calls count as zero, declared — never
+  a silent guess. The currency is the price rows' and null until one exists.
+- **Model and token budget per PURPOSE or per DESK are rows in
+  `modelleinstellungen`**, set in the card, read by `shared/claude.ts` before
+  every call (`wirksameOptionen`: the exact zweck first, then its tisch, then
+  the call site, then `ANTHROPIC_MODEL`) and cached for a minute by the hook,
+  so a run of five hundred calls costs no five hundred reads. Two things
+  follow. `max_tokens` is recorded per call now, so the card shows each
+  purpose's budget against its largest answer and turns RED at 90 percent or
+  after a cut answer (`etatKnapp`) — lowering a budget blind is the one thing
+  the dial must not invite. And a model switch carries the THINKING MODE with
+  it: the code asks for `thinking: 'disabled'` on a Sichtung, which Sonnet
+  5.5 refuses and Opus 5.5 does not know, so `thinkingFuer` translates per
+  family (Sonnet 5.5: `between_tools`; Opus 5.5 and the Mythos tier: omitted,
+  `effort: 'low'`; everything else as asked) — measured by probe on 1 October
+  2026, not read off a page. Haiku 4.5 is in the list of choices because the
+  gazette triage proved it answers the house's structured output.
+- **No second provider.** The newsroom asked whether single tasks could go
+  to a local Apertus instance with an API. Technically they could — Apertus
+  speaks an OpenAI-style HTTP API, and the Sichtungen are sort tasks with a
+  JSON schema and no document blocks — but hard constraint 2 says one client,
+  one provider, and that is a decision rather than an oversight: a second
+  transport is a second answer shape, no prompt cache, no document or image
+  blocks, and every prompt tuned twice. If the newsroom decides otherwise, the
+  place is a second transport INSIDE `shared/claude.ts`, chosen by the same
+  `modelleinstellungen` row (a model id that is not `claude-…`), measured by
+  the same `modellaufrufe`, with the constraint amended in the same commit.
+  Nothing of that exists today, and `pruefeEinstellung` refuses a model id
+  without the `claude-` prefix on purpose.
 
 ## Deployment
 

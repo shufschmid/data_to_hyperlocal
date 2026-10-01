@@ -153,45 +153,79 @@ describe('Gelerntes: die Regler der Tische', () => {
   })
 })
 
-// Die Kosten: was die Modellaufrufe kosteten, je Tisch, und was fuer nichts
-// bezahlt wurde. Tokens, keine Franken.
+// Die Kosten: was die Modellaufrufe kosteten, je Tisch, in Geld, und was fuer
+// nichts bezahlt wurde. Modell und Etat je Zweck stellt die Redaktion hier um.
 describe('Gelerntes — Kosten', () => {
-  it('zeigt je Tisch Aufrufe und Tokens und nennt Verluste rot', async () => {
-    const summe = { cache_gelesen_tokens: 0, cache_geschrieben_tokens: 0, abgebrochen: 0, fehler: 0 }
+  const summe = {
+    cache_gelesen_tokens: 0,
+    cache_geschrieben_tokens: 0,
+    abgebrochen: 0,
+    fehler: 0,
+    ohne_preis: 0
+  }
+  const sichtung = {
+    ...summe,
+    aufrufe: 9,
+    eingabe_tokens: 120_000,
+    ausgabe_tokens: 24_000,
+    abgebrochen: 3,
+    kosten: 0.48
+  }
+
+  it('zeigt je Tisch Aufrufe, Tokens und Geld, nennt Verluste rot und stellt um', async () => {
     const onVerbrauchTage = jest.fn()
+    const onEinstellung = jest.fn().mockResolvedValue(undefined)
     render(
       <Gelerntes
         regeln={[]}
         {...NICHTS}
         verbrauch={{
           tage: 7,
-          gesamt: { ...summe, aufrufe: 12, eingabe_tokens: 150_000, ausgabe_tokens: 32_000, abgebrochen: 3 },
+          waehrung: 'USD',
+          gesamt: {
+            ...summe,
+            aufrufe: 12,
+            eingabe_tokens: 150_000,
+            ausgabe_tokens: 32_000,
+            abgebrochen: 3,
+            kosten: 0.6
+          },
+          ohnePreis: [],
+          preise: [
+            {
+              modell: 'claude-sonnet-5',
+              eingabe_je_mio: 2,
+              ausgabe_je_mio: 10,
+              cache_lesen_je_mio: 0.2,
+              cache_schreiben_je_mio: 2.5,
+              waehrung: 'USD',
+              quelle: null
+            }
+          ],
+          einstellungen: [
+            {
+              zweck: 'veranstaltungen:sichtung',
+              modell: 'claude-haiku-4-5-20251001',
+              max_tokens: null,
+              notiz: null
+            }
+          ],
+          modelle: [
+            { id: 'claude-haiku-4-5-20251001', name: 'Haiku 4.5', hinweis: 'günstig' },
+            { id: 'claude-sonnet-5', name: 'Sonnet 5', hinweis: 'Standard' }
+          ],
           tische: [
             {
               tisch: 'veranstaltungen',
-              ...summe,
-              aufrufe: 9,
-              eingabe_tokens: 120_000,
-              ausgabe_tokens: 24_000,
-              abgebrochen: 3,
-              modelle: [
-                {
-                  modell: 'claude-sonnet-5',
-                  ...summe,
-                  aufrufe: 9,
-                  eingabe_tokens: 120_000,
-                  ausgabe_tokens: 24_000,
-                  abgebrochen: 3
-                }
-              ],
+              ...sichtung,
+              modelle: [{ modell: 'claude-sonnet-5', ...sichtung }],
               zwecke: [
                 {
                   zweck: 'veranstaltungen:sichtung',
-                  ...summe,
-                  aufrufe: 9,
-                  eingabe_tokens: 120_000,
-                  ausgabe_tokens: 24_000,
-                  abgebrochen: 3
+                  ...sichtung,
+                  modell_zuletzt: 'claude-sonnet-5',
+                  max_tokens_zuletzt: 4000,
+                  ausgabe_max: 3900
                 }
               ]
             },
@@ -201,22 +235,34 @@ describe('Gelerntes — Kosten', () => {
               aufrufe: 3,
               eingabe_tokens: 30_000,
               ausgabe_tokens: 8_000,
+              kosten: 0.12,
               modelle: [],
               zwecke: []
             }
           ]
         }}
         onVerbrauchTage={onVerbrauchTage}
+        onEinstellung={onEinstellung}
       />
     )
     expect(screen.getByText(/Kosten — was die Modellaufrufe der letzten 7 Tage/)).toBeInTheDocument()
     expect(screen.getByText('Veranstaltungen')).toBeInTheDocument()
     expect(screen.getByText('Lernschicht')).toBeInTheDocument()
     expect(screen.getByText('3 abgebrochen')).toBeInTheDocument()
-    expect(screen.getAllByText('24,0 k').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('0.48 USD').length).toBeGreaterThan(0)
 
     await userEvent.click(screen.getByText('Veranstaltungen'))
     expect(screen.getByText('veranstaltungen:sichtung')).toBeInTheDocument()
+    // Der Etat ist knapp (3900 von 4000) und steht rot da — unter 10'000 schreibt tokensKurz die Zahl aus.
+    expect(screen.getByText(/max. Antwort 3.900/)).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Einstellen' }))
+    await userEvent.click(screen.getAllByRole('button', { name: 'Speichern' })[1]!)
+    expect(onEinstellung).toHaveBeenCalledWith({
+      zweck: 'veranstaltungen:sichtung',
+      modell: 'claude-haiku-4-5-20251001',
+      max_tokens: null
+    })
 
     await userEvent.click(screen.getByRole('button', { name: '30 Tage' }))
     expect(onVerbrauchTage).toHaveBeenCalledWith(30)

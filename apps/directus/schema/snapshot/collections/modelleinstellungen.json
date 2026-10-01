@@ -1,0 +1,28 @@
+{
+  "collection": "modelleinstellungen",
+  "meta": {
+    "accountability": "all",
+    "archive_app_filter": true,
+    "archive_field": null,
+    "archive_value": null,
+    "collapse": "open",
+    "collection": "modelleinstellungen",
+    "color": null,
+    "display_template": "{{zweck}} → {{modell}} / {{max_tokens}}",
+    "group": null,
+    "hidden": false,
+    "icon": "tune",
+    "item_duplication_fields": null,
+    "note": "Was die Redaktion je Zweck einstellt: Modell und Token-Etat eines Aufrufs. Der Zweck ist tisch:zweck (genau) oder nur der Tisch (fuer alle seine Zwecke); fehlt eine Zeile, gilt der Code. Gelesen vom Client bei jedem Aufruf (60 s Cache). Seit 01.10.2026.",
+    "preview_url": null,
+    "singleton": false,
+    "sort": null,
+    "sort_field": null,
+    "translations": null,
+    "unarchive_value": null,
+    "versioning": false
+  },
+  "schema": {
+    "name": "modelleinstellungen"
+  }
+}

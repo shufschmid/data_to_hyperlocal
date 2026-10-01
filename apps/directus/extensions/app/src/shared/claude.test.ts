@@ -9,7 +9,9 @@ import {
   completeText,
   extractJson,
   joinTextBlocks,
+  registriereEinstellungen,
   registriereVerbrauch,
+  thinkingFuer,
   tischVon,
   verbrauchAus,
   type MessageSender,
@@ -309,5 +311,106 @@ describe('Verbrauch', () => {
       eingabe_tokens: 5,
       ausgabe_tokens: 0
     })
+  })
+})
+
+// Seit 1.10.2026 stellt die Redaktion Modell und Etat je Zweck ein; der
+// Client wendet es bei jedem Aufruf an und uebersetzt den Thinking-Modus, den
+// das gewaehlte Modell braucht (gemessen an der Aufruf-Form des Hauses).
+describe('Einstellungen je Zweck', () => {
+  it('die Einstellung schlaegt Aufrufstelle und Umgebung, der Rest bleibt', async () => {
+    registriereEinstellungen(async (zweck) =>
+      zweck === 'amtsblatt:sichtung'
+        ? { modell: 'claude-haiku-4-5-20251001', max_tokens: 3000 }
+        : null
+    )
+    try {
+      const sender = vi
+        .fn<MessageSender>()
+        .mockResolvedValue(message('{"ok": true}'))
+      await completeJson(
+        {
+          prompt: 'x',
+          zweck: 'amtsblatt:sichtung',
+          model: 'claude-sonnet-5',
+          maxTokens: 4000,
+          thinking: 'disabled'
+        },
+        sender
+      )
+      const anfrage = sender.mock.calls[0]?.[0]
+      expect(anfrage?.model).toBe('claude-haiku-4-5-20251001')
+      expect(anfrage?.max_tokens).toBe(3000)
+      expect(anfrage?.thinking).toEqual({ type: 'disabled' })
+      await completeJson(
+        {
+          prompt: 'x',
+          zweck: 'kanton:sichtung',
+          model: 'claude-sonnet-5',
+          maxTokens: 4000
+        },
+        sender
+      )
+      expect(sender.mock.calls[1]?.[0]?.model).toBe('claude-sonnet-5')
+      expect(sender.mock.calls[1]?.[0]?.max_tokens).toBe(4000)
+    } finally {
+      registriereEinstellungen(null)
+    }
+  })
+
+  it('ein Leser, der scheitert, kostet den Aufruf nichts', async () => {
+    registriereEinstellungen(async () => {
+      throw new Error('Datenbank weg')
+    })
+    try {
+      const sender = vi.fn<MessageSender>().mockResolvedValue(message('ok'))
+      await expect(
+        completeText(
+          { prompt: 'x', zweck: 'kanton:sichtung', maxTokens: 500 },
+          sender
+        )
+      ).resolves.toBe('ok')
+      expect(sender.mock.calls[0]?.[0]?.max_tokens).toBe(500)
+    } finally {
+      registriereEinstellungen(null)
+    }
+  })
+
+  it('uebersetzt „Thinking aus" in die Form, die das Modell annimmt', () => {
+    expect(thinkingFuer('claude-sonnet-5', 'disabled', undefined)).toEqual({
+      thinking: 'disabled'
+    })
+    expect(
+      thinkingFuer('claude-haiku-4-5-20251001', 'disabled', undefined)
+    ).toEqual({ thinking: 'disabled' })
+    expect(thinkingFuer('claude-sonnet-5-5', 'disabled', undefined)).toEqual({
+      thinking: 'between_tools'
+    })
+    expect(thinkingFuer('claude-opus-5-5', 'disabled', undefined)).toEqual({
+      effort: 'low'
+    })
+    expect(thinkingFuer('claude-opus-5-5', 'disabled', 'medium')).toEqual({
+      effort: 'medium'
+    })
+    expect(thinkingFuer('claude-opus-5-5', undefined, undefined)).toEqual({})
+    expect(thinkingFuer('claude-sonnet-5', 'adaptive', 'high')).toEqual({
+      thinking: 'adaptive',
+      effort: 'high'
+    })
+  })
+
+  it('schreibt den Etat in den Verbrauch', async () => {
+    const eintraege: Modellaufruf[] = []
+    registriereVerbrauch(async (e) => {
+      eintraege.push(e)
+    })
+    try {
+      const sender = vi.fn<MessageSender>().mockResolvedValue(message('ok'))
+      await completeText({ prompt: 'x', maxTokens: 777 }, sender)
+      await new Promise((r) => setTimeout(r, 0))
+      expect(eintraege[0]?.max_tokens).toBe(777)
+    } finally {
+      registriereVerbrauch(null)
+    }
   })
 })

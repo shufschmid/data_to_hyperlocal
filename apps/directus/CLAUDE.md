@@ -109,7 +109,10 @@ desks, seeded with the code's standard, insert-only), `20260930A-blutspende.mts`
 (ten `veranstaltungsquellen` rows, `art: organisation`, one per covered
 municipality with its POSTCODE in the blutspende.ch search address — seeded
 ACTIVE because the newsroom asked for exactly these, `plattform` stamped so the
-card does not read „noch kein Leser" before the first run, `down` throws),
+card does not read „noch kein Leser" before the first run, `down` throws), `20261001A-modellpreise.mts` (one `modellpreise` row per
+model from the Anthropic price list of 25.09.2026, insert-only so an edited
+price survives a redeploy, `down` removes only the rows still carrying that
+`quelle`),
 `20260929A-kanton.mts` (the
 composite unique `(url, gemeinde)` on `kantonsmitteilungen` — one notice is one
 row per municipality it names, so `url` alone is NOT unique — plus the partial
@@ -293,8 +296,10 @@ GraphQL, other extensions), which makes it the right place for invariants.
   `src/hooks/meldung-status/` — it guards the editorial state machine on every write path.
   `src/hooks/modellverbrauch/` is the odd one out: it reacts to no write at all
   and only hands `shared/claude.ts` the writer for `modellaufrufe` at boot —
-  the one place with services that every model call, in any operation or
-  endpoint, then reaches.
+  and, since 1 October 2026, the READER for `modelleinstellungen`
+  (`registriereEinstellungen`, cached a minute, emptied by that collection's
+  own create/update/delete actions) — the one place with services that every
+  model call, in any operation or endpoint, then reaches.
   `src/hooks/entsorgung-termin/` is the same principle applied to a derived
   article: correcting a collection date — including in the admin UI, which no
   endpoint sees — un-confirms the date and discards the reminder written from
@@ -368,7 +373,20 @@ const validated = parseSummary(answer) // never trust the shape
   validated answer to columns is one pure function (`summaryFields`), shared by the
   endpoint and the Flow operation so the two cannot diverge.
 - Model: `ANTHROPIC_MODEL`, default `claude-sonnet-5`. Reach for `claude-opus-5` for
-  genuinely hard reasoning, not by default.
+  genuinely hard reasoning, not by default. **Since 1 October 2026 the newsroom
+  overrides both per purpose or per desk** without a deploy: a row in
+  `modelleinstellungen` (`zweck` = `tisch:zweck` or the bare tisch, `modell`,
+  `max_tokens`, each nullable) is applied by `wirksameOptionen` before every
+  call — exact zweck, then tisch, then the call site's `model`/`maxTokens`,
+  then the environment. `thinkingFuer` carries the thinking mode across a
+  model switch (a Sichtung's `'disabled'` becomes `between_tools` on Sonnet
+  5.5 and `effort: 'low'` on Opus 5.5 — probed, not assumed). The reader is
+  the hook's; a reader that throws costs the call nothing (there is a test).
+  `POST /redaktion/modelleinstellungen` upserts by zweck and DELETES the row
+  when both fields come back empty; `pruefeEinstellung` is the validation
+  (`redaktion/modelleinstellungen.ts`, with `MODELLE`, the list the card
+  offers) and it refuses any id without the `claude-` prefix — hard
+  constraint 2, enforced where a setting enters.
 - `ANTHROPIC_API_KEY` lives **here**, never in the frontend.
 - **Every call names its desk and purpose — `zweck: 'tisch:zweck'` — and every
   call is MEASURED** (30 September 2026). `send()` records the API's usage
@@ -379,7 +397,15 @@ const validated = parseSummary(answer) // never trust the shape
   (`registriereVerbrauch`), and without one nothing is recorded, which is what
   keeps tests silent. `GET /redaktion/verbrauch?tage=N` aggregates it by desk,
   model and purpose (`redaktion/verbrauch.ts`, pure) for «Gelerntes» →
-  «Kosten». Tokens, not francs: prices live in nobody's code. A retry is a
+  «Kosten». In money since 1 October 2026: `modellpreise` holds one row per
+  model (USD per million tokens, four prices), seeded by `migrations/20261001A`
+  from the Anthropic list of 25.09.2026 and edited in the card
+  (`POST /redaktion/modellpreise`, `pruefePreis`); `verbrauchsBilanz(zeilen,
+tage, preise)` prices each call by its model, a dated id falls back to its
+  undated price (`preisFuer`), and a model without one is named in
+  `ohnePreis` with its calls counted at zero — declared, never guessed. Every
+  row also records the call's `max_tokens`, which is what lets the card show
+  a purpose's budget against its largest answer (`ausgabe_max`). A retry is a
   purpose of its own (`…:nachfassen`, `…:json-wiederholung`), so the rate of
   second calls is readable before anyone sharpens a prompt.
 - **A Sichtung sorts and does not deliberate** (`redaktion/sichtungspakete.ts`,

@@ -71,5 +71,6 @@ describe('Die Liste erlaubter Aktionen', () => {
     ])
       expect(darfLesen(pfad)).toBe(true)
     expect(darfLesen('artikel')).toBe(false)
+    for (const pfad of ['modelleinstellungen', 'modellpreise']) expect(darfSchreiben(pfad)).toBe(true)
   })
 })

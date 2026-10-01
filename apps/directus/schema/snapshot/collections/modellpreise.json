@@ -1,0 +1,28 @@
+{
+  "collection": "modellpreise",
+  "meta": {
+    "accountability": "all",
+    "archive_app_filter": true,
+    "archive_field": null,
+    "archive_value": null,
+    "collapse": "open",
+    "collection": "modellpreise",
+    "color": null,
+    "display_template": "{{modell}}: {{eingabe_je_mio}} / {{ausgabe_je_mio}} {{waehrung}}",
+    "group": null,
+    "hidden": false,
+    "icon": "payments",
+    "item_duplication_fields": null,
+    "note": "Preise je Million Tokens, je Modell, damit «Kosten» aus den Tokens Geld rechnet. Gesaet von 20261001A aus der Anthropic-Preisliste; die Redaktion pflegt sie nach. Seit 01.10.2026.",
+    "preview_url": null,
+    "singleton": false,
+    "sort": null,
+    "sort_field": null,
+    "translations": null,
+    "unarchive_value": null,
+    "versioning": false
+  },
+  "schema": {
+    "name": "modellpreise"
+  }
+}

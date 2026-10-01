@@ -60,6 +60,9 @@ export const ERLAUBT: RegExp[] = [
   /^kandidaten\/[0-9a-f-]{36}\/(meldung|ablehnen|gemeinde|weiterreichen|perle)$/i,
   /^hinweise\/[0-9a-f-]{36}\/(bewerten|zurueck)$/i,
   /^wissen$/i,
+  // «Kosten»: Modell und Etat je Zweck, und die Preise je Modell.
+  /^modelleinstellungen$/i,
+  /^modellpreise$/i,
   // Die Regler je Tisch hinter dem Zahnrad: Schwelle und Vorlauf.
   /^tische\/(gemeinde|veranstaltung)$/i,
   /^sendungen\/[0-9a-f-]{36}\/(meldung|ablehnen|weiterreichen)$/i,

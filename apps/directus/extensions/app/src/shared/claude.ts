@@ -93,7 +93,7 @@ export interface ClaudeOptions {
    *
    * On claude-opus-5, `'disabled'` is rejected above `effort: 'high'`.
    */
-  thinking?: 'adaptive' | 'disabled'
+  thinking?: 'adaptive' | 'disabled' | 'between_tools'
   effort?: ClaudeEffort
   /**
    * A JSON Schema the answer must satisfy.
@@ -184,6 +184,8 @@ export interface Modellaufruf {
   cache_gelesen_tokens: number
   cache_geschrieben_tokens: number
   dauer_ms: number
+  /** The budget the call went out with — read against `ausgabe_tokens`. */
+  max_tokens: number
   /** The answer hit `max_tokens` — paid for and thrown away. */
   abgebrochen: boolean
   /** The API's refusal or a transport failure; null on a completed call. */
@@ -239,6 +241,96 @@ function vermerkeVerbrauch(eintrag: Modellaufruf): void {
   })
 }
 
+// ---------------------------------------------------------------------------
+// Einstellungen — what the newsroom set per purpose, applied on every call
+// ---------------------------------------------------------------------------
+
+/** What `modelleinstellungen` may override for a purpose; null means the code's own. */
+export interface Modelleinstellung {
+  modell: string | null
+  max_tokens: number | null
+}
+
+export type EinstellungsLeser = (
+  zweck: string
+) => Promise<Modelleinstellung | null>
+
+let einstellungsLeser: EinstellungsLeser | null = null
+
+/** Registered at boot by the `modellverbrauch` hook, like the usage writer. */
+export function registriereEinstellungen(
+  leser: EinstellungsLeser | null
+): void {
+  einstellungsLeser = leser
+}
+
+/**
+ * The thinking mode a model accepts for what the call site asked. The call
+ * sites say `'disabled'` for sorting work; the 5.5 generation spells that
+ * differently — Sonnet 5.5 takes `between_tools`, Opus 5.5 cannot switch
+ * thinking off at all and takes a low effort instead. Measured on
+ * 01.10.2026 with this house's call shape, so a model picked in «Kosten» is
+ * never a 400 the next morning.
+ */
+export function thinkingFuer(
+  model: string,
+  gewuenscht: ClaudeOptions['thinking'],
+  effort: ClaudeEffort | undefined
+): { thinking?: ClaudeOptions['thinking']; effort?: ClaudeEffort } {
+  if (gewuenscht !== 'disabled')
+    return {
+      ...(gewuenscht === undefined ? {} : { thinking: gewuenscht }),
+      ...(effort === undefined ? {} : { effort })
+    }
+  if (/^claude-sonnet-5-5/.test(model))
+    return {
+      thinking: 'between_tools',
+      ...(effort === undefined ? {} : { effort })
+    }
+  if (/^claude-(opus-5-5|fable|mythos)/.test(model))
+    return { effort: effort ?? 'low' }
+  return {
+    thinking: 'disabled',
+    ...(effort === undefined ? {} : { effort })
+  }
+}
+
+/**
+ * The options a call really goes out with: the newsroom's setting for its
+ * purpose (exact purpose, else the desk) over the call site's own, over the
+ * environment's default — model and budget — and the thinking mode the
+ * chosen model accepts.
+ */
+export async function wirksameOptionen(
+  request: ClaudeOptions
+): Promise<{ optionen: ClaudeOptions; maxTokens: number }> {
+  let einstellung: Modelleinstellung | null = null
+  if (einstellungsLeser !== null && request.zweck !== undefined) {
+    try {
+      einstellung = await einstellungsLeser(request.zweck)
+    } catch {
+      einstellung = null
+    }
+  }
+  const model =
+    einstellung?.modell ??
+    request.model ??
+    optionalEnv('ANTHROPIC_MODEL', DEFAULT_MODEL)
+  const maxTokens =
+    einstellung?.max_tokens ?? request.maxTokens ?? DEFAULT_MAX_TOKENS
+  const { thinking, effort } = thinkingFuer(
+    model,
+    request.thinking,
+    request.effort
+  )
+  const optionen: ClaudeOptions = { ...request, model, maxTokens }
+  delete optionen.thinking
+  delete optionen.effort
+  if (thinking !== undefined) optionen.thinking = thinking
+  if (effort !== undefined) optionen.effort = effort
+  return { optionen, maxTokens }
+}
+
 function buildBody(
   options: ClaudeOptions,
   messages: Anthropic.MessageParam[],
@@ -260,7 +352,11 @@ function buildBody(
     ...(options.system === undefined ? {} : { system: options.system }),
     ...(options.thinking === undefined
       ? {}
-      : { thinking: { type: options.thinking } }),
+      : {
+          thinking: {
+            type: options.thinking
+          } as Anthropic.ThinkingConfigParam
+        }),
     ...(Object.keys(outputConfig).length === 0
       ? {}
       : { output_config: outputConfig })
@@ -286,6 +382,7 @@ async function send(
       modell: body.model,
       ...verbrauchAus(null),
       dauer_ms: Date.now() - start,
+      max_tokens: body.max_tokens,
       abgebrochen: false,
       fehler:
         fehler instanceof Error ? fehler.message.slice(0, 500) : String(fehler)
@@ -299,6 +396,7 @@ async function send(
     modell: message.model || body.model,
     ...verbrauchAus(message.usage),
     dauer_ms: Date.now() - start,
+    max_tokens: body.max_tokens,
     abgebrochen,
     fehler: null
   })
@@ -312,13 +410,13 @@ export async function completeText(
   request: ClaudeRequest,
   sender: MessageSender = sendToClaude
 ): Promise<string> {
-  const maxTokens = request.maxTokens ?? DEFAULT_MAX_TOKENS
+  const { optionen, maxTokens } = await wirksameOptionen(request)
   const messages: Anthropic.MessageParam[] = [
     { role: 'user', content: request.prompt }
   ]
 
   return send(
-    buildBody(request, messages, maxTokens),
+    buildBody(optionen, messages, maxTokens),
     maxTokens,
     sender,
     request.zweck
@@ -333,10 +431,10 @@ export async function completeChat(
   request: ClaudeChatRequest,
   sender: MessageSender = sendToClaude
 ): Promise<string> {
-  const maxTokens = request.maxTokens ?? DEFAULT_MAX_TOKENS
+  const { optionen, maxTokens } = await wirksameOptionen(request)
 
   return send(
-    buildBody(request, request.messages, maxTokens),
+    buildBody(optionen, request.messages, maxTokens),
     maxTokens,
     sender,
     request.zweck

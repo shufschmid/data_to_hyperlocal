@@ -1783,6 +1783,14 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
           }}
           verbrauch={verbrauch}
           onVerbrauchTage={(tage) => void ladeVerbrauch(tage)}
+          onEinstellung={async (felder) => {
+            await fuehreAus('modelleinstellungen', felder)
+            await ladeVerbrauch(verbrauch?.tage ?? 7)
+          }}
+          onPreis={async (preis) => {
+            await fuehreAus('modellpreise', preis)
+            await ladeVerbrauch(verbrauch?.tage ?? 7)
+          }}
         />
       )}
 
