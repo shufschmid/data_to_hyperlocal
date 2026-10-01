@@ -1,15 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { heuteAus } from '../shared/gemeindeseite'
 import {
-  abfuhrAbgleich,
-  abfuhrkalenderBlock,
   attributionsWarnung,
   aufraeumAktion,
   auszugVon,
   buildMitteilungPrompt,
   buildMitteilungRevision,
   buildSichtungPrompt,
-  hatAbfuhrbezug,
+  kalenderAbgleich,
+  kuenftigeTage,
   MELDUNG_SYSTEM_PROMPT,
   mitQuelle,
   parseSichtung,
@@ -23,8 +21,6 @@ import {
   type SichtungsZeile
 } from './gemeindeseite'
 
-const HEUTE = heuteAus('2026-09-14')
-
 const zeile = (ueber: Partial<SichtungsZeile> = {}): SichtungsZeile => ({
   id: 'm-1',
   titel: 'Aus dem Gemeinderat',
@@ -34,13 +30,14 @@ const zeile = (ueber: Partial<SichtungsZeile> = {}): SichtungsZeile => ({
   textAbgeschnitten: false,
   anhaenge: 0,
   anhaengeGelesen: 0,
-  abfuhr: null,
+  anhangNamen: [],
+  kalender: null,
   veranstaltungAm: null,
   ...ueber
 })
 
 describe('Sichtung', () => {
-  it('der System-Prompt nennt keine Gemeinde und traegt die Abfuhr-Regel', () => {
+  it('der System-Prompt nennt keine Gemeinde und traegt die Abfuhr-, die Kalender- und die Gewichtsregel', () => {
     for (const name of [
       'Riehen',
       'Aesch',
@@ -50,10 +47,17 @@ describe('Sichtung', () => {
     ]) {
       expect(SICHTUNG_SYSTEM_PROMPT).not.toContain(name)
     }
+    // Die Redaktion am 1.10.2026: der Abfuhrkalender ist vollstaendig, kein
+    // Abgleich; Abfuhr-Mitteilungen nur bei Ausfall oder Verschiebung; eine
+    // Gemeindemitteilung hat Gewicht, mit Flyern mehr.
+    expect(SICHTUNG_SYSTEM_PROMPT).toContain('ist darum KEIN Vorschlag')
     expect(SICHTUNG_SYSTEM_PROMPT).toContain(
-      'Abfuhrkalender schon stehen, ist KEIN Vorschlag'
+      'Faellt eine Abfuhr aus oder wird\nsie verschoben, ist das eine Meldung.'
     )
-    expect(SICHTUNG_SYSTEM_PROMPT).toContain('Faellt eine Abfuhr aus')
+    expect(SICHTUNG_SYSTEM_PROMPT).not.toContain('mitgegebenen Abfuhrkalender')
+    expect(SICHTUNG_SYSTEM_PROMPT).toContain('(Kalender-Abgleich)')
+    expect(SICHTUNG_SYSTEM_PROMPT).toContain('spricht FUER die Mitteilung')
+    expect(SICHTUNG_SYSTEM_PROMPT).toContain('Legt sie Flyer')
     expect(SICHTUNG_SYSTEM_PROMPT).toContain('"empfehlung_regel"')
   })
 
@@ -67,25 +71,25 @@ describe('Sichtung', () => {
     expect(lang).toContain('Text gekuerzt')
   })
 
-  it('nummeriert die Eintraege, deklariert Kappungen und Anhaenge und legt Kalender, Regeln und Digest in den User-Turn', () => {
+  it('nummeriert die Eintraege, deklariert Kappungen, Anhaenge mit Namen und den Kalender-Abgleich, und legt Regeln und Digest in den User-Turn', () => {
     const prompt = buildSichtungPrompt(
       'Aesch',
       [
         zeile(),
         zeile({
           id: 'm-2',
-          titel: 'Papiersammlung',
+          titel: 'Offene Turnhalle',
           kategorie: null,
           textAbgeschnitten: true,
           anhaenge: 2,
           anhaengeGelesen: 1,
-          abfuhr:
-            'Abfuhr-Abgleich: 22. September 2026: im Abfuhrkalender (Papier)'
+          anhangNamen: ['Flyer FAZ', 'Flyer Jugendarbeit'],
+          kalender:
+            'Kalender-Abgleich: 25. Oktober 2026: kein Anlass im Veranstaltungskalender'
         })
       ],
       'So hat die Redaktion entschieden …',
-      'R1: Vereinsanlaesse nie.',
-      'Abfuhrkalender Aesch (bekannte Termine, 1 im Fenster):\n22.09. Papier'
+      'R1: Vereinsanlaesse nie.'
     )
     expect(prompt).toContain('Gemeinde: Aesch')
     expect(prompt).toContain(
@@ -94,15 +98,15 @@ describe('Sichtung', () => {
     expect(prompt).toContain(
       '   Auszug: Der Gemeinderat hat das Budget 2027 verabschiedet.'
     )
-    expect(prompt).toContain('2. [11. September 2026] "Papiersammlung"')
+    expect(prompt).toContain('2. [11. September 2026] "Offene Turnhalle"')
     expect(prompt).toContain('(Der Text wurde beim Lesen gekuerzt.)')
-    expect(prompt).toContain('(2 Anhaenge, davon gelesen: 1)')
     expect(prompt).toContain(
-      '   Abfuhr-Abgleich: 22. September 2026: im Abfuhrkalender (Papier)'
+      '(2 Anhaenge, davon gelesen: 1: Flyer FAZ, Flyer Jugendarbeit)'
     )
-    expect(prompt.indexOf('Abfuhrkalender Aesch')).toBeLessThan(
-      prompt.indexOf('R1:')
+    expect(prompt).toContain(
+      '   Kalender-Abgleich: 25. Oktober 2026: kein Anlass im Veranstaltungskalender'
     )
+    expect(prompt).not.toContain('Abfuhrkalender')
     expect(prompt.indexOf('R1:')).toBeLessThan(
       prompt.indexOf('So hat die Redaktion')
     )
@@ -138,113 +142,118 @@ describe('Sichtung', () => {
   })
 })
 
-describe('Abfuhrbezug', () => {
-  const papier = {
-    titel: 'Papiersammlung am 22. September 2026',
+describe('Kalender-Abgleich', () => {
+  // Muenchensteins „Offene Turnhalle" (1.10.2026): der Text nennt zwei
+  // Sonntage, die drei Flyer alle vier — und der Kalender der Gemeinde keinen.
+  const turnhalle = {
+    titel:
+      'Bewegung am Sonntag – Nächste "Offene Turnhalle" am 25. Oktober und 8. November',
     teaser: null,
-    text: 'Bitte bis 7 Uhr bereitstellen.'
-  }
-  const termine = [
-    { kategorie: 'Papier', zone: null, datum: '2026-09-22' },
-    { kategorie: 'Grüngut', zone: 'Ost', datum: '2026-09-24' }
-  ]
-
-  it('erkennt Abfuhr-Woerter, nicht aber jedes Papier', () => {
-    expect(hatAbfuhrbezug(papier)).toBe(true)
-    expect(
-      hatAbfuhrbezug({
-        titel: 'Grüngutabfuhr fällt aus',
-        teaser: null,
-        text: null
-      })
-    ).toBe(true)
-    expect(
-      hatAbfuhrbezug({
-        titel: 'Häckseldienst im Oktober',
-        teaser: null,
-        text: null
-      })
-    ).toBe(true)
-    expect(
-      hatAbfuhrbezug({
-        titel: 'Papierkorb-Aktion der Schule',
-        teaser: 'Kinder basteln',
-        text: 'aus Papier und Karton.'
-      })
-    ).toBe(false)
-    expect(
-      hatAbfuhrbezug({
-        titel: 'Neue Buslinie',
-        teaser: null,
-        text: 'Ab Oktober.'
-      })
-    ).toBe(false)
-  })
-
-  it('gleicht jeden genannten Tag mit dem Kalender ab — als Tatsache, nicht als Urteil', () => {
-    expect(abfuhrAbgleich(papier, termine, HEUTE)).toBe(
-      'Abfuhr-Abgleich: 22. September 2026: im Abfuhrkalender (Papier)'
-    )
-    expect(
-      abfuhrAbgleich(
-        {
-          titel: 'Grüngutabfuhr vom Donnerstag, 24. September fällt aus',
-          teaser: null,
-          text: 'Nachholtermin 1. Oktober 2026.'
-        },
-        termine,
-        HEUTE
-      )
-    ).toBe(
-      'Abfuhr-Abgleich: 24. September 2026: im Abfuhrkalender (Grüngut (Ost)); 1. Oktober 2026: nicht im Abfuhrkalender'
-    )
-    expect(
-      abfuhrAbgleich(
-        { titel: 'Abfuhr neu geregelt', teaser: null, text: 'Details folgen.' },
-        termine,
-        HEUTE
-      )
-    ).toBe('Abfuhr-Abgleich: Die Mitteilung nennt keinen konkreten Tag.')
-  })
-
-  it('rendert den Kalender gedeckelt und deklariert, und sagt, wenn keiner erfasst ist', () => {
-    const viele = Array.from({ length: 45 }, (_, i) => ({
-      kategorie: 'Kehricht',
-      zone: null,
-      datum: `2026-10-${String((i % 28) + 1).padStart(2, '0')}`
-    }))
-    const block = abfuhrkalenderBlock(
-      'Aesch',
+    text: 'Die nächsten Termine sind am 25. Oktober sowie am 8. November 2026.',
+    anhaenge: [
       {
-        vorhanden: true,
-        termine: viele,
-        merkblatt: 'Kehricht jeden Dienstag.'
+        gelesen: true,
+        text: 'offene Turnhalle\n25.10. & 8.11.2026 und 24.1. & 7.3.2027'
       },
-      40
-    )
-    expect(block).toContain(
-      'Abfuhrkalender Aesch (bekannte Termine, 40 im Fenster):'
-    )
-    expect(block).toContain('(5 weitere Termine nicht aufgefuehrt)')
-    expect(block).toContain(
-      'Regelmaessige Abfuhren laut Merkblatt: Kehricht jeden Dienstag.'
-    )
+      { gelesen: false, text: 'nicht gelesen: 1.12.2026' }
+    ]
+  }
+  const kalender = {
+    vorhanden: true,
+    anlaesse: [
+      {
+        titel: 'Herbstmarkt',
+        lokalitaet: 'Dorfplatz',
+        von: '2026-10-25',
+        bis: null,
+        termine: ['2026-10-25'],
+        rhythmus: 'einmalig'
+      },
+      {
+        titel: 'Ausstellung Grieshaber',
+        lokalitaet: null,
+        von: '2026-10-01',
+        bis: '2026-11-30',
+        termine: ['2026-10-01', '2026-11-30'],
+        rhythmus: 'laufend'
+      },
+      {
+        titel: 'Jassen',
+        lokalitaet: 'Saal',
+        von: '2026-09-01',
+        bis: '2027-06-30',
+        termine: ['2026-09-01', '2026-10-06'],
+        rhythmus: 'woechentlich'
+      }
+    ]
+  }
+
+  it('nimmt die kuenftigen Tage aus Wortlaut und GELESENEN Anhaengen', () => {
+    expect(kuenftigeTage(turnhalle, '2026-10-01')).toEqual([
+      '2026-10-25',
+      '2026-11-08',
+      '2027-01-24',
+      '2027-03-07'
+    ])
     expect(
-      abfuhrkalenderBlock('Aesch', {
-        vorhanden: true,
-        termine,
-        merkblatt: null
-      })
-    ).toContain('22.09. Papier · 24.09. Grüngut (Ost)')
+      kuenftigeTage(
+        {
+          titel: 'Rueckblick auf den 20. September 2026',
+          teaser: null,
+          text: null
+        },
+        '2026-10-01'
+      )
+    ).toEqual([])
+  })
+
+  it('sagt je Tag, was der Kalender fuehrt — eine Spanne deckt ihre Tage, eine Serie nur die genannten, jenseits des Fensters nichts', () => {
+    expect(kalenderAbgleich(turnhalle, kalender, '2026-10-01', 60)).toBe(
+      'Kalender-Abgleich: 25. Oktober 2026: im Kalender «Herbstmarkt» (Dorfplatz), «Ausstellung Grieshaber»; 8. November 2026: im Kalender «Ausstellung Grieshaber»; 24. Januar 2027: jenseits des gelesenen Kalenderfensters (60 Tage); 7. März 2027: jenseits des gelesenen Kalenderfensters (60 Tage)'
+    )
+  })
+
+  it('nennt den fehlenden Anlass und den fehlenden Kalender, und schweigt ohne kuenftigen Tag', () => {
+    const hinweis = {
+      titel: 'Offene Turnhalle am 8. November 2026',
+      teaser: null,
+      text: null
+    }
     expect(
-      abfuhrkalenderBlock('Dornach', {
-        vorhanden: false,
-        termine: [],
-        merkblatt: null
-      })
+      kalenderAbgleich(hinweis, { vorhanden: true, anlaesse: [] }, '2026-10-01')
     ).toBe(
-      'Abfuhrkalender Dornach: keiner erfasst — Abfuhrtermine wie jede andere Mitteilung beurteilen.'
+      'Kalender-Abgleich: 8. November 2026: kein Anlass im Veranstaltungskalender'
     )
+    expect(
+      kalenderAbgleich(
+        hinweis,
+        { vorhanden: false, anlaesse: [] },
+        '2026-10-01'
+      )
+    ).toBe(
+      'Kalender-Abgleich: kein Veranstaltungskalender dieser Gemeinde erfasst — der Veranstaltungs-Tisch bringt hier nichts.'
+    )
+    expect(
+      kalenderAbgleich(
+        { titel: 'Budget 2027', teaser: null, text: 'Der Gemeinderat …' },
+        kalender,
+        '2026-10-01'
+      )
+    ).toBeNull()
+  })
+
+  it('deckelt die Tage und deklariert den Rest', () => {
+    const text = Array.from(
+      { length: 10 },
+      (_, i) => `${i + 1}. November 2026`
+    ).join(', ')
+    const zeile = kalenderAbgleich(
+      { titel: 'Zehn Tage', teaser: null, text },
+      { vorhanden: true, anlaesse: [] },
+      '2026-10-01'
+    )
+    expect(zeile).toContain('(2 weitere Tage nicht abgeglichen)')
+    expect(zeile?.split(';')).toHaveLength(9)
   })
 })
 

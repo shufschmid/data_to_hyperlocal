@@ -183,14 +183,20 @@ export function parseDatum(text: string, heute: Heute): string | null {
 const ALLE_MIT_JAHR =
   /(\d{1,2})\.\s?(\d{1,2})\.\s?(\d{4})(?!\d)|(\d{1,2})\.\s*([A-Za-zÄÖÜäöü]{3,9})\.?\s+(\d{4})(?!\d)/g
 const ALLE_OHNE_JAHR = /(\d{1,2})\.\s*([A-Za-zÄÖÜäöü]{3,9})\b\.?(?!\s*\d{4})/g
+// Day and month in digits with no year behind them — "25.10. & 8.11.2026":
+// the flyers of Münchenstein's Offene Turnhalle print their four dates that
+// way (1 October 2026), and the first of each pair carries no year. Not
+// preceded by a digit or a dot (a version number, a section "12.3.4") and not
+// followed by one ("14.09.26" is a two-digit year, not a dateless day).
+const ALLE_NUMERISCH_OHNE_JAHR = /(?<![\d.])(\d{1,2})\.(\d{1,2})\.(?!\s?\d)/g
 
 /**
  * Every date an announcement names, as ISO, in text order and without
- * duplicates. Month-and-day mentions without a year ("Montag, 22. September")
- * take the forward inference: an announced date lies ahead.
+ * duplicates. Month-and-day mentions without a year ("Montag, 22. September",
+ * "24.1.") take the forward inference: an announced date lies ahead.
  *
- * Built for the waste-collection cross-check, where the question is "which
- * days does this text talk about", not "when was it published".
+ * Built for the cross-checks of the Gemeindeseiten desk, where the question
+ * is "which days does this text talk about", not "when was it published".
  */
 export function alleDaten(text: string, heute: Heute): string[] {
   const roh = text.normalize('NFC')
@@ -217,6 +223,16 @@ export function alleDaten(text: string, heute: Heute): string[] {
     const monat = monatVon(treffer[2] ?? '')
     if (monat === null) continue
     const tag = Number(treffer[1])
+    funde.push({
+      index: treffer.index ?? 0,
+      datum: iso(jahrFuerMonatTagVorwaerts(monat, tag, heute), monat, tag)
+    })
+  }
+
+  for (const treffer of roh.matchAll(ALLE_NUMERISCH_OHNE_JAHR)) {
+    const tag = Number(treffer[1])
+    const monat = Number(treffer[2])
+    if (monat < 1 || monat > 12) continue
     funde.push({
       index: treffer.index ?? 0,
       datum: iso(jahrFuerMonatTagVorwaerts(monat, tag, heute), monat, tag)

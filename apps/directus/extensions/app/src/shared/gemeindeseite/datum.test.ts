@@ -128,4 +128,20 @@ describe('alleDaten', () => {
   it('laesst unplausible Angaben liegen', () => {
     expect(alleDaten('Vom 31.02.2026 und 2626-09-14.', HEUTE)).toEqual([])
   })
+
+  // Die Flyer der Offenen Turnhalle Muenchenstein (1.10.2026): vier Tage,
+  // der erste jedes Paars ohne Jahr — der 24.1. ging dem Termin verloren.
+  it('liest Tag und Monat in Ziffern ohne Jahr nach vorn, wie einen Monatsnamen', () => {
+    expect(
+      alleDaten(
+        'offene Turnhalle\n25.10. & 8.11.2026 und 24.1. & 7.3.2027\n10.00–12.00 Uhr, KUSPO',
+        HEUTE
+      )
+    ).toEqual(['2026-10-25', '2026-11-08', '2027-01-24', '2027-03-07'])
+  })
+
+  it('haelt eine Kurzjahr-Angabe, eine Uhrzeit und eine Abschnittsnummer nicht fuer einen Tag ohne Jahr', () => {
+    expect(alleDaten('Stand 14.09.26, 10.00–12.00 Uhr.', HEUTE)).toEqual([])
+    expect(alleDaten('Nach Ziffer 1.12.3.4 des Reglements.', HEUTE)).toEqual([])
+  })
 })

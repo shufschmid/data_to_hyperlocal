@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { MessageSender } from '../shared/claude'
 import type { RegelZeile } from './gedaechtnis'
 import {
-  ladeAbfuhrkalender,
+  ladeKalenderAnlaesse,
   raeumeMitteilungenAuf,
   sichteMitteilungen,
   type MitteilungenDienst,
@@ -87,34 +87,33 @@ describe('raeumeMitteilungenAuf', () => {
   })
 })
 
-describe('ladeAbfuhrkalender', () => {
-  it('sagt, wenn keiner erfasst ist, und liest sonst das Fenster um heute', async () => {
-    const termine = {
-      readByQuery: vi.fn(async (_q: Query) => [
-        { kategorie: 'Papier', zone: null, datum: '2026-09-22' }
-      ])
+const JASSABEND = {
+  titel: 'Jassabend',
+  lokalitaet: 'Mehrzweckhalle',
+  von: '2026-09-22',
+  bis: null,
+  termine: ['2026-09-22'],
+  rhythmus: 'einmalig'
+}
+
+describe('ladeKalenderAnlaesse', () => {
+  it('sagt, wenn kein Kalender erfasst ist, und liest sonst die Anlaesse ab heute', async () => {
+    const anlaesse = {
+      readByQuery: vi.fn(async (_q: Query) => [JASSABEND])
     }
     const ohne = { readByQuery: async () => [] }
     expect(
-      await ladeAbfuhrkalender(termine, ohne, 'g-1', '2026-09-14')
-    ).toEqual({ vorhanden: false, termine: [], merkblatt: null })
-    expect(termine.readByQuery).not.toHaveBeenCalled()
+      await ladeKalenderAnlaesse(ohne, anlaesse, 'g-1', '2026-09-14')
+    ).toEqual({ vorhanden: false, anlaesse: [] })
+    expect(anlaesse.readByQuery).not.toHaveBeenCalled()
 
-    const mit = {
-      readByQuery: async () => [
-        { id: 'k', jahr: 2026, merkblatt: 'Kehricht dienstags.' }
-      ]
-    }
-    const kalender = await ladeAbfuhrkalender(termine, mit, 'g-1', '2026-09-14')
-    expect(kalender).toEqual({
-      vorhanden: true,
-      termine: [{ kategorie: 'Papier', zone: null, datum: '2026-09-22' }],
-      merkblatt: 'Kehricht dienstags.'
-    })
-    const frage = termine.readByQuery.mock.calls[0]?.[0] as Query
+    const mit = { readByQuery: async () => [{ id: 'q-1' }] }
+    const stand = await ladeKalenderAnlaesse(mit, anlaesse, 'g-1', '2026-09-14')
+    expect(stand).toEqual({ vorhanden: true, anlaesse: [JASSABEND] })
+    const frage = anlaesse.readByQuery.mock.calls[0]?.[0] as Query
     expect(frage['filter']).toEqual({
-      kalender: { gemeinde: { _eq: 'g-1' } },
-      datum: { _between: ['2026-08-31', '2026-12-13'] }
+      gemeinde: { _eq: 'g-1' },
+      _or: [{ bis: { _gte: '2026-09-14' } }, { von: { _gte: '2026-09-14' } }]
     })
   })
 })
@@ -175,25 +174,23 @@ describe('sichteMitteilungen', () => {
       readByQuery: async () => [],
       createOne: vi.fn(async () => 'h-1')
     }
-    const termine = {
-      readByQuery: vi.fn(async () => [
-        { kategorie: 'Papier', zone: null, datum: '2026-09-22' }
-      ])
+    const anlaesse = {
+      readByQuery: vi.fn(async () => [JASSABEND])
     }
-    const kalender = {
-      readByQuery: vi.fn(async () => [{ id: 'k', jahr: 2026, merkblatt: null }])
+    const quellen = {
+      readByQuery: vi.fn(async () => [{ id: 'q-1' }])
     }
     return {
       dienst,
       hinweise,
-      termine,
-      kalender,
+      anlaesse,
+      quellen,
       k: {
         mitteilungen: dienst,
         hinweise,
         meldungen: leer,
-        termine,
-        kalender,
+        anlaesse,
+        quellen,
         regelzeilen,
         sichtungsregeln,
         heute: '2026-09-14',
@@ -204,7 +201,7 @@ describe('sichteMitteilungen', () => {
     }
   }
 
-  it('gibt dem Modell Kalender, Abgleich, Regeln und Beispiele im User-Turn, schreibt die Urteile zurueck und reicht nach Regel weiter', async () => {
+  it('gibt dem Modell den Kalender-Abgleich, Regeln und Beispiele im User-Turn, schreibt die Urteile zurueck und reicht nach Regel weiter', async () => {
     const send = vi.fn<MessageSender>().mockResolvedValue(
       nachricht(
         JSON.stringify({
@@ -227,7 +224,7 @@ describe('sichteMitteilungen', () => {
         })
       )
     )
-    const { k, dienst, hinweise, termine } = kontext(send)
+    const { k, dienst, hinweise, anlaesse } = kontext(send)
 
     const ergebnis = await sichteMitteilungen(
       neue,
@@ -257,15 +254,13 @@ describe('sichteMitteilungen', () => {
     expect(system).not.toContain('Aesch')
     expect(prompt).toContain('Gemeinde: Aesch')
     expect(prompt).toContain(
-      'Abfuhrkalender Aesch (bekannte Termine, 1 im Fenster):'
+      'Kalender-Abgleich: 22. September 2026: im Kalender «Jassabend» (Mehrzweckhalle)'
     )
-    expect(prompt).toContain(
-      'Abfuhr-Abgleich: 22. September 2026: im Abfuhrkalender (Papier)'
-    )
+    expect(prompt).not.toContain('Abfuhrkalender')
     expect(prompt).toContain(
       'R1: Budgetbeschluesse gehen an die Chefredaktion.'
     )
-    expect(termine.readByQuery).toHaveBeenCalledTimes(1)
+    expect(anlaesse.readByQuery).toHaveBeenCalledTimes(1)
     expect(dienst.updates).toEqual([
       [
         'm-1',
@@ -297,17 +292,17 @@ describe('sichteMitteilungen', () => {
     )
   })
 
-  it('laedt den Kalender nur, wenn eine Mitteilung von Abfuhren handelt', async () => {
+  it('liest den Kalender nur, wenn eine Mitteilung einen kuenftigen Tag nennt', async () => {
     const send = vi
       .fn<MessageSender>()
       .mockResolvedValue(nachricht(JSON.stringify({ urteile: [] })))
-    const { k, termine, kalender } = kontext(send)
+    const { k, anlaesse, quellen } = kontext(send)
     await sichteMitteilungen([neue[1]!], { id: 'g-1', name: 'Aesch' }, k)
-    expect(kalender.readByQuery).not.toHaveBeenCalled()
-    expect(termine.readByQuery).not.toHaveBeenCalled()
+    expect(quellen.readByQuery).not.toHaveBeenCalled()
+    expect(anlaesse.readByQuery).not.toHaveBeenCalled()
     const prompt =
       (send.mock.calls[0]?.[0]?.messages[0]?.content as string) ?? ''
-    expect(prompt).not.toContain('Abfuhrkalender')
+    expect(prompt).not.toContain('Kalender-Abgleich')
   })
 
   it('ein gescheiterter Modellaufruf laesst die Urteile leer — nicht beurteilt ist nicht nein', async () => {
@@ -387,8 +382,8 @@ describe('sichteMitteilungen: Termine', () => {
         mitteilungen: dienst,
         hinweise: { readByQuery: async () => [], createOne: async () => 'h' },
         meldungen: leer,
-        termine: leer,
-        kalender: leer,
+        anlaesse: leer,
+        quellen: leer,
         regelzeilen: [],
         sichtungsregeln: { text: '', nummern: new Map() },
         heute: '2026-09-14',
@@ -441,8 +436,8 @@ describe('sichteMitteilungen: Termine', () => {
         },
         hinweise: { readByQuery: async () => [], createOne: async () => 'h' },
         meldungen: leer,
-        termine: leer,
-        kalender: leer,
+        anlaesse: leer,
+        quellen: leer,
         regelzeilen: [],
         sichtungsregeln: { text: '', nummern: new Map() },
         heute: '2026-09-14',

@@ -16,22 +16,20 @@ import {
   type MessageSender
 } from '../shared/claude'
 import { pakete, SICHTUNG_AUFRUF, sichtungsFehlerText } from './sichtungspakete'
-import { verschiebe } from './feiertage'
 import type { RegelZeile } from './gedaechtnis'
 import {
-  abfuhrAbgleich,
-  abfuhrkalenderBlock,
   aufraeumAktion,
   auszugVon,
   buildSichtungPrompt,
-  hatAbfuhrbezug,
-  heuteFuer,
+  kalenderAbgleich,
+  kuenftigeTage,
   lernDigest,
   SICHTUNG_SYSTEM_PROMPT,
   sichtungsAuswahl,
   VORBEI_BEGRUENDUNG,
-  type AbfuhrTermin,
   type AufraeumZeile,
+  type KalenderAnlass,
+  type KalenderStand,
   type SichtungsZeile
 } from './gemeindeseite'
 import { automatischeWeitergabe, type NummerierteRegel } from './lernen'
@@ -94,49 +92,36 @@ export async function raeumeMitteilungenAuf(
   return { geloescht: loeschen.length, verfallen: verfallen.length }
 }
 
-export interface Abfuhrkalender {
-  vorhanden: boolean
-  termine: AbfuhrTermin[]
-  merkblatt: string | null
-}
-
-/** Two weeks back, three months ahead: what an announcement could be talking about. */
-export const KALENDER_TAGE_ZURUECK = 14
-export const KALENDER_TAGE_VORAUS = 90
-
-/** The municipality's collection dates around today, plus the regular collections the calendar notes. */
-export async function ladeAbfuhrkalender(
-  termine: LeseDienst,
-  kalender: LeseDienst,
+/**
+ * The municipality's events desk as the Sichtung's cross-check needs it:
+ * whether any calendar is registered and active for it at all, and its rows
+ * from today on. Two queries at most, once per municipality and run, and
+ * only when an item names a day ahead. Every active source counts — the
+ * Blutspende rows sit on the same desk and are brought the same way.
+ */
+export async function ladeKalenderAnlaesse(
+  quellen: LeseDienst,
+  anlaesse: LeseDienst,
   gemeindeId: string,
   heute: string
-): Promise<Abfuhrkalender> {
-  const kalenderZeilen = (await kalender.readByQuery({
-    filter: { gemeinde: { _eq: gemeindeId } },
-    fields: ['id', 'jahr', 'merkblatt'],
-    sort: ['-jahr'],
+): Promise<KalenderStand> {
+  const aktive = (await quellen.readByQuery({
+    filter: { gemeinde: { _eq: gemeindeId }, aktiv: { _eq: true } },
+    fields: ['id'],
     limit: 1
-  })) as Array<{ id: string; jahr: number; merkblatt: string | null }>
-  const aktuell = kalenderZeilen[0]
-  if (aktuell === undefined)
-    return { vorhanden: false, termine: [], merkblatt: null }
+  })) as Array<{ id: string }>
+  if (aktive.length === 0) return { vorhanden: false, anlaesse: [] }
 
-  const zeilen = (await termine.readByQuery({
+  const zeilen = (await anlaesse.readByQuery({
     filter: {
-      kalender: { gemeinde: { _eq: gemeindeId } },
-      datum: {
-        _between: [
-          verschiebe(heute, -KALENDER_TAGE_ZURUECK),
-          verschiebe(heute, KALENDER_TAGE_VORAUS)
-        ]
-      }
+      gemeinde: { _eq: gemeindeId },
+      _or: [{ bis: { _gte: heute } }, { von: { _gte: heute } }]
     },
-    fields: ['kategorie', 'zone', 'datum'],
-    sort: ['datum'],
+    fields: ['titel', 'lokalitaet', 'von', 'bis', 'termine', 'rhythmus'],
+    sort: ['von'],
     limit: -1
-  })) as AbfuhrTermin[]
-
-  return { vorhanden: true, termine: zeilen, merkblatt: aktuell.merkblatt }
+  })) as KalenderAnlass[]
+  return { vorhanden: true, anlaesse: zeilen }
 }
 
 /** A freshly stored row, as the Sichtung needs it. */
@@ -148,7 +133,12 @@ export interface ZeileFuerSichtung {
   publiziert_am: string | null
   kategorie: string | null
   text_abgeschnitten: boolean
-  anhaenge: ReadonlyArray<{ gelesen: boolean }> | null
+  /** Name and text ride along where the caller has them: the names reach the prompt, the read texts the Kalender-Abgleich. */
+  anhaenge: ReadonlyArray<{
+    gelesen: boolean
+    bezeichnung?: string | null
+    text?: string | null
+  }> | null
   /** Set on an events row; a past one is judged by code, never by the model. */
   veranstaltung_am: string | null
 }
@@ -159,8 +149,9 @@ export interface SichtungKontext {
     createOne(payload: Record<string, unknown>): Promise<unknown>
   }
   meldungen: LeseDienst
-  termine: LeseDienst
-  kalender: LeseDienst
+  /** `veranstaltungen` and `veranstaltungsquellen` — the events desk, for the Kalender-Abgleich. */
+  anlaesse: LeseDienst
+  quellen: LeseDienst
   regelzeilen: readonly RegelZeile[]
   sichtungsregeln: {
     text: string
@@ -177,8 +168,9 @@ export interface SichtungKontext {
 /**
  * One Sonnet call over a municipality's new items: sorts, never filters.
  * Steered by the desk's rules, this municipality's decision history and —
- * where an item talks about collections — its waste calendar. A rule the
- * editor armed may hand an item to the Chefredaktion by itself, as a lead.
+ * where an item names days ahead — what the events desk carries on them. A
+ * rule the editor armed may hand an item to the Chefredaktion by itself, as
+ * a lead.
  */
 export async function sichteMitteilungen(
   neue: readonly ZeileFuerSichtung[],
@@ -192,12 +184,13 @@ export async function sichteMitteilungen(
 }> {
   if (neue.length === 0)
     return { vorschlaege: 0, weitergereicht: 0, fehler: null }
-  const heute = heuteFuer(kontext.heute)
-
-  const kalender = neue.some(hatAbfuhrbezug)
-    ? await ladeAbfuhrkalender(
-        kontext.termine,
-        kontext.kalender,
+  // The events desk's rows, only when an item names a day ahead: two queries
+  // per municipality and run at most, none for a day's notices that name no
+  // day — which is most of them.
+  const kalender = neue.some((z) => kuenftigeTage(z, kontext.heute).length > 0)
+    ? await ladeKalenderAnlaesse(
+        kontext.quellen,
+        kontext.anlaesse,
         gemeinde.id,
         kontext.heute
       )
@@ -212,10 +205,11 @@ export async function sichteMitteilungen(
     textAbgeschnitten: z.text_abgeschnitten,
     anhaenge: z.anhaenge?.length ?? 0,
     anhaengeGelesen: z.anhaenge?.filter((a) => a.gelesen).length ?? 0,
-    abfuhr:
-      kalender !== null && kalender.vorhanden && hatAbfuhrbezug(z)
-        ? abfuhrAbgleich(z, kalender.termine, heute)
-        : null,
+    anhangNamen: (z.anhaenge ?? [])
+      .map((a) => a.bezeichnung ?? '')
+      .filter((n) => n.trim() !== ''),
+    kalender:
+      kalender === null ? null : kalenderAbgleich(z, kalender, kontext.heute),
     veranstaltungAm: z.veranstaltung_am
   }))
 
@@ -253,8 +247,6 @@ export async function sichteMitteilungen(
   let vorschlaege = 0
   const schwelle = (kontext.einstellung ?? STANDARD_EINSTELLUNG).schwelle
   const digest = lernDigest(signale.entscheide, LERN_FENSTER, signale.rahmen)
-  const kalenderBlock =
-    kalender === null ? '' : abfuhrkalenderBlock(gemeinde.name, kalender)
   // In packets (`sichtungspakete.ts`): a failed packet costs its own rows,
   // never the municipality's whole judgement.
   const paketListe = pakete(zeilen)
@@ -269,8 +261,7 @@ export async function sichteMitteilungen(
             gemeinde.name,
             paket,
             digest,
-            kontext.sichtungsregeln.text,
-            kalenderBlock
+            kontext.sichtungsregeln.text
           ),
           // Room, deliberately. The answer carries one verdict with a written
           // reason per item, and a truncated answer costs the WHOLE municipality

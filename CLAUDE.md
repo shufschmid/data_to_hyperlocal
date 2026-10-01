@@ -606,11 +606,27 @@ them is wrong even if it works.
    their machine draft discarded. One Sonnet Sichtung per municipality
    and run sorts the new items (titles AND an excerpt — „Aus dem Gemeinderat"
    says nothing), steered by the desk's rules, this municipality's decisions
-   and — where an item talks about collections — its Abfuhrkalender: a
-   Mitteilung that only repeats dates the calendar already has is no proposal
-   (the reminder is the Entsorgung desk's), a cancelled or moved collection is
-   one; the cross-check of named days against `entsorgungstermine` is code and
-   stands in the prompt as a fact. **Since 29 September 2026 the Sichtung
+   and — where an item names days AHEAD — what the events desk already
+   carries on them (`kalenderAbgleich`, 1 October 2026): a fact in the
+   prompt, never a verdict, per day „kein Anlass im Veranstaltungskalender"
+   or the titles the calendar holds that day, a day beyond the calendar's
+   60-day read horizon said to be beyond it, and „kein Veranstaltungskalender
+   erfasst" where none is. The days come from title, teaser, text AND the
+   read attachments — Münchenstein's „Offene Turnhalle" named two Sundays in
+   its text and all four on its three flyers, and the calendar none — and
+   `alleDaten` reads „24.1." (digits, no year) forward since the same day,
+   because that is how flyers print the first of a pair. The newsroom's
+   decisions behind it, in its words: the grade stays the model's (no fixed
+   grade for „missing from the calendar"); that a municipality publishes
+   something as a notice already carries weight, and flyers behind it more,
+   someone is making an effort to push an offer — so the entry names its
+   attachments (`anhangNamen`), a count cannot tell a flyer from a
+   Reglement; and the Abfuhrkalender cross-check that stood here before is
+   RETIRED: the waste calendar is complete and correct by assumption, a
+   waste notice is a Meldung only when a collection is cancelled or moved,
+   which is a prompt rule and costs no calendar block. One appearance per
+   date for an irregular series („jeden Freitag davor") was explicitly NOT
+   made a rule — it is set by hand on the card. **Since 29 September 2026 the Sichtung
    GRADES instead of answering yes/no** (`redaktion/sichtung.ts`,
    `STUFEN_SCHEMA`): 4 wichtig · 3 klare Meldung · 2 möglich · 1 Routine,
    stored as `vorschlag_wert`, and `vorschlag` is that grade against the
@@ -1636,9 +1652,12 @@ Flow "Gemeindeseiten pruefen"  (0 13 * * *)
        │    Upsert auf (quelle, schluessel); Detail EINMAL je Anlass, bei einem
        │    Gremium dazu die Sitzungsseite mit ihren Traktanden
        ├─ 1× Sonnet je Gemeinde → Sichtung ueber die NEUEN Mitteilungen (Titel +
-       │    Auszug): Regeln R1…Rn, Bilanz und Beispiele dieser Gemeinde, und wo
-       │    eine Mitteilung von Abfuhren handelt, der Abfuhrkalender samt
-       │    Abgleich der genannten Tage; sortiert, filtert nie — BENOTET
+       │    Auszug, Namen der Anhaenge): Regeln R1…Rn, Bilanz und Beispiele
+       │    dieser Gemeinde, und wo eine Mitteilung kuenftige Tage nennt, der
+       │    Kalender-Abgleich — was der Veranstaltungstisch an diesen Tagen
+       │    fuehrt (kein Abfuhr-Abgleich mehr: der Abfuhrkalender gilt als
+       │    vollstaendig, Abfuhren sind nur bei Ausfall oder Verschiebung eine
+       │    Meldung — Prompt-Regel); sortiert, filtert nie — BENOTET
        │    (Stufe 1–4, vorschlag_wert), Vorschlag ab der Schwelle des Tischs
        │    (tischeinstellungen), vom Lauf taeglich neu angewandt
        └─ 1× Sonnet je Gemeinde → Sichtung ueber die NEU verankerten Anlaesse

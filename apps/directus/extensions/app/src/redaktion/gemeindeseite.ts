@@ -7,7 +7,12 @@
 // it is imported and re-exported under this desk's names rather than copied:
 // one parser, one digest renderer, one date formatter.
 
-import { alleDaten, heuteAus, type Heute } from '../shared/gemeindeseite'
+import {
+  alleDaten,
+  heuteAus,
+  VERANSTALTUNGS_FENSTER_TAGE,
+  type Heute
+} from '../shared/gemeindeseite'
 import {
   datumDeutsch,
   lernDigest,
@@ -16,6 +21,7 @@ import {
   type LernEintrag,
   type TriageUrteil
 } from './amtsblatt'
+import { verschiebe } from './feiertage'
 import { terminTageZeilen } from './termin'
 import { vorgabenZeilen } from './lernen'
 import { gekuerzt } from './presseschau'
@@ -37,7 +43,7 @@ export {
 
 /**
  * Byte-identical across a run. Everything per municipality — its name, its
- * decision history, its waste calendar — goes into the user turn.
+ * decision history, its events calendar — goes into the user turn.
  */
 export const SICHTUNG_SYSTEM_PROMPT = `Du sichtest fuer eine lokale Redaktion in der Region Basel die Mitteilungen auf der offiziellen Website einer Gemeinde und entscheidest, welche davon eine Redaktorin ansehen sollte.
 
@@ -60,11 +66,21 @@ Stellenausschreibungen, Schalter- und Formularhinweise, Wahlwerbung,
 Baupublikationen und amtliche Anzeigen (die kommen ueber das Amtsblatt),
 Gratulationen, Hinweise auf den eigenen Newsletter.
 
-Abfuhren: Eine Mitteilung, die nur Abfuhrtermine ankuendigt, die im
-mitgegebenen Abfuhrkalender schon stehen, ist KEIN Vorschlag — die Erinnerung
-schreibt der Entsorgungs-Tisch. Faellt eine Abfuhr aus, wird sie verschoben,
-kommt eine neue hinzu oder aendert sich der Ablauf, ist das eine Meldung.
-Begruende mit dem Abgleich, der bei der Mitteilung steht.
+Abfuhren: Die Abfuhrtermine stehen vollstaendig und richtig im
+Abfuhrkalender der Gemeinde, und die Erinnerungen dazu schreibt der
+Entsorgungs-Tisch. Eine Mitteilung, die Abfuhrtermine ankuendigt oder in
+Erinnerung ruft, ist darum KEIN Vorschlag. Faellt eine Abfuhr aus oder wird
+sie verschoben, ist das eine Meldung.
+
+Anlaesse: Was im Veranstaltungskalender der Gemeinde steht, bringt der
+Veranstaltungs-Tisch zum richtigen Zeitpunkt. Nennt eine Mitteilung
+kuenftige Tage, steht bei ihr, was der Kalender an diesen Tagen fuehrt
+(Kalender-Abgleich). Fehlt der Anlass dort, bringt ihn sonst niemand — das
+spricht FUER die Mitteilung, nicht gegen sie.
+
+Gewicht: Dass eine Gemeinde etwas als Mitteilung veroeffentlicht, hat fuer
+sich schon Gewicht. Legt sie Flyer oder andere Unterlagen dazu, eher noch
+mehr — da macht sich jemand die Muehe, ein Angebot bekannt zu machen.
 
 Vergib jeder Mitteilung eine STUFE ihres Nachrichtenwerts. Die Note ist
 deine; ab welcher Stufe etwas auf den Tisch kommt, stellt die Redaktion ein —
@@ -103,8 +119,10 @@ export interface SichtungsZeile {
   textAbgeschnitten: boolean
   anhaenge: number
   anhaengeGelesen: number
-  /** The waste-calendar cross-check for this item, when it talks about collections. */
-  abfuhr: string | null
+  /** What the attachments are called — a flyer is a signal the count alone cannot give. */
+  anhangNamen: readonly string[]
+  /** The events-calendar cross-check for this item, when it names days ahead; null otherwise. */
+  kalender: string | null
   /** The day the event takes place — set on an events row, null on a news row. */
   veranstaltungAm: string | null
 }
@@ -167,14 +185,30 @@ export function auszugVon(
   return gekuerzt(quelle.replace(/\s+/g, ' ').trim(), max)
 }
 
+export const ANHANG_NAMEN_MAX = 4
+
+/**
+ * ": Flyer A, Flyer B (2 weitere)" — the attachments' names, capped and
+ * declared; '' when none are known. The newsroom's rule of 1 October 2026:
+ * a notice with flyers behind it weighs more, someone is making an effort
+ * to push an offer — and a count cannot tell a flyer from a Reglement.
+ */
+function anhangNamenText(namen: readonly string[]): string {
+  const bekannt = namen.map((n) => n.trim()).filter((n) => n !== '')
+  if (bekannt.length === 0) return ''
+  const gezeigt = bekannt
+    .slice(0, ANHANG_NAMEN_MAX)
+    .map((n) => (n.length > 60 ? `${n.slice(0, 57)}…` : n))
+  const rest = bekannt.length - gezeigt.length
+  return `: ${gezeigt.join(', ')}${rest > 0 ? ` (${rest} weitere)` : ''}`
+}
+
 export function buildSichtungPrompt(
   gemeinde: string,
   zeilen: readonly SichtungsZeile[],
   digest: string,
   /** The desk's Sichtung rules, already rendered (`regelnBlock`) — user turn, like the digest. */
-  regeln = '',
-  /** The municipality's waste calendar, already rendered (`abfuhrkalenderBlock`); '' when no item talks about collections. */
-  abfuhrkalender = ''
+  regeln = ''
 ): string {
   const eintrag = (z: SichtungsZeile, i: number): string[] => {
     const kopf = [
@@ -193,9 +227,9 @@ export function buildSichtungPrompt(
       zeilenDazu.push('   (Der Text wurde beim Lesen gekuerzt.)')
     if (z.anhaenge > 0)
       zeilenDazu.push(
-        `   (${z.anhaenge} ${z.anhaenge === 1 ? 'Anhang' : 'Anhaenge'}, davon gelesen: ${z.anhaengeGelesen})`
+        `   (${z.anhaenge} ${z.anhaenge === 1 ? 'Anhang' : 'Anhaenge'}, davon gelesen: ${z.anhaengeGelesen}${anhangNamenText(z.anhangNamen)})`
       )
-    if (z.abfuhr !== null) zeilenDazu.push(`   ${z.abfuhr}`)
+    if (z.kalender !== null) zeilenDazu.push(`   ${z.kalender}`)
     return zeilenDazu
   }
   return [
@@ -203,7 +237,6 @@ export function buildSichtungPrompt(
     '',
     'Neue Mitteilungen auf der Gemeindewebsite:',
     ...zeilen.flatMap(eintrag),
-    ...(abfuhrkalender === '' ? [] : ['', abfuhrkalender]),
     ...(regeln === '' ? [] : ['', regeln]),
     ...(digest === '' ? [] : ['', digest]),
     '',
@@ -212,109 +245,108 @@ export function buildSichtungPrompt(
 }
 
 // ---------------------------------------------------------------------------
-// 1b. Waste collections — what the calendar already announces is no proposal
+// 1b. Kalender-Abgleich — what the events desk already carries on the days an item names
 // ---------------------------------------------------------------------------
+//
+// Until 1 October 2026 the one cross-check here was the Abfuhrkalender. The
+// newsroom retired it: the waste calendar is complete and correct by
+// assumption, so a waste notice is a Meldung only when a collection is
+// cancelled or moved — a prompt rule, no calendar in the prompt. What the
+// newsroom asked for instead, on Münchenstein's "Offene Turnhalle" (four
+// Sundays, three flyers, absent from the municipality's own events calendar):
+// does the events desk already carry this? The grade stays the model's; the
+// code says what the calendar holds on the days the item names.
 
-export interface AbfuhrTermin {
-  kategorie: string
-  zone: string | null
-  datum: string
+/** An events-desk row as the cross-check reads it. */
+export interface KalenderAnlass {
+  titel: string
+  lokalitaet: string | null
+  von: string
+  bis: string | null
+  termine: readonly string[] | null
+  rhythmus: string | null
 }
 
-const ABFUHR_WORTE =
-  /\b(?:abfuhr\w*|kehricht\w*|gr[üu]e?ngut\w*|papiersammlung\w*|kartonsammlung\w*|altpapier\w*|h[äa]e?ckseldienst\w*|altmetall\w*|sonderabf[äa]e?ll\w*|sperrgut\w*|entsorgung\w*|sammelstell\w*|abfallkalender\w*|abfuhrkalender\w*|bioabf[äa]e?ll\w*|kompost\w*)\b/iu
+/** Whether any calendar is registered for the municipality at all, and the rows ahead. */
+export interface KalenderStand {
+  vorhanden: boolean
+  anlaesse: readonly KalenderAnlass[]
+}
 
-/** Whether an item talks about waste collections at all — the gate for loading the calendar. */
-export function hatAbfuhrbezug(zeile: {
+export interface AbgleichZeile {
   titel: string
   teaser: string | null
   text: string | null
-}): boolean {
-  return ABFUHR_WORTE.test(
-    `${zeile.titel}\n${zeile.teaser ?? ''}\n${zeile.text ?? ''}`.normalize(
-      'NFC'
-    )
+  anhaenge?: ReadonlyArray<{ gelesen: boolean; text?: string | null }> | null
+}
+
+/**
+ * The days ahead an item names — in its title, teaser, text and READ
+ * attachments, the same material the Meldung's termin is bound to. The
+ * flyers are where the later dates stand (measured: the text named two of
+ * four Sundays, every flyer all four).
+ */
+export function kuenftigeTage(zeile: AbgleichZeile, heute: string): string[] {
+  const material = [
+    zeile.titel,
+    zeile.teaser ?? '',
+    zeile.text ?? '',
+    ...(zeile.anhaenge ?? []).map((a) => (a.gelesen ? (a.text ?? '') : ''))
+  ].join('\n')
+  return alleDaten(material, heuteAus(heute)).filter((tag) => tag >= heute)
+}
+
+const ABGLEICH_MAX_TAGE = 8
+const ABGLEICH_MAX_ANLAESSE = 4
+
+function anlassAnTag(a: KalenderAnlass, tag: string): boolean {
+  if (a.termine !== null && a.termine.includes(tag)) return true
+  if (a.von === tag) return true
+  // A running span (an exhibition, a Ferienpass) covers every day between
+  // its ends; a series of single dates does not — its row names them all.
+  return (
+    a.rhythmus === 'laufend' && a.bis !== null && a.von <= tag && tag <= a.bis
   )
 }
 
-const ABGLEICH_MAX_DATEN = 8
-
 /**
- * For every day the item names: what the calendar has on it. A fact for the
- * prompt, never a verdict — "22.09.2026: im Abfuhrkalender (Papier)" lets the
- * model see that the item merely repeats the calendar, "nicht im
- * Abfuhrkalender" that something changed.
+ * For every day ahead the item names: what the events desk carries on it.
+ * A fact for the prompt, never a verdict — "25. Oktober 2026: kein Anlass im
+ * Veranstaltungskalender" lets the model see that nobody else brings this,
+ * "im Kalender «Herbstmarkt»" that the events desk has it. Null when the
+ * item names no day ahead: most notices do not, and a line on every one
+ * would be noise. A day beyond the calendar's read horizon is said to be
+ * beyond it — "not in the calendar" would be a claim the run never checked.
  */
-export function abfuhrAbgleich(
-  zeile: { titel: string; teaser: string | null; text: string | null },
-  termine: readonly AbfuhrTermin[],
-  heute: Heute
+export function kalenderAbgleich(
+  zeile: AbgleichZeile,
+  kalender: KalenderStand,
+  heute: string,
+  horizontTage = VERANSTALTUNGS_FENSTER_TAGE
 ): string | null {
-  const daten = alleDaten(
-    `${zeile.titel}\n${zeile.teaser ?? ''}\n${zeile.text ?? ''}`,
-    heute
-  )
-  if (daten.length === 0)
-    return 'Abfuhr-Abgleich: Die Mitteilung nennt keinen konkreten Tag.'
-  const teile = daten.slice(0, ABGLEICH_MAX_DATEN).map((datum) => {
-    const dran = termine.filter((t) => t.datum === datum)
-    if (dran.length === 0)
-      return `${datumDeutsch(datum)}: nicht im Abfuhrkalender`
-    const was = dran
-      .map((t) => `${t.kategorie}${t.zone === null ? '' : ` (${t.zone})`}`)
-      .join(', ')
-    return `${datumDeutsch(datum)}: im Abfuhrkalender (${was})`
-  })
-  const rest = daten.length - ABGLEICH_MAX_DATEN
-  return `Abfuhr-Abgleich: ${teile.join('; ')}${rest > 0 ? `; (${rest} weitere Tage nicht abgeglichen)` : ''}`
-}
-
-export const KALENDER_TERMINE_MAX = 40
-
-/**
- * The municipality's calendar as the Sichtung sees it — the dates ahead,
- * capped and declared, plus the regular collections the calendar keeps as a
- * note. Without a calendar the block says so, and waste items are judged like
- * any other.
- */
-export function abfuhrkalenderBlock(
-  gemeinde: string,
-  kalender: {
-    vorhanden: boolean
-    termine: readonly AbfuhrTermin[]
-    merkblatt: string | null
-  },
-  max = KALENDER_TERMINE_MAX
-): string {
+  const tage = kuenftigeTage(zeile, heute)
+  if (tage.length === 0) return null
   if (!kalender.vorhanden) {
-    return `Abfuhrkalender ${gemeinde}: keiner erfasst — Abfuhrtermine wie jede andere Mitteilung beurteilen.`
+    return 'Kalender-Abgleich: kein Veranstaltungskalender dieser Gemeinde erfasst — der Veranstaltungs-Tisch bringt hier nichts.'
   }
-  const sortiert = [...kalender.termine].sort((a, b) =>
-    a.datum.localeCompare(b.datum)
-  )
-  const gezeigt = sortiert.slice(0, max)
-  const zeilen = [
-    `Abfuhrkalender ${gemeinde} (bekannte Termine, ${gezeigt.length === 0 ? 'keine im Fenster' : `${gezeigt.length} im Fenster`}):`,
-    ...(gezeigt.length === 0
-      ? []
-      : [
-          gezeigt
-            .map(
-              (t) =>
-                `${t.datum.slice(8, 10)}.${t.datum.slice(5, 7)}. ${t.kategorie}${t.zone === null ? '' : ` (${t.zone})`}`
-            )
-            .join(' · ')
-        ]),
-    ...(sortiert.length > max
-      ? [`(${sortiert.length - max} weitere Termine nicht aufgefuehrt)`]
-      : [])
-  ]
-  if (kalender.merkblatt !== null && kalender.merkblatt.trim() !== '') {
-    zeilen.push(
-      `Regelmaessige Abfuhren laut Merkblatt: ${gekuerzt(kalender.merkblatt.replace(/\s+/g, ' ').trim(), 600)}`
-    )
-  }
-  return zeilen.join('\n')
+  const horizont = verschiebe(heute, horizontTage)
+  const teile = tage.slice(0, ABGLEICH_MAX_TAGE).map((tag) => {
+    if (tag > horizont) {
+      return `${datumDeutsch(tag)}: jenseits des gelesenen Kalenderfensters (${horizontTage} Tage)`
+    }
+    const dran = kalender.anlaesse.filter((a) => anlassAnTag(a, tag))
+    if (dran.length === 0) {
+      return `${datumDeutsch(tag)}: kein Anlass im Veranstaltungskalender`
+    }
+    const gezeigt = dran.slice(0, ABGLEICH_MAX_ANLAESSE).map((a) => {
+      const ort = (a.lokalitaet ?? '').trim()
+      return `«${a.titel}»${ort === '' ? '' : ` (${ort})`}`
+    })
+    const rest = dran.length - gezeigt.length
+    return `${datumDeutsch(tag)}: im Kalender ${gezeigt.join(', ')}${rest > 0 ? ` (${rest} weitere)` : ''}`
+  })
+  const rest = tage.length - ABGLEICH_MAX_TAGE
+  return `Kalender-Abgleich: ${teile.join('; ')}${rest > 0 ? `; (${rest} weitere Tage nicht abgeglichen)` : ''}`
 }
 
 // ---------------------------------------------------------------------------

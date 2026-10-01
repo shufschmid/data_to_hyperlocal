@@ -243,8 +243,6 @@ export default defineOperationApi<Optionen>({
     })
     const faehrten = new ItemsService('recherchehinweise', { schema })
     const artikel = new ItemsService('meldungen', { schema })
-    const termine = new ItemsService('entsorgungstermine', { schema })
-    const kalender = new ItemsService('entsorgungskalender', { schema })
     const wissen = new ItemsService('redaktionswissen', { schema })
 
     const warnung = { warn: (m: string) => logger.warn(m) }
@@ -775,8 +773,8 @@ export default defineOperationApi<Optionen>({
             mitteilungen,
             hinweise: faehrten,
             meldungen: artikel,
-            termine,
-            kalender,
+            anlaesse,
+            quellen: quellenService,
             regelzeilen,
             sichtungsregeln,
             heute,
