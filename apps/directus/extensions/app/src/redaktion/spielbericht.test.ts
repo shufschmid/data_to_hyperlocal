@@ -24,6 +24,7 @@ const FAKTEN: SpielFakten = {
   toreHeim: 3,
   toreGast: 3,
   wettbewerb: 'Meisterschaft - 2. Liga (FAEW)',
+  sportart: 'Fussball',
   datum: '2026-08-19T18:00:00.000Z',
   ort: 'Fiechten - 1, Reinach',
   verein: 'FC Amicitia Riehen',
@@ -78,6 +79,40 @@ describe('buildSpielberichtPrompt', () => {
       toreGast: 2
     })
     expect(p).toContain('FC Amicitia Riehen hat verloren.')
+  })
+
+  // Die Verbandsseite schreibt «Sm`Aesch», die Redaktion «Sm'Aesch». Ein
+  // Vergleich, der daran haengt, stellt den Verein bei jedem Heimspiel auf die
+  // falsche Seite — und meldet eine Niederlage, wo 3:1 gewonnen wurde.
+  it('erkennt den eigenen Verein auch bei anderer Schreibung des Apostrophs', () => {
+    const p = buildSpielberichtPrompt({
+      ...FAKTEN,
+      heim: 'Sm`Aesch Pfeffingen',
+      gast: 'Infomaniak Genève Volley',
+      toreHeim: 3,
+      toreGast: 1,
+      verein: "Sm'Aesch Pfeffingen"
+    })
+    expect(p).toContain("Sm'Aesch Pfeffingen hat gewonnen.")
+  })
+
+  // Das erste Volleyballresultat ueberhaupt: BTV Aarau 2:3 Sm'Aesch Pfeffingen,
+  // 10. Oktober 2026 — in Saetzen, und das muss der Text wissen.
+  it('sagt bei Volleyball, dass das Resultat Saetze sind', () => {
+    const p = buildSpielberichtPrompt({
+      ...FAKTEN,
+      sportart: 'Volleyball',
+      heim: 'BTV Aarau',
+      gast: "Sm'Aesch Pfeffingen",
+      toreHeim: 2,
+      toreGast: 3,
+      verein: "Sm'Aesch Pfeffingen"
+    })
+    expect(p).toContain('Sportart: Volleyball')
+    expect(p).toContain('Resultat: 2:3 (Heim:Gast, in gewonnenen Saetzen)')
+    expect(p).toContain("Sm'Aesch Pfeffingen hat gewonnen.")
+    expect(prompt).toContain('Sportart: Fussball')
+    expect(prompt).not.toContain('gewonnenen Saetzen')
   })
 
   it('gibt das Datum absolut mit', () => {

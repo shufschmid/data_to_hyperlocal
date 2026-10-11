@@ -2021,6 +2021,32 @@ so a postponement updates the fixture instead of cloning it — and the column i
 160 wide, because 32 silently swallowed every volleyball insert inside the
 per-row error handler.
 
+**A volleyball result is counted in SETS, and it stands in a different place
+on the page.** Measured on 11 October 2026, the day after Sm'Aesch's first
+match of the season — the first time a result ever stood on a Game Center
+page this project read: the crawler renders «Kommende Spiele» TWICE (three
+plain lines per match, then one long markdown link per match with both logos
+as images) and «Letzte Ergebnisse» ONLY in the link form, the set result
+glued between the venue and the first logo, the set scores right after it —
+`Aarau2318:2525:2010:2525:2213:15` is Aarau, 2:3, then 18:25 25:20 10:25
+25:22 13:15. The parser had read the plain lines alone and guessed a score
+as a trailing digit on the team line, a rendering the page never uses, so
+the played match yielded six upcoming fixtures and no result. `parseGameCenter`
+reads both forms now, and the glued run is split by ENUMERATION: every
+tokenisation is tried and a reading counts only if it tallies (sets at most
+3 and unequal, as many set scores as sets, each set's winner matching, every
+set decided at 15 or more); exactly one surviving reading is a result, none
+or several leaves the match open. A block the page links that no reading
+explains is counted in `unlesbar` and named in the run's `fehler`, because a
+result that goes missing looks exactly like a match not yet played.
+`tore_heim`/`tore_gast` hold sets, and the report facts say so (`Sportart`,
+«in gewonnenen Saetzen»). The page spells the club with a typewriter BACKTICK
+where the club and the newsroom write the apostrophe of «Sm'Aesch»; that
+becomes the apostrophe before a name reaches a row, and `ausgang` compares
+club names on letters and digits alone — a plain `startsWith` had put the
+club on the wrong side of every home match. The set scores are read for the
+guard and not stored: a column for them is a schema decision not yet taken.
+
 **The club page is not a result source.** `matchcenter.…/default.aspx?v=<id>`
 is the right way to _find_ a club and it does show scores, but it names only the
 club's own team — an away row reads "FC Pratteln C1 · 4 · 2" with nothing to say

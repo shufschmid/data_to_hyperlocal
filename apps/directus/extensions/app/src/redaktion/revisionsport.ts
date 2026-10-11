@@ -89,6 +89,7 @@ function faktenAus(spiel: RevisionsSpiel): SpielFakten {
     toreHeim: spiel.tore_heim ?? Number.NaN,
     toreGast: spiel.tore_gast ?? Number.NaN,
     wettbewerb: spiel.wettbewerb,
+    sportart: null,
     datum: spiel.datum,
     ort: spiel.ort,
     verein: '',

@@ -181,10 +181,19 @@ export default defineOperationApi<Optionen>({
       }
       try {
         const ergebnis = await scrape(verein.ergebnis_url)
-        const begegnungen = parseGameCenter(
+        const { begegnungen, unlesbar } = parseGameCenter(
           ergebnis.markdown,
           verein.externe_id ?? verein.id
         )
+        // A block the page carries that no reading explains is said here: a
+        // result that goes missing in the parser looks exactly like a match
+        // not yet played, and that silence cost Sm'Aesch its first result of
+        // the 2026/27 season (measured 11 October 2026).
+        if (unlesbar > 0) {
+          const grund = `${verein.name}: ${unlesbar} Begegnung(en) auf der Seite nicht lesbar.`
+          logger.warn(`sportresultate: ${grund}`)
+          fehler.push(grund)
+        }
         for (const begegnung of begegnungen) {
           zeilen.push({
             spielnummer: begegnung.schluessel,

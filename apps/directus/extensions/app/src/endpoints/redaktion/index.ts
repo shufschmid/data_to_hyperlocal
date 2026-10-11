@@ -8141,6 +8141,7 @@ export default defineEndpoint(
           'datum',
           'heim',
           'gast',
+          'sportart',
           'tore_heim',
           'tore_gast',
           'wettbewerb',
@@ -8162,6 +8163,7 @@ export default defineEndpoint(
         datum: string
         heim: string
         gast: string
+        sportart: string | null
         tore_heim: number | null
         tore_gast: number | null
         wettbewerb: string
@@ -8226,6 +8228,7 @@ export default defineEndpoint(
         toreHeim: spiel.tore_heim,
         toreGast: spiel.tore_gast,
         wettbewerb: spiel.wettbewerb,
+        sportart: spiel.sportart,
         datum: spiel.datum,
         ort: spiel.ort,
         verein: spiel.verein.name,

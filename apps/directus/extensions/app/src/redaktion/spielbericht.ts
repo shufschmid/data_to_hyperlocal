@@ -25,6 +25,8 @@ export interface SpielFakten {
   toreHeim: number
   toreGast: number
   wettbewerb: string
+  /** `spiele.sportart` — what the two numbers count: goals, or sets in volleyball. */
+  sportart: string | null
   /** ISO instant of kick-off. */
   datum: string
   ort: string | null
@@ -89,8 +91,34 @@ export function absolutesDatum(iso: string): string {
   })
 }
 
+/**
+ * Whether a team name on the row is the club the report is written for.
+ *
+ * Compared on letters and digits alone: the association's page spells the
+ * club «Sm`Aesch Pfeffingen» where the newsroom registered «Sm'Aesch
+ * Pfeffingen», and a plain `startsWith` put the club on the wrong side of
+ * every home match — the outcome line would have read «hat verloren» on a
+ * 3:1 win.
+ */
+function istUnser(name: string, verein: string): boolean {
+  return vergleichbar(name).startsWith(vergleichbar(verein))
+}
+
+function vergleichbar(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/[^a-z0-9]/g, '')
+}
+
+/** Volleyball counts sets, not goals — the facts have to say so. */
+function inSaetzen(fakten: SpielFakten): boolean {
+  return /volley/i.test(fakten.sportart ?? '')
+}
+
 function ausgang(fakten: SpielFakten): string {
-  const heimIstUnser = fakten.heim.startsWith(fakten.verein)
+  const heimIstUnser = istUnser(fakten.heim, fakten.verein)
   const eigene = heimIstUnser ? fakten.toreHeim : fakten.toreGast
   const fremde = heimIstUnser ? fakten.toreGast : fakten.toreHeim
   if (eigene > fremde) return `${fakten.verein} hat gewonnen.`
@@ -113,12 +141,18 @@ function faktenZeilen(fakten: SpielFakten): string[] {
     fakten.liga === null ? null : `Liga: ${fakten.liga}`,
     fakten.notiz === null ? null : `Bedeutung des Vereins: ${fakten.notiz}`,
     '',
+    fakten.sportart === null ? null : `Sportart: ${fakten.sportart}`,
     `Wettbewerb: ${fakten.wettbewerb}`,
     `Datum: ${absolutesDatum(fakten.datum)}`,
     fakten.ort === null ? null : `Ort: ${fakten.ort}`,
     `Heim: ${fakten.heim}`,
     `Gast: ${fakten.gast}`,
-    `Resultat: ${fakten.toreHeim}:${fakten.toreGast} (Heim:Gast)`,
+    `Resultat: ${fakten.toreHeim}:${fakten.toreGast} (Heim:Gast${
+      inSaetzen(fakten) ? ', in gewonnenen Saetzen' : ''
+    })`,
+    inSaetzen(fakten)
+      ? 'Volleyball: Das Resultat sind gewonnene Saetze, keine Tore und keine Punkte.'
+      : null,
     ausgang(fakten)
   ].filter((z): z is string => z !== null)
 

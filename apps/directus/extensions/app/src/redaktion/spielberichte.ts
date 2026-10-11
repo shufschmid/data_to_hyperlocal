@@ -41,6 +41,8 @@ export interface SpielZeile {
   datum: string
   heim: string
   gast: string
+  /** Copied from the club at collection time; says whether the score counts sets. */
+  sportart: string | null
   tore_heim: number | null
   tore_gast: number | null
   wettbewerb: string
@@ -96,6 +98,7 @@ const SPIEL_FELDER = [
   'datum',
   'heim',
   'gast',
+  'sportart',
   'tore_heim',
   'tore_gast',
   'wettbewerb',
@@ -226,6 +229,7 @@ export async function schreibeSpielberichte(
         toreHeim: spiel.tore_heim as number,
         toreGast: spiel.tore_gast as number,
         wettbewerb: spiel.wettbewerb,
+        sportart: spiel.sportart,
         datum: spiel.datum,
         ort: spiel.ort,
         verein: spiel.verein.name,
