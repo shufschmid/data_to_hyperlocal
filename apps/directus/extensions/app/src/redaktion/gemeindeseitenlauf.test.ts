@@ -235,6 +235,7 @@ describe('sichteMitteilungen', () => {
     expect(ergebnis).toEqual({
       vorschlaege: 1,
       weitergereicht: 1,
+      nachgefasst: 0,
       fehler: null
     })
     const anfrage = send.mock.calls[0]?.[0]
@@ -316,10 +317,170 @@ describe('sichteMitteilungen', () => {
     expect(ergebnis).toEqual({
       vorschlaege: 0,
       weitergereicht: 0,
+      nachgefasst: 0,
       fehler: 'Netz weg'
     })
     expect(dienst.updates).toEqual([])
     expect(STILL.warn).toHaveBeenCalled()
+  })
+})
+
+describe('sichteMitteilungen: Nachfrage zum Kalender-Abgleich', () => {
+  // Die Redaktion am 11.10.2026: «laeuft ueber den Veranstaltungstisch» als
+  // Grund, wo der Kalender den Anlass gar nicht fuehrt — einmal nachgefragt,
+  // mit dem Widerspruch im Prompt; die neue Stufe ist die des Modells.
+  const faz: ZeileFuerSichtung = {
+    id: 'm-3',
+    titel: 'Familienzentrum FAZ – Geschichten für die Jüngsten am 5. November',
+    teaser: 'Neu jeden Donnerstag.',
+    text: null,
+    publiziert_am: '2026-09-14',
+    kategorie: null,
+    text_abgeschnitten: false,
+    anhaenge: [],
+    veranstaltung_am: null
+  }
+  const urteil = (stufe: number, begruendung: string) =>
+    nachricht(
+      JSON.stringify({
+        urteile: [
+          {
+            nummer: 1,
+            stufe,
+            begruendung,
+            empfehlung: null,
+            empfehlung_regel: null
+          }
+        ]
+      })
+    )
+  const ERSTER_GRUND =
+    'Reiner Veranstaltungshinweis mit Datum/Ort, läuft über den Veranstaltungstisch.'
+
+  function kontext(send: MessageSender) {
+    const { dienst } = mitteilungen(() => [])
+    return {
+      dienst,
+      k: {
+        mitteilungen: dienst,
+        hinweise: { readByQuery: async () => [], createOne: vi.fn() },
+        meldungen: leer,
+        anlaesse: { readByQuery: vi.fn(async () => [JASSABEND]) },
+        quellen: { readByQuery: vi.fn(async () => [{ id: 'q-1' }]) },
+        regelzeilen: [],
+        sichtungsregeln: { text: '', nummern: new Map() },
+        heute: '2026-09-14',
+        logger: STILL,
+        send
+      }
+    }
+  }
+
+  it('fragt ein Urteil nach, dessen Grund dem Abgleich widerspricht, und nimmt die neue Stufe', async () => {
+    const send = vi
+      .fn<MessageSender>()
+      .mockResolvedValueOnce(urteil(1, ERSTER_GRUND))
+      .mockResolvedValueOnce(
+        urteil(
+          3,
+          'Neues wöchentliches Angebot für Kleinkinder, das sonst niemand bringt.'
+        )
+      )
+    const { k, dienst } = kontext(send)
+    const ergebnis = await sichteMitteilungen(
+      [faz],
+      { id: 'g-1', name: 'Aesch' },
+      k
+    )
+    expect(send).toHaveBeenCalledTimes(2)
+    const erste =
+      (send.mock.calls[0]?.[0]?.messages[0]?.content as string) ?? ''
+    expect(erste).toContain(
+      '5. November 2026: kein Anlass im Veranstaltungskalender; → laut Titelvergleich NICHT im Kalender'
+    )
+    const zweite =
+      (send.mock.calls[1]?.[0]?.messages[0]?.content as string) ?? ''
+    expect(zweite).toContain('Nachfrage der Redaktion')
+    expect(zweite).toContain('Geschichten für die Jüngsten')
+    expect(dienst.updates).toEqual([
+      [
+        'm-3',
+        {
+          vorschlag: false,
+          vorschlag_wert: 1,
+          vorschlag_begruendung: ERSTER_GRUND
+        }
+      ],
+      [
+        'm-3',
+        {
+          vorschlag: true,
+          vorschlag_wert: 3,
+          vorschlag_begruendung:
+            'Neues wöchentliches Angebot für Kleinkinder, das sonst niemand bringt.'
+        }
+      ]
+    ])
+    expect(ergebnis).toEqual({
+      vorschlaege: 1,
+      weitergereicht: 0,
+      nachgefasst: 1,
+      fehler: null
+    })
+  })
+
+  it('laesst bei gescheiterter Nachfrage das erste Urteil stehen — sichtbar markiert', async () => {
+    const send = vi
+      .fn<MessageSender>()
+      .mockResolvedValueOnce(urteil(1, ERSTER_GRUND))
+      .mockRejectedValueOnce(new Error('Netz weg'))
+    const { k, dienst } = kontext(send)
+    const ergebnis = await sichteMitteilungen(
+      [faz],
+      { id: 'g-1', name: 'Aesch' },
+      k
+    )
+    expect(ergebnis).toEqual({
+      vorschlaege: 0,
+      weitergereicht: 0,
+      nachgefasst: 0,
+      fehler: null
+    })
+    expect(dienst.updates[1]).toEqual([
+      'm-3',
+      {
+        vorschlag_begruendung: expect.stringContaining(
+          'Hinweis des Codes: Der Kalender-Abgleich stuetzt diesen Grund nicht'
+        )
+      }
+    ])
+  })
+
+  it('fragt nicht nach, wenn der Abgleich den Anlass als erfasst nennt', async () => {
+    const send = vi
+      .fn<MessageSender>()
+      .mockResolvedValueOnce(urteil(2, ERSTER_GRUND))
+    const { k } = kontext(send)
+    k.anlaesse = {
+      readByQuery: vi.fn(async () => [
+        {
+          titel: 'Geschichten für die Jüngsten',
+          lokalitaet: 'FAZ',
+          von: '2026-11-05',
+          bis: null,
+          termine: ['2026-11-05'],
+          rhythmus: 'woechentlich',
+          beschreibung: 'Vorlesen für Kinder ab zwei Jahren.'
+        }
+      ])
+    }
+    await sichteMitteilungen([faz], { id: 'g-1', name: 'Aesch' }, k)
+    expect(send).toHaveBeenCalledTimes(1)
+    const prompt =
+      (send.mock.calls[0]?.[0]?.messages[0]?.content as string) ?? ''
+    expect(prompt).toContain(
+      'im Kalender erfasst — «Geschichten für die Jüngsten» (FAZ) (Eintrag mit Beschrieb)'
+    )
   })
 })
 
@@ -450,6 +611,7 @@ describe('sichteMitteilungen: Termine', () => {
     expect(ergebnis).toEqual({
       vorschlaege: 0,
       weitergereicht: 0,
+      nachgefasst: 0,
       fehler: null
     })
   })

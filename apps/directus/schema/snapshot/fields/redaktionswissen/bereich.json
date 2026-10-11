@@ -61,6 +61,10 @@
         {
           "text": "Kanton",
           "value": "kanton"
+        },
+        {
+          "text": "Verkehr",
+          "value": "verkehr"
         }
       ]
     },

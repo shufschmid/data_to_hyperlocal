@@ -1,0 +1,48 @@
+1/3
+Standorte von automatischen Kontrollanlagen
+Die Polizei Basel-Landschaft veröffentlicht als Massnahme zur Erhöhung der Verkehrssicherheit die
+Standorte der vollautomatischen Messanlagen im Kanton Basel-Landschaft.
+Geschwindigkeitskontrollen auf Gemeindestrassen obliegen primär den entsprechenden
+Gemeindeorganen. Kontrollanlagen der Gemeinden sind hier nicht aufgeführt.
+Semistationäre Geschwindigkeitskontrollanlagen:
+Hinweis: Die Aktualität der Liste wird nicht garantiert. Es kann sein, dass einzelne
+Geschwindigkeitskontrollanlagen zwischen den Publikationsdaten versetzt werden.
+SEMI 01
+Ab wann: 25.09.2026
+Standort: 4302 Augst, A2, FR Bern / Luzern
+Geschwindigkeit: 70 km/h
+Örtlichkeit: Zubringer A3 / A2, Kurvenbereich
+**********************************************************************************************************************
+SEMI 02
+Ab wann: 07.10.2026
+Standort: 4460 Gelterkinden, Ergolzstrasse
+Geschwindigkeit: 50 km/h
+Örtlichkeit: Ein- / Ausfahrten, Einmündung
+**********************************************************************************************************************
+SEMI 03
+Ab wann: 18.09.2026
+Standort: 4123 Allschwil, Binningerstrasse
+Geschwindigkeit: 50 km/h
+Örtlichkeit: Ein- / Ausfahrten,
+**********************************************************************************************************************
+SEMI 04
+Ab wann: 30.09.2026
+Standort: 4302 Augst, A3
+Geschwindigkeit: 100 km/h
+Örtlichkeit: Verzweigung
+**********************************************************************************************************************
+
+2/3
+Stationäre Geschwindigkeitskontrollanlagen:
+Hinweis: Aus organisatorischen und technischen Gründen sind die Anlagen nicht immer in Betrieb.
+Teilweise finden auf diesen Abschnitten alternativ auch manuelle Kontrollen statt.
+Standort: A2/A3 Augst – Fahrtrichtung Basel
+Geschwindigkeit: 100 km/h
+Örtlichkeit: Autobahn, Verzweigungsgebiet, Verflechtungsstrecke
+**********************************************************************************************************************
+Standort: 4102 Binningen, Bottmingerstrasse
+Geschwindigkeit: 50 km/h
+Örtlichkeit: Innerorts, Altersheim, Lichtsignalanlage, Fussgängerstreifen, Einmündung,
+Tramübergang
+**********************************************************************************************************************
+Alle Angaben ohne Gewähr!

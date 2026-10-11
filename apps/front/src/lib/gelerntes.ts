@@ -19,6 +19,7 @@ export const BEREICHE: ReadonlyArray<{ wert: string; text: string }> = [
   { wert: 'gemeinde', text: 'Gemeindeseiten' },
   { wert: 'veranstaltung', text: 'Veranstaltungen' },
   { wert: 'kanton', text: 'Kanton' },
+  { wert: 'verkehr', text: 'Verkehr' },
   { wert: 'sendung', text: 'Regionaljournal / punkt6' }
 ]
 

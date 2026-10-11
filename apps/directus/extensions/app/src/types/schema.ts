@@ -98,6 +98,10 @@ export type QuellenTyp =
   | 'euroairport'
   /** The canton's own data door: Medien- und Polizeimeldungen of Kanton Basel-Landschaft (`shared/kanton/`). */
   | 'kanton'
+  /** The Polizei Basel-Landschaft's sheet of speed-camera locations, through the same data door (`shared/verkehr/`). */
+  | 'radar_bl'
+  /** A Gemeindepolizei's monthly speed-control sheets on the municipality's own site (`shared/verkehr/`). */
+  | 'geschwindigkeitskontrollen'
 
 export interface Quelle {
   id: string
@@ -290,6 +294,10 @@ export interface Meldung {
    * `lauf`.
    */
   abstimmung: string | null
+  /** Set for an article about a new speed-camera location of the Polizei Basel-Landschaft (Verkehr desk, since 11 October 2026). */
+  radarstandort: string | null
+  /** Set for an article about a month of a Gemeindepolizei's speed controls (Verkehr desk). */
+  geschwindigkeitskontrolle: string | null
   /**
    * Set for articles written from an Anlass in a municipality's events
    * calendar. Null otherwise — the ninth kind, since 20 September 2026.
@@ -484,6 +492,7 @@ export type WissenBereich =
   | 'abstimmung'
   | 'veranstaltung'
   | 'kanton'
+  | 'verkehr'
 /** A Sichtung rule steers what is proposed; a text rule, how a Meldung is written. */
 export type WissenStufe = 'sichtung' | 'text'
 /** `weiterreichen` lets a Sichtung hand a matching proposal to the Chefredaktion by itself. */
@@ -882,6 +891,8 @@ export interface Schema {
   gemeindemitteilungen: Gemeindemitteilung[]
   kantonsmitteilungen: Kantonsmitteilung[]
   suedanflugquoten: Suedanflugquote[]
+  radarstandorte: Radarstandort[]
+  geschwindigkeitskontrollen: Geschwindigkeitskontrolle[]
   abstimmungen: Abstimmung[]
   abstimmungstermine: Abstimmungstermin[]
   tischeinstellungen: Tischeinstellung[]
@@ -1343,6 +1354,82 @@ export interface Suedanflugquote {
   vorschlag: boolean
   /** Which threshold, with the figures — written by code, no model call. */
   vorschlag_begruendung: string | null
+  date_created: string | null
+  date_updated: string | null
+}
+
+/**
+ * One speed-camera location of the Polizei Basel-Landschaft, as its sheet
+ * lists it. Identity is `schluessel` (kind + normalised location), so a
+ * location is recognised across re-uploads of the sheet; one the sheet
+ * dropped stays, marked inactive. `gemeinde` is set for a covered
+ * municipality only, and only those rows are ever proposed.
+ */
+export interface Radarstandort {
+  id: string
+  schluessel: string
+  art: 'semistationaer' | 'stationaer'
+  kennung: string | null
+  ab_wann: string | null
+  standort: string
+  plz: string | null
+  ort: string | null
+  strasse: string | null
+  geschwindigkeit: number | null
+  oertlichkeit: string | null
+  gemeinde: string | null
+  /** Still on the newest sheet. */
+  aktiv: boolean
+  erstmals_gesehen: string | null
+  zuletzt_gesehen: string | null
+  /** The day in the sheet's file name — the newest entry's. */
+  publikation_am: string | null
+  /** The sheet's address as the page links it; the whole reading shares it. */
+  quelle_url: string | null
+  pruefsumme: string | null
+  /** A new location in a covered municipality — a mark, never an article by itself. */
+  vorschlag: boolean
+  vorschlag_begruendung: string | null
+  date_created: string | null
+  date_updated: string | null
+}
+
+/** One line of a Gemeindepolizei's monthly sheet (`cast-json` in `kontrollen`). */
+export interface Kontrollzeile {
+  datum: string
+  von: string
+  bis: string
+  messort: string
+  signalisiert: number
+  gemessen: number
+  uebertretungen: number
+  vmax: number
+}
+
+/**
+ * One month of a Gemeindepolizei's speed controls — Reinach's today — with
+ * every control line as the sheet printed it and the balance code computed
+ * over all of them. Identity `(gemeinde, jahr, monat)`, a composite unique
+ * in `migrations/20261011A-verkehr.mts`.
+ */
+export interface Geschwindigkeitskontrolle {
+  id: string
+  gemeinde: string
+  jahr: number
+  monat: number
+  /** The sheet's own issue date. */
+  stand: string | null
+  /** Who measured and published — «Gemeindepolizei Reinach». */
+  polizei: string | null
+  kontrollen: Kontrollzeile[] | null
+  /** The SR7 traffic-statistics periods, where the sheet has them. */
+  messungen: Record<string, unknown>[] | null
+  /** `zusammenfassung()` over `kontrollen` — stored so the desk needs no arithmetic. */
+  bilanz: Record<string, unknown> | null
+  /** What the sheet said about itself: a header naming another month, a line not read. */
+  hinweise: string[] | null
+  quelle_url: string | null
+  pruefsumme: string | null
   date_created: string | null
   date_updated: string | null
 }

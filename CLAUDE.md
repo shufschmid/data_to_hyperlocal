@@ -113,7 +113,7 @@ them is wrong even if it works.
    | `api.srgssr.ch`                             | the SRGSSR Audio Metadata API (OAuth2) — resolves a Regionaljournal story to its public MP3. Read with `optionalEnv`: missing credentials fail PER STORY as `resolution_error`, never as a crashed dossier                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | `dossiers/srgssr-client.ts`                                                              |
    | `telebasel.ch`                              | two plain GETs per punkt6 episode — `robots.txt` allows `/sendungen/`, and the episode page carries one schema.org `Clip` per Beitrag with exact start/end seconds, so no model is needed to find the boundaries                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | `punkt6/telebasel-client.ts`                                                             |
    | `swiss.basketball`                          | the association's own mirror of Basketplan — `/basketplan/showLeagueSchedule.do?…&xmlView=rss` answers one `<GameRSS>` per match, and its `robots.txt` allows everything. The ORIGINAL, `basketplan.ch`, bars us with a blanket `Disallow: /` on both hosts and documents no API (measured 17.09.2026), so that door stays shut and the code refuses it. One request per GROUP, once a day. `referees` is dropped at the parser's boundary and `findTeamById.do` is never called: both carry personal data                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | `shared/basketplan/`                                                                     |
-   | the municipalities' own websites            | one host per municipality, only the pages an editor registered — the news page (`gemeinden.news_url`) and the calendars in `veranstaltungsquellen` (a LIST per municipality, not a column) — plus the detail pages they link and the same-site PDFs behind them. Read once a day at 13:00, sequentially, the host's `robots.txt` honoured (crawl-delay, disallowed paths), a 429 raises that host's spacing for the rest of the run, never a redirect onto another site. Measured on the first nine: four CMS families, no bot wall                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | `shared/gemeindeseite/`, `shared/veranstaltung/`                                         |
+   | the municipalities' own websites            | one host per municipality, only the pages an editor registered — the news page (`gemeinden.news_url`) and the calendars in `veranstaltungsquellen` (a LIST per municipality, not a column) — plus the detail pages they link and the same-site PDFs behind them — and, since 11.10.2026, the page of monthly speed-control sheets a `quellen` row of `typ: geschwindigkeitskontrollen` names (Reinach's `Geschwindigkeitskontrollen.php`, read at 06:00 with its PDFs, `shared/verkehr/`). Read once a day at 13:00, sequentially, the host's `robots.txt` honoured (crawl-delay, disallowed paths), a 429 raises that host's spacing for the rest of the run, never a redirect onto another site. Measured on the first nine: four CMS families, no bot wall                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | `shared/gemeindeseite/`, `shared/veranstaltung/`                                         |
    | `www.riehenevents.ch`                       | Riehens offizieller Veranstaltungskalender — eine eigene Domain und ein eigenes CMS, aber der Kalender DER GEMEINDE, und darum `art: gemeinde` wie die neun anderen. Gelesen wird die Tuer, die die Seite selbst ruft (`/de/api/event` mit `dateFrom`, `dateTo`, `limit`, `offset`), TAG FUER TAG ueber das Fenster: eine Woche am Stueck verliert gemessen 6 von 14 Anlaessen. `robots.txt` ist das Drupal-Standardblatt und sperrt `/admin/`, `/core/`, `/search/`, `/user/…` — die Datentuer nicht. Der Crawler bleibt hier aussen vor                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | `shared/veranstaltung/drupal.ts`                                                         |
    | `www.blutspende.ch`                         | the national Blutspende SRK site — the ONLY door to the blood-donation dates, and measured on 30.09.2026 there is no API on it nor on the regional `blutspende-nordwestschweiz.ch` (one 1.5 MB page with all 380 dates, no filter). The national site has a search by POSTCODE with radius 0, server-rendered HTML: `…/blutspendetermine/terminliste?location_search_form[radius]=0&location_search_form[term]=4147` answers 40 KB with one row per date and a stable detail page per date (`/termin/<id>`, no prose). 4147 is Aesch BL and nothing else, while a NAME search returns 8904/8412/6287 Aesch and 4556/3703 Aeschi — which is why the ten source rows carry postcodes and no filtering by place exists. One request per municipality once a day, plus one detail page per new date; an empty postcode (Bottmingen) is a verified «keine Treffer», not an error. **Coverage measured on 30.09.2026 against the regional site: 9 of 10 municipalities identical, but PRATTELN's three dates (Kultur- und Sportzentrum, 4133) exist only on `blutspende-nordwestschweiz.ch` and are absent from the national search by postcode and by name** — if the newsroom wants them, the regional page is a second family to build, not a switch to flip. `robots.txt` is Drupal's standard and allows the path | `shared/gemeindeseite/liste.ts` (`blutspende_termine`), `shared/veranstaltung/detail.ts` |
    | `www.euroairport.com`                       | the ILS-33 usage statistics: how many of a month's landings came in over the south (runway 33) — one HTML overview page and one PDF per month, text layer, no auth. `robots.txt` bars `/admin/`, `/core/`, `/profiles/`, `/search/`, `/user/…` and the facet parameters; neither `/de/publikationen/` nor `/sites/default/files/` is among them, and there is no bot check. One request a day plus one per new month                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | `shared/euroairport/`                                                                    |
@@ -174,12 +174,12 @@ them is wrong even if it works.
    it, answers 200, and silently ignores it — asking for "Riehen" that way
    returned Zurich fire bans.
 
-   The workspace has eleven WORKBENCHES in four AREAS and a gear — since 27
+   The workspace has twelve WORKBENCHES in four AREAS and a gear — since 27
    September 2026 in two rows, because ten tabs no longer fitted in one and
    the last ones hid behind the scroll arrow. The areas, in the newsroom's
    order: **Gemeinde** (Gemeindeseiten · Veranstaltungen · Amtsblatt · Kanton) ·
    **Medien** (Wochenblätter · Regionaljournal · punkt6) · **Daten** (data to
-   hyperlocal · Sportresultate · Entsorgung) · **Chefredaktion**, with
+   hyperlocal · Sportresultate · Entsorgung · Verkehr) · **Chefredaktion**, with
    **Gemeinden** and **Gelerntes** behind the settings gear at the end of the
    first row. The second row shows the chosen area's workbenches with their
    own counters; an area shows their sum, and a red revision counter beats
@@ -1314,6 +1314,72 @@ them is wrong even if it works.
    page and saying plainly that the list names no cantonal Vorlagen; the day
    the results arrive, the vote line replaces the date.
 
+   **„Verkehr" is the TWELFTH workbench and the SEVENTH desk** (11 October
+   2026, the newsroom's words: „das interessiert die Menschen"), in the
+   Daten area beside Entsorgung, and it is two sources on two doors this
+   house already uses (`shared/verkehr/`, `redaktion/verkehr.ts`,
+   `redaktion/verkehrlauf.ts`, both read by the 06:00 run like the
+   EuroAirport). **The first is the Polizei Basel-Landschaft's sheet of
+   speed-camera locations**, „Standorte von automatischen
+   Kontrollanlagen": a page on baselland.ch with one PDF, re-uploaded under
+   a new name whenever a location changes — the file name carries the day of
+   the newest entry (`20261007_…`), so a new entry is a new address, and the
+   page is read daily through the canton's Plone data door
+   (`bl-api.webcloud7.ch`, the Kanton desk's, `quellen.typ: radar_bl`) while
+   the PDF is fetched only when its address is new, direct and never through
+   the crawler. Measured on the sheet of 7 October 2026: six installations,
+   semi-stationary ones as `SEMI nn / Ab wann / Standort / Geschwindigkeit /
+   Örtlichkeit` blocks between lines of asterisks, stationary ones the same
+   block without number and date, an Örtlichkeit that wraps onto the next
+   line (Binningen's Bottmingerstrasse). `parseStandortblatt` reads them
+   with no model, `ordneGemeindeZu` assigns the municipality by POSTCODE
+   first and by name with word boundaries second, and every installation is
+   stored (`radarstandorte`, identity `schluessel` = kind + normalised
+   location; one the sheet dropped stays, inactive) — but only a NEW
+   location in a covered municipality is a proposal (`standortPlan`), the
+   newsroom's rule: the Meldung matters when an installation is recognised
+   at a new location in the municipality. **The second is the Gemeindepolizei
+   Reinach's monthly sheet of speed controls** (`quellen.typ:
+   geschwindigkeitskontrollen`, the municipality named by `gemeinde_bfs` in
+   `konfiguration`): a page on reinach-bl.ch linking one PDF per month, one
+   line per control — date, time window, street, signed limit, vehicles
+   measured, violations, highest speed — and in some months a second table
+   of the traffic-statistics device SR7 with a V85. Measured over March to
+   September 2026: the table is stable, the HEADER is not — the March sheet
+   is titled „Januar 2026, Datum 31.01.2026" over March rows — so the month
+   comes from the rows and the header's disagreement is a Befund on the
+   row; a date line the regex does not read is a Befund too, never a lost
+   row. `zusammenfassung` computes the month over EVERY line before it is
+   stored (`geschwindigkeitskontrollen.bilanz`): totals, share, every
+   street, the street with the most violations (ties go to the higher
+   share), the highest share among streets with at least fifty vehicles, the
+   fastest vehicle with where and when — the newsroom's questions, answered
+   by code so the desk reads figures and the model does no arithmetic.
+   Twelve sheets a run, newest first, the rest named. **No Meldung without a
+   person's click**, the Südanflug bargain: `POST /redaktion/verkehr/
+   standorte/:id/meldung` and `…/kontrollen/:id/meldung`, one per row, the
+   prompt and its checks in `redaktion/verkehr.ts` (attribution to the
+   Polizei Basel-Landschaft or the Gemeindepolizei, every digit against the
+   facts, absolute dates, no links), the source line built by code — the
+   radar article links the PUBLIC page on baselland.ch, never the PDF behind
+   the data door; the month article links its PDF. A chat revision has its
+   own branch in `endpoints/redaktion/index.ts`, like every article without
+   a `lauf`. For the Dorfkönig the two take EXISTING rubriks by the
+   Südanflug decision — a radar location is `kanton` (the police speaking
+   about a place in the municipality), a month of controls is `gemeinde`
+   (the municipality publishes it on its own site) — and the Bilanz counts
+   the desk as `verkehr` (SCHNITTSTELLE.md 1.8.0). The desk shows the whole
+   sheet of the canton folded below the proposals, because complete is the
+   rule and proposed is the exception; its counter is the new installations
+   without an article plus the newest two months per municipality without
+   one — seven months of backlog on the first read are archive, not work.
+   Not built, and said here so nobody assumes it: no revision watchdog on
+   these two (a re-uploaded month lands on its row by `(gemeinde, jahr,
+   monat)`, but no published article is measured against it yet), and no
+   second municipality's sheet — a second Gemeindepolizei that publishes
+   the same table is a second `quellen` row, a different table a second
+   parser.
+
    When it turns us away, that is not silence: the workspace shows a banner
    naming the source, the reason and the date of the last attempt, with a link
    to the page and a form to type the entry in by hand
@@ -1424,6 +1490,8 @@ them is wrong even if it works.
 | a new rule about what an Abstimmungs-Meldung says                                       | `redaktion/abstimmungstag.ts` (die Tageszusammenfassung) — the prompt **and** the checks (Abweichung vom Code, keine Zahl von Kanton/Bund, Stichfragenregel, Attribution an den Kanton, absolute Daten, keine Links)                                                                                                                                           |
 | the dataset a portal carries its votes in                                               | `quellen.konfiguration.abstimmungen` (JSON, Admin-UI) — die Datensatz-Id des Portals, gesetzt von `migrations/20260918B`. Leer heisst: dieses Portal wird am Abstimmungssonntag nicht gelesen, und der Lauf nennt es                                                                                                                                           |
 | the timing of a vote Sunday                                                             | der Flow «Abstimmungen holen» (`*/30 14-20 * * 0`) plus `operations/abstimmungen-holen`; ausserhalb bleibt es beim Katalogwächter um 06:00                                                                                                                                                                                                                     |
+| a new rule about what a Verkehr-Meldung may say                                         | `redaktion/verkehr.ts` — the two prompts (Radarstandort, Geschwindigkeitskontrollen) **and** the checks (Attribution an die Polizei BL bzw. die Gemeindepolizei, Ziffern gegen die Angaben, absolute Daten, keine Links); the figures themselves are `zusammenfassung` in `shared/verkehr/parse.ts`, code over every line                                      |
+| a second municipality's speed-control sheet, or another radar list                      | a `quellen` row: `typ: geschwindigkeitskontrollen` with `konfiguration.gemeinde_bfs` (+ `polizei`) where the table is Reinach's, else a second parser in `shared/verkehr/`; `typ: radar_bl` reads one page through the canton's data door, its PDF only when the address changes                                                                               |
 | a new environment variable                                                              | `apps/directus/.env.example` **and** root `.env.example` **and** docker-compose.yml                                                                                                                                                                                                                                                                            |
 | what a desk's model calls cost, or a new model call                                     | «Gelerntes» → «Kosten» reads `modellaufrufe` (`GET /redaktion/verbrauch?tage=N`, `redaktion/verbrauch.ts`). Every call to `shared/claude.ts` names `zweck: 'tisch:zweck'`; a retry is its own purpose (`…:nachfassen`). In money since 1.10.2026: the prices per model are rows in `modellpreise`, edited in the same card                                     |
 | which model or token budget a desk or one purpose uses                                  | «Gelerntes» → «Kosten» → the desk → «Einstellen»: a row in `modelleinstellungen` per `zweck` or per `tisch` (`POST /redaktion/modelleinstellungen`), read by `shared/claude.ts` before every call (`wirksameOptionen`), cached a minute by `hooks/modellverbrauch`. Empty means: as in the code. Never a constant per desk                                     |
@@ -1509,6 +1577,15 @@ Flow "Quellen taeglich pruefen"  (0 6 * * *)
        │                    neueste zuerst; `bewerteMonat` markiert eine
        │                    gerissene Schwelle als VORSCHLAG (kein Modell).
        │                    Bewegte Zahlen → Revisionswaechter, dritter Fall
+       ├─ shared/verkehr/  → die Standortliste der Polizei BL ueber die
+       │                    Datentuer des Kantons (1 Abruf), das PDF nur bei
+       │                    neuer Adresse → radarstandorte; neu in einer
+       │                    bespielten Gemeinde = VORSCHLAG (kein Modell)
+       ├─ shared/verkehr/  → Reinachs Monatsblaetter der Geschwindigkeits-
+       │                    kontrollen (1 Seite, je neuem Monat 1 PDF, max.
+       │                    12) → geschwindigkeitskontrollen, Bilanz vom
+       │                    Code ueber ALLE Zeilen; Monat aus den Zeilen,
+       │                    nie aus dem Kopf
        └─ agenda/zuordnung  1× Sonnet per published agenda entry:
                             which portal datasets is this? (catalogue cached)
                             Where the entry links one of the office's web
@@ -2215,6 +2292,15 @@ checked rather than assumed, and there is a test.
   are computed from, so an article is written from what the editor saw and not
   from a fresh fetch. `gemeinden.suedanflug` belongs here too — who lies under
   the approach is the newsroom's judgement, not a column of the source.
+- `radarstandorte` + `geschwindigkeitskontrollen` — the Verkehr desk's
+  memory. A location of the canton's sheet is recognised across re-uploads
+  by its `schluessel`, keeps `erstmals_gesehen` and stays, inactive, when
+  the sheet drops it — which is what makes „new" a fact rather than a guess.
+  A month of Reinach's controls holds every line the sheet printed plus the
+  `bilanz` code computed over them, under `(gemeinde, jahr, monat)`, so a
+  re-uploaded month lands on its row and the article stands on what the
+  editor saw. `meldungen.radarstandort` / `.geschwindigkeitskontrolle` are
+  the origin fields; the Dorfkönig never sees them.
 - `abstimmungen` — one row per Vorlage (`vote_id`) and vote day: the parts of
   the question with their own addresses, the cantonal sums, the newsroom's
   municipalities with their own figures AND whether each is fully counted, the

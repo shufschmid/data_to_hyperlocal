@@ -368,6 +368,21 @@ selbst) noch `amtsblatt` (das ist die amtliche Publikation). `quelle_name`
 nennt den Sprecher, `quelle_url` die Mitteilung auf baselland.ch. Ein neuer
 Wert im Enum, keine neue Form.
 
+**Der Verkehr-Tisch (seit dem 11. Oktober 2026) bringt KEINE neue Rubrik.**
+Seine zwei Beitragsarten kommen unter bestehenden Werten durch, nach demselben
+Entscheid wie bei der Südanflug-Quote: ein neuer Wert ist Sache des Abnehmers,
+nicht Nebeneffekt eines neuen Tischs. Ein Beitrag über einen **neuen
+Radarstandort** der Polizei Basel-Landschaft in einer bespielten Gemeinde ist
+`kanton` — die Polizei spricht über einen Ort in der Gemeinde — mit
+`quelle_name` „Polizei Basel-Landschaft" und als `quelle_url` die öffentliche
+Seite „Standorte Radaranlagen" auf baselland.ch (nie das PDF hinter der
+Datentür). Ein Beitrag über einen **Monat Geschwindigkeitskontrollen** der
+Gemeindepolizei ist `gemeinde` — die Gemeinde veröffentlicht ihn auf ihrer
+eigenen Website — mit `quelle_name` „Gemeinde ‹Name›" und als `quelle_url`
+das Monats-PDF. Nur die Bilanz kennt den Tisch als eigenen Wert (`verkehr`,
+Version 1.8.0). Jede Zahl im Text ist vom Code über die ganze Tabelle
+gerechnet und gegen die Angaben geprüft; der Text sagt, wessen Zahlen es sind.
+
 Was gleich bleibt: der Termin steht ABSOLUT im Text („am Freitag, 25.
 September 2026, von 13 bis 18 Uhr im Kultur- und Sportzentrum"), weil die
 Fünf-Jahre-Regel auch für Termine gilt. Ein Beitrag, der ein laufendes
@@ -567,4 +582,7 @@ drei Angaben ihr `erscheint_am` sind — bisher war er dort `null`, und der
 Dorfkönig las das Ende aus dem Text, also einen Tag zu spät. Version 1.7.0
 am 29. September 2026: Rubrik `kanton` mit dem Sprecher als `quelle_name`,
 ein zehnter Tisch `kanton` in der Bilanz — wieder ein neuer Wert je Enum,
-keine neue Form._
+keine neue Form. Version 1.8.0 am 11. Oktober 2026: ein elfter Tisch
+`verkehr` in der Bilanz; seine Beiträge kommen unter den bestehenden Rubriken
+`kanton` (Radarstandort) und `gemeinde` (Geschwindigkeitskontrollen) — ein
+neuer Wert in EINEM Enum, keine neue Rubrik, keine neue Form._

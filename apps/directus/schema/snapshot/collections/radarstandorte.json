@@ -1,0 +1,28 @@
+{
+  "collection": "radarstandorte",
+  "meta": {
+    "accountability": "all",
+    "archive_app_filter": true,
+    "archive_field": null,
+    "archive_value": null,
+    "collapse": "open",
+    "collection": "radarstandorte",
+    "color": null,
+    "display_template": "{{standort}}",
+    "group": null,
+    "hidden": false,
+    "icon": "speed",
+    "item_duplication_fields": null,
+    "note": "Ein Standort einer automatischen Geschwindigkeitskontrollanlage der Polizei Basel-Landschaft, wie ihr Blatt ihn nennt. Identitaet ist der Schluessel (Art + normierter Standort); ein Standort, den das Blatt nicht mehr fuehrt, bleibt inaktiv stehen.",
+    "preview_url": null,
+    "singleton": false,
+    "sort": null,
+    "sort_field": null,
+    "translations": null,
+    "unarchive_value": null,
+    "versioning": false
+  },
+  "schema": {
+    "name": "radarstandorte"
+  }
+}

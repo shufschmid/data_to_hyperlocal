@@ -68,7 +68,8 @@ Regeln, ohne Ausnahme:
 - Nenne Daten absolut ("am 19. August 2026"), niemals relativ ("am Samstag",
   "letzte Woche", "kuerzlich"). Der Text muss in fuenf Jahren noch stimmen.
 - Schreibe aus der Sicht der Gemeinde, ohne Vereinsjargon und ohne Fanton.
-- Schweizer Rechtschreibung: "ss" statt "ß".
+- Schweizer Rechtschreibung: "ss" statt "ß". Umlaute als ä, ö, ü — nie als
+  ae, oe, ue ("auswärts", "Sätze").
 - Schreibe KEINE Links und keine Webadressen. Die Quelle wird unter den Text
   gesetzt, das ist nicht deine Aufgabe.
 
@@ -78,6 +79,24 @@ hier eine kurze Notiz, kein Artikel.
 
 Antworte ausschliesslich mit JSON:
 {"titel": "...", "text": "..."}`
+
+/**
+ * The answer's shape, enforced by the API rather than hoped for.
+ *
+ * Measured on 11 October 2026 in a local run: three of four reports came
+ * back as JSON whose closing brace was missing — a complete text, `end_turn`,
+ * no `max_tokens` — and `extractJson` lost every one of them. Structured
+ * output guarantees the brace; the business rules stay in the parser.
+ */
+export const SPIELBERICHT_SCHEMA = {
+  type: 'object',
+  properties: {
+    titel: { type: 'string' },
+    text: { type: 'string' }
+  },
+  required: ['titel', 'text'],
+  additionalProperties: false
+} as const
 
 /** Formats an ISO instant as the Swiss long date the prompt must use. */
 export function absolutesDatum(iso: string): string {
@@ -148,10 +167,12 @@ function faktenZeilen(fakten: SpielFakten): string[] {
     `Heim: ${fakten.heim}`,
     `Gast: ${fakten.gast}`,
     `Resultat: ${fakten.toreHeim}:${fakten.toreGast} (Heim:Gast${
-      inSaetzen(fakten) ? ', in gewonnenen Saetzen' : ''
+      inSaetzen(fakten) ? ', in gewonnenen Sätzen' : ''
     })`,
     inSaetzen(fakten)
-      ? 'Volleyball: Das Resultat sind gewonnene Saetze, keine Tore und keine Punkte.'
+      ? // Real umlauts where the model copies: the first live draft wrote
+        // «3:2 Saetzen» straight out of an ASCII facts line.
+        'Volleyball: Das Resultat sind gewonnene Sätze, keine Tore und keine Punkte.'
       : null,
     ausgang(fakten)
   ].filter((z): z is string => z !== null)

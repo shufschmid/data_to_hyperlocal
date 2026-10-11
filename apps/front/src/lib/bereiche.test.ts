@@ -8,7 +8,7 @@ describe('Bereiche', () => {
   it('fuehren jede Werkbank genau einmal', () => {
     const alle = BEREICHE.flatMap((b) => b.werkbaenke.map((w) => w.wert))
     expect(new Set(alle).size).toBe(alle.length)
-    expect(alle).toHaveLength(11)
+    expect(alle).toHaveLength(12)
   })
 
   it('kennen den Bereich einer Werkbank, nicht aber die Einstellungen', () => {

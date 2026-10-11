@@ -67,6 +67,23 @@ import {
   zuHolen,
   type GespeicherterMonat
 } from '../../redaktion/suedanfluglauf'
+import { erstelleKantonLeser } from '../../shared/kanton'
+import {
+  liesKontrollblatt,
+  liesKontrollseite,
+  liesStandortblatt,
+  liesStandortseite,
+  zusammenfassung,
+  type GemeindeZumZuordnen
+} from '../../shared/verkehr'
+import {
+  blattBekannt,
+  standortPlan,
+  zuHolenKontrollen,
+  type GespeicherterMonat as GespeicherterKontrollmonat,
+  type GespeicherterStandort
+} from '../../redaktion/verkehrlauf'
+import { heuteIso } from '../../redaktion/feiertage'
 import { tabellenBesitzer, tabellenFelder } from '../../shared/statbl/parse'
 import { ordneSeiteEin } from '../../shared/statbl/inventur'
 import { ladeFrischeZeilen, type ZeilenKontext } from '../../redaktion/drain'
@@ -213,7 +230,9 @@ export default defineOperationApi<Options>({
         quelle.typ !== 'ods' &&
         quelle.typ !== 'agenda' &&
         quelle.typ !== 'statbl' &&
-        quelle.typ !== 'euroairport'
+        quelle.typ !== 'euroairport' &&
+        quelle.typ !== 'radar_bl' &&
+        quelle.typ !== 'geschwindigkeitskontrollen'
       ) {
         logger.warn(
           `quellen-pruefen: Quellentyp "${quelle.typ}" hat keinen Adapter`
@@ -229,6 +248,9 @@ export default defineOperationApi<Options>({
           await pruefeAbstimmungstermine(quelle)
         } else if (quelle.typ === 'statbl') await pruefeTabellen(quelle)
         else if (quelle.typ === 'euroairport') await pruefeSuedanflug(quelle)
+        else if (quelle.typ === 'radar_bl') await pruefeRadar(quelle)
+        else if (quelle.typ === 'geschwindigkeitskontrollen')
+          await pruefeKontrollen(quelle)
         else await pruefeAgenda(quelle)
 
         await quellenService.updateOne(quelle.id, {
@@ -530,6 +552,209 @@ export default defineOperationApi<Options>({
         ergebnis.hinweise.push(
           `${quelle.name}: die Abstimmungstermine des Bundes konnten nicht gelesen werden (${error instanceof Error ? error.message : String(error)}) — die bisherigen bleiben stehen.`
         )
+      }
+    }
+
+    /**
+     * The Polizei Basel-Landschaft's speed-camera locations — one page
+     * through the canton's data door a day, the PDF only when its address
+     * is new (the file name carries the day of the newest entry, so a new
+     * entry is a new address). Every location is stored; a new one in a
+     * covered municipality is a PROPOSAL on the row, never an article by
+     * itself. No model call anywhere in here.
+     */
+    async function pruefeRadar(
+      quelle: Pick<Quelle, 'id' | 'name' | 'basis_url' | 'konfiguration'>
+    ): Promise<void> {
+      const standorte = new ItemsService('radarstandorte', { schema })
+      const gemeindenService = new ItemsService('gemeinden', { schema })
+      const kontakt = optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch')
+      const heute = heuteIso()
+      const leser = erstelleKantonLeser({ kontakt, basisUrl: quelle.basis_url })
+
+      const seite = await liesStandortseite(leser, quelle.basis_url)
+      if (seite.pdfUrl === null) {
+        throw new Error('Die Seite verlinkt kein PDF mit Standorten.')
+      }
+      ergebnis.gesehen += 1
+
+      const bestand = (await standorte.readByQuery({
+        fields: ['id', 'schluessel', 'gemeinde', 'aktiv', 'quelle_url'],
+        limit: -1
+      })) as GespeicherterStandort[]
+      if (blattBekannt(bestand, seite.pdfUrl)) return
+
+      // The PDF goes direct, never through the second door: the data door
+      // has no challenge, and the crawler hands a document back as text.
+      const { blatt, pruefsumme } = await liesStandortblatt(seite.pdfUrl, {
+        kontakt,
+        erlaubterHost: new URL(quelle.basis_url).host
+      })
+      for (const hinweis of blatt.hinweise) {
+        ergebnis.hinweise.push(`${quelle.name}: ${hinweis}`)
+      }
+
+      const gemeinden = (await gemeindenService.readByQuery({
+        filter: { aktiv: { _eq: true } },
+        fields: ['id', 'name', 'plz'],
+        limit: -1
+      })) as GemeindeZumZuordnen[]
+
+      const plan = standortPlan({
+        anlagen: blatt.anlagen,
+        bestand,
+        gemeinden,
+        heute,
+        pdfUrl: seite.pdfUrl,
+        publiziertAm: seite.publiziertAm
+      })
+      for (const n of plan.neu) {
+        await standorte.createOne({
+          schluessel: n.anlage.schluessel,
+          art: n.anlage.art,
+          kennung: n.anlage.kennung,
+          ab_wann: n.anlage.abWann,
+          standort: n.anlage.standort,
+          plz: n.anlage.plz,
+          ort: n.anlage.ort,
+          strasse: n.anlage.strasse,
+          geschwindigkeit: n.anlage.geschwindigkeit,
+          oertlichkeit: n.anlage.oertlichkeit,
+          gemeinde: n.gemeinde,
+          aktiv: true,
+          erstmals_gesehen: heute,
+          zuletzt_gesehen: heute,
+          publikation_am: seite.publiziertAm,
+          quelle_url: seite.pdfUrl,
+          pruefsumme,
+          vorschlag: n.vorschlag,
+          vorschlag_begruendung: n.begruendung
+        })
+        ergebnis.neu += 1
+      }
+      for (const a of plan.aktualisieren) {
+        await standorte.updateOne(a.id, { ...a.felder, pruefsumme })
+      }
+      for (const id of plan.stilllegen) {
+        await standorte.updateOne(id, { aktiv: false })
+      }
+      if (plan.aktualisieren.length > 0 || plan.stilllegen.length > 0) {
+        ergebnis.geaendert += 1
+      }
+      ergebnis.hinweise.push(...plan.hinweise)
+    }
+
+    /**
+     * A Gemeindepolizei's monthly speed-control sheets — Reinach's today —
+     * one page request a day, a sheet only when its month is new or its
+     * address moved; twelve a run at most, the rest named. The month comes
+     * from the rows, and the balance is computed over every line before the
+     * row is stored, so the desk reads figures and does no arithmetic.
+     */
+    async function pruefeKontrollen(
+      quelle: Pick<Quelle, 'id' | 'name' | 'basis_url' | 'konfiguration'>
+    ): Promise<void> {
+      const monate = new ItemsService('geschwindigkeitskontrollen', { schema })
+      const gemeindenService = new ItemsService('gemeinden', { schema })
+      const kontakt = optionalEnv('AGENDA_KONTAKT', 'it@bajour.ch')
+      const host = new URL(quelle.basis_url).host
+      const konf = quelle.konfiguration ?? {}
+      const bfs = Number(konf['gemeinde_bfs'])
+      if (!Number.isFinite(bfs) || bfs <= 0) {
+        throw new Error(
+          'Die Quelle nennt keine Gemeinde (konfiguration.gemeinde_bfs).'
+        )
+      }
+      const [gemeinde] = (await gemeindenService.readByQuery({
+        filter: { bfs_nummer: { _eq: bfs } },
+        fields: ['id', 'name'],
+        limit: 1
+      })) as Array<{ id: string; name: string }>
+      if (gemeinde === undefined) {
+        throw new Error(`Keine Gemeinde mit BFS-Nummer ${bfs} erfasst.`)
+      }
+      const polizei =
+        typeof konf['polizei'] === 'string' && konf['polizei'].trim() !== ''
+          ? konf['polizei']
+          : `Gemeindepolizei ${gemeinde.name}`
+
+      const ausgaben = await liesKontrollseite(quelle.basis_url, {
+        kontakt,
+        erlaubterHost: host,
+        fetchImpl: tuer
+      })
+      ergebnis.gesehen += ausgaben.length
+
+      const bestand = (await monate.readByQuery({
+        filter: { gemeinde: { _eq: gemeinde.id } },
+        fields: ['id', 'jahr', 'monat', 'quelle_url'],
+        limit: -1
+      })) as GespeicherterKontrollmonat[]
+      const plan = zuHolenKontrollen(ausgaben, bestand)
+      ergebnis.hinweise.push(...plan.hinweise)
+      const bekannt = new Map(bestand.map((m) => [`${m.jahr}-${m.monat}`, m]))
+
+      for (const ausgabe of plan.holen) {
+        try {
+          const { blatt, pruefsumme } = await liesKontrollblatt(ausgabe.url, {
+            kontakt,
+            erlaubterHost: host
+          })
+          // The rows decide the month; the file name is the expectation.
+          const jahr = blatt.jahr ?? ausgabe.jahr
+          const monat = blatt.monat ?? ausgabe.monat
+          const hinweise = [...blatt.hinweise]
+          if (
+            blatt.jahr !== null &&
+            (blatt.jahr !== ausgabe.jahr || blatt.monat !== ausgabe.monat)
+          ) {
+            hinweise.push(
+              `Der Dateiname nennt ${monatDeutsch(ausgabe.jahr, ausgabe.monat)}, die Zeilen sind ${monatDeutsch(jahr, monat)} — die Zeilen gelten.`
+            )
+          }
+          const bilanz = zusammenfassung(blatt.kontrollen)
+          const felder = {
+            gemeinde: gemeinde.id,
+            jahr,
+            monat,
+            stand: blatt.stand,
+            polizei,
+            kontrollen: blatt.kontrollen,
+            messungen: blatt.messungen,
+            bilanz,
+            hinweise,
+            quelle_url: ausgabe.url,
+            pruefsumme
+          }
+          const alt =
+            bekannt.get(`${jahr}-${monat}`) ??
+            bekannt.get(`${ausgabe.jahr}-${ausgabe.monat}`) ??
+            null
+          if (alt === null) {
+            await monate.createOne(felder)
+            ergebnis.neu += 1
+            ergebnis.hinweise.push(
+              `${quelle.name}: ${monatDeutsch(jahr, monat)} — ${bilanz.kontrollen} Kontrollen, ${bilanz.uebertretungen} Uebertretungen bei ${bilanz.gemessen} gemessenen Fahrzeugen.`
+            )
+          } else {
+            await monate.updateOne(alt.id, felder)
+            ergebnis.geaendert += 1
+          }
+          for (const hinweis of hinweise) {
+            ergebnis.hinweise.push(
+              `${quelle.name}, ${monatDeutsch(jahr, monat)}: ${hinweis}`
+            )
+          }
+        } catch (error) {
+          // One unreadable month must not cost the others theirs.
+          const text = error instanceof Error ? error.message : String(error)
+          logger.warn(
+            `quellen-pruefen: Geschwindigkeitskontrollen ${ausgabe.jahr}/${ausgabe.monat} — ${text}`
+          )
+          ergebnis.fehler.push(
+            `${quelle.name}, ${monatDeutsch(ausgabe.jahr, ausgabe.monat)}: ${text}`
+          )
+        }
       }
     }
 

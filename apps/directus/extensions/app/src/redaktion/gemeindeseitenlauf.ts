@@ -4,7 +4,11 @@
 // Services are injected as the small interfaces below, so both functions are
 // tested against stubs. No fetching here — the reader hands rows in.
 
-import { parseStufenSichtung, STUFEN_SCHEMA } from './sichtung'
+import {
+  parseStufenSichtung,
+  STUFEN_SCHEMA,
+  type StufenUrteil
+} from './sichtung'
 import {
   istVorschlag,
   STANDARD_EINSTELLUNG,
@@ -18,15 +22,18 @@ import {
 import { pakete, SICHTUNG_AUFRUF, sichtungsFehlerText } from './sichtungspakete'
 import type { RegelZeile } from './gedaechtnis'
 import {
+  ABGLEICH_HINWEIS,
   aufraeumAktion,
   auszugVon,
   buildSichtungPrompt,
   kalenderAbgleich,
   kuenftigeTage,
   lernDigest,
+  NACHFRAGE_TEXT,
   SICHTUNG_SYSTEM_PROMPT,
   sichtungsAuswahl,
   VORBEI_BEGRUENDUNG,
+  widerspruchZumAbgleich,
   type AufraeumZeile,
   type KalenderAnlass,
   type KalenderStand,
@@ -117,7 +124,15 @@ export async function ladeKalenderAnlaesse(
       gemeinde: { _eq: gemeindeId },
       _or: [{ bis: { _gte: heute } }, { von: { _gte: heute } }]
     },
-    fields: ['titel', 'lokalitaet', 'von', 'bis', 'termine', 'rhythmus'],
+    fields: [
+      'titel',
+      'lokalitaet',
+      'von',
+      'bis',
+      'termine',
+      'rhythmus',
+      'beschreibung'
+    ],
     sort: ['von'],
     limit: -1
   })) as KalenderAnlass[]
@@ -179,11 +194,13 @@ export async function sichteMitteilungen(
 ): Promise<{
   vorschlaege: number
   weitergereicht: number
+  /** Judgements asked again because their reason contradicted the Kalender-Abgleich. */
+  nachgefasst: number
   /** Why the model call failed, for the run's result and the municipality's status line; null when it did not. */
   fehler: string | null
 }> {
   if (neue.length === 0)
-    return { vorschlaege: 0, weitergereicht: 0, fehler: null }
+    return { vorschlaege: 0, weitergereicht: 0, nachgefasst: 0, fehler: null }
   // The events desk's rows, only when an item names a day ahead: two queries
   // per municipality and run at most, none for a day's notices that name no
   // day — which is most of them.
@@ -231,7 +248,7 @@ export async function sichteMitteilungen(
     }
   }
   if (zeilen.length === 0)
-    return { vorschlaege: 0, weitergereicht: 0, fehler: null }
+    return { vorschlaege: 0, weitergereicht: 0, nachgefasst: 0, fehler: null }
 
   const signale = await ladeGemeindeSignale(
     {
@@ -244,7 +261,13 @@ export async function sichteMitteilungen(
   )
 
   const weiterzureichen = new Map<string, NummerierteRegel>()
-  let vorschlaege = 0
+  // The proposal bit per judged row — counted at the end, because a
+  // follow-up may change a row's grade after its packet.
+  const vorschlagJeZeile = new Map<string, boolean>()
+  // Judgements that lean on the events desk where the Abgleich gives them
+  // nothing to lean on: collected across the packets, asked again once.
+  const widersprueche: Array<{ zeile: SichtungsZeile; urteil: StufenUrteil }> =
+    []
   const schwelle = (kontext.einstellung ?? STANDARD_EINSTELLUNG).schwelle
   const digest = lernDigest(signale.entscheide, LERN_FENSTER, signale.rahmen)
   // In packets (`sichtungspakete.ts`): a failed packet costs its own rows,
@@ -287,13 +310,19 @@ export async function sichteMitteilungen(
           vorschlag_wert: urteil.stufe,
           vorschlag_begruendung: urteil.begruendung
         })
-        if (vorschlag) vorschlaege += 1
+        vorschlagJeZeile.set(urteil.id, vorschlag)
         const regel = automatischeWeitergabe(
           urteil,
           kontext.sichtungsregeln.nummern,
           kontext.regelzeilen
         )
         if (regel !== null) weiterzureichen.set(urteil.id, regel)
+        const zeile = paket.find((z) => z.id === urteil.id)
+        if (
+          zeile !== undefined &&
+          widerspruchZumAbgleich(urteil.begruendung, zeile.kalender)
+        )
+          widersprueche.push({ zeile, urteil })
       }
     } catch (fehler) {
       // `vorschlag` stays null: "not judged", which the desk shows as such —
@@ -309,6 +338,74 @@ export async function sichteMitteilungen(
     }
   }
   const sichtungsFehler = sichtungsFehlerText(fehlerPakete, paketListe.length)
+
+  // The follow-up: one call over the contradicted rows alone, the same
+  // prompt plus the newsroom's objection. The grade stays the model's — a
+  // reason the Abgleich refutes is not one, and the row deserves a judgement
+  // on its substance rather than a code-set grade (1 October 2026). If the
+  // call fails or leaves a row unanswered, the first judgement stands,
+  // visibly marked.
+  let nachgefasst = 0
+  if (widersprueche.length > 0) {
+    const nachZeilen = widersprueche.map((w) => w.zeile)
+    const beantwortet = new Set<string>()
+    try {
+      const antwort = await completeJson<unknown>(
+        {
+          zweck: 'gemeindeseiten:sichtung:nachfassen',
+          system: cacheableSystem(SICHTUNG_SYSTEM_PROMPT),
+          prompt: buildSichtungPrompt(
+            gemeinde.name,
+            nachZeilen,
+            digest,
+            kontext.sichtungsregeln.text,
+            NACHFRAGE_TEXT
+          ),
+          ...SICHTUNG_AUFRUF,
+          ...(kontext.model == null ? {} : { model: kontext.model }),
+          schema: STUFEN_SCHEMA
+        },
+        kontext.send
+      )
+      for (const urteil of parseStufenSichtung(antwort, nachZeilen)) {
+        const vorschlag = istVorschlag(urteil.stufe, schwelle)
+        await kontext.mitteilungen.updateOne(urteil.id, {
+          vorschlag,
+          vorschlag_wert: urteil.stufe,
+          vorschlag_begruendung: urteil.begruendung
+        })
+        vorschlagJeZeile.set(urteil.id, vorschlag)
+        const regel = automatischeWeitergabe(
+          urteil,
+          kontext.sichtungsregeln.nummern,
+          kontext.regelzeilen
+        )
+        if (regel === null) weiterzureichen.delete(urteil.id)
+        else weiterzureichen.set(urteil.id, regel)
+        beantwortet.add(urteil.id)
+        nachgefasst += 1
+      }
+    } catch (fehler) {
+      kontext.logger.warn(
+        fehler,
+        `gemeindeseiten: Nachfrage zur Sichtung fuer ${gemeinde.name} fehlgeschlagen.`
+      )
+    }
+    for (const { urteil } of widersprueche) {
+      if (beantwortet.has(urteil.id)) continue
+      try {
+        await kontext.mitteilungen.updateOne(urteil.id, {
+          vorschlag_begruendung: `${urteil.begruendung} — ${ABGLEICH_HINWEIS}`
+        })
+      } catch (fehler) {
+        kontext.logger.warn(
+          fehler,
+          `gemeindeseiten: Hinweis zum Kalender-Abgleich auf ${urteil.id} nicht vermerkt.`
+        )
+      }
+    }
+  }
+  const vorschlaege = [...vorschlagJeZeile.values()].filter(Boolean).length
 
   let weitergereicht = 0
   for (const [zeileId, regel] of weiterzureichen) {
@@ -352,7 +449,7 @@ export async function sichteMitteilungen(
     }
   }
 
-  return { vorschlaege, weitergereicht, fehler: sichtungsFehler }
+  return { vorschlaege, weitergereicht, nachgefasst, fehler: sichtungsFehler }
 }
 
 /**

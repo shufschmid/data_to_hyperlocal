@@ -289,6 +289,10 @@ export interface AlleMeldungFelder {
    * Optional, `?? null` when read: an older answer may omit the field.
    */
   kantonsmitteilung?: { id: string } | null
+  /** Set for an article about a new radar location of the Polizei Basel-Landschaft (Verkehr desk). Optional, like `kantonsmitteilung`. */
+  radarstandort?: { id: string } | null
+  /** Set for an article about a month of a Gemeindepolizei's speed controls (Verkehr desk). */
+  geschwindigkeitskontrolle?: { id: string } | null
   /** Decided at publish time on press reviews: interesting for the city too. */
   perle: boolean | null
 }
@@ -355,6 +359,12 @@ export const ALLE_MELDUNGEN_QUERY = gql`
         id
       }
       veranstaltung {
+        id
+      }
+      radarstandort {
+        id
+      }
+      geschwindigkeitskontrolle {
         id
       }
       perle
@@ -1857,6 +1867,102 @@ export const SUEDANFLUG_QUERY = gql`
       vorschlag_begruendung
       befunde
       quelle_url
+    }
+  }
+`
+
+// Der Verkehr-Tisch: die Radarstandorte der Polizei Basel-Landschaft und die
+// Monatsblaetter der Geschwindigkeitskontrollen einer Gemeindepolizei.
+//
+// Ein Standort ist eine Zeile je Anlage auf dem Blatt des Kantons; `vorschlag`
+// markiert eine neue Anlage in einer bespielten Gemeinde — eine Markierung,
+// keine Meldung. Ein Monat traegt seine Bilanz vom Code gerechnet (`bilanz`),
+// damit der Tisch Zahlen liest und nicht rechnet.
+export interface RadarstandortFelder {
+  id: string
+  art: string
+  kennung: string | null
+  ab_wann: string | null
+  standort: string
+  plz: string | null
+  ort: string | null
+  strasse: string | null
+  geschwindigkeit: number | null
+  oertlichkeit: string | null
+  gemeinde: { id: string; name: string } | null
+  aktiv: boolean
+  erstmals_gesehen: string | null
+  zuletzt_gesehen: string | null
+  publikation_am: string | null
+  quelle_url: string | null
+  vorschlag: boolean
+  vorschlag_begruendung: string | null
+}
+
+export interface RadarstandorteErgebnis {
+  radarstandorte: RadarstandortFelder[]
+}
+
+export const RADARSTANDORTE_QUERY = gql`
+  query Radarstandorte {
+    radarstandorte(sort: ["-erstmals_gesehen", "standort"], limit: 200) {
+      id
+      art
+      kennung
+      ab_wann
+      standort
+      plz
+      ort
+      strasse
+      geschwindigkeit
+      oertlichkeit
+      gemeinde {
+        id
+        name
+      }
+      aktiv
+      erstmals_gesehen
+      zuletzt_gesehen
+      publikation_am
+      quelle_url
+      vorschlag
+      vorschlag_begruendung
+    }
+  }
+`
+
+export interface GeschwindigkeitskontrolleFelder {
+  id: string
+  jahr: number
+  monat: number
+  stand: string | null
+  polizei: string | null
+  /** `zusammenfassung()` ueber alle Kontrollzeilen, vom Lauf gespeichert — `alsBilanz` liest es geprueft. */
+  bilanz: unknown
+  hinweise: string[] | null
+  quelle_url: string | null
+  gemeinde: { id: string; name: string } | null
+}
+
+export interface GeschwindigkeitskontrollenErgebnis {
+  geschwindigkeitskontrollen: GeschwindigkeitskontrolleFelder[]
+}
+
+export const GESCHWINDIGKEITSKONTROLLEN_QUERY = gql`
+  query Geschwindigkeitskontrollen {
+    geschwindigkeitskontrollen(sort: ["-jahr", "-monat"], limit: 60) {
+      id
+      jahr
+      monat
+      stand
+      polizei
+      bilanz
+      hinweise
+      quelle_url
+      gemeinde {
+        id
+        name
+      }
     }
   }
 `

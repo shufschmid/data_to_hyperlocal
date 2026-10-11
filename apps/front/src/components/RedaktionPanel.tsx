@@ -26,6 +26,10 @@ import {
   GEMEINDE_AKTIV_MUTATION,
   GEMEINDEN_QUERY,
   SUEDANFLUG_QUERY,
+  RADARSTANDORTE_QUERY,
+  GESCHWINDIGKEITSKONTROLLEN_QUERY,
+  type RadarstandorteErgebnis,
+  type GeschwindigkeitskontrollenErgebnis,
   ABSTIMMUNGEN_QUERY,
   VEREINE_QUERY,
   SPIELE_QUERY,
@@ -127,6 +131,8 @@ import { AuftragDialog, type AuftragZiel } from './AuftragDialog'
 import { GemeindenAuswahl } from './GemeindenAuswahl'
 import { Sportresultate } from './Sportresultate'
 import { Entsorgung } from './Entsorgung'
+import { Verkehr } from './Verkehr'
+import { zaehlerVerkehr } from '@/lib/verkehr'
 import { EntsorgungHinweis } from './EntsorgungHinweis'
 import { GemeindeBlogs } from './GemeindeBlogs'
 import { Wochenzahl, type WochenzahlBilanz } from './Wochenzahl'
@@ -163,6 +169,7 @@ type Reiter =
   | 'statistik'
   | 'sport'
   | 'entsorgung'
+  | 'verkehr'
   | 'wochenblaetter'
   | 'amtsblatt'
   | 'gemeindeseiten'
@@ -316,6 +323,12 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
     fetchPolicy: LIVE_FETCH_POLICY
   })
   const suedanflug = useQuery<SuedanflugErgebnis>(SUEDANFLUG_QUERY, {
+    fetchPolicy: LIVE_FETCH_POLICY
+  })
+  const radarstandorte = useQuery<RadarstandorteErgebnis>(RADARSTANDORTE_QUERY, {
+    fetchPolicy: LIVE_FETCH_POLICY
+  })
+  const kontrollen = useQuery<GeschwindigkeitskontrollenErgebnis>(GESCHWINDIGKEITSKONTROLLEN_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY
   })
   const abstimmungen = useQuery<AbstimmungenErgebnis>(ABSTIMMUNGEN_QUERY, {
@@ -901,6 +914,15 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
     // draussen" — die Revisionswaechter.
     statistik: { anzahl: revisionZaehlerStatistik(meldungenAlle), art: 'fehler' },
     sport: { anzahl: revisionZaehlerSport(meldungenAlle), art: 'fehler' },
+    verkehr: {
+      // Neue Anlagen ohne Meldung und die neuesten Monate ohne Meldung.
+      anzahl: zaehlerVerkehr(
+        radarstandorte.data?.radarstandorte ?? [],
+        kontrollen.data?.geschwindigkeitskontrollen ?? [],
+        meldungenAlle
+      ),
+      art: 'arbeit'
+    },
     wochenblaetter: {
       // Der Fuellstand des Tischs: Offenes und Meldungen im Redigat, ohne die
       // Vorschauen, deren Anlass vorbei ist.
@@ -1317,6 +1339,32 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             onAllePublizieren={async () => {
               await fuehreAus('spielberichte/publizieren')
               await alleMeldungen.refetch()
+            }}
+            onChat={async (id, anweisung) => {
+              await fuehreAus(`meldungen/${id}/chat`, { anweisung })
+            }}
+            onAktion={async (id, was, koerper) => {
+              await fuehreAus(`meldungen/${id}/${was}`, koerper)
+            }}
+          />
+        </Stack>
+      )}
+
+      {reiter === 'verkehr' && (
+        <Stack spacing={2}>
+          <Typography variant="body2" color="text.secondary">
+            Was auf den Strassen gemessen wird. Die Polizei Basel-Landschaft veröffentlicht die Standorte
+            ihrer Geschwindigkeitskontrollanlagen; eine neue Anlage in einer bespielten Gemeinde ist ein
+            Vorschlag. Die Gemeindepolizei Reinach veröffentlicht je Monat ihre Kontrollen; die Redaktion
+            rechnet die Bilanz über alle Zeilen. Beides holt der 6-Uhr-Lauf, geschrieben wird auf Knopfdruck.
+          </Typography>
+          <Verkehr
+            standorte={radarstandorte.data?.radarstandorte ?? []}
+            monate={kontrollen.data?.geschwindigkeitskontrollen ?? []}
+            meldungen={meldungenAlle}
+            laeuft={sendet}
+            onMeldung={async (art, id) => {
+              await fuehreAus(`verkehr/${art}/${id}/meldung`)
             }}
             onChat={async (id, anweisung) => {
               await fuehreAus(`meldungen/${id}/chat`, { anweisung })

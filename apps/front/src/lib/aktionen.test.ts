@@ -59,6 +59,14 @@ describe('Die Liste erlaubter Aktionen', () => {
     }
   })
 
+  // Der Verkehr-Tisch baut seinen Pfad mit zwei Loechern (`verkehr/${art}/${id}/meldung`),
+  // also prueft ihn die Liste oben nicht — hier ausdruecklich, beide Arten.
+  it('kennt die zwei Meldungen des Verkehr-Tischs', () => {
+    expect(darfSchreiben(`verkehr/standorte/${BEISPIEL_ID}/meldung`)).toBe(true)
+    expect(darfSchreiben(`verkehr/kontrollen/${BEISPIEL_ID}/meldung`)).toBe(true)
+    expect(darfSchreiben(`verkehr/anderes/${BEISPIEL_ID}/meldung`)).toBe(false)
+  })
+
   it('liest nur die drei Pfade, deren Zustand im Prozess lebt', () => {
     expect(LESBAR).toHaveLength(6)
     for (const pfad of [

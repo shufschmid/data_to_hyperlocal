@@ -18,6 +18,7 @@ export type Werkbank =
   | 'statistik'
   | 'sport'
   | 'entsorgung'
+  | 'verkehr'
   | 'chefredaktion'
 
 export type BereichWert = 'gemeinde' | 'medien' | 'daten' | 'chefredaktion'
@@ -54,7 +55,11 @@ export const BEREICHE: readonly Bereich[] = [
     werkbaenke: [
       { wert: 'statistik', text: 'data to hyperlocal' },
       { wert: 'sport', text: 'Sportresultate' },
-      { wert: 'entsorgung', text: 'Entsorgung' }
+      { wert: 'entsorgung', text: 'Entsorgung' },
+      // Seit 11. Oktober 2026: Radarstandorte des Kantons und die
+      // Geschwindigkeitskontrollen der Gemeindepolizei — der Wunsch der
+      // Redaktion, «das interessiert die Menschen».
+      { wert: 'verkehr', text: 'Verkehr' }
     ]
   },
   {

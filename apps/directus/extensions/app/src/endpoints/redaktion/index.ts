@@ -41,6 +41,27 @@ import {
 } from './suedanflug'
 import type { SuedanflugFakten } from '../../redaktion/suedanflug'
 import type { GespeicherterMonat } from '../../redaktion/suedanfluglauf'
+import {
+  datengrundlageKontrollen,
+  datengrundlageRadar,
+  kontrollenFaktenFuer,
+  kontrollenMeldungsfelder,
+  MeldungSchonDa as VerkehrsMeldungSchonDa,
+  ohneQuelle as ohneVerkehrsQuelle,
+  radarFaktenFuer,
+  radarMeldungsfelder,
+  schreibeKontrollenmeldung,
+  schreibeRadarmeldung,
+  StandortOhneGemeinde,
+  type Monatszeile,
+  type Standortzeile
+} from './verkehr'
+import {
+  buildKontrollenPrompt,
+  buildKontrollenRevision,
+  buildRadarPrompt,
+  buildRadarRevision
+} from '../../redaktion/verkehr'
 import { createError } from '@directus/errors'
 import { defineEndpoint } from '@directus/extensions-sdk'
 import type { NextFunction, Response } from 'express'
@@ -60,6 +81,7 @@ import {
 import { drain, eroeffneLaeufe, type DrainKontext } from '../../redaktion/drain'
 import {
   buildSpielberichtRevision,
+  SPIELBERICHT_SCHEMA,
   linkWarnungen as spielLinkWarnungen,
   mitQuelle as mitSpielQuelle,
   ohneQuelle,
@@ -4522,6 +4544,308 @@ export default defineEndpoint(
       }
     )
 
+    // --- Verkehr: a new radar location, a month of speed controls -----------
+    //
+    // The desk is the Verkehr tab. The unit of work is one stored row — an
+    // installation of the Polizei Basel-Landschaft in a covered municipality,
+    // or one month of a Gemeindepolizei's controls. The rules, the prompts
+    // and every check live in `redaktion/verkehr.ts` and `./verkehr.ts`;
+    // nothing below is a rule.
+
+    const STANDORT_FELDER = [
+      'id',
+      'art',
+      'kennung',
+      'ab_wann',
+      'standort',
+      'plz',
+      'ort',
+      'strasse',
+      'geschwindigkeit',
+      'oertlichkeit',
+      'publikation_am',
+      'gemeinde'
+    ]
+    const MONATS_FELDER = [
+      'id',
+      'jahr',
+      'monat',
+      'stand',
+      'polizei',
+      'kontrollen',
+      'messungen',
+      'hinweise',
+      'quelle_url',
+      'gemeinde'
+    ]
+
+    /** The installation, its municipality and the sheet's other installations there. */
+    async function ladeRadarMaterial(
+      standortId: string,
+      accountability: ApiRequest['accountability']
+    ) {
+      const schema = await getSchema()
+      const standorte = new ItemsService('radarstandorte', {
+        schema,
+        accountability
+      })
+      const gemeinden = new ItemsService('gemeinden', {
+        schema,
+        accountability
+      })
+      const quellen = new ItemsService('quellen', { schema })
+
+      const zeile = (await standorte.readOne(standortId, {
+        fields: STANDORT_FELDER
+      })) as Standortzeile
+      if (zeile.gemeinde === null) throw new StandortOhneGemeinde()
+      const gemeinde = (await gemeinden.readOne(zeile.gemeinde, {
+        fields: ['id', 'name']
+      })) as { id: string; name: string }
+      const weitere = (await standorte.readByQuery({
+        filter: { gemeinde: { _eq: zeile.gemeinde }, aktiv: { _eq: true } },
+        fields: STANDORT_FELDER,
+        limit: -1
+      })) as Standortzeile[]
+      const quellenzeilen = (await quellen.readByQuery({
+        filter: { typ: { _eq: 'radar_bl' } },
+        fields: ['konfiguration'],
+        limit: 1
+      })) as Array<{ konfiguration: Record<string, unknown> | null }>
+      const seite = quellenzeilen[0]?.konfiguration?.['seite']
+      return {
+        gemeindeId: gemeinde.id,
+        fakten: radarFaktenFuer({
+          zeile,
+          gemeinde,
+          weitere,
+          seiteUrl: typeof seite === 'string' ? seite : null
+        })
+      }
+    }
+
+    /** The month, its municipality and every stored month of it — the previous one comes from there. */
+    async function ladeKontrollenMaterial(
+      monatId: string,
+      accountability: ApiRequest['accountability']
+    ) {
+      const schema = await getSchema()
+      const monate = new ItemsService('geschwindigkeitskontrollen', {
+        schema,
+        accountability
+      })
+      const gemeinden = new ItemsService('gemeinden', {
+        schema,
+        accountability
+      })
+      const zeile = (await monate.readOne(monatId, {
+        fields: MONATS_FELDER
+      })) as Monatszeile
+      if (zeile.gemeinde === null) throw new StandortOhneGemeinde()
+      const gemeinde = (await gemeinden.readOne(zeile.gemeinde, {
+        fields: ['id', 'name']
+      })) as { id: string; name: string }
+      const bestand = (await monate.readByQuery({
+        filter: { gemeinde: { _eq: zeile.gemeinde } },
+        fields: MONATS_FELDER,
+        limit: -1
+      })) as Monatszeile[]
+      return {
+        gemeindeId: gemeinde.id,
+        fakten: kontrollenFaktenFuer({ zeile, gemeinde, bestand })
+      }
+    }
+
+    async function ueberarbeiteRadar(
+      meldung: {
+        id: string
+        titel: string | null
+        lead: string | null
+        text: string | null
+      },
+      standortId: string,
+      anweisung: string
+    ): Promise<string[]> {
+      const meldungen = new ItemsService('meldungen', {
+        schema: await getSchema()
+      })
+      const { fakten } = await ladeRadarMaterial(standortId, undefined)
+      const entwurf = await schreibeRadarmeldung(
+        fakten,
+        buildRadarRevision(
+          fakten,
+          { ...meldung, text: ohneVerkehrsQuelle(meldung.text) },
+          anweisung,
+          await regelnFuer('verkehr', 'text')
+        )
+      )
+      await meldungen.updateOne(
+        meldung.id,
+        radarMeldungsfelder(entwurf, fakten)
+      )
+      return entwurf.warnungen
+    }
+
+    async function ueberarbeiteKontrollen(
+      meldung: {
+        id: string
+        titel: string | null
+        lead: string | null
+        text: string | null
+      },
+      monatId: string,
+      anweisung: string
+    ): Promise<string[]> {
+      const meldungen = new ItemsService('meldungen', {
+        schema: await getSchema()
+      })
+      const { fakten } = await ladeKontrollenMaterial(monatId, undefined)
+      const entwurf = await schreibeKontrollenmeldung(
+        fakten,
+        buildKontrollenRevision(
+          fakten,
+          { ...meldung, text: ohneVerkehrsQuelle(meldung.text) },
+          anweisung,
+          await regelnFuer('verkehr', 'text')
+        )
+      )
+      await meldungen.updateOne(
+        meldung.id,
+        kontrollenMeldungsfelder(entwurf, fakten)
+      )
+      return entwurf.warnungen
+    }
+
+    router.post(
+      '/verkehr/standorte/:id/meldung',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        let standortId: string
+        try {
+          standortId = pruefeId(req.params['id'])
+        } catch (fehler) {
+          return next(fehler)
+        }
+        try {
+          const schema = await getSchema()
+          const meldungenService = new ItemsService('meldungen', {
+            schema,
+            accountability: req.accountability
+          })
+          // One article per installation: a second click must not produce
+          // two pieces about the same speed camera.
+          const vorhandene = (await meldungenService.readByQuery({
+            filter: {
+              radarstandort: { _eq: standortId },
+              status: { _neq: 'verworfen' }
+            },
+            fields: ['id'],
+            limit: 1
+          })) as { id: string }[]
+          if (vorhandene.length > 0) return next(new VerkehrsMeldungSchonDa())
+
+          const { fakten, gemeindeId } = await ladeRadarMaterial(
+            standortId,
+            req.accountability
+          )
+          const entwurf = await schreibeRadarmeldung(
+            fakten,
+            buildRadarPrompt(fakten, await regelnFuer('verkehr', 'text'))
+          )
+          const meldungId = (await meldungenService.createOne({
+            radarstandort: standortId,
+            gemeinde: gemeindeId,
+            status: 'entwurf',
+            ...radarMeldungsfelder(entwurf, fakten),
+            datengrundlage: datengrundlageRadar(fakten)
+          })) as string
+          return res.json({
+            data: { meldung: meldungId, warnungen: entwurf.warnungen }
+          })
+        } catch (error) {
+          const status = (error as { status?: unknown }).status
+          if (
+            status === 403 ||
+            status === 404 ||
+            status === 400 ||
+            status === 409 ||
+            status === 422
+          ) {
+            return next(uebersetze(error))
+          }
+          logger.error(
+            error,
+            'redaktion: Verkehrs-Meldung (Radar) fehlgeschlagen'
+          )
+          return next(new UeberarbeitungFehlgeschlagen())
+        }
+      }
+    )
+
+    router.post(
+      '/verkehr/kontrollen/:id/meldung',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        let monatId: string
+        try {
+          monatId = pruefeId(req.params['id'])
+        } catch (fehler) {
+          return next(fehler)
+        }
+        try {
+          const schema = await getSchema()
+          const meldungenService = new ItemsService('meldungen', {
+            schema,
+            accountability: req.accountability
+          })
+          const vorhandene = (await meldungenService.readByQuery({
+            filter: {
+              geschwindigkeitskontrolle: { _eq: monatId },
+              status: { _neq: 'verworfen' }
+            },
+            fields: ['id'],
+            limit: 1
+          })) as { id: string }[]
+          if (vorhandene.length > 0) return next(new VerkehrsMeldungSchonDa())
+
+          const { fakten, gemeindeId } = await ladeKontrollenMaterial(
+            monatId,
+            req.accountability
+          )
+          const entwurf = await schreibeKontrollenmeldung(
+            fakten,
+            buildKontrollenPrompt(fakten, await regelnFuer('verkehr', 'text'))
+          )
+          const meldungId = (await meldungenService.createOne({
+            geschwindigkeitskontrolle: monatId,
+            gemeinde: gemeindeId,
+            status: 'entwurf',
+            ...kontrollenMeldungsfelder(entwurf, fakten),
+            datengrundlage: datengrundlageKontrollen(fakten)
+          })) as string
+          return res.json({
+            data: { meldung: meldungId, warnungen: entwurf.warnungen }
+          })
+        } catch (error) {
+          const status = (error as { status?: unknown }).status
+          if (
+            status === 403 ||
+            status === 404 ||
+            status === 400 ||
+            status === 409 ||
+            status === 422
+          ) {
+            return next(uebersetze(error))
+          }
+          logger.error(
+            error,
+            'redaktion: Verkehrs-Meldung (Geschwindigkeitskontrollen) fehlgeschlagen'
+          )
+          return next(new UeberarbeitungFehlgeschlagen())
+        }
+      }
+    )
+
     // --- the vote result: one article per municipality and Vorlage ---------
     //
     // The desk is the same statistik.bl tab and the unit of work is one
@@ -5892,6 +6216,8 @@ export default defineEndpoint(
               'sendungskandidat',
               'suedanflugquote',
               'abstimmung',
+              'radarstandort',
+              'geschwindigkeitskontrolle',
               // The south-approach revision needs it: the article is written
               // for ONE municipality, and the facts carry its name.
               'gemeinde',
@@ -5912,6 +6238,8 @@ export default defineEndpoint(
             sendungskandidat: string | null
             suedanflugquote: string | null
             abstimmung: string | null
+            radarstandort: string | null
+            geschwindigkeitskontrolle: string | null
             gemeinde: string
             lauf: { datensatz: string | null } | null
             titel: string | null
@@ -6262,6 +6590,55 @@ export default defineEndpoint(
               logger.error(
                 fehler,
                 'redaktion: Suedanflug-Ueberarbeitung fehlgeschlagen'
+              )
+              throw new UeberarbeitungFehlgeschlagen()
+            }
+          }
+
+          // The two Verkehr articles — a radar location, a month of speed
+          // controls — have no `lauf` either and would sit at `geplant` for
+          // ever without a branch of their own, like the gazette's did.
+          const verkehr =
+            meldung.radarstandort !== null
+              ? {
+                  id: meldung.radarstandort,
+                  ueberarbeite: ueberarbeiteRadar,
+                  titel: 'Verkehrs-Meldung (Radarstandort)'
+                }
+              : meldung.geschwindigkeitskontrolle !== null
+                ? {
+                    id: meldung.geschwindigkeitskontrolle,
+                    ueberarbeite: ueberarbeiteKontrollen,
+                    titel: 'Verkehrs-Meldung (Geschwindigkeitskontrollen)'
+                  }
+                : null
+          if (verkehr !== null) {
+            await meldungen.updateOne(id, { verarbeitung: 'laeuft', anweisung })
+            try {
+              const warnungen = await verkehr.ueberarbeite(
+                meldung,
+                verkehr.id,
+                anweisung
+              )
+              merkeAnweisung(anweisung, 'verkehr', verkehr.titel)
+              await chat.createOne({
+                meldung: id,
+                rolle: 'assistant',
+                inhalt:
+                  warnungen.length === 0
+                    ? 'Neu formuliert.'
+                    : `Neu formuliert — mit Hinweisen: ${warnungen.join(' · ')}`,
+                position: position + 1
+              })
+              return res.json({ data: { meldung: id, warnungen } })
+            } catch (fehler) {
+              await meldungen.updateOne(id, {
+                verarbeitung: 'idle',
+                fehler: fehlerText(fehler)
+              })
+              logger.error(
+                fehler,
+                'redaktion: Verkehrs-Ueberarbeitung fehlgeschlagen'
               )
               throw new UeberarbeitungFehlgeschlagen()
             }
@@ -8259,7 +8636,8 @@ export default defineEndpoint(
           anweisung,
           await regelnFuer('sport', 'text')
         ),
-        maxTokens: 1200
+        maxTokens: 1200,
+        schema: SPIELBERICHT_SCHEMA
       })
       const bericht = parseSpielbericht(antwort)
 

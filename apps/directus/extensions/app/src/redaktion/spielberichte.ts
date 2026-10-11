@@ -5,6 +5,7 @@ import {
   linkWarnungen,
   mitQuelle,
   parseSpielbericht,
+  SPIELBERICHT_SCHEMA,
   SPIELBERICHT_SYSTEM_PROMPT,
   verbandsQuelle,
   zahlWarnungen,
@@ -252,7 +253,8 @@ export async function schreibeSpielberichte(
           zweck: 'sport:bericht',
           system: SPIELBERICHT_SYSTEM_PROMPT,
           prompt: buildSpielberichtPrompt(fakten, kontext.regeln ?? []),
-          maxTokens: 1200
+          maxTokens: 1200,
+          schema: SPIELBERICHT_SCHEMA
         },
         ...(kontext.send === undefined ? [] : ([kontext.send] as const))
       )

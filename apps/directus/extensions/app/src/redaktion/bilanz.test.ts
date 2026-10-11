@@ -204,6 +204,7 @@ describe('redaktionsbilanz', () => {
       'kanton',
       'sendung',
       'entsorgung',
+      'verkehr',
       'ohne'
     ])
   })

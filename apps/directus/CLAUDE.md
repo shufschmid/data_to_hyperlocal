@@ -109,7 +109,7 @@ desks, seeded with the code's standard, insert-only), `20260930A-blutspende.mts`
 (ten `veranstaltungsquellen` rows, `art: organisation`, one per covered
 municipality with its POSTCODE in the blutspende.ch search address — seeded
 ACTIVE because the newsroom asked for exactly these, `plattform` stamped so the
-card does not read „noch kein Leser" before the first run, `down` throws), `20261001A-modellpreise.mts` (one `modellpreise` row per
+card does not read „noch kein Leser" before the first run, `down` throws), `20261011A-verkehr.mts` (the composite unique `(gemeinde, jahr, monat)` on `geschwindigkeitskontrollen`, plus the two Verkehr source rows — the canton's radar list through the data door, Reinach's speed-control page — seeded ACTIVE because the newsroom asked for both), `20261001A-modellpreise.mts` (one `modellpreise` row per
 model from the Anthropic price list of 25.09.2026, insert-only so an edited
 price survives a redeploy, `down` removes only the rows still carrying that
 `quelle`),

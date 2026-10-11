@@ -28,6 +28,7 @@ export type Tisch =
   | 'kanton'
   | 'sendung'
   | 'entsorgung'
+  | 'verkehr'
   | 'ohne'
 
 /**
@@ -47,6 +48,7 @@ export const TISCHE: readonly Tisch[] = [
   'kanton',
   'sendung',
   'entsorgung',
+  'verkehr',
   'ohne'
 ] as const
 
@@ -62,6 +64,9 @@ export interface BilanzZeile {
   kantonsmitteilung: string | null
   sendungskandidat: string | null
   suedanflugquote: string | null
+  /** The Verkehr desk's two origins; optional, `?? null` when read — older callers omit them. */
+  radarstandort?: string | null
+  geschwindigkeitskontrolle?: string | null
   erscheint_am: string | null
   date_created: string | null
   freigegeben_am: string | null
@@ -118,6 +123,10 @@ export function tischVon(zeile: BilanzZeile): Tisch {
   if (zeile.veranstaltung !== null) return 'veranstaltung'
   if (zeile.kantonsmitteilung !== null) return 'kanton'
   if (zeile.sendungskandidat !== null) return 'sendung'
+  // The Verkehr desk's two origins — a tenth desk in this tally, because it
+  // is one on the workspace, whatever rubrik its articles leave under.
+  if ((zeile.radarstandort ?? null) !== null) return 'verkehr'
+  if ((zeile.geschwindigkeitskontrolle ?? null) !== null) return 'verkehr'
   if (zeile.erscheint_am !== null) return 'entsorgung'
   return 'ohne'
 }

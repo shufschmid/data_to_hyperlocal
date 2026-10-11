@@ -6,9 +6,13 @@ import {
   buildMitteilungPrompt,
   buildMitteilungRevision,
   buildSichtungPrompt,
+  gleicherTitel,
   kalenderAbgleich,
+  kalenderDeckung,
   kuenftigeTage,
   MELDUNG_SYSTEM_PROMPT,
+  NACHFRAGE_TEXT,
+  widerspruchZumAbgleich,
   mitQuelle,
   parseSichtung,
   quelleZeile,
@@ -57,6 +61,11 @@ describe('Sichtung', () => {
     expect(SICHTUNG_SYSTEM_PROMPT).not.toContain('mitgegebenen Abfuhrkalender')
     expect(SICHTUNG_SYSTEM_PROMPT).toContain('(Kalender-Abgleich)')
     expect(SICHTUNG_SYSTEM_PROMPT).toContain('spricht FUER die Mitteilung')
+    // Die Redaktion am 11.10.2026: ein Anlass in einer Mitteilung ist eher
+    // wichtig; «laeuft ueber den Veranstaltungs-Tisch» nur, wenn der Abgleich
+    // ihn als erfasst nennt und die Mitteilung nichts dazulegt.
+    expect(SICHTUNG_SYSTEM_PROMPT).toContain('ist dann KEIN Grund')
+    expect(SICHTUNG_SYSTEM_PROMPT).toContain('neues oder zusaetzliches Angebot')
     expect(SICHTUNG_SYSTEM_PROMPT).toContain('Legt sie Flyer')
     expect(SICHTUNG_SYSTEM_PROMPT).toContain('"empfehlung_regel"')
   })
@@ -209,7 +218,145 @@ describe('Kalender-Abgleich', () => {
 
   it('sagt je Tag, was der Kalender fuehrt — eine Spanne deckt ihre Tage, eine Serie nur die genannten, jenseits des Fensters nichts', () => {
     expect(kalenderAbgleich(turnhalle, kalender, '2026-10-01', 60)).toBe(
-      'Kalender-Abgleich: 25. Oktober 2026: im Kalender «Herbstmarkt» (Dorfplatz), «Ausstellung Grieshaber»; 8. November 2026: im Kalender «Ausstellung Grieshaber»; 24. Januar 2027: jenseits des gelesenen Kalenderfensters (60 Tage); 7. März 2027: jenseits des gelesenen Kalenderfensters (60 Tage)'
+      'Kalender-Abgleich: 25. Oktober 2026: im Kalender «Herbstmarkt» (Dorfplatz), «Ausstellung Grieshaber» — keiner mit diesem Titel; 8. November 2026: im Kalender «Ausstellung Grieshaber» — keiner mit diesem Titel; 24. Januar 2027: jenseits des gelesenen Kalenderfensters (60 Tage); 7. März 2027: jenseits des gelesenen Kalenderfensters (60 Tage)'
+    )
+  })
+
+  // Die Redaktion am 11. Oktober 2026: «Familienzentrum FAZ – Geschichten für
+  // die Jüngsten» — ein neues woechentliches Angebot — kam mit «laeuft ueber
+  // den Veranstaltungstisch» auf Stufe 1, und die Kalender sind nicht ueberall
+  // sorgfaeltig gepflegt. Also ein tatsaechlicher Abgleich: steht DIESER
+  // Anlass im Kalender, und traegt der Eintrag mehr als die Eckdaten?
+  it('erkennt denselben Anlass am Titel und sagt, was der Eintrag traegt', () => {
+    const faz = {
+      titel:
+        'Familienzentrum FAZ – Geschichten für die Jüngsten am 5. November',
+      teaser: 'Neu jeden Donnerstag: Geschichten für Kinder ab zwei Jahren.',
+      text: null
+    }
+    const mitEintrag = {
+      vorhanden: true,
+      anlaesse: [
+        {
+          titel: 'Geschichten für die Jüngsten',
+          lokalitaet: 'FAZ',
+          von: '2026-11-05',
+          bis: null,
+          termine: ['2026-11-05', '2026-11-12'],
+          rhythmus: 'woechentlich',
+          beschreibung: ''
+        },
+        {
+          titel: 'Jassen',
+          lokalitaet: 'Saal',
+          von: '2026-11-05',
+          bis: null,
+          termine: ['2026-11-05'],
+          rhythmus: 'woechentlich'
+        }
+      ]
+    }
+    expect(kalenderAbgleich(faz, mitEintrag, '2026-10-11')).toBe(
+      'Kalender-Abgleich: 5. November 2026: im Kalender erfasst — «Geschichten für die Jüngsten» (FAZ) (Eintrag nur mit Eckdaten), daneben 1 weiterer Anlass; → laut Titelvergleich im Kalender erfasst'
+    )
+    expect(
+      kalenderAbgleich(
+        faz,
+        {
+          vorhanden: true,
+          anlaesse: [
+            { ...mitEintrag.anlaesse[0]!, beschreibung: 'Vorlesen im FAZ …' }
+          ]
+        },
+        '2026-10-11'
+      )
+    ).toContain('(Eintrag mit Beschrieb)')
+    expect(
+      kalenderAbgleich(
+        faz,
+        { vorhanden: true, anlaesse: [mitEintrag.anlaesse[1]!] },
+        '2026-10-11'
+      )
+    ).toBe(
+      'Kalender-Abgleich: 5. November 2026: im Kalender «Jassen» (Saal) — keiner mit diesem Titel; → laut Titelvergleich NICHT im Kalender'
+    )
+  })
+
+  it('vergleicht Titel auf ihren tragenden Woertern — zwei gemeinsam, oder eines bei einem einwortigen Titel', () => {
+    expect(
+      gleicherTitel(
+        'Familienzentrum FAZ – Geschichten für die Jüngsten am 5. November',
+        'Geschichten für die Jüngsten'
+      )
+    ).toBe(true)
+    expect(gleicherTitel('Herbstmarkt am Samstag', 'Herbstmarkt')).toBe(true)
+    expect(
+      gleicherTitel('Konzert Jodlerclub', 'Konzert im Kirchgemeindehaus')
+    ).toBe(false)
+    // Ein Monat im Titel macht zwei Anlaesse nicht gleich.
+    expect(gleicherTitel('Konzert am 5. November', 'Markt im November')).toBe(
+      false
+    )
+    expect(gleicherTitel('Am 5. November', 'Jassen')).toBe(false)
+  })
+
+  it('liest die Deckung aus der Zeile zurueck und erkennt den widersprochenen Grund', () => {
+    expect(kalenderDeckung(null)).toBe('offen')
+    expect(
+      kalenderDeckung(
+        'Kalender-Abgleich: 5. November 2026: kein Anlass im Veranstaltungskalender; → laut Titelvergleich NICHT im Kalender'
+      )
+    ).toBe('nicht')
+    expect(
+      kalenderDeckung(
+        'Kalender-Abgleich: kein Veranstaltungskalender dieser Gemeinde erfasst — der Veranstaltungs-Tisch bringt hier nichts.'
+      )
+    ).toBe('nicht')
+    expect(
+      kalenderDeckung(
+        'Kalender-Abgleich: 5. November 2026: im Kalender erfasst — «X»; → laut Titelvergleich im Kalender erfasst'
+      )
+    ).toBe('erfasst')
+    expect(
+      kalenderDeckung(
+        'Kalender-Abgleich: 5. Januar 2027: jenseits des gelesenen Kalenderfensters (60 Tage)'
+      )
+    ).toBe('offen')
+
+    const grund =
+      'Reiner Veranstaltungshinweis mit Datum/Ort, läuft über den Veranstaltungstisch.'
+    expect(
+      widerspruchZumAbgleich(
+        grund,
+        'Kalender-Abgleich: 5. November 2026: kein Anlass im Veranstaltungskalender; → laut Titelvergleich NICHT im Kalender'
+      )
+    ).toBe(true)
+    expect(widerspruchZumAbgleich(grund, null)).toBe(true)
+    expect(
+      widerspruchZumAbgleich(
+        grund,
+        'Kalender-Abgleich: 5. November 2026: im Kalender erfasst — «X»; → laut Titelvergleich im Kalender erfasst'
+      )
+    ).toBe(false)
+    expect(
+      widerspruchZumAbgleich('Beschluss mit Wirkung fuer viele.', null)
+    ).toBe(false)
+  })
+
+  it('haengt die Nachfrage unter die Zeilen, vor die Aufforderung', () => {
+    const prompt = buildSichtungPrompt(
+      'Aesch',
+      [zeile()],
+      '',
+      '',
+      NACHFRAGE_TEXT
+    )
+    expect(prompt).toContain(NACHFRAGE_TEXT)
+    expect(prompt.indexOf(NACHFRAGE_TEXT)).toBeLessThan(
+      prompt.indexOf('Beurteile alle 1')
+    )
+    expect(buildSichtungPrompt('Aesch', [zeile()], '')).not.toContain(
+      'Nachfrage'
     )
   })
 
@@ -222,7 +369,7 @@ describe('Kalender-Abgleich', () => {
     expect(
       kalenderAbgleich(hinweis, { vorhanden: true, anlaesse: [] }, '2026-10-01')
     ).toBe(
-      'Kalender-Abgleich: 8. November 2026: kein Anlass im Veranstaltungskalender'
+      'Kalender-Abgleich: 8. November 2026: kein Anlass im Veranstaltungskalender; → laut Titelvergleich NICHT im Kalender'
     )
     expect(
       kalenderAbgleich(

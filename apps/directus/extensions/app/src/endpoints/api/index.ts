@@ -53,6 +53,8 @@ const FELDER = [
   // `datengrundlage`, not behind a run.
   'suedanflugquote',
   'abstimmung',
+  'radarstandort',
+  'geschwindigkeitskontrolle',
   'amtsblattmeldung.quelle_typ',
   'gemeindemitteilung',
   'veranstaltung',
@@ -273,6 +275,8 @@ export default defineEndpoint(
             'sendungskandidat',
             'suedanflugquote',
             'abstimmung',
+            'radarstandort',
+            'geschwindigkeitskontrolle',
             'erscheint_am',
             'date_created',
             'freigegeben_am',

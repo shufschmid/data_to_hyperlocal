@@ -126,6 +126,8 @@ interface Ergebnis {
   anhaengeGelesen: number
   vorschlaege: number
   weitergereicht: number
+  /** Sichtung judgements asked again because their reason contradicted the Kalender-Abgleich. */
+  nachgefasst: number
   /** The declared cap on the news side: municipalities whose new entries outnumbered the detail budget. */
   nichtGelesen: { gemeinde: string; anzahl: number }[]
   /** Undated list entries — never opened; `ohneDatum` names them. */
@@ -278,6 +280,7 @@ export default defineOperationApi<Optionen>({
       anhaengeGelesen: 0,
       vorschlaege: 0,
       weitergereicht: 0,
+      nachgefasst: 0,
       nichtGelesen: [],
       uebersprungen: 0,
       ohneDatum: [],
@@ -784,6 +787,7 @@ export default defineOperationApi<Optionen>({
           })
           ergebnis.vorschlaege += sichtung.vorschlaege
           ergebnis.weitergereicht += sichtung.weitergereicht
+          ergebnis.nachgefasst += sichtung.nachgefasst
           if (sichtung.fehler !== null)
             eigeneFehler.push(`Sichtung fehlgeschlagen: ${sichtung.fehler}`)
         } catch (fehler) {

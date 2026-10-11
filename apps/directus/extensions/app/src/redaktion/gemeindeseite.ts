@@ -72,11 +72,18 @@ Entsorgungs-Tisch. Eine Mitteilung, die Abfuhrtermine ankuendigt oder in
 Erinnerung ruft, ist darum KEIN Vorschlag. Faellt eine Abfuhr aus oder wird
 sie verschoben, ist das eine Meldung.
 
-Anlaesse: Was im Veranstaltungskalender der Gemeinde steht, bringt der
-Veranstaltungs-Tisch zum richtigen Zeitpunkt. Nennt eine Mitteilung
-kuenftige Tage, steht bei ihr, was der Kalender an diesen Tagen fuehrt
-(Kalender-Abgleich). Fehlt der Anlass dort, bringt ihn sonst niemand — das
-spricht FUER die Mitteilung, nicht gegen sie.
+Anlaesse: Eine Mitteilung ueber einen Anlass ist nicht deshalb Routine, weil
+es ein Anlass ist. Dass die Gemeinde ihn eigens als Mitteilung bringt, zeigt,
+dass er ihr wichtig ist — ein neues oder zusaetzliches Angebot (ein neuer
+woechentlicher Treff, eine neue Reihe) ist eine klare Meldung. Nennt eine
+Mitteilung kuenftige Tage, steht bei ihr, was der Veranstaltungskalender an
+diesen Tagen fuehrt und ob ein Eintrag mit gleichem Titel darunter ist
+(Kalender-Abgleich). NUR wenn der Abgleich den Anlass als im Kalender erfasst
+nennt UND die Mitteilung nichts sagt, was ueber Datum und Ort hinausgeht,
+bringt ihn der Veranstaltungs-Tisch schon, und die Mitteilung darf tiefer
+stehen. Fehlt der Anlass im Kalender, steht kein Abgleich dabei oder hat die
+Gemeinde keinen Kalender, bringt ihn sonst niemand: das spricht FUER die Mitteilung,
+und "laeuft ueber den Veranstaltungs-Tisch" ist dann KEIN Grund.
 
 Gewicht: Dass eine Gemeinde etwas als Mitteilung veroeffentlicht, hat fuer
 sich schon Gewicht. Legt sie Flyer oder andere Unterlagen dazu, eher noch
@@ -208,7 +215,9 @@ export function buildSichtungPrompt(
   zeilen: readonly SichtungsZeile[],
   digest: string,
   /** The desk's Sichtung rules, already rendered (`regelnBlock`) — user turn, like the digest. */
-  regeln = ''
+  regeln = '',
+  /** The follow-up block when a judgement contradicted the Kalender-Abgleich — asked once, for those rows alone. */
+  nachfrage = ''
 ): string {
   const eintrag = (z: SichtungsZeile, i: number): string[] => {
     const kopf = [
@@ -239,6 +248,7 @@ export function buildSichtungPrompt(
     ...zeilen.flatMap(eintrag),
     ...(regeln === '' ? [] : ['', regeln]),
     ...(digest === '' ? [] : ['', digest]),
+    ...(nachfrage === '' ? [] : ['', nachfrage]),
     '',
     `Beurteile alle ${zeilen.length} und antworte fuer jede mit ihrer Nummer.`
   ].join('\n')
@@ -265,6 +275,12 @@ export interface KalenderAnlass {
   bis: string | null
   termine: readonly string[] | null
   rhythmus: string | null
+  /**
+   * The entry's own text, where the loader fetched it — what tells the model
+   * whether the calendar already says what the notice says. Absent on a
+   * caller that did not load it; then nothing is claimed about it.
+   */
+  beschreibung?: string | null
 }
 
 /** Whether any calendar is registered for the municipality at all, and the rows ahead. */
@@ -309,14 +325,145 @@ function anlassAnTag(a: KalenderAnlass, tag: string): boolean {
   )
 }
 
+// Words that say nothing about WHICH event a title names: articles,
+// prepositions, the calendar's own vocabulary, months and weekdays — a date
+// in a title must not make two different events "the same".
+const TITEL_STOPPWOERTER = new Set([
+  'und',
+  'oder',
+  'der',
+  'die',
+  'das',
+  'des',
+  'dem',
+  'den',
+  'ein',
+  'eine',
+  'einer',
+  'eines',
+  'einem',
+  'einen',
+  'fuer',
+  'mit',
+  'von',
+  'vom',
+  'zum',
+  'zur',
+  'bei',
+  'beim',
+  'auf',
+  'nach',
+  'aus',
+  'ueber',
+  'uber',
+  'bis',
+  'ist',
+  'sind',
+  'wird',
+  'werden',
+  'uhr',
+  'jeden',
+  'jede',
+  'jeder',
+  'alle',
+  'neu',
+  'neue',
+  'neuer',
+  'neues',
+  'gemeinde',
+  'anlass',
+  'veranstaltung',
+  'einladung',
+  'info',
+  'information',
+  'termin',
+  'termine',
+  'januar',
+  'februar',
+  'maerz',
+  'marz',
+  'april',
+  'mai',
+  'juni',
+  'juli',
+  'august',
+  'september',
+  'oktober',
+  'november',
+  'dezember',
+  'montag',
+  'dienstag',
+  'mittwoch',
+  'donnerstag',
+  'freitag',
+  'samstag',
+  'sonntag'
+])
+
+/** The words of a title that carry its identity: lower case, no diacritics, four letters or more, no stopwords. */
+export function titelWoerter(titel: string): Set<string> {
+  const normiert = titel
+    .toLowerCase()
+    .replace(/ß/g, 'ss')
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+  return new Set(
+    normiert
+      .split(/[^a-z0-9]+/)
+      .filter(
+        (w) => w.length >= 4 && !/^\d+$/.test(w) && !TITEL_STOPPWOERTER.has(w)
+      )
+  )
+}
+
 /**
- * For every day ahead the item names: what the events desk carries on it.
- * A fact for the prompt, never a verdict — "25. Oktober 2026: kein Anlass im
+ * Whether two titles name the same event — on their significant words: two
+ * in common, or one where a title has only one. «Familienzentrum FAZ –
+ * Geschichten für die Jüngsten am 5. November» and «Geschichten für die
+ * Jüngsten» share two; «Konzert Jodlerclub» and «Konzert im
+ * Kirchgemeindehaus» share one of two each and are NOT the same. It is a
+ * comparison of titles and the prompt calls it that — never a verdict that
+ * the calendar entry says everything the notice says.
+ */
+export function gleicherTitel(a: string, b: string): boolean {
+  const wa = titelWoerter(a)
+  const wb = titelWoerter(b)
+  if (wa.size === 0 || wb.size === 0) return false
+  let gemeinsam = 0
+  for (const w of wa) if (wb.has(w)) gemeinsam += 1
+  if (gemeinsam >= 2) return true
+  return gemeinsam === 1 && Math.min(wa.size, wb.size) === 1
+}
+
+/** The entry's substance, where the loader fetched it — the second half of the newsroom's question. */
+function beschriebText(a: KalenderAnlass): string {
+  if (a.beschreibung === undefined) return ''
+  return (a.beschreibung ?? '').trim() === ''
+    ? ' (Eintrag nur mit Eckdaten)'
+    : ' (Eintrag mit Beschrieb)'
+}
+
+export const ABGLEICH_ERFASST = '→ laut Titelvergleich im Kalender erfasst'
+export const ABGLEICH_NICHT_ERFASST = '→ laut Titelvergleich NICHT im Kalender'
+
+/**
+ * For every day ahead the item names: what the events desk carries on it,
+ * and whether an entry with the SAME TITLE is among it. A fact for the
+ * prompt, never a verdict — "25. Oktober 2026: kein Anlass im
  * Veranstaltungskalender" lets the model see that nobody else brings this,
- * "im Kalender «Herbstmarkt»" that the events desk has it. Null when the
- * item names no day ahead: most notices do not, and a line on every one
- * would be noise. A day beyond the calendar's read horizon is said to be
- * beyond it — "not in the calendar" would be a claim the run never checked.
+ * "im Kalender erfasst — «Herbstmarkt»" that the events desk has it. Null
+ * when the item names no day ahead: most notices do not, and a line on
+ * every one would be noise. A day beyond the calendar's read horizon is
+ * said to be beyond it — "not in the calendar" would be a claim the run
+ * never checked — and the closing verdict is given only where every named
+ * day was actually looked at.
+ *
+ * The title comparison is the newsroom's refinement of 11 October 2026:
+ * the calendars are not all kept carefully, so «läuft über den
+ * Veranstaltungstisch» needs a real check — is it there, and does the
+ * notice add nothing? The first half is answered here, in words the
+ * `widerspruchZumAbgleich` check reads back; the second is the model's,
+ * with the entry's substance named.
  */
 export function kalenderAbgleich(
   zeile: AbgleichZeile,
@@ -330,24 +477,89 @@ export function kalenderAbgleich(
     return 'Kalender-Abgleich: kein Veranstaltungskalender dieser Gemeinde erfasst — der Veranstaltungs-Tisch bringt hier nichts.'
   }
   const horizont = verschiebe(heute, horizontTage)
+  let erfasst = false
+  let offen = false
   const teile = tage.slice(0, ABGLEICH_MAX_TAGE).map((tag) => {
     if (tag > horizont) {
+      offen = true
       return `${datumDeutsch(tag)}: jenseits des gelesenen Kalenderfensters (${horizontTage} Tage)`
     }
     const dran = kalender.anlaesse.filter((a) => anlassAnTag(a, tag))
     if (dran.length === 0) {
       return `${datumDeutsch(tag)}: kein Anlass im Veranstaltungskalender`
     }
+    const gleiche = dran.filter((a) => gleicherTitel(zeile.titel, a.titel))
+    const erster = gleiche[0]
+    if (erster !== undefined) {
+      erfasst = true
+      const ort = (erster.lokalitaet ?? '').trim()
+      const andere = dran.length - gleiche.length
+      return `${datumDeutsch(tag)}: im Kalender erfasst — «${erster.titel}»${ort === '' ? '' : ` (${ort})`}${beschriebText(erster)}${
+        andere > 0
+          ? `, daneben ${andere} ${andere === 1 ? 'weiterer Anlass' : 'weitere Anlaesse'}`
+          : ''
+      }`
+    }
     const gezeigt = dran.slice(0, ABGLEICH_MAX_ANLAESSE).map((a) => {
       const ort = (a.lokalitaet ?? '').trim()
       return `«${a.titel}»${ort === '' ? '' : ` (${ort})`}`
     })
     const rest = dran.length - gezeigt.length
-    return `${datumDeutsch(tag)}: im Kalender ${gezeigt.join(', ')}${rest > 0 ? ` (${rest} weitere)` : ''}`
+    return `${datumDeutsch(tag)}: im Kalender ${gezeigt.join(', ')}${rest > 0 ? ` (${rest} weitere)` : ''} — keiner mit diesem Titel`
   })
   const rest = tage.length - ABGLEICH_MAX_TAGE
-  return `Kalender-Abgleich: ${teile.join('; ')}${rest > 0 ? `; (${rest} weitere Tage nicht abgeglichen)` : ''}`
+  if (rest > 0) {
+    offen = true
+    teile.push(`(${rest} weitere Tage nicht abgeglichen)`)
+  }
+  const fazit = erfasst
+    ? ABGLEICH_ERFASST
+    : offen
+      ? null
+      : ABGLEICH_NICHT_ERFASST
+  return `Kalender-Abgleich: ${teile.join('; ')}${fazit === null ? '' : `; ${fazit}`}`
 }
+
+export type KalenderDeckung = 'erfasst' | 'nicht' | 'offen'
+
+/** What an Abgleich line says, read back by code: the event is in the calendar, it is not, or the run could not tell. */
+export function kalenderDeckung(abgleich: string | null): KalenderDeckung {
+  if (abgleich === null) return 'offen'
+  if (abgleich.includes('kein Veranstaltungskalender dieser Gemeinde erfasst'))
+    return 'nicht'
+  if (abgleich.includes(ABGLEICH_ERFASST)) return 'erfasst'
+  if (abgleich.includes(ABGLEICH_NICHT_ERFASST)) return 'nicht'
+  return 'offen'
+}
+
+const TISCH_GRUND =
+  /veranstaltungs-?\s?tisch|veranstaltungs-?kalender|im kalender/i
+
+/**
+ * Whether a judgement leans on the events desk where the Abgleich gives it
+ * nothing to lean on. Measured on 11 October 2026: «Familienzentrum FAZ –
+ * Geschichten für die Jüngsten» — a new weekly offer for toddlers — came
+ * back grade 1 with «Reiner Veranstaltungshinweis mit Datum/Ort, läuft über
+ * den Veranstaltungstisch», and nothing on the events desk carried it. Such
+ * a judgement is asked again once, with the contradiction stated; the grade
+ * stays the model's (the newsroom's decision of 1 October 2026), the reason
+ * does not.
+ */
+export function widerspruchZumAbgleich(
+  begruendung: string,
+  abgleich: string | null
+): boolean {
+  if (!TISCH_GRUND.test(begruendung)) return false
+  return kalenderDeckung(abgleich) !== 'erfasst'
+}
+
+/** The follow-up block under the contradicted rows — asked once, for those rows alone. */
+export const NACHFRAGE_TEXT =
+  'Nachfrage der Redaktion: Bei diesen Mitteilungen hast du die Stufe damit begruendet, dass der Veranstaltungs-Tisch oder der Veranstaltungskalender den Anlass bringe. Der Kalender-Abgleich stuetzt das nicht: der Anlass ist dort nicht als erfasst genannt, die Gemeinde hat keinen Kalender, oder es gibt keinen Abgleich. Diesen Grund gibt es hier also nicht. Benote die Mitteilungen neu nach ihrer Sache — ein Anlass, den sonst niemand bringt, und ein neues oder zusaetzliches Angebot sind eine Meldung wert.'
+
+/** What the row says when the follow-up could not be asked: the reason stands, marked. */
+export const ABGLEICH_HINWEIS =
+  'Hinweis des Codes: Der Kalender-Abgleich stuetzt diesen Grund nicht — der Anlass ist im Veranstaltungskalender nicht als erfasst genannt.'
 
 // ---------------------------------------------------------------------------
 // 2. Cleanup — the desk empties itself

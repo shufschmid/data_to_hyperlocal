@@ -90,6 +90,10 @@ export interface Rohzeile {
   suedanflugquote: string | null
   /** Set for an article written from one Vorlage of one vote day. */
   abstimmung: string | null
+  /** Set for an article about a new speed-camera location of the Polizei Basel-Landschaft. Optional: an older caller omits it. */
+  radarstandort?: string | null
+  /** Set for an article about a month of a Gemeindepolizei's speed controls. Optional, like its sibling. */
+  geschwindigkeitskontrolle?: string | null
   amtsblattmeldung: { quelle_typ: string | null } | string | null
   /** Set for articles written from a municipality's own news page. */
   gemeindemitteilung: string | null
@@ -278,6 +282,15 @@ export function rubrikVon(zeile: Rohzeile): Rubrik | null {
   if (zeile.veranstaltung !== null) return 'veranstaltung'
   if (zeile.kantonsmitteilung !== null) return 'kanton'
   if (zeile.sendungskandidat !== null) return 'sendung'
+  // The Verkehr desk's two articles take EXISTING rubriks, by the same
+  // decision that kept the south-approach quota out of the enum: a new value
+  // is the consumer's decision, not a side effect of a new desk. A radar
+  // location is the Polizei Basel-Landschaft speaking about a place in the
+  // municipality — `kanton`; a month of the Gemeindepolizei's speed controls
+  // is published by the municipality on its own site — `gemeinde`. Both
+  // write `quelle_name` and `url` into `datengrundlage` for `quelleVon`.
+  if ((zeile.radarstandort ?? null) !== null) return 'kanton'
+  if ((zeile.geschwindigkeitskontrolle ?? null) !== null) return 'gemeinde'
   return null
 }
 

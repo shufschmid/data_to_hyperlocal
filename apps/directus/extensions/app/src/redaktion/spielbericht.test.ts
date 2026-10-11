@@ -109,10 +109,12 @@ describe('buildSpielberichtPrompt', () => {
       verein: "Sm'Aesch Pfeffingen"
     })
     expect(p).toContain('Sportart: Volleyball')
-    expect(p).toContain('Resultat: 2:3 (Heim:Gast, in gewonnenen Saetzen)')
+    // Echte Umlaute, wo das Modell abschreibt: der erste Entwurf trug
+    // «3:2 Saetzen» aus einer ASCII-Angabe.
+    expect(p).toContain('Resultat: 2:3 (Heim:Gast, in gewonnenen Sätzen)')
     expect(p).toContain("Sm'Aesch Pfeffingen hat gewonnen.")
     expect(prompt).toContain('Sportart: Fussball')
-    expect(prompt).not.toContain('gewonnenen Saetzen')
+    expect(prompt).not.toContain('gewonnenen Sätzen')
   })
 
   it('gibt das Datum absolut mit', () => {

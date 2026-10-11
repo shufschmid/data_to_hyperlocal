@@ -1,0 +1,38 @@
+Gemeindepolizei Reinach
+Pfeffingerstrasse 1
+4153 Reinach
+www.reinach-bl.ch
+Dokument: Geschwindigkeitskontrollen Januar 2026
+Seite 1/1
+Datum: 31.01.2026
+Bereich: Verkehr
+Geschwindigkeitskontrollen
+Datum Kontrolle
+von / bis Messort Signalisierte
+Geschwindigkeit
+Gemessene
+Fahrzeuge
+Anzahl
+Übertretungen
+V max
+(km/h)
+04.03.2026 07:05 - 09:05 Uhr Fleischbachstrasse 30 km/h 604 40 52 km/h
+11.03.2026 07:18 - 08:55 Uhr Hinterlindenweg 30 km/h 56 21 41 km/h
+11.03.2026 10:30 - 12:20 Uhr Aumattstrasse 30 km/h 118 20 42 km/h
+11.03.2026 13:50 - 15:25 Uhr Hollenweg 30 km/h 44 21 44 km/h
+18.03.2026 09:50 - 11:25 Uhr Binningerstrasse 30 km/h 63 63 50 km/h
+19.03.2026 07:15 - 08:50 Uhr Weiermattstrasse 30 km/h 53 9 40 km/h
+20.03.2026 07:15 - 08:20 Uhr Stockackerstrasse 20 km/h 34 13 30 km/h
+24.03.2026 07:01 - 08:52 Uhr Schönenbachstrasse 30 km/h 242 53 53 km/h
+24.03.2026 13:30 - 15:05 Uhr Hinterkirchweg 30 km/h 131 23 49 km/h
+25.03.2026 10:00 - 11:35 Uhr Reichensteinerstrasse 30 km/h 68 7 38 km/h
+25.03.2026 16:40 - 17:25 Uhr Bruderholzstrasse 30 km/h 90 4 37 km/h
+Verkehrsstatistikgerät SR7
+Zeitfenster Messort Signalisierte
+Geschwindigkeit
+Gemessene
+Fahrzeuge
+V85
+85% der gemessenen Fahrzeuge fahren langsamer
+oder maximal
+27.02. bis 26.03.2026 Jupiterstrasse 30 km/h 27895 25.5 km/h
