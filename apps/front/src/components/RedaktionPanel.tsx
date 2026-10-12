@@ -77,6 +77,8 @@ import {
   type GemeindemitteilungenErgebnis,
   KANTONSMITTEILUNGEN_QUERY,
   type KantonsmitteilungenErgebnis,
+  SMD_BEITRAEGE_QUERY,
+  type SmdBeitraegeErgebnis,
   VERANSTALTUNGEN_QUERY,
   type VeranstaltungenErgebnis,
   VERANSTALTUNGSQUELLEN_QUERY,
@@ -112,6 +114,7 @@ import { vorschauVorbei } from '@/lib/presseschau'
 import { Amtsblatt } from './Amtsblatt'
 import { Gemeindeseiten } from './Gemeindeseiten'
 import { Kanton } from './Kanton'
+import { Smd } from './Smd'
 import { Veranstaltungen } from './Veranstaltungen'
 import { SendungsDurchsicht } from './SendungsDurchsicht'
 import IconButton from '@mui/material/IconButton'
@@ -122,6 +125,7 @@ import { anzahlOffen as anzahlSendungskandidaten, verarbeitungsergebnis } from '
 import { anzahlOffen, liestUnterlagen } from '@/lib/amtsblatt'
 import { anzahlOffen as anzahlMitteilungen, type GemeindeseitenLaufStatus } from '@/lib/gemeindeseiten'
 import { anzahlOffen as anzahlKantonsmitteilungen, type KantonLaufStatus } from '@/lib/kanton'
+import { anzahlOffen as anzahlSmdBeitraege, type SmdLaufStatus } from '@/lib/smd'
 import { anzahlOffen as anzahlAnlaesse } from '@/lib/veranstaltungen'
 import { einstellungFuer } from '@/lib/tische'
 import { Chefredaktion } from './Chefredaktion'
@@ -175,6 +179,7 @@ type Reiter =
   | 'gemeindeseiten'
   | 'veranstaltungen'
   | 'kanton'
+  | 'smd'
   | 'regionaljournal'
   | 'punkt6'
   | 'chefredaktion'
@@ -361,6 +366,9 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
   const kanton = useQuery<KantonsmitteilungenErgebnis>(KANTONSMITTEILUNGEN_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY
   })
+  const smd = useQuery<SmdBeitraegeErgebnis>(SMD_BEITRAEGE_QUERY, {
+    fetchPolicy: LIVE_FETCH_POLICY
+  })
   const veranstaltungen = useQuery<VeranstaltungenErgebnis>(VERANSTALTUNGEN_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY
   })
@@ -516,6 +524,12 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
       return ursprung === null ? [] : [[ursprung.id, m.status] as const]
     })
   )
+  const meldungStatusJeSmdBeitrag = new Map(
+    meldungenAlle.flatMap((m) => {
+      const ursprung = m.smd_beitrag ?? null
+      return ursprung === null ? [] : [[ursprung.id, m.status] as const]
+    })
+  )
   const meldungStatusJeAnlass = new Map(
     meldungenAlle.flatMap((m) => (m.veranstaltung === null ? [] : [[m.veranstaltung.id, m.status] as const]))
   )
@@ -541,6 +555,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
       gemeindeseiten.refetch(),
       veranstaltungen.refetch(),
       kanton.refetch(),
+      smd.refetch(),
       suedanflug.refetch(),
       abstimmungen.refetch()
     ])
@@ -553,6 +568,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
     gemeindeseiten,
     veranstaltungen,
     kanton,
+    smd,
     suedanflug,
     abstimmungen
   ])
@@ -741,6 +757,35 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
     const intervall = setInterval(() => void ladeKantonLauf(), 10_000)
     return () => clearInterval(intervall)
   }, [kantonLaufStatus?.laeuft, ladeKantonLauf, kantonRefetch, alleMeldungenRefetch])
+
+  // The SMD run, the same mirror: the dossiers are read and the publishers'
+  // pages asked while the desk polls; one refetch when it is over.
+  const [smdLaufStatus, setSmdLaufStatus] = useState<SmdLaufStatus | null>(null)
+  const ladeSmdLauf = useCallback(async () => {
+    try {
+      const antwort = await sitzungsFetch('/api/redaktion/smd/lauf')
+      if (!antwort.ok) return
+      const inhalt = (await antwort.json()) as { data?: SmdLaufStatus }
+      setSmdLaufStatus(inhalt.data ?? null)
+    } catch {
+      // Komfortanzeige; ein verpasster Abruf wird beim naechsten Poll nachgeholt.
+    }
+  }, [])
+  useEffect(() => {
+    void ladeSmdLauf()
+  }, [ladeSmdLauf])
+  const smdRefetch = smd.refetch
+  const smdWarUnterwegs = useRef(false)
+  useEffect(() => {
+    const unterwegs = smdLaufStatus?.laeuft === true
+    if (smdWarUnterwegs.current && !unterwegs) {
+      void Promise.all([smdRefetch(), alleMeldungenRefetch()])
+    }
+    smdWarUnterwegs.current = unterwegs
+    if (!unterwegs) return
+    const intervall = setInterval(() => void ladeSmdLauf(), 10_000)
+    return () => clearInterval(intervall)
+  }, [smdLaufStatus?.laeuft, ladeSmdLauf, smdRefetch, alleMeldungenRefetch])
 
   /**
    * Fuehrt eine Aktion aus und GIBT das Problem zurueck.
@@ -959,6 +1004,10 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
         kanton.data?.kantonsmitteilungen ?? [],
         meldungStatusJeKantonsmitteilung
       ),
+      art: 'arbeit'
+    },
+    smd: {
+      anzahl: anzahlSmdBeitraege(smd.data?.smd_beitraege ?? [], meldungStatusJeSmdBeitrag),
       art: 'arbeit'
     },
     regionaljournal: { anzahl: anzahlSendungOffen('regionaljournal'), art: 'arbeit' },
@@ -1631,6 +1680,54 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
         </Stack>
       )}
 
+      {reiter === 'smd' && (
+        <Stack spacing={2}>
+          <Typography variant="body2" color="text.secondary">
+            Was andere Medien über eine Gemeinde schreiben — das tägliche Dossier der Schweizer
+            Mediendatenbank, um 14:45 Uhr aus dem Postfach gelesen. Ein Newsblog zählt nur mit seinen neuen
+            Einträgen; der Lauf sucht zu jedem Beitrag den Online-Artikel beim Verlag und sagt, wo er keinen
+            fand. Eine Sichtung sortiert, was einen Blick lohnt; die Meldung entsteht auf Klick, in eigenen
+            Worten.
+          </Typography>
+          <Smd
+            eintraege={smd.data?.smd_beitraege ?? []}
+            lauf={smdLaufStatus}
+            gemeinden={gemeinden.data?.gemeinden ?? []}
+            meldungen={meldungenAlle}
+            onChat={async (id, anweisung) => {
+              await fuehreAus(`meldungen/${id}/chat`, { anweisung })
+            }}
+            onAktion={async (id, was, koerper) => {
+              await fuehreAus(`meldungen/${id}/${was}`, koerper)
+            }}
+            onTermin={async (id, eingabe) => {
+              await fuehreAus(`meldungen/${id}/termin`, eingabe)
+            }}
+            heute={new Date().toISOString().slice(0, 10)}
+            laeuft={sendet}
+            onLauf={async () => {
+              await fuehreAus('smd/pruefen')
+              await ladeSmdLauf()
+            }}
+            onUebernehmen={async (id) => {
+              await fuehreAus(`smd/${id}/meldung`)
+            }}
+            onAblehnen={async (id, grund, kommentar) => {
+              await fuehreAus(`smd/${id}/ablehnen`, { grund, kommentar })
+            }}
+            onWeiterreichen={async (id, begruendung) => {
+              await fuehreAus(`smd/${id}/weiterreichen`, { begruendung })
+            }}
+            onLink={async (id, url, abo) => {
+              await fuehreAus(`smd/${id}/link`, { url, abo })
+            }}
+            onAllePublizieren={async () => {
+              await fuehreAus('smd/publizieren')
+            }}
+          />
+        </Stack>
+      )}
+
       {reiter === 'veranstaltungen' && (
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
@@ -1777,6 +1874,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
                 gemeindeseiten.refetch(),
                 veranstaltungen.refetch(),
                 kanton.refetch(),
+                smd.refetch(),
                 sendungskandidaten.refetch()
               ])
             }}

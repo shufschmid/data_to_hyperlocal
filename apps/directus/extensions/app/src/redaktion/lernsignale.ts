@@ -161,6 +161,7 @@ type UrsprungsFeld =
   | 'sendungskandidat'
   | 'veranstaltung'
   | 'kantonsmitteilung'
+  | 'smd_beitrag'
 
 /** Discarded Meldungen written from these rows, by row id. */
 async function ladeVerwuerfe(
@@ -479,8 +480,23 @@ export async function ladeKantonSignale(
   )
 }
 
+/** The SMD desk's examples per municipality — keyed on the medium: what counts as «only mentioned» differs by how a medium writes. */
+export async function ladeSmdSignale(
+  dienste: LernDienste,
+  gemeindeId: string,
+  heute: string
+): Promise<AmtsblattSignale> {
+  return ladeGemeindebezogeneSignale(
+    dienste,
+    gemeindeId,
+    heute,
+    'medium',
+    'smd_beitrag'
+  )
+}
+
 /**
- * One loader for the four desks scoped by MUNICIPALITY. What differs is the
+ * One loader for the five desks scoped by MUNICIPALITY. What differs is the
  * column that carries the class hint (`rubrik_name` / `kategorie` / `anker`)
  * and the origin field a hand-up's lead points back through.
  */
@@ -488,7 +504,7 @@ async function ladeGemeindebezogeneSignale(
   dienste: LernDienste,
   gemeindeId: string,
   heute: string,
-  merkmalFeld: 'rubrik_name' | 'kategorie' | 'anker' | 'behoerde',
+  merkmalFeld: 'rubrik_name' | 'kategorie' | 'anker' | 'behoerde' | 'medium',
   ursprung: UrsprungsFeld
 ): Promise<AmtsblattSignale> {
   const beispiele = (

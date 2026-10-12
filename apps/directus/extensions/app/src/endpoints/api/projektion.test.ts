@@ -101,6 +101,8 @@ describe('rubrikVon', () => {
     ).toBe('sport')
     expect(rubrikVon(zeile({ erscheint_am: '2026-09-04' }))).toBe('entsorgung')
     expect(rubrikVon(zeile({ kandidat: 'k-1' }))).toBe('presseschau')
+    // The SMD desk: another medium's piece is a press review too (12.10.2026).
+    expect(rubrikVon(zeile({ smd_beitrag: 'b-1' }))).toBe('presseschau')
     expect(rubrikVon(zeile({ sendungskandidat: 's-1' }))).toBe('sendung')
     expect(rubrikVon(zeile({ veranstaltung: 'v-1' }))).toBe('veranstaltung')
   })
@@ -424,6 +426,41 @@ describe('quelleVon', () => {
       'presseschau'
     )
     expect(q.url).toBe('https://bibo.ch/x.pdf')
+  })
+
+  it('SMD: das Medium als Quelle, der Online-Artikel als Adresse — oder null, wie in der gedruckten Zeitung gelesen', () => {
+    expect(
+      quelleVon(
+        zeile({
+          smd_beitrag: 'b-1',
+          datengrundlage: {
+            quelle: 'smd',
+            quelle_name: 'bazonline.ch',
+            url: 'https://www.bazonline.ch/smaesch-pfeffingen-sieg-zum-auftakt-trotz-verletzungen-957013339861',
+            link_status: 'gefunden',
+            link_abo: false
+          }
+        }),
+        'presseschau'
+      )
+    ).toEqual({
+      name: 'bazonline.ch',
+      url: 'https://www.bazonline.ch/smaesch-pfeffingen-sieg-zum-auftakt-trotz-verletzungen-957013339861'
+    })
+    expect(
+      quelleVon(
+        zeile({
+          smd_beitrag: 'b-2',
+          datengrundlage: {
+            quelle: 'smd',
+            quelle_name: 'Neue Fricktaler Zeitung',
+            url: null,
+            link_status: 'keine_tuer'
+          }
+        }),
+        'presseschau'
+      )
+    ).toEqual({ name: 'Neue Fricktaler Zeitung', url: null })
   })
 
   it('Sendung: der Deeplink wird gebaut, je Sender anders', () => {

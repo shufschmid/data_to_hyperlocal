@@ -94,6 +94,10 @@ services:
       IMAP_MAILBOX: ${IMAP_MAILBOX:-INBOX}
       IMAP_SUBJECT_FILTER: ${IMAP_SUBJECT_FILTER:-}
       PUNKT6_IMAP_SUBJECT_FILTER: ${PUNKT6_IMAP_SUBJECT_FILTER:-}
+      # The SMD desk: the mail subject of the saved search is a fixed, public
+      # string, so the default carries it — a host without the variable reads
+      # the dossiers from day one instead of failing loudly at 14:45.
+      SMD_IMAP_SUBJECT_FILTER: '${SMD_IMAP_SUBJECT_FILTER:-gespeicherte Recherche: gemeinden}'
       SRGSSR_CLIENT_ID: ${SRGSSR_CLIENT_ID:-}
       SRGSSR_CLIENT_SECRET: ${SRGSSR_CLIENT_SECRET:-}
       SRGSSR_SHOW_ID: ${SRGSSR_SHOW_ID:-}

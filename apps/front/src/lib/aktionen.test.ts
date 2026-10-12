@@ -67,12 +67,13 @@ describe('Die Liste erlaubter Aktionen', () => {
     expect(darfSchreiben(`verkehr/anderes/${BEISPIEL_ID}/meldung`)).toBe(false)
   })
 
-  it('liest nur die drei Pfade, deren Zustand im Prozess lebt', () => {
-    expect(LESBAR).toHaveLength(6)
+  it('liest nur die Pfade, deren Zustand im Prozess lebt', () => {
+    expect(LESBAR).toHaveLength(7)
     for (const pfad of [
       'quellen/lauf',
       'gemeindeseiten/lauf',
       'kanton/lauf',
+      'smd/lauf',
       'wochenblaetter/formulieren',
       'bilanz',
       'verbrauch'

@@ -94,6 +94,8 @@ export interface Rohzeile {
   radarstandort?: string | null
   /** Set for an article about a month of a Gemeindepolizei's speed controls. Optional, like its sibling. */
   geschwindigkeitskontrolle?: string | null
+  /** Set for an article written from another medium's piece in the SMD dossier. Optional, like its siblings. */
+  smd_beitrag?: string | null
   amtsblattmeldung: { quelle_typ: string | null } | string | null
   /** Set for articles written from a municipality's own news page. */
   gemeindemitteilung: string | null
@@ -291,6 +293,11 @@ export function rubrikVon(zeile: Rohzeile): Rubrik | null {
   // write `quelle_name` and `url` into `datengrundlage` for `quelleVon`.
   if ((zeile.radarstandort ?? null) !== null) return 'kanton'
   if ((zeile.geschwindigkeitskontrolle ?? null) !== null) return 'gemeinde'
+  // The SMD desk (12 October 2026): what another medium wrote about the
+  // municipality is a press review like the weekly papers' — the same
+  // rubrik, the medium as `quelle_name`, its own page as `quelle_url` where
+  // the door found one, null where the newsroom read it as if in print.
+  if ((zeile.smd_beitrag ?? null) !== null) return 'presseschau'
   return null
 }
 
@@ -441,6 +448,18 @@ export function quelleVon(zeile: Rohzeile, rubrik: Rubrik | null): Quelle {
       }
 
     case 'presseschau': {
+      // An SMD piece: the desk writes the medium and the online address into
+      // `datengrundlage` for exactly this reader; null is the honest answer
+      // for a piece the publisher's door did not find.
+      if (
+        (zeile.smd_beitrag ?? null) !== null ||
+        text(daten['quelle']) === 'smd'
+      ) {
+        return {
+          name: text(daten['quelle_name']) ?? text(daten['medium']),
+          url: text(daten['url'])
+        }
+      }
       const pdf = text(daten['pdf_url'])
       const seite = daten['seite']
       return {

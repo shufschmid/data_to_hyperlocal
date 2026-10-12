@@ -308,6 +308,17 @@ async function ladeFall(
       'gemeinde.id',
       'gemeinde.name'
     ],
+    smd: [
+      'id',
+      'titel',
+      'medium',
+      'blog',
+      'lead',
+      'text',
+      'vorschlag_begruendung',
+      'gemeinde.id',
+      'gemeinde.name'
+    ],
     sendung: [
       'id',
       'titel',
@@ -412,6 +423,28 @@ async function ladeFall(
       kommentar: signal.kommentar
     }
     scope = gemeinde === null ? {} : { gemeinde: { _eq: gemeinde.id } }
+  } else if (signal.tisch === 'smd') {
+    const gemeinde = zeile['gemeinde'] as { id: string; name: string } | null
+    const lead = text(zeile['lead'])
+    const inhalt = text(zeile['text'])
+    const blog = text(zeile['blog'])
+    fall = {
+      tisch: 'smd',
+      quelleName: gemeinde?.name ?? 'Gemeinde',
+      titel: String(zeile['titel'] ?? ''),
+      // The medium is the class hint: what counts as «only mentioned» in a
+      // sports blog is decided differently from a Tamedia reportage.
+      merkmal:
+        blog === null
+          ? text(zeile['medium'])
+          : `${String(zeile['medium'] ?? '')}, Blog «${blog}»`,
+      zusammenfassung: lead ?? (inhalt === null ? null : inhalt.slice(0, 600)),
+      modellBegruendung: text(zeile['vorschlag_begruendung']),
+      entscheid: signal.entscheid,
+      grund: signal.grund,
+      kommentar: signal.kommentar
+    }
+    scope = gemeinde === null ? {} : { gemeinde: { _eq: gemeinde.id } }
   } else if (signal.tisch === 'veranstaltung') {
     const gemeinde = zeile['gemeinde'] as { id: string; name: string } | null
     const beschreibung = text(zeile['beschreibung'])
@@ -463,9 +496,11 @@ async function ladeFall(
             ? 'gemeindemitteilung'
             : signal.tisch === 'kanton'
               ? 'kantonsmitteilung'
-              : signal.tisch === 'veranstaltung'
-                ? 'veranstaltung'
-                : 'sendungskandidat'
+              : signal.tisch === 'smd'
+                ? 'smd_beitrag'
+                : signal.tisch === 'veranstaltung'
+                  ? 'veranstaltung'
+                  : 'sendungskandidat'
     const andere = (await dienste.hinweise.readByQuery({
       filter: {
         [fk]: { _nnull: true, _neq: zeileId },

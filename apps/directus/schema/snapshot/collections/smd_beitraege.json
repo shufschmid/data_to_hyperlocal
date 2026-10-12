@@ -1,0 +1,28 @@
+{
+  "collection": "smd_beitraege",
+  "meta": {
+    "accountability": "all",
+    "archive_app_filter": true,
+    "archive_field": null,
+    "archive_value": null,
+    "collapse": "open",
+    "collection": "smd_beitraege",
+    "color": null,
+    "display_template": "{{titel}} ({{gemeinde.name}})",
+    "group": null,
+    "hidden": false,
+    "icon": "newspaper",
+    "item_duplication_fields": null,
+    "note": "Ein Beitrag eines anderen Mediums aus dem SMD-Dossier, je genannter Gemeinde: ein Artikel, oder ein NEUER Eintrag eines Newsblogs, den das Dossier ganz mitbringt. Nur Beitraege, die eine bespielte Gemeinde beim Namen nennen; Identitaet (schluessel, gemeinde) per Migration. Drei Entscheide wie beim Kanton-Tisch.",
+    "preview_url": null,
+    "singleton": false,
+    "sort": null,
+    "sort_field": null,
+    "translations": null,
+    "unarchive_value": null,
+    "versioning": false
+  },
+  "schema": {
+    "name": "smd_beitraege"
+  }
+}

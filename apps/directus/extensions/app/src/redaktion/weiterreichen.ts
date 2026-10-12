@@ -34,6 +34,7 @@ export interface HinweisFelder {
   kantonsmitteilung?: string
   sendungskandidat?: string
   veranstaltung?: string
+  smd_beitrag?: string
 }
 
 /** An Anlass handed up: its fields and description travel with the lead. */
@@ -306,5 +307,49 @@ export function kantonsmitteilungAlsHinweis(
       .join('\n'),
     status: 'offen',
     kantonsmitteilung: zeile.id
+  }
+}
+
+/** Another medium's piece from the SMD dossier, handed to the Chefredaktion — with its online address where one was found. */
+export function smdBeitragAlsHinweis(
+  zeile: {
+    id: string
+    titel: string
+    medium: string
+    art: 'artikel' | 'blogeintrag'
+    blog: string | null
+    datum: string
+    zeit: string | null
+    lead: string | null
+    text: string | null
+    link_url: string | null
+    vorschlag_begruendung: string | null
+    gemeinde: { id: string }
+  },
+  begruendung: string | null
+): HinweisFelder {
+  const wann =
+    zeile.zeit === null
+      ? datumDeutsch(zeile.datum)
+      : `${datumDeutsch(zeile.datum)}, ${zeile.zeit} Uhr`
+  const fundort =
+    zeile.art === 'blogeintrag'
+      ? `${zeile.medium}, Blog «${zeile.blog ?? ''}», Eintrag vom ${wann} (SMD)`
+      : `${zeile.medium} vom ${wann} (SMD)`
+  return {
+    gemeinde: zeile.gemeinde.id,
+    titel: zeile.titel,
+    fundort,
+    begruendung: begruendung ?? zeile.vorschlag_begruendung ?? null,
+    quelltext: [
+      zeile.titel,
+      zeile.lead ?? '',
+      gekuerzt(zeile.text ?? '', 12_000),
+      zeile.link_url ?? '(Artikel nicht online verfügbar)'
+    ]
+      .filter((z) => z.trim() !== '')
+      .join('\n'),
+    status: 'offen',
+    smd_beitrag: zeile.id
   }
 }

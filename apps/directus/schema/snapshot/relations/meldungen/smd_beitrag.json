@@ -1,0 +1,25 @@
+{
+  "collection": "meldungen",
+  "field": "smd_beitrag",
+  "related_collection": "smd_beitraege",
+  "meta": {
+    "junction_field": null,
+    "many_collection": "meldungen",
+    "many_field": "smd_beitrag",
+    "one_allowed_collections": null,
+    "one_collection": "smd_beitraege",
+    "one_collection_field": null,
+    "one_deselect_action": "nullify",
+    "one_field": "meldungen",
+    "sort_field": null
+  },
+  "schema": {
+    "table": "meldungen",
+    "column": "smd_beitrag",
+    "foreign_key_table": "smd_beitraege",
+    "foreign_key_column": "id",
+    "constraint_name": "meldungen_smd_beitrag_foreign",
+    "on_update": "NO ACTION",
+    "on_delete": "SET NULL"
+  }
+}

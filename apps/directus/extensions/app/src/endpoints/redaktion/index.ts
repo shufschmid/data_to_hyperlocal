@@ -234,6 +234,7 @@ import {
   anlassAlsHinweis,
   kandidatAlsHinweis,
   kantonsmitteilungAlsHinweis,
+  smdBeitragAlsHinweis,
   mitteilungAlsHinweis,
   publikationAlsHinweis,
   reicheWeiter,
@@ -294,6 +295,20 @@ import {
   buildKantonRevision,
   mitQuelle as mitKantonQuelle
 } from '../../redaktion/kanton'
+import smdPruefen from '../../operations/smd-pruefen/api'
+import {
+  hatMaterial as hatSmdMaterial,
+  smdFakten,
+  smdMeldungMitChecks,
+  schreibeSmdMeldung,
+  SMD_FELDER,
+  type SmdRohzeile
+} from '../../redaktion/smdmeldungen'
+import {
+  buildSmdRevision,
+  mitQuelle as mitSmdQuelle,
+  ohneQuelle as ohneSmdQuelle
+} from '../../redaktion/smd'
 import { wissenFelderManuell } from '../../redaktion/wissen'
 import {
   istEinstellbarerTisch,
@@ -916,6 +931,7 @@ export default defineEndpoint(
               'veranstaltung',
               'kantonsmitteilung',
               'sendungskandidat',
+              'smd_beitrag',
               'erscheint_am',
               'date_created',
               'freigegeben_am',
@@ -3775,6 +3791,435 @@ export default defineEndpoint(
       }
     )
 
+    // --- the SMD desk: what other media wrote about a municipality ---------
+    //
+    // The Kanton desk's shape once more — a single-flight run the workspace
+    // polls, one row per municipality named, three decisions that teach —
+    // with two things of its own: no draft from the run (the desk is new;
+    // the Meldung is written on the click), and the online address, which
+    // the run found through the publisher's door and the editor may set by
+    // hand where it did not.
+    const SmdLaufLaeuftBereits = createError(
+      'SMD_LAUF_LAEUFT',
+      'Die SMD-Dossiers werden gerade gelesen. Bitte kurz warten.',
+      409
+    )
+    const UngueltigerLink = createError(
+      'LINK_UNGUELTIG',
+      'Der Link muss eine vollständige https-Adresse sein — oder leer, um ihn zu entfernen.',
+      400
+    )
+
+    interface SmdLaufStatus {
+      laeuft: boolean
+      gestartet_um: string | null
+      beendet_um: string | null
+      ergebnis: Record<string, unknown> | null
+      fehler: string | null
+    }
+    const smdLauf: SmdLaufStatus = {
+      laeuft: false,
+      gestartet_um: null,
+      beendet_um: null,
+      ergebnis: null,
+      fehler: null
+    }
+
+    function starteSmdLauf(): boolean {
+      if (smdLauf.laeuft) return false
+      smdLauf.laeuft = true
+      smdLauf.gestartet_um = new Date().toISOString()
+      smdLauf.beendet_um = null
+      smdLauf.ergebnis = null
+      smdLauf.fehler = null
+
+      const kontext = { services, getSchema, logger, database } as Parameters<
+        typeof smdPruefen.handler
+      >[1]
+      void Promise.resolve(smdPruefen.handler({}, kontext))
+        .then((ergebnis: unknown) => {
+          logger.info(ergebnis, 'redaktion: SMD-Lauf beendet')
+          smdLauf.ergebnis =
+            typeof ergebnis === 'object' && ergebnis !== null
+              ? (ergebnis as Record<string, unknown>)
+              : null
+        })
+        .catch((fehler: unknown) => {
+          logger.error(fehler, 'redaktion: SMD-Lauf fehlgeschlagen')
+          smdLauf.fehler =
+            fehler instanceof Error ? fehler.message : String(fehler)
+        })
+        .finally(() => {
+          smdLauf.laeuft = false
+          smdLauf.beendet_um = new Date().toISOString()
+        })
+      return true
+    }
+
+    router.get(
+      '/smd/lauf',
+      (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        return res.json({ data: smdLauf })
+      }
+    )
+
+    router.post(
+      '/smd/pruefen',
+      (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        if (!starteSmdLauf()) return next(new SmdLaufLaeuftBereits())
+        return res.status(202).json({ data: { gestartet: true } })
+      }
+    )
+
+    async function ladeSmdZeile(
+      id: string,
+      accountability: ApiRequest['accountability']
+    ): Promise<SmdRohzeile> {
+      const service = new ItemsService('smd_beitraege', {
+        schema: await getSchema(),
+        accountability
+      })
+      return (await service.readOne(id, { fields: SMD_FELDER })) as SmdRohzeile
+    }
+
+    async function ueberarbeiteSmd(
+      meldung: {
+        id: string
+        titel: string | null
+        lead: string | null
+        text: string | null
+      },
+      beitragId: string,
+      anweisung: string
+    ): Promise<string[]> {
+      const schema = await getSchema()
+      const meldungen = new ItemsService('meldungen', { schema })
+
+      // Loaded fresh: the piece's wording is the article's only source, and
+      // the link may have been set by hand since the first write.
+      const zeile = await ladeSmdZeile(beitragId, undefined)
+      const fakten = smdFakten(zeile)
+      const { bericht, warnungen } = await smdMeldungMitChecks(
+        fakten,
+        buildSmdRevision(
+          fakten,
+          { ...meldung, text: ohneSmdQuelle(meldung.text) },
+          anweisung,
+          await regelnFuer('smd', 'text')
+        )
+      )
+
+      await meldungen.updateOne(meldung.id, {
+        titel: bericht.titel,
+        lead: bericht.lead,
+        text: mitSmdQuelle(bericht.text, fakten),
+        zeit_warnungen: warnungen.length > 0 ? warnungen : null,
+        verarbeitung: 'idle',
+        anweisung: null,
+        fehler: null
+      })
+
+      return warnungen
+    }
+
+    router.post(
+      '/smd/:id/meldung',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const schema = await getSchema()
+          const beitraege = new ItemsService('smd_beitraege', {
+            schema,
+            accountability: req.accountability
+          })
+          const meldungenService = new ItemsService('meldungen', {
+            schema,
+            accountability: req.accountability
+          })
+
+          const zeile = await ladeSmdZeile(id, req.accountability)
+
+          const vorhandene = (await meldungenService.readByQuery({
+            filter: {
+              smd_beitrag: { _eq: id },
+              status: { _neq: 'verworfen' }
+            },
+            fields: ['id'],
+            limit: 1
+          })) as { id: string }[]
+          if (vorhandene.length > 0)
+            return next(new MitteilungSchonEntschieden())
+
+          if (!hatSmdMaterial(smdFakten(zeile))) {
+            throw new MitteilungOhneText()
+          }
+
+          const { meldung: meldungId, warnungen } = await schreibeSmdMeldung(
+            {
+              beitraege,
+              meldungen: meldungenService,
+              regeln: await regelnFuer('smd', 'text'),
+              wichtigkeit: wichtigkeitDigest(
+                await ladeWichtigkeitSignale(meldungenService, 'smd_beitrag')
+              )
+            },
+            zeile
+          )
+
+          return res.json({ data: { meldung: meldungId, warnungen } })
+        } catch (error) {
+          const status = (error as { status?: unknown }).status
+          if (
+            status === 403 ||
+            status === 404 ||
+            status === 400 ||
+            status === 409 ||
+            status === 422
+          ) {
+            return next(uebersetze(error))
+          }
+          logger.error(error, 'redaktion: SMD-Meldung fehlgeschlagen')
+          return next(new UeberarbeitungFehlgeschlagen())
+        }
+      }
+    )
+
+    router.post(
+      '/smd/:id/ablehnen',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        // The Kanton desk's reasons: `nur_erwaehnt` is the lesson here too —
+        // a results list with twenty clubs is not a piece about Aesch.
+        const GRUENDE = [
+          'nicht_relevant',
+          'nur_erwaehnt',
+          'doublette',
+          'veraltet',
+          'andere'
+        ]
+        const koerper = (req.body ?? {}) as {
+          grund?: unknown
+          kommentar?: unknown
+        }
+        if (
+          typeof koerper.grund !== 'string' ||
+          !GRUENDE.includes(koerper.grund)
+        ) {
+          return next(new UngueltigerAblehnungsgrund())
+        }
+        const kommentar =
+          typeof koerper.kommentar === 'string' &&
+          koerper.kommentar.trim() !== ''
+            ? koerper.kommentar.trim()
+            : null
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const beitraege = new ItemsService('smd_beitraege', {
+            schema: await getSchema(),
+            accountability: req.accountability
+          })
+
+          await beitraege.updateOne(id, {
+            entscheid: 'abgelehnt',
+            ablehnungsgrund: koerper.grund,
+            ablehnungskommentar: kommentar
+          })
+          await verwirfEntwurfZu(
+            new ItemsService('meldungen', {
+              schema: await getSchema(),
+              accountability: req.accountability
+            }),
+            { smd_beitrag: { _eq: id } },
+            `Beitrag abgelehnt: ${koerper.grund}`
+          )
+          lerne({
+            tisch: 'smd',
+            art: 'entscheid',
+            zeileId: id,
+            entscheid: 'abgelehnt',
+            grund: koerper.grund,
+            kommentar
+          })
+
+          return res.json({ data: { beitrag: id, entscheid: 'abgelehnt' } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    router.post(
+      '/smd/:id/weiterreichen',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        const koerper = (req.body ?? {}) as { begruendung?: unknown }
+        const begruendung =
+          typeof koerper.begruendung === 'string' &&
+          koerper.begruendung.trim() !== ''
+            ? koerper.begruendung.trim()
+            : null
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const schema = await getSchema()
+          const beitraege = new ItemsService('smd_beitraege', {
+            schema,
+            accountability: req.accountability
+          })
+          const hinweiseService = new ItemsService('recherchehinweise', {
+            schema,
+            accountability: req.accountability
+          })
+
+          const zeile = await ladeSmdZeile(id, req.accountability)
+          if (zeile.entscheid !== 'offen') {
+            return next(new MitteilungSchonEntschieden())
+          }
+
+          const hinweisId = await reicheWeiter(
+            { hinweise: hinweiseService, ursprung: beitraege },
+            {
+              ursprungId: id,
+              felder: smdBeitragAlsHinweis(zeile, begruendung)
+            }
+          )
+          await verwirfEntwurfZu(
+            new ItemsService('meldungen', {
+              schema,
+              accountability: req.accountability
+            }),
+            { smd_beitrag: { _eq: id } },
+            'Beitrag an die Chefredaktion weitergereicht'
+          )
+
+          lerne({
+            tisch: 'smd',
+            art: 'entscheid',
+            zeileId: id,
+            entscheid: 'weitergereicht',
+            grund: null,
+            kommentar: begruendung
+          })
+
+          return res.json({ data: { hinweis: hinweisId } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    // The link, set by hand: the door finds CH Media's and Tamedia's pieces,
+    // the editor finds the rest — or corrects a miss. A draft that already
+    // carries the old source line gets the new one; a published article is
+    // never touched here.
+    router.post(
+      '/smd/:id/link',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        const koerper = (req.body ?? {}) as { url?: unknown; abo?: unknown }
+        const url =
+          typeof koerper.url === 'string' && koerper.url.trim() !== ''
+            ? koerper.url.trim()
+            : null
+        if (url !== null && !/^https:\/\/[^\s/]+\.[^\s/]+\/\S*$/.test(url))
+          return next(new UngueltigerLink())
+        const abo = typeof koerper.abo === 'boolean' ? koerper.abo : null
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const schema = await getSchema()
+          const beitraege = new ItemsService('smd_beitraege', {
+            schema,
+            accountability: req.accountability
+          })
+          await beitraege.updateOne(id, {
+            link_url: url,
+            link_status: url === null ? 'nicht_gefunden' : 'manuell',
+            link_abo: url === null ? null : abo,
+            link_titel: null,
+            link_hinweis:
+              url === null ? 'von Hand entfernt' : 'von Hand gesetzt'
+          })
+
+          const meldungen = new ItemsService('meldungen', {
+            schema,
+            accountability: req.accountability
+          })
+          const entwuerfe = (await meldungen.readByQuery({
+            filter: { smd_beitrag: { _eq: id }, status: { _eq: 'entwurf' } },
+            fields: ['id', 'text'],
+            limit: -1
+          })) as Array<{ id: string; text: string | null }>
+          const fakten = smdFakten(await ladeSmdZeile(id, req.accountability))
+          for (const entwurf of entwuerfe) {
+            await meldungen.updateOne(entwurf.id, {
+              text: mitSmdQuelle(ohneSmdQuelle(entwurf.text) ?? '', fakten)
+            })
+          }
+
+          return res.json({
+            data: { beitrag: id, link: url, entwuerfe: entwuerfe.length }
+          })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    router.post(
+      '/smd/publizieren',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        try {
+          const meldungen = new ItemsService('meldungen', {
+            schema: await getSchema(),
+            accountability: req.accountability
+          })
+
+          const offen = (await meldungen.readByQuery({
+            filter: {
+              _and: [
+                { smd_beitrag: { _nnull: true } },
+                { status: { _in: ['entwurf', 'freigegeben'] } }
+              ]
+            },
+            fields: ['id'],
+            limit: -1
+          })) as Array<{ id: string }>
+
+          if (offen.length === 0) return next(new NichtsZuTun())
+
+          const erledigt: string[] = []
+          const abgelehnt: Array<{ id: string; grund: string }> = []
+          for (const meldung of offen) {
+            try {
+              await meldungen.updateOne(meldung.id, { status: 'publiziert' })
+              erledigt.push(meldung.id)
+            } catch (fehler) {
+              abgelehnt.push({
+                id: meldung.id,
+                grund: fehler instanceof Error ? fehler.message : String(fehler)
+              })
+            }
+          }
+
+          res.json({ data: { erledigt: erledigt.length, abgelehnt } })
+        } catch (error) {
+          logger.error(error, 'redaktion: SMD publizieren fehlgeschlagen')
+          next(error)
+        }
+      }
+    )
+
     // --- the events desk: Anlässe from the municipalities' calendars ----------
     //
     // The same three decisions as the news desk, the same checks, one more
@@ -5692,6 +6137,7 @@ export default defineEndpoint(
               'gemeindemitteilung',
               'veranstaltung',
               'kantonsmitteilung',
+              'smd_beitrag',
               'sendungskandidat',
               'regel'
             ]
@@ -5701,6 +6147,7 @@ export default defineEndpoint(
             gemeindemitteilung: string | null
             veranstaltung: string | null
             kantonsmitteilung: string | null
+            smd_beitrag: string | null
             sendungskandidat: string | null
             regel: string | null
           }
@@ -5718,9 +6165,11 @@ export default defineEndpoint(
                     ? 'veranstaltung'
                     : herkunft.kantonsmitteilung !== null
                       ? 'kanton'
-                      : herkunft.sendungskandidat !== null
-                        ? 'sendung'
-                        : 'presseschau',
+                      : herkunft.smd_beitrag !== null
+                        ? 'smd'
+                        : herkunft.sendungskandidat !== null
+                          ? 'sendung'
+                          : 'presseschau',
             art: 'faehrte',
             zeileId:
               herkunft.kandidat ??
@@ -5728,6 +6177,7 @@ export default defineEndpoint(
               herkunft.gemeindemitteilung ??
               herkunft.veranstaltung ??
               herkunft.kantonsmitteilung ??
+              herkunft.smd_beitrag ??
               herkunft.sendungskandidat ??
               null,
             hinweisId: id,
@@ -5795,6 +6245,7 @@ export default defineEndpoint(
               'gemeindemitteilung',
               'veranstaltung',
               'kantonsmitteilung',
+              'smd_beitrag',
               'sendungskandidat',
               'regel'
             ]
@@ -5805,6 +6256,7 @@ export default defineEndpoint(
             gemeindemitteilung: string | null
             veranstaltung: string | null
             kantonsmitteilung: string | null
+            smd_beitrag: string | null
             sendungskandidat: string | null
             regel: string | null
           }
@@ -5822,9 +6274,11 @@ export default defineEndpoint(
                     ? ['veranstaltungen', lead.veranstaltung]
                     : lead.kantonsmitteilung !== null
                       ? ['kantonsmitteilungen', lead.kantonsmitteilung]
-                      : lead.sendungskandidat !== null
-                        ? ['sendungskandidaten', lead.sendungskandidat]
-                        : null
+                      : lead.smd_beitrag !== null
+                        ? ['smd_beitraege', lead.smd_beitrag]
+                        : lead.sendungskandidat !== null
+                          ? ['sendungskandidaten', lead.sendungskandidat]
+                          : null
           if (ursprung === null) return next(new FaehrteOhneTisch())
 
           await new ItemsService(ursprung[0], {
@@ -6218,6 +6672,7 @@ export default defineEndpoint(
               'abstimmung',
               'radarstandort',
               'geschwindigkeitskontrolle',
+              'smd_beitrag',
               // The south-approach revision needs it: the article is written
               // for ONE municipality, and the facts carry its name.
               'gemeinde',
@@ -6240,6 +6695,7 @@ export default defineEndpoint(
             abstimmung: string | null
             radarstandort: string | null
             geschwindigkeitskontrolle: string | null
+            smd_beitrag: string | null
             gemeinde: string
             lauf: { datensatz: string | null } | null
             titel: string | null
@@ -6469,6 +6925,40 @@ export default defineEndpoint(
               logger.error(
                 fehler,
                 'redaktion: Kanton-Ueberarbeitung fehlgeschlagen'
+              )
+              throw new UeberarbeitungFehlgeschlagen()
+            }
+          }
+
+          // An SMD article: another medium's piece, revised from the
+          // dossier's own wording — the twelfth kind without a `lauf`.
+          if (meldung.smd_beitrag !== null) {
+            await meldungen.updateOne(id, { verarbeitung: 'laeuft', anweisung })
+            try {
+              const warnungen = await ueberarbeiteSmd(
+                meldung,
+                meldung.smd_beitrag,
+                anweisung
+              )
+              merkeAnweisung(anweisung, 'smd', 'SMD-Meldung')
+              await chat.createOne({
+                meldung: id,
+                rolle: 'assistant',
+                inhalt:
+                  warnungen.length === 0
+                    ? 'Neu formuliert.'
+                    : `Neu formuliert — mit Hinweisen: ${warnungen.join(' · ')}`,
+                position: position + 1
+              })
+              return res.json({ data: { meldung: id, warnungen } })
+            } catch (fehler) {
+              await meldungen.updateOne(id, {
+                verarbeitung: 'idle',
+                fehler: fehlerText(fehler)
+              })
+              logger.error(
+                fehler,
+                'redaktion: SMD-Ueberarbeitung fehlgeschlagen'
               )
               throw new UeberarbeitungFehlgeschlagen()
             }
@@ -9053,7 +9543,9 @@ export default defineEndpoint(
                   ? 'veranstaltungen'
                   : signal.tisch === 'kanton'
                     ? 'kantonsmitteilungen'
-                    : 'sendungskandidaten'
+                    : signal.tisch === 'smd'
+                      ? 'smd_beitraege'
+                      : 'sendungskandidaten'
         await lerneAusEntscheid(
           {
             zeilen: new ItemsService(sammlung, { schema }),

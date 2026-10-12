@@ -86,6 +86,14 @@
       },
       {
         "type": "operation",
+        "name": "smd-pruefen",
+        "source": {
+          "app": "src/operations/smd-pruefen/app.ts",
+          "api": "src/operations/smd-pruefen/api.ts"
+        }
+      },
+      {
+        "type": "operation",
         "name": "redaktion-abarbeiten",
         "source": {
           "app": "src/operations/redaktion-abarbeiten/app.ts",

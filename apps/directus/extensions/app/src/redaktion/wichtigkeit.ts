@@ -24,6 +24,8 @@ export type WichtigkeitUrsprung =
   | 'kandidat'
   // The Kanton desk since 29 September 2026: a cantonal press or police notice.
   | 'kantonsmitteilung'
+  // The SMD desk since 12 October 2026: another medium's piece from the dossier.
+  | 'smd_beitrag'
 
 export interface WichtigkeitBeispiel {
   titel: string

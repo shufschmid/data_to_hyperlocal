@@ -65,6 +65,10 @@
         {
           "text": "Verkehr",
           "value": "verkehr"
+        },
+        {
+          "text": "SMD",
+          "value": "smd"
         }
       ]
     },

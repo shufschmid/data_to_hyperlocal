@@ -298,6 +298,8 @@ export interface Meldung {
   radarstandort: string | null
   /** Set for an article about a month of a Gemeindepolizei's speed controls (Verkehr desk). */
   geschwindigkeitskontrolle: string | null
+  /** Set for an article written from a piece in the SMD dossier — another medium's reporting (SMD desk, since 12 October 2026). */
+  smd_beitrag: string | null
   /**
    * Set for articles written from an Anlass in a municipality's events
    * calendar. Null otherwise — the ninth kind, since 20 September 2026.
@@ -493,6 +495,7 @@ export type WissenBereich =
   | 'veranstaltung'
   | 'kanton'
   | 'verkehr'
+  | 'smd'
 /** A Sichtung rule steers what is proposed; a text rule, how a Meldung is written. */
 export type WissenStufe = 'sichtung' | 'text'
 /** `weiterreichen` lets a Sichtung hand a matching proposal to the Chefredaktion by itself. */
@@ -801,6 +804,7 @@ export interface Recherchehinweis {
   kantonsmitteilung: string | null
   sendungskandidat: string | null
   veranstaltung: string | null
+  smd_beitrag: string | null
   /** Handed up by a learned rule, not by a person. */
   automatisch: boolean
   /** The rule that did it — the automation's track record hangs on this. */
@@ -890,6 +894,8 @@ export interface Schema {
   recherchehinweise: Recherchehinweis[]
   gemeindemitteilungen: Gemeindemitteilung[]
   kantonsmitteilungen: Kantonsmitteilung[]
+  smd_dossiers: SmdDossier[]
+  smd_beitraege: SmdBeitrag[]
   suedanflugquoten: Suedanflugquote[]
   radarstandorte: Radarstandort[]
   geschwindigkeitskontrollen: Geschwindigkeitskontrolle[]
@@ -1042,6 +1048,86 @@ export interface Kantonsmitteilung {
   vorschlag_begruendung: string | null
   entscheid: MitteilungsEntscheid
   ablehnungsgrund: KantonsGrund | null
+  ablehnungskommentar: string | null
+  date_created: string | null
+  date_updated: string | null
+}
+
+export type SmdDossierStatus = 'verarbeitet' | 'fehlgeschlagen'
+
+/** One SMD mail: the dossier PDF of the saved search «gemeinden», one a day at 14:30. */
+export interface SmdDossier {
+  id: string
+  /** The mail's subject — the dedup key, like the two shows' dossiers. */
+  source_subject: string
+  source_message_id: string | null
+  /** FK -> directus_files.id. The dossier PDF. */
+  pdf: string | null
+  /** The day the dossier was compiled, from its title page. */
+  datum: string | null
+  status: SmdDossierStatus
+  seiten: number | null
+  dokumente: number | null
+  /** Rows created from it — after the municipality filter and the dedup. */
+  anzahl_beitraege: number | null
+  hinweise: string[] | null
+  fehler: string | null
+  verarbeitet_am: string | null
+  date_created: string | null
+  date_updated: string | null
+}
+
+export type SmdArt = 'artikel' | 'blogeintrag'
+
+export type SmdLinkStatus =
+  | 'gefunden'
+  | 'nicht_gefunden'
+  | 'keine_tuer'
+  | 'fehler'
+  | 'manuell'
+
+/** The Kanton desk's reasons serve here too: «nur_erwaehnt» is the lesson both desks teach. */
+export type SmdGrund = KantonsGrund
+
+/**
+ * One piece of another medium's reporting, per municipality it names: an
+ * article of the dossier, or a NEW entry of a blog the dossier brought whole.
+ * Identity `(schluessel, gemeinde)` per migration.
+ */
+export interface SmdBeitrag {
+  id: string
+  dossier: string
+  gemeinde: string
+  schluessel: string
+  art: SmdArt
+  medium: string
+  /** The day of the piece as the dossier prints it — for a blog entry, the entry's own day. */
+  datum: string
+  /** Blog entries only: `HH:MM`. */
+  zeit: string | null
+  /** Blog entries only: the blog's name. */
+  blog: string | null
+  rubrik: string | null
+  titel: string
+  lead: string | null
+  autor: string | null
+  text: string | null
+  text_abgeschnitten: boolean
+  seite_von: number | null
+  seite_bis: number | null
+  gemeinden_genannt: string[] | null
+  /** The piece's own page, found through the publisher's door — or null, and the source line says so. */
+  link_url: string | null
+  link_status: SmdLinkStatus
+  /** True behind the paywall, false when free, null when the page did not say. */
+  link_abo: boolean | null
+  link_titel: string | null
+  link_hinweis: string | null
+  hinweise: string[] | null
+  vorschlag: boolean | null
+  vorschlag_begruendung: string | null
+  entscheid: MitteilungsEntscheid
+  ablehnungsgrund: SmdGrund | null
   ablehnungskommentar: string | null
   date_created: string | null
   date_updated: string | null

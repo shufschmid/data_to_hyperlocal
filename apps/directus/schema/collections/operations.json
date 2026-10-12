@@ -241,5 +241,21 @@
     "reject": null,
     "flow": "c4a1e7d2-5b3f-4e8a-9c6d-2f1b7a8e9d03",
     "_syncId": "d5b2f8e3-6c4a-4f9b-8d7e-3a2c8b9f0e14"
+  },
+  {
+    "name": "Pruefen",
+    "key": "pruefen",
+    "type": "smd-pruefen",
+    "position_x": 19,
+    "position_y": 1,
+    "options": {
+      "limit": 3,
+      "blogFenster": 3,
+      "maxSeiten": 30
+    },
+    "resolve": null,
+    "reject": null,
+    "flow": "e2b8d4f6-1a3c-4e5b-9d7f-6c2a8b4e0d13",
+    "_syncId": "a7c3e9d1-2b4f-4c6a-8e0d-5f1b3a7c9e21"
   }
 ]

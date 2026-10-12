@@ -37,6 +37,10 @@ export const ERLAUBT: RegExp[] = [
   /^kanton\/pruefen$/i,
   /^kanton\/publizieren$/i,
   /^kanton\/[0-9a-f-]{36}\/(meldung|ablehnen|weiterreichen)$/i,
+  // Der SMD-Tisch: dieselbe Form, dazu der Link zum Online-Artikel von Hand.
+  /^smd\/pruefen$/i,
+  /^smd\/publizieren$/i,
+  /^smd\/[0-9a-f-]{36}\/(meldung|ablehnen|weiterreichen|link)$/i,
   // Die Anlaesse und ihre Kalender. `dauerangebot` ist der Schalter auf einer
   // Routine; die Kalenderpflege laeuft als POST-Verben, weil der Proxy nur
   // GET und POST weiterleitet.
@@ -79,6 +83,7 @@ export const LESBAR: RegExp[] = [
   /^quellen\/lauf$/i,
   /^gemeindeseiten\/lauf$/i,
   /^kanton\/lauf$/i,
+  /^smd\/lauf$/i,
   /^wochenblaetter\/formulieren$/i,
   /^bilanz$/i,
   // Was die Modellaufrufe kosten, je Tisch — «Gelerntes» → «Kosten».

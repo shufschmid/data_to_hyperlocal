@@ -293,6 +293,8 @@ export interface AlleMeldungFelder {
   radarstandort?: { id: string } | null
   /** Set for an article about a month of a Gemeindepolizei's speed controls (Verkehr desk). */
   geschwindigkeitskontrolle?: { id: string } | null
+  /** Set for an article written from another medium's piece in the SMD dossier (SMD desk). Optional like its siblings. */
+  smd_beitrag?: { id: string } | null
   /** Decided at publish time on press reviews: interesting for the city too. */
   perle: boolean | null
 }
@@ -365,6 +367,9 @@ export const ALLE_MELDUNGEN_QUERY = gql`
         id
       }
       geschwindigkeitskontrolle {
+        id
+      }
+      smd_beitrag {
         id
       }
       perle
@@ -1587,6 +1592,100 @@ export const KANTONSMITTEILUNGEN_QUERY = gql`
       gemeinde {
         id
         name
+      }
+    }
+  }
+`
+
+// --- SMD: was andere Medien ueber eine Gemeinde schreiben --------------------
+//
+// Eine Zeile je genannter Gemeinde, wie beim Kanton. Ein Beitrag ist ein
+// Artikel des Dossiers oder ein NEUER Eintrag eines Newsblogs; `link_url` ist
+// die Seite beim Medium, ueber die Verlagstuer gefunden oder von Hand gesetzt
+// — leer heisst «(Artikel nicht online verfuegbar)».
+
+export interface SmdBeitragFelder {
+  id: string
+  /** `artikel` or `blogeintrag`. */
+  art: string
+  medium: string
+  datum: string
+  /** Blog entries only: `HH:MM`. */
+  zeit: string | null
+  /** Blog entries only: the blog's name. */
+  blog: string | null
+  rubrik: string | null
+  titel: string
+  lead: string | null
+  autor: string | null
+  text: string | null
+  text_abgeschnitten: boolean
+  seite_von: number | null
+  seite_bis: number | null
+  /** Every covered municipality the piece names — this row's own included. */
+  gemeinden_genannt: string[] | null
+  link_url: string | null
+  /** gefunden · nicht_gefunden · keine_tuer · fehler · manuell */
+  link_status: string
+  /** True behind the paywall, false when free, null when the page did not say. */
+  link_abo: boolean | null
+  link_titel: string | null
+  link_hinweis: string | null
+  hinweise: string[] | null
+  /** Null means the Sichtung has not judged it — NOT that it said no. */
+  vorschlag: boolean | null
+  vorschlag_begruendung: string | null
+  entscheid: string
+  ablehnungsgrund: string | null
+  date_created: string | null
+  gemeinde: { id: string; name: string } | null
+  dossier: { id: string; datum: string | null } | null
+}
+
+export interface SmdBeitraegeErgebnis {
+  smd_beitraege: SmdBeitragFelder[]
+}
+
+export const SMD_BEITRAEGE_QUERY = gql`
+  query SmdBeitraege {
+    smd_beitraege(
+      filter: { entscheid: { _in: ["offen", "uebernommen"] } }
+      sort: ["-datum", "-date_created"]
+      limit: -1
+    ) {
+      id
+      art
+      medium
+      datum
+      zeit
+      blog
+      rubrik
+      titel
+      lead
+      autor
+      text
+      text_abgeschnitten
+      seite_von
+      seite_bis
+      gemeinden_genannt
+      link_url
+      link_status
+      link_abo
+      link_titel
+      link_hinweis
+      hinweise
+      vorschlag
+      vorschlag_begruendung
+      entscheid
+      ablehnungsgrund
+      date_created
+      gemeinde {
+        id
+        name
+      }
+      dossier {
+        id
+        datum
       }
     }
   }

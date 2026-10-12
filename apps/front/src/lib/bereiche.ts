@@ -15,6 +15,7 @@ export type Werkbank =
   | 'wochenblaetter'
   | 'regionaljournal'
   | 'punkt6'
+  | 'smd'
   | 'statistik'
   | 'sport'
   | 'entsorgung'
@@ -46,7 +47,10 @@ export const BEREICHE: readonly Bereich[] = [
     werkbaenke: [
       { wert: 'wochenblaetter', text: 'Wochenblätter' },
       { wert: 'regionaljournal', text: 'Regionaljournal' },
-      { wert: 'punkt6', text: 'punkt6' }
+      { wert: 'punkt6', text: 'punkt6' },
+      // Seit 12. Oktober 2026: das taegliche Dossier der Schweizer
+      // Mediendatenbank — was andere Medien ueber die Gemeinden schreiben.
+      { wert: 'smd', text: 'SMD' }
     ]
   },
   {

@@ -197,5 +197,19 @@
     },
     "operation": "d5b2f8e3-6c4a-4f9b-8d7e-3a2c8b9f0e14",
     "_syncId": "c4a1e7d2-5b3f-4e8a-9c6d-2f1b7a8e9d03"
+  },
+  {
+    "name": "SMD pruefen",
+    "icon": "newspaper",
+    "color": null,
+    "description": "Holt um 14:45 die SMD-Dossiers der gespeicherten Recherche «gemeinden» aus dem Postfach (die Mail kommt um 14:30), liest jedes PDF in Dokumente, zerlegt Newsblogs in ihre neuen Eintraege, behaelt nur, was eine bespielte Gemeinde beim Namen nennt, sucht den Online-Artikel ueber die Verlagstuer und sichtet je Gemeinde. Der zweite Lauf um 16:45 ist der gratis Nachlauf: der Abruf dedupliziert ueber den Betreff.",
+    "status": "active",
+    "trigger": "schedule",
+    "accountability": "all",
+    "options": {
+      "cron": "0 45 14,16 * * *"
+    },
+    "operation": "a7c3e9d1-2b4f-4c6a-8e0d-5f1b3a7c9e21",
+    "_syncId": "e2b8d4f6-1a3c-4e5b-9d7f-6c2a8b4e0d13"
   }
 ]

@@ -1,0 +1,46 @@
+{
+  "collection": "smd_beitraege",
+  "field": "link_abo",
+  "type": "boolean",
+  "meta": {
+    "collection": "smd_beitraege",
+    "conditions": null,
+    "display": "boolean",
+    "display_options": null,
+    "field": "link_abo",
+    "group": null,
+    "hidden": false,
+    "interface": "boolean",
+    "note": "Hinter der Bezahlschranke laut Seite (true), frei (false), unbekannt (leer).",
+    "options": {
+      "label": "Abo"
+    },
+    "readonly": false,
+    "required": false,
+    "searchable": true,
+    "sort": 21,
+    "special": null,
+    "translations": null,
+    "validation": null,
+    "validation_message": null,
+    "width": "half"
+  },
+  "schema": {
+    "name": "link_abo",
+    "table": "smd_beitraege",
+    "data_type": "boolean",
+    "default_value": null,
+    "max_length": null,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "is_nullable": true,
+    "is_unique": false,
+    "is_indexed": false,
+    "is_primary_key": false,
+    "is_generated": false,
+    "generation_expression": null,
+    "has_auto_increment": false,
+    "foreign_key_table": null,
+    "foreign_key_column": null
+  }
+}
