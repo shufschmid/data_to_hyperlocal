@@ -26,13 +26,13 @@ apps/front/src/
 │   ├── layout.tsx           server component: MUI cache provider + colour-scheme script
 │   ├── providers.tsx        'use client': ApolloProvider + ThemeProvider
 │   ├── page.tsx             renders <AppShell />
-│   ├── blog/                PUBLIC page — published articles only, no session gate
 │   ├── robots.ts            robots.txt — lets crawlers IN so they can read the noindex
 │   └── api/                 route handlers — proxies, nothing else
 │       ├── auth/{login,logout,session}/
 │       ├── auth/editor/       PUBLIC — the way in from the We.Publish editor
 │       ├── graphql/         the browser's only data endpoint
 │       ├── redaktion/[...pfad]/  calls the extension endpoint (allowlisted)
+│       ├── v1/[...pfad]/         GET-only window onto the public API — the blog as the Dorfkönig sees it
 │       ├── freigabe/             PUBLIC — the counter-check link
 │       └── health/          docker healthcheck
 ├── components/              MUI components; *.test.tsx next to them
@@ -41,7 +41,7 @@ apps/front/src/
     ├── apollo.ts            client factory (points at /api/graphql)
     ├── theme.ts             the single MUI theme
     ├── redaktion.ts         pure presentation helpers (tested)
-    ├── public.server.ts     server-only: the few unauthenticated paths (approval, public blog)
+    ├── public.server.ts     server-only: the few unauthenticated paths (approval, editor door)
     ├── directus.server.ts   server-only: login/refresh/logout/fetch
     ├── session.server.ts    server-only: the two httpOnly cookies, or the marker in the frame
     ├── marke.server.ts      server-only: seals/opens the session marker (tested)
@@ -148,8 +148,9 @@ SAMEORIGIN`, no frame, cookies `SameSite=Lax`. Set, two things change together
 - There is deliberately **no service/admin token in this app**. If a feature seems to
   need one, it needs a Directus extension endpoint instead — that is the whole point
   of constraint 7 in the root CLAUDE.md.
-- **Nothing in this app may be indexed, and the blog is UNLISTED rather than
-  secret**: reachable for anyone who has the address, absent from search results.
+- **Nothing in this app may be indexed.** (Until 12 October 2026 a public
+  page was UNLISTED rather than secret; it is gone — the public API is
+  the one public door, and the in-app blog is its live view behind the login.)
   Three pieces say so and they have to stay consistent — the `X-Robots-Tag`
   header on `/:path*` in `next.config.ts` (`noindex, nofollow, noarchive`), the
   `robots` metadata in the root layout (inherited by every page, `googleBot`

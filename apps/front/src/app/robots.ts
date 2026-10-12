@@ -4,7 +4,7 @@ import type { MetadataRoute } from 'next'
  * robots.txt — and it deliberately does NOT forbid crawling.
  *
  * The goal is that nothing of this application appears in a search index while
- * the blog stays reachable for anyone who knows its address. The instruction
+ * the login page stays reachable for anyone who knows its address. The instruction
  * that achieves that is `noindex`, sent as a header for every route
  * (`next.config.ts`) and as a meta tag in the page head (`layout.tsx`).
  *

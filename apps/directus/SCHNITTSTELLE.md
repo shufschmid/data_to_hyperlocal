@@ -21,8 +21,11 @@ dorthin bekommt eine HTML-404-Seite und nie diese Schnittstelle.
 | Methoden    | `GET` (R2); dazu EIN `POST`, die Bestätigung des Abnehmers (1.5.0); alles andere `405` |
 | Kopfzeile   | jede Antwort trägt `X-Robots-Tag: noindex`                                             |
 
-Warum ohne Schlüssel: Alles, was diese Schnittstelle liefert, steht ohnehin
-öffentlich im Blog — ein Schlüssel schützte nichts. Der Schalter ist trotzdem
+Warum ohne Schlüssel: Alles, was diese Schnittstelle liefert, ist zur
+Veröffentlichung bestimmt — ein Schlüssel schützte nichts. (Bis zum 12.
+Oktober 2026 stand es zusätzlich auf einer öffentlichen Blogseite des
+Arbeitsplatzes; seither ist diese Schnittstelle der einzige öffentliche Weg,
+und der Blog im Arbeitsplatz ist ihre Live-Ansicht.) Der Schalter ist trotzdem
 **ausdrücklich**: ohne ihn antworten die Inhaltspfade `503`
 `schnittstelle_abgeschaltet`, und die Gesundheit sagt `bereit: false` mit
 `offen: false`. Eine Schnittstelle, die ohne Absicht offen ist, ist es zu
@@ -31,7 +34,7 @@ unrecht.
 **Abweichung von R4a, plattformbedingt:** Ein _ungültiges_ Bearer-Merkmal weist
 **Directus selbst** mit `401` und in seiner eigenen Fehlerform ab, bevor diese
 Erweiterung gefragt wird — dieselbe Pipeline, die jeden Endpunkt vorschaltet
-(auch den bestehenden `/redaktion/blog`). Aus einer Erweiterung ist das nicht zu
+(jeden Endpunkt einer Erweiterung). Aus einer Erweiterung ist das nicht zu
 heilen. Ein _gültiges_ Merkmal wird dagegen wirklich ignoriert: gemessen kommt
 Byte für Byte dieselbe Antwort wie ohne. **Empfehlung für Abnehmer: keinen
 `Authorization`-Kopf mitschicken.**

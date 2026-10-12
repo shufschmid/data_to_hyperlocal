@@ -10,8 +10,6 @@ import {
   fortschritt,
   istBeschaeftigt,
   laufStatusText,
-  blogDatum,
-  blogNachGemeinde,
   filterGemeinden,
   gemeindeSlug,
   meldungenNachLauf,
@@ -661,66 +659,6 @@ describe('meldungenNachLauf', () => {
   // Ein Spielbericht gehoert zu keinem Lauf und darf keinen erfinden.
   it('laesst Meldungen ohne Lauf weg', () => {
     expect(meldungenNachLauf([m('sport', null)]).size).toBe(0)
-  })
-})
-
-describe('blogDatum', () => {
-  it('nimmt das Publikationsdatum, wenn es eines gibt', () => {
-    expect(blogDatum({ publiziert_am: '2026-08-19T10:00:00Z', date_created: '2026-08-01T10:00:00Z' })).toBe(
-      '2026-08-19T10:00:00Z'
-    )
-  })
-
-  // Ein Entwurf faellt sonst ans Ende der Liste, obwohl er der neuste ist.
-  it('faellt auf die Entstehung zurueck', () => {
-    expect(blogDatum({ publiziert_am: null, date_created: '2026-08-01T10:00:00Z' })).toBe(
-      '2026-08-01T10:00:00Z'
-    )
-  })
-})
-
-describe('blogNachGemeinde', () => {
-  const beitrag = (id: string, gemeinde: string | null, datum: string | null) => ({
-    id,
-    publiziert_am: datum,
-    date_created: '2026-01-01T00:00:00Z',
-    gemeinde: gemeinde === null ? null : { id: gemeinde, name: gemeinde }
-  })
-
-  it('gruppiert je Gemeinde, neueste zuerst', () => {
-    const blogs = blogNachGemeinde([
-      beitrag('alt', 'Riehen', '2026-08-01T10:00:00Z'),
-      beitrag('neu', 'Riehen', '2026-08-20T10:00:00Z'),
-      beitrag('aesch', 'Aesch', '2026-08-10T10:00:00Z')
-    ])
-
-    expect(blogs.map((b) => b.gemeinde.name)).toEqual(['Aesch', 'Riehen'])
-    expect(blogs[1]?.beitraege.map((x) => x.id)).toEqual(['neu', 'alt'])
-  })
-
-  // Statistik und Sport stehen im selben Blog — die Herkunft ist eine Frage der
-  // Produktion, nicht der Lektuere.
-  it('mischt die Herkuenfte ohne Unterschied', () => {
-    const blogs = blogNachGemeinde([
-      beitrag('statistik', 'Riehen', '2026-08-05T10:00:00Z'),
-      beitrag('sport', 'Riehen', '2026-08-19T10:00:00Z')
-    ])
-    expect(blogs[0]?.beitraege.map((x) => x.id)).toEqual(['sport', 'statistik'])
-  })
-
-  it('sortiert Undatiertes ans Ende, statt es zu verlieren', () => {
-    const ohne = {
-      id: 'x',
-      publiziert_am: null,
-      date_created: null,
-      gemeinde: { id: 'Riehen', name: 'Riehen' }
-    }
-    const blogs = blogNachGemeinde([ohne, beitrag('mit', 'Riehen', '2026-08-01T10:00:00Z')])
-    expect(blogs[0]?.beitraege.map((x) => x.id)).toEqual(['mit', 'x'])
-  })
-
-  it('laesst Meldungen ohne Gemeinde weg', () => {
-    expect(blogNachGemeinde([beitrag('heimatlos', null, '2026-08-01T10:00:00Z')])).toEqual([])
   })
 })
 

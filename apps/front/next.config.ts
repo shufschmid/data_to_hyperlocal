@@ -33,8 +33,8 @@ const nextConfig: NextConfig = {
           // ignored. It lives in src/middleware.ts instead.
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           // Nothing here belongs in a search index. The workspace needs a login
-          // anyway, and the blog is deliberately unlisted: reachable for anyone
-          // who has the address, not something a search turns up.
+          // anyway, and the login page is deliberately unlisted: reachable for
+          // anyone who has the address, not something a search turns up.
           //
           // As a HEADER, not only as a meta tag: it also covers what carries no
           // HTML head — a JSON answer, a file — and it is the form Google and

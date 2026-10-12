@@ -280,7 +280,7 @@ describe('der Schalter', () => {
   //
   // ABER: ein UNGUELTIGES Merkmal weist Directus selbst mit 401 ab, bevor
   // dieser Endpunkt ueberhaupt gefragt wird — dieselbe Pipeline, die auch
-  // /redaktion/blog vorschaltet. Das ist eine Abweichung von R4a, die aus einem
+  // jeden Erweiterungs-Endpunkt vorschaltet. Das ist eine Abweichung von R4a, die aus einem
   // Endpunkt heraus nicht zu heilen ist, und sie steht im Vertrag
   // (SCHNITTSTELLE.md).
   it('liest das Merkmal nie — es kann hier nichts oeffnen und nichts schliessen', async () => {

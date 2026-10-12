@@ -7447,52 +7447,6 @@ export default defineEndpoint(
     // not be added. The counter-checker has no account; the token is the whole
     // credential. Equally, a signed-in session grants nothing extra here.
 
-    // --- the public blog ------------------------------------------------------
-    //
-    // Also deliberately public: published articles are, by definition, meant to
-    // be read without an account — the Dorfkönig already consumes them.
-    //
-    // The safety argument is the narrowness of the projection, not the caller:
-    // the filter is hard-wired to `status = publiziert`, and the field list
-    // names only what a reader may see. No drafts, no `fehler`, no `anweisung`,
-    // no chat, no approval tokens — none of those columns are even mentioned.
-    // The service runs as the system on purpose, because an anonymous caller
-    // has no accountability to act under.
-    router.get(
-      '/blog',
-      async (_req: ApiRequest, res: Response, next: NextFunction) => {
-        try {
-          const schema = await getSchema()
-          const meldungen = new ItemsService('meldungen', { schema })
-
-          const beitraege = (await meldungen.readByQuery({
-            filter: { status: { _eq: 'publiziert' } },
-            fields: [
-              'id',
-              'titel',
-              'lead',
-              'text',
-              'publiziert_am',
-              'gemeinde.name',
-              'spiel.sportart',
-              'spiel.heim',
-              'spiel.gast',
-              'spiel.datum'
-            ],
-            sort: ['-publiziert_am'],
-            // Bounded: a public route must not become an unbounded dump. The
-            // newest 200 are more than any municipal blog page needs.
-            limit: 200
-          })) as unknown[]
-
-          return res.json({ data: beitraege })
-        } catch (error) {
-          logger.error(error, 'redaktion: Blog konnte nicht gelesen werden')
-          return next(error)
-        }
-      }
-    )
-
     router.get(
       '/freigabe/:token',
       async (req: ApiRequest, res: Response, next: NextFunction) => {

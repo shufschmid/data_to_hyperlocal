@@ -1043,67 +1043,6 @@ export function meldungenNachLauf<T extends { lauf: { id: string } | null }>(
 }
 
 /**
- * Wann eine Meldung im Blog steht.
- *
- * Publikationsdatum, solange es eines gibt — das ist der Moment, in dem der
- * Beitrag oeffentlich wurde. Ein Entwurf hat keines und wird nach seiner
- * Entstehung einsortiert, damit er nicht ans Ende der Liste faellt.
- */
-export function blogDatum(meldung: {
-  publiziert_am: string | null
-  date_created: string | null
-}): string | null {
-  return meldung.publiziert_am ?? meldung.date_created
-}
-
-export interface GemeindeBlog<T> {
-  gemeinde: { id: string; name: string }
-  beitraege: T[]
-}
-
-/**
- * Ein Blog je Gemeinde, neueste zuerst.
- *
- * Herkunftsblind mit Absicht: ob ein Beitrag aus einer Statistik oder aus einem
- * Spiel entstand, ist eine Frage der Produktion, nicht der Lektuere. Weitere
- * Quellen reihen sich spaeter ohne Aenderung hier ein.
- */
-export function blogNachGemeinde<
-  T extends {
-    publiziert_am: string | null
-    date_created: string | null
-    gemeinde: { id: string; name: string } | null
-  }
->(meldungen: readonly T[]): GemeindeBlog<T>[] {
-  const nach = new Map<string, GemeindeBlog<T>>()
-
-  for (const meldung of meldungen) {
-    if (meldung.gemeinde === null) continue
-    const vorhanden = nach.get(meldung.gemeinde.id)
-    if (vorhanden === undefined) {
-      nach.set(meldung.gemeinde.id, {
-        gemeinde: { id: meldung.gemeinde.id, name: meldung.gemeinde.name },
-        beitraege: [meldung]
-      })
-    } else {
-      vorhanden.beitraege.push(meldung)
-    }
-  }
-
-  for (const blog of nach.values()) {
-    blog.beitraege.sort((a, b) => {
-      const da = blogDatum(a)
-      const db = blogDatum(b)
-      if (da === null) return 1
-      if (db === null) return -1
-      return new Date(db).getTime() - new Date(da).getTime()
-    })
-  }
-
-  return [...nach.values()].sort((a, b) => a.gemeinde.name.localeCompare(b.gemeinde.name, 'de-CH'))
-}
-
-/**
  * Der URL-Name einer Gemeinde: `?gemeinde=muenchenstein`.
  *
  * Ein Slug statt der UUID, weil die Adresse von Hand tippbar und zwischen

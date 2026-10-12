@@ -89,7 +89,6 @@ import {
 import {
   anzahlBeschaeftigt,
   bleibtAufDemTisch,
-  blogNachGemeinde,
   istBeschaeftigt,
   meldungenNachLauf,
   meldungenNachSuedanflug,
@@ -138,7 +137,7 @@ import { Entsorgung } from './Entsorgung'
 import { Verkehr } from './Verkehr'
 import { zaehlerVerkehr } from '@/lib/verkehr'
 import { EntsorgungHinweis } from './EntsorgungHinweis'
-import { GemeindeBlogs } from './GemeindeBlogs'
+import { ApiBlog } from './ApiBlog'
 import { Wochenzahl, type WochenzahlBilanz } from './Wochenzahl'
 import { AgendaErfassen } from './AgendaErfassen'
 import { PortalUebersicht } from './PortalUebersicht'
@@ -492,7 +491,6 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
     .filter((g) => g.aktiv && g.suedanflug)
     .map((g) => ({ id: g.id, name: g.name }))
   const laufStatus = new Map((laeufe.data?.laeufe ?? []).map((l) => [l.id, l.status]))
-  const blogs = blogNachGemeinde(meldungenAlle)
   const spielBerichte = meldungenAlle.filter((m) => m.spiel !== null)
   // Der Tisch der Redaktorin zählt, was noch Arbeit ist — dieselbe Regel wie
   // die Presseschau-Ansicht, damit Badge und Karten nie auseinanderlaufen.
@@ -1885,21 +1883,15 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
       {reiter === 'blog' && (
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
-            Alles, was für eine Gemeinde geschrieben wurde — neuste zuerst, gleich ob aus einer Statistik oder
-            aus einem Spiel entstanden. Woher ein Beitrag kommt, ist eine Frage der Produktion; gelesen wird
-            er als einer.
+            Der Blog, wie der Dorfkönig ihn bekommt: die Live-Ansicht der Schnittstelle /api/v1/artikel —
+            jeder publizierte Beitrag mit Rubrik, Quelle, Termin und Prüfsiegel, in der Reihenfolge und mit
+            den Zahlen der Schnittstelle. Was hier nicht steht, bekommt auch der Dorfkönig nicht.
           </Typography>
-          <GemeindeBlogs
-            blogs={blogs}
-            laedt={alleMeldungen.loading}
-            auswahl={blogGemeinde}
-            laeuft={sendet}
-            onAuswahl={(slug) => {
+          <ApiBlog
+            gemeinde={blogGemeinde}
+            onGemeinde={(slug) => {
               setBlogGemeinde(slug)
               schreibeGemeindeInUrl(slug)
-            }}
-            onPublizieren={async (id) => {
-              await fuehreAus(`meldungen/${id}/publizieren`)
             }}
           />
         </Stack>

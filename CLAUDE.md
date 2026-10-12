@@ -188,8 +188,19 @@ them is wrong even if it works.
    the blue work count (`apps/front/src/lib/bereiche.ts`). A click on an area
    returns to the workbench last open there. Every workbench is a desk with a
    task; the two behind the gear are configuration. The **Blog** is neither —
-   it is the result of all the others — so it hangs on two small links in the
-   header instead: one opens it in-app for editing, one opens the public page.
+   it is the result of all the others — so it hangs on one small link in the
+   header instead. **Since 12 October 2026 it is a LIVE VIEW of the public
+   API**: `components/ApiBlog.tsx` reads `/api/v1/artikel` through a
+   session-gated GET proxy (`app/api/v1/[...pfad]`, only the reading paths and
+   parameters, never `abnehmer`) and shows exactly what the Dorfkönig gets —
+   the envelope's count, every article with its rubrik, source, termin and
+   Prüfsiegel, and a 503 in the API's own words when `BLOG_API_OFFEN` is off.
+   The newsroom's words: the internal blog should show everything the API
+   releases, as one view. Before, it listed every Meldung of every status and
+   a public page `/blog` showed the newest 200 published ones through
+   `GET /redaktion/blog`; both were views of the rows, neither the API's, and
+   both are gone — the public page by the newsroom's decision, the API being
+   the one public door.
    **The blog also has a THIRD reader, and it is a program.** The Dorfkönig
    fetches the published articles from `/api/v1/…` (`endpoints/api/`, convention
    `wepublish-rest/1`, contract in `apps/directus/SCHNITTSTELLE.md`). Three

@@ -2,7 +2,7 @@ import robots from './robots'
 import { metadata } from './layout'
 import nextConfig from '../../next.config'
 
-// Der Blog soll erreichbar bleiben, aber in keinem Suchindex auftauchen. Das
+// Der Arbeitsplatz soll erreichbar bleiben, aber in keinem Suchindex auftauchen. Das
 // funktioniert nur, wenn drei Dinge zusammenpassen — und die eine Falle dabei
 // ist, dass ein `Disallow` das `noindex` unwirksam macht, statt es zu
 // verstaerken. Genau das halten diese Tests fest.
@@ -53,14 +53,14 @@ describe('noindex', () => {
     expect(wert).toContain('nofollow')
   })
 
-  it('gilt auch fuer den Blog und die Freigabe-Seite', async () => {
+  it('gilt auch fuer die Wurzel und die Freigabe-Seite', async () => {
     const bloecke = await nextConfig.headers!()
     // Der allgemeine Block deckt beide ab; /freigabe hat zusaetzlich seinen
     // eigenen, weil dort schon die Referrer-Policy strenger ist.
     const trifft = (pfad: string) =>
       bloecke.filter((b) => b.source === '/:path*' || pfad.startsWith(b.source.split('/:')[0]!))
 
-    for (const pfad of ['/blog', '/freigabe/abc']) {
+    for (const pfad of ['/', '/freigabe/abc']) {
       const passende = trifft(pfad)
       const hatNoindex = passende.some((b) =>
         b.headers.some((h) => h.key === 'X-Robots-Tag' && h.value.includes('noindex'))

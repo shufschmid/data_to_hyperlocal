@@ -100,20 +100,10 @@ export function AppShell() {
           </Typography>
           {/* Der Blog ist kein Arbeitstisch: er hat keine Aufgabe, er ist das
               Ergebnis aller anderen. Darum klein hier oben statt als Reiter —
-              einmal zum Bearbeiten, einmal so, wie ihn die Leserschaft sieht. */}
-          <Button size="small" color="inherit" onClick={() => setBlogRuf((n) => n + 1)}>
+              und seit dem 12. Oktober 2026 die Live-Ansicht der Schnittstelle,
+              also genau das, was der Dorfkoenig bekommt. */}
+          <Button size="small" color="inherit" onClick={() => setBlogRuf((n) => n + 1)} sx={{ mr: 1 }}>
             Blog
-          </Button>
-          <Button
-            size="small"
-            color="inherit"
-            component="a"
-            href="/blog"
-            target="_blank"
-            rel="noopener"
-            sx={{ mr: 1 }}
-          >
-            Blog öffnen ↗
           </Button>
           <Typography
             variant="body2"

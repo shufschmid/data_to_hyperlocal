@@ -7,9 +7,8 @@ export const metadata: Metadata = {
   title: 'App',
   description: 'Directus + Next + MUI Anwendung',
   /**
-   * Inherited by every page, the public blog included: nothing here belongs in
-   * a search index. The blog is unlisted, not secret — reachable for whoever
-   * has the address.
+   * Inherited by every page: nothing here belongs in a search index. The
+   * workspace is unlisted, not secret — reachable for whoever has the address.
    *
    * Doubled with the `X-Robots-Tag` header in `next.config.ts` on purpose. The
    * header also covers what has no HTML head, the tag is the form a person
