@@ -57,49 +57,58 @@ type Zustand =
   | { art: 'liste'; artikel: ApiArtikel[]; gesamt: number; weitere: boolean; versatz: number }
   | { art: 'fehler'; status: number; text: string }
 
-export function ApiBlog({
-  gemeinde,
-  onGemeinde,
-  laden = (pfad) => sitzungsFetch(pfad),
-  grenze = SEITE
-}: ApiBlogProps) {
+// ONE function for the whole module, not a default arrow in the parameter
+// list: a default created per render is a new identity per render, the
+// loader built on it changes with it, the effect that depends on the loader
+// runs again, sets «laedt», and the render that follows makes the next one —
+// measured in production on 12 October 2026 as a blog that flickered and
+// never showed a line. The tests had passed because they inject a stable
+// stub; `ApiBlog.standard.test.tsx` now walks the default path.
+const standardLaden = (pfad: string): Promise<Response> => sitzungsFetch(pfad)
+
+export function ApiBlog({ gemeinde, onGemeinde, laden = standardLaden, grenze = SEITE }: ApiBlogProps) {
   const [zustand, setZustand] = useState<Zustand>({ art: 'laedt' })
   const [nachladen, setNachladen] = useState(false)
   const [gemeinden, setGemeinden] = useState<ApiGemeinde[]>([])
   const [gesundheit, setGesundheit] = useState<ApiGesundheit | null>(null)
 
+  /** One page from the API, as the next state — the caller decides whether it still applies. */
   const ladeSeite = useCallback(
-    async (versatz: number, bisher: readonly ApiArtikel[]) => {
+    async (versatz: number, bisher: readonly ApiArtikel[]): Promise<Zustand> => {
       const antwort = await laden(artikelPfad(gemeinde, versatz, grenze))
       const koerper = (await antwort.json().catch(() => null)) as unknown
       if (!antwort.ok) {
-        setZustand({ art: 'fehler', status: antwort.status, text: antwortText(antwort.status, koerper) })
-        return
+        return { art: 'fehler', status: antwort.status, text: antwortText(antwort.status, koerper) }
       }
       const liste = koerper as ApiListe
-      setZustand({
+      return {
         art: 'liste',
         artikel: verlaengere(bisher, liste.artikel ?? []),
         gesamt: liste.gesamt ?? 0,
         weitere: liste.weitere === true,
         versatz: versatz + (liste.anzahl ?? 0)
-      })
+      }
     },
     [gemeinde, grenze, laden]
   )
 
-  // The first page, and again whenever the municipality changes.
+  // The first page, and again whenever the municipality changes. An answer
+  // that arrives after the municipality moved on is dropped, not shown.
   useEffect(() => {
     let aktiv = true
     setZustand({ art: 'laedt' })
-    void ladeSeite(0, []).catch((fehler: unknown) => {
-      if (aktiv)
-        setZustand({
-          art: 'fehler',
-          status: 0,
-          text: fehler instanceof Error ? fehler.message : String(fehler)
-        })
-    })
+    ladeSeite(0, [])
+      .then((naechster) => {
+        if (aktiv) setZustand(naechster)
+      })
+      .catch((fehler: unknown) => {
+        if (aktiv)
+          setZustand({
+            art: 'fehler',
+            status: 0,
+            text: fehler instanceof Error ? fehler.message : String(fehler)
+          })
+      })
     return () => {
       aktiv = false
     }
@@ -136,7 +145,7 @@ export function ApiBlog({
     if (zustand.art !== 'liste' || !zustand.weitere) return
     setNachladen(true)
     try {
-      await ladeSeite(zustand.versatz, zustand.artikel)
+      setZustand(await ladeSeite(zustand.versatz, zustand.artikel))
     } finally {
       setNachladen(false)
     }
