@@ -813,9 +813,18 @@ describe('berichtenswerteSpiele', () => {
   // Spiegelt redaktion/mannschaft.ts im Backend — der Zaehler im Sport-Reiter
   // muss dieselbe Antwort geben wie der Schreiber, sonst zeigt der Knopf
   // dauerhaft offene Spiele an und meldet beim Druecken „nichts zu tun".
-  const spiel = (id: string, wettbewerb: string, vereinId: string, liga: string | null) => ({
+  const spiel = (
+    id: string,
+    wettbewerb: string,
+    vereinId: string,
+    liga: string | null,
+    eigene = 'Verein',
+    gegner = 'FC Gegner'
+  ) => ({
     id,
     wettbewerb,
+    heim: eigene,
+    gast: gegner,
     verein: { id: vereinId, name: 'Verein', liga }
   })
 
@@ -827,6 +836,16 @@ describe('berichtenswerteSpiele', () => {
     ]
     const behalten = berichtenswerteSpiele(alle)
     expect([...behalten].map((s) => s.id)).toEqual(['a'])
+  })
+
+  // «2. Liga (FAEW)» ist die regionale 2. Liga der Maenner, nicht eine
+  // Frauenliga — die erste Mannschaft des FC Pratteln, nicht seine fuenfte.
+  it('haelt die 2. Liga (FAEW) fuer die erste Mannschaft', () => {
+    const alle = [
+      spiel('a', 'Meisterschaft - 5. Liga / Vorrunde / Gruppe 1', 'v1', '2. Liga'),
+      spiel('b', 'Meisterschaft - 2. Liga (FAEW)', 'v1', '2. Liga')
+    ]
+    expect([...berichtenswerteSpiele(alle)].map((s) => s.id)).toEqual(['b'])
   })
 
   // Sm'Aesch Pfeffingen ist eine Damenmannschaft und das Aushaengeschild.
@@ -841,6 +860,26 @@ describe('berichtenswerteSpiele', () => {
       spiel('b', 'Meisterschaft - 4. Liga / Gruppe 3', 'v3', null)
     ]
     expect([...berichtenswerteSpiele(alle)].map((s) => s.id)).toEqual(['a'])
+  })
+
+  // FC Muenchenstein a und b spielen beide 4. Liga; nur das a ist die erste.
+  it('nimmt von zwei Teams derselben Liga nur das a', () => {
+    const alle = [
+      spiel('a', 'Meisterschaft - 4. Liga / Gruppe 2', 'v4', null, 'Verein a'),
+      spiel('b', 'Meisterschaft - 4. Liga / Gruppe 3', 'v4', null, 'Verein b')
+    ]
+    expect([...berichtenswerteSpiele(alle)].map((s) => s.id)).toEqual(['a'])
+  })
+
+  // Der Cup annotiert die Teams mit ihrer Liga; der SC Binningen tritt dort
+  // mit der 2.-Liga-Mannschaft an, nicht mit der interregionalen.
+  it('liest im Cup die Annotation des Teams', () => {
+    const alle = [
+      spiel('a', 'Meisterschaft - 2. Liga interregional / Gruppe 3', 'v5', null),
+      spiel('b', 'Cup - Basler Cup - 1/16 - Final', 'v5', null, 'Verein (2. (FAEW))', 'FC Laufen (3.)'),
+      spiel('c', 'Cup - 1. Runde', 'v5', null)
+    ]
+    expect([...berichtenswerteSpiele(alle)].map((s) => s.id)).toEqual(['a', 'c'])
   })
 
   it('vertraegt eine leere Liste', () => {

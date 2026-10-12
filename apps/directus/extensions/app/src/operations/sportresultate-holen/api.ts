@@ -421,21 +421,30 @@ export default defineOperationApi<Optionen>({
     // club's best league is dropped before it is written, and what is already
     // stored below it is deleted — the women's and lower-league sides the old
     // rule kept and never wrote a line about.
-    const gespeichert = new Map<
-      string,
-      Array<{ id: string; wettbewerb: string }>
-    >()
+    // The two sides travel along: a team's letter («FC Münchenstein b») and a
+    // cup draw's annotation («SC Binningen (2. (FAEW))») sit in the names, not
+    // in the competition.
+    type Gespeichert = {
+      id: string
+      wettbewerb: string
+      heim: string
+      gast: string
+    }
+    const gespeichert = new Map<string, Gespeichert[]>()
     for (const spiel of (await spieleService.readByQuery({
-      fields: ['id', 'verein', 'wettbewerb'],
+      fields: ['id', 'verein', 'wettbewerb', 'heim', 'gast'],
       limit: -1
-    })) as Array<{ id: string; verein: string | null; wettbewerb: string }>) {
+    })) as Array<Gespeichert & { verein: string | null }>) {
       if (spiel.verein === null) continue
+      const zeile: Gespeichert = {
+        id: spiel.id,
+        wettbewerb: spiel.wettbewerb,
+        heim: spiel.heim,
+        gast: spiel.gast
+      }
       const bisher = gespeichert.get(spiel.verein)
-      if (bisher === undefined)
-        gespeichert.set(spiel.verein, [
-          { id: spiel.id, wettbewerb: spiel.wettbewerb }
-        ])
-      else bisher.push({ id: spiel.id, wettbewerb: spiel.wettbewerb })
+      if (bisher === undefined) gespeichert.set(spiel.verein, [zeile])
+      else bisher.push(zeile)
     }
 
     const zuSchreiben: Zeile[] = []
@@ -444,7 +453,7 @@ export default defineOperationApi<Optionen>({
       const abgleich = ersteMannschaftAbgleich(
         zeilen.filter((z) => z.verein === verein.id),
         gespeichert.get(verein.id) ?? [],
-        verein.liga
+        { name: verein.name, liga: verein.liga }
       )
       zuSchreiben.push(...abgleich.behalten)
       ueberzaehlig.push(...abgleich.entfernen.map((s) => s.id))

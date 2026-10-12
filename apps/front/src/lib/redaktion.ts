@@ -1156,7 +1156,10 @@ export function bleibtAufDemTisch(entscheid: string, meldungStatus: string | nul
 // aufgeraeumt werden. Dieselbe Doppelung wie bei `seitenLink`, und derselbe
 // Auftrag: aendert sich die eine Seite, aendert sich die andere.
 
-const FRAUEN_WETTBEWERB = /\b(frauen|damen|faew|ff-\d)\b/i
+// Nach den Worten des Verbands, nie nach einem Kuerzel: «2. Liga (FAEW)» ist
+// die regionale 2. Liga der Maenner (gemessen 12.10.2026), Frauenligen heissen
+// «Frauen 3. Liga».
+const FRAUEN_WETTBEWERB = /\b(frauen|damen|ff-\d)\b/i
 
 const LIGA_RANGFOLGE: readonly RegExp[] = [
   /nationalliga\s*a|\bnla\b/i,
@@ -1175,17 +1178,71 @@ function ligaRang(wettbewerb: string): number | null {
   return index === -1 ? null : index
 }
 
+function istCup(wettbewerb: string): boolean {
+  return /\bcup\b/i.test(wettbewerb)
+}
+
+function normalisiereName(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/[`'’]/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/** Was die Quelle an den Vereinsnamen haengt: '' blank, «a», «a (4.)», «(2. (faew))»; null, wo keine Seite der Verein ist. */
+function mannschaftsZusatz(spiel: { heim: string; gast: string }, vereinsname: string): string | null {
+  const v = normalisiereName(vereinsname)
+  for (const seite of [spiel.heim, spiel.gast]) {
+    const m = normalisiereName(seite)
+    if (m === v) return ''
+    if (m.startsWith(`${v} `) || m.startsWith(`${v}(`)) return m.slice(v.length).trim()
+  }
+  return null
+}
+
+/** 0 fuer den blanken Namen, 1 fuer «a» oder «1», 2 fuer «b» oder «2» … */
+function teamNummer(zusatz: string | null): number {
+  if (zusatz === null) return 0
+  const token = /^([a-z]|\d)(?=\s|\(|$)/.exec(zusatz)
+  if (token === null || token[1] === undefined) return 0
+  const t = token[1]
+  return /\d/.test(t) ? Number.parseInt(t, 10) : t.charCodeAt(0) - 96
+}
+
+/** Die Liga, mit der die Cup-Auslosung ein Team annotiert: «(3.)», «(2. (FAEW))», «a (4.)». */
+function annotierterRang(zusatz: string | null): number | null {
+  if (zusatz === null) return null
+  const treffer = /\((\d)\.\s*(?:\(([^)]*)\)|([a-z]+))?\s*\)/i.exec(zusatz)
+  if (treffer === null || treffer[1] === undefined) return null
+  const beiname = treffer[2] ?? treffer[3] ?? ''
+  const liga = /inter/i.test(beiname)
+    ? `${treffer[1]}. Liga interregional`
+    : `${treffer[1]}. Liga${beiname === '' ? '' : ` (${beiname})`}`
+  return ligaRang(liga)
+}
+
 /**
  * Die Spiele, die auf den Tisch gehoeren — und aus denen eine Meldung
  * entstehen kann.
  *
  * Nur die erste Mannschaft je Verein — ein Dorfverein stellt vier, und drei
- * Meldungen ueber denselben Verein an einem Samstag sind kein Bericht. Eine
- * Damenmannschaft bleibt, wo sie die eigene Mannschaft des Vereins ist
- * (Sm'Aesch Pfeffingen spielt Nationalliga A der Damen).
+ * Meldungen ueber denselben Verein an einem Samstag sind kein Bericht. Die
+ * hoechste Liga des Vereins; unter zwei Teams derselben Liga der kleinste
+ * Buchstabe (FC Muenchenstein a vor b); im Cup zaehlt die Annotation des
+ * Teams, weil der Cup keinen Liganamen traegt. Eine Damenmannschaft bleibt,
+ * wo sie die eigene Mannschaft des Vereins ist (Sm'Aesch Pfeffingen spielt
+ * Nationalliga A der Damen).
  */
 export function berichtenswerteSpiele<
-  T extends { wettbewerb: string; verein: { id: string; liga?: string | null } | null }
+  T extends {
+    wettbewerb: string
+    heim: string
+    gast: string
+    verein: { id: string; name: string; liga?: string | null } | null
+  }
 >(spiele: readonly T[]): Set<T> {
   const jeVerein = new Map<string, T[]>()
   for (const spiel of spiele) {
@@ -1197,22 +1254,33 @@ export function berichtenswerteSpiele<
 
   const behalten = new Set<T>()
   for (const [, liste] of jeVerein) {
-    const liga = liste[0]?.verein?.liga ?? null
+    const verein = liste[0]?.verein
+    if (verein == null) continue
+    const liga = verein.liga ?? null
     const frauenverein = liga != null && FRAUEN_WETTBEWERB.test(liga)
     const infrage = frauenverein ? liste : liste.filter((s) => !FRAUEN_WETTBEWERB.test(s.wettbewerb))
     if (infrage.length === 0) continue
 
-    const raenge = infrage.map((s) => ligaRang(s.wettbewerb)).filter((r): r is number => r !== null)
+    const bewertet = infrage.map((spiel) => {
+      const zusatz = mannschaftsZusatz(spiel, verein.name)
+      const rang = ligaRang(spiel.wettbewerb) ?? (istCup(spiel.wettbewerb) ? annotierterRang(zusatz) : null)
+      return { spiel, rang, nummer: teamNummer(zusatz) }
+    })
+
+    const raenge = bewertet.map((b) => b.rang).filter((r): r is number => r !== null)
     if (raenge.length === 0) {
       for (const s of infrage) behalten.add(s)
       continue
     }
 
     const bester = Math.min(...raenge)
-    for (const s of infrage) {
-      const rang = ligaRang(s.wettbewerb)
-      if (rang === bester || (rang === null && /\bcup\b/i.test(s.wettbewerb))) {
-        behalten.add(s)
+    const erste = Math.min(...bewertet.filter((b) => b.rang === bester).map((b) => b.nummer))
+    for (const b of bewertet) {
+      if (
+        (b.rang === bester && b.nummer === erste) ||
+        (b.rang === null && istCup(b.spiel.wettbewerb) && (b.nummer === erste || b.nummer === 0))
+      ) {
+        behalten.add(b.spiel)
       }
     }
   }

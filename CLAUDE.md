@@ -1528,7 +1528,7 @@ them is wrong even if it works.
 | a table on statistik.bl.ch the newsroom wants                                           | paste its URL in the workspace — „statistik.bl" → „Auftrag …" — it becomes an ordinary dataset                                                                                                                                                                                                                                                                                                  |
 | a club whose results the newsroom wants                                                 | „Gemeinden" → die Karte der Gemeinde → „Verein erfassen"; ohne Konnektor für die `quelle` bleibt er still erfasst. Bei `basketball` die Adresse der GRUPPE (`…/basketplan/showLeagueSchedule.do?…&leagueHoldingId=<n>`) plus die `teamId` als Kennung — und beides jede Saison neu                                                                                                              |
 | a new rule about what a match report may say                                            | `redaktion/spielbericht.ts` — the prompt **and** the check next to it                                                                                                                                                                                                                                                                                                                           |
-| which of a club's teams is followed at all                                              | `redaktion/mannschaft.ts` — the first team only, applied at the door by `sportresultate-holen`; mirrored in the workspace (`berichtenswerteSpiele`)                                                                                                                                                                                                                                             |
+| which of a club's teams is followed at all                                              | `redaktion/mannschaft.ts` — the first team only: highest league, lowest letter (a before b), cup by the team annotation; women by the words Frauen/Damen/FF-, never by a code («2. Liga (FAEW)» is the men's regional 2. Liga). Applied at the door by `sportresultate-holen`; mirrored in the workspace (`berichtenswerteSpiele`)                                                              |
 | where a match report's source link comes from                                           | `redaktion/spielbericht.ts` — `verbandsQuelle`/`mitQuelle`, appended by code; the publish gate is `hatQuellenlink` in `redaktion/status.ts`                                                                                                                                                                                                                                                     |
 | an Abfuhrkalender the newsroom wants                                                    | paste the PDF's address in the workspace — „Entsorgung" → „Abfuhrkalender erfassen"; one PDF per zone (Riehen) registers zone by zone into the same calendar                                                                                                                                                                                                                                    |
 | a weekly paper the newsroom wants read                                                  | „Presseschau" → „Wochenblatt erfassen" with its archive URL; the platform decides the parser (`konnektor`: WordPress-Archivliste, lokalzeitungen.ch, issuu or Localpoint) — a fifth platform gets its own value in `shared/wochenblatt/`                                                                                                                                                        |
@@ -2114,14 +2114,33 @@ day as quiet.
 
 **Only the first team is followed at all.** A village club fields four: SC
 Binningen played four times on 29 August 2026 — 2. Liga interregional, a
-4th-league side, a 5th-league side and a women's team, and the rows say only
-„SC Binningen" for all of them. Three articles about the same club losing 0:2
-and 0:12 and winning 7:0 on one Saturday are noise, so `redaktion/mannschaft.ts`
-keeps the club's highest league (derived from its own matches, because
-`vereine.liga` is an editor's free text — measured values include „3. und 4.
-Liga" and null). Women's sides are not the club — **except where the club's
-registered team IS one**: Sm'Aesch Pfeffingen plays Nationalliga A der Damen and
-is the flagship of Aesch, and a blunt rule would have silenced it.
+second team in the regional 2. Liga, a 4th-league and a 5th-league side, and
+the rows say only „SC Binningen" for all of them. Three articles about the same
+club losing 0:2 and 0:12 and winning 7:0 on one Saturday are noise, so
+`redaktion/mannschaft.ts` keeps the club's highest league (derived from its own
+matches, because `vereine.liga` is an editor's free text — measured values
+include „3. und 4. Liga" and null). Women's sides are not the club — **except
+where the club's registered team IS one**: Sm'Aesch Pfeffingen plays
+Nationalliga A der Damen and is the flagship of Aesch, and a blunt rule would
+have silenced it. **Three things measured on the Match Center on 12 October
+2026, each a branch of that rule.** The league „2. Liga (FAEW)" is the regional
+MEN's 2. Liga, not a women's league: the FVNWS names its women's leagues
+„Frauen 3. Liga", the men's Basler Cup annotates the same clubs with
+„(2. (FAEW))", and FC Pratteln's
+team list carries „2. Liga (FAEW)" and „5. Liga" as its two active teams. For
+six weeks the rule had read FAEW as women's and reported the SECOND teams of FC
+Pratteln, FC Aesch and FC Amicitia Riehen — a women's league is recognised by
+the association's words (Frauen, Damen, FF-) and never by a code. Two teams in
+ONE league carry a letter („FC Münchenstein a" in 4. Liga Gruppe 2, „b" in
+Gruppe 3), and the letter decides where the rank cannot: bare name before a,
+a before b (`teamNummer`). And a cup draw annotates every team with its league
+(„FC Laufen (3.)", „SC Binningen (2. (FAEW))", „FC Münchenstein a (4.)")
+because the cup has no league name of its own — SC Binningen enters the Basler
+Cup with its 2. Liga regional team, the interregional one is not eligible, and
+only that annotation says so (`annotierterRang`); a cup match without one still
+counts for the first team. The two sides therefore travel with every row the
+rule sees (`Mannschaftsspiel`: wettbewerb, heim, gast), and the club's name is
+what the suffix is read after.
 
 The rule used to decide only what got WRITTEN; everything was stored and shown,
 on the theory that a fixture list is useful whole. It is not — the newsroom

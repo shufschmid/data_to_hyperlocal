@@ -171,8 +171,12 @@ export async function schreibeSpielberichte(
 
   const berichtenswert = new Set<string>()
   for (const [, spiele] of jeVerein) {
-    const liga = spiele[0]?.verein.liga ?? null
-    for (const spiel of ersteMannschaft(spiele, liga))
+    const verein = spiele[0]?.verein
+    if (verein === undefined) continue
+    for (const spiel of ersteMannschaft(spiele, {
+      name: verein.name,
+      liga: verein.liga
+    }))
       berichtenswert.add(spiel.id)
   }
 
