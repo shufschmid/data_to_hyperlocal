@@ -828,6 +828,15 @@ them is wrong even if it works.
    mind; a one-off is a proposal. A weekly rhythm tolerates holiday gaps
    (Reinach's Palais z'Nacht: 22.9., then 13.10.) — three dates at seven-day
    spacing with gaps allowed, one outlier tolerated.
+   **A decided Anlass comes back only for news** (`oeffnetWieder`, 15 October
+   2026): an Ausfall, a Verschiebung, a Frist or an Abweichung reopens it, but
+   an Abweichung only on a date the row did not know. The forward window keeps
+   revealing later dates, and with a third one the rhythm rule relabelled
+   Riehen's Repair Café's 17.10. — the very date its published Meldung was
+   about — as the Abweichung and put the row back on the desk, a published and
+   a discarded article with it. The hint „Neuer Anker nach Entscheid" now stays
+   on a reopened row until the newsroom decides again; the run used to
+   overwrite it the next morning.
    **A routine is not waste, and that is why this desk has a third stack.**
    The Jass afternoon is exactly what a newcomer wants to know, so a routine
    keeps its row and carries a SWITCH: every six months

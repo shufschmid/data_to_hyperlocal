@@ -135,6 +135,8 @@ export interface BekannteZeile {
   /** What the detail read called the page — an overview here means it was misread. */
   url_kanonisch?: string | null
   hinweise: string[] | null
+  /** The dates the row knew before this run — what tells a new date from a relabelled one. */
+  termine?: string[] | null
 }
 
 export async function ladeBekannteSerien(
@@ -161,7 +163,8 @@ export async function ladeBekannteSerien(
       'beschreibung',
       'url',
       'url_kanonisch',
-      'hinweise'
+      'hinweise',
+      'termine'
     ],
     limit: -1
   })) as BekannteZeile[]
@@ -193,6 +196,53 @@ const NEU_OEFFNENDE: ReadonlySet<Anker> = new Set<Anker>([
   'frist'
 ])
 
+/** How the hint on a reopened row begins — the run keeps it by this prefix. */
+export const WIEDER_GEOEFFNET = 'Neuer Anker nach Entscheid:'
+
+/**
+ * Whether this run puts a decided row back on the desk.
+ *
+ * Only a CHANGED anchor of the reopening kind does it, and an Abweichung only
+ * when its date is new to the row. Measured on 13 October 2026: Riehen's
+ * Repair Café and Binningen's Resonanzraum, both taken over a week earlier,
+ * came back as proposals because the sixty-day window reached a third date
+ * (12.12.) — with three dates the rhythm rule reads the 17.10., a third
+ * Saturday among second ones, as the Abweichung. Nothing had happened to the
+ * series: the 17.10. was the very date the Meldung was about, and a published
+ * and a discarded article both reappeared on the desk. A date that MOVED
+ * arrives as a date the row did not know; a date that was there all along is
+ * only relabelled. Without the stored dates (a row from before they were
+ * loaded) the anchor still reopens — a needless reopen is visible, a missed
+ * one is not. Ausfall, Verschiebung and Frist keep the old rule: a known date
+ * that is cancelled is exactly the news.
+ */
+export function oeffnetWieder(
+  vorher: Pick<BekannteZeile, 'anker' | 'entscheid' | 'termine'>,
+  befund: Pick<AnkerBefund, 'anker' | 'ankerAm'>
+): boolean {
+  if (vorher.entscheid === 'offen') return false
+  if (befund.anker === vorher.anker) return false
+  if (!NEU_OEFFNENDE.has(befund.anker)) return false
+  if (befund.anker !== 'abweichung') return true
+  if (befund.ankerAm === null || vorher.termine == null) return true
+  return !vorher.termine.includes(befund.ankerAm)
+}
+
+/**
+ * The reopening hint a row keeps while it lies open again.
+ *
+ * Every run writes a row's hints afresh, so the line „Neuer Anker nach
+ * Entscheid" lived exactly one day and the desk could not say why a decided
+ * Anlass was back. It stays now until the newsroom decides again; then the
+ * next run drops it.
+ */
+export function behalteneWiederOeffnung(
+  vorher: Pick<BekannteZeile, 'entscheid' | 'hinweise'>
+): string[] {
+  if (vorher.entscheid !== 'offen') return []
+  return (vorher.hinweise ?? []).filter((h) => h.startsWith(WIEDER_GEOEFFNET))
+}
+
 /**
  * The grade CODE gives a row of an Eckdaten template, without a Sichtung.
  *
@@ -220,13 +270,16 @@ export interface GeschriebenerAnlass {
   vorher: BekannteZeile | null
   /** The grade the row carries after this run — the stored one, else the one code gave it now. */
   vorschlagWert?: number | null
+  /** The reopening hint the row carries, so a detail read in the same run keeps it. */
+  wiederHinweise?: string[]
 }
 
 /**
  * Upsert per `(quelle, schluessel)`. A decided row keeps its decision and its
  * detail fields; the run refreshes dates, rhythm, anchor and the
  * last-seen day. A row the editor decided is reopened only when an anchor of
- * the reopening kind arrives — a cancellation after a rejection is news.
+ * the reopening kind arrives — a cancellation after a rejection is news —
+ * and an Abweichung only on a date the row did not know (`oeffnetWieder`).
  * Every created row says so in its hints.
  */
 export async function schreibeAnlaesse(
@@ -346,13 +399,11 @@ export async function schreibeAnlaesse(
       }
 
       const ankerNeu = befund.anker !== vorher.anker
-      const wiederOeffnen =
-        ankerNeu &&
-        vorher.entscheid !== 'offen' &&
-        NEU_OEFFNENDE.has(befund.anker)
-      const hinweise = [...befund.hinweise]
-      if (wiederOeffnen)
-        hinweise.push(`Neuer Anker nach Entscheid: ${befund.anker}.`)
+      const wiederOeffnen = oeffnetWieder(vorher, befund)
+      const wiederHinweise = wiederOeffnen
+        ? [`${WIEDER_GEOEFFNET} ${befund.anker}.`]
+        : behalteneWiederOeffnung(vorher)
+      const hinweise = [...befund.hinweise, ...wiederHinweise]
       await anlaesse.updateOne(vorher.id, {
         ...basis,
         // The list's time and venue fill gaps, never overwrite what the
@@ -375,7 +426,8 @@ export async function schreibeAnlaesse(
         anlass,
         befund,
         vorher,
-        vorschlagWert: vorher.vorschlag_wert ?? stufe
+        vorschlagWert: vorher.vorschlag_wert ?? stufe,
+        wiederHinweise
       })
     } catch (fehler) {
       logger.warn(
@@ -540,7 +592,7 @@ export function detailPayload(
     { erstlauf, bekannt: g.vorher !== null },
     heuteObj
   )
-  const hinweise = [...befund.hinweise]
+  const hinweise = [...befund.hinweise, ...(g.wiederHinweise ?? [])]
   if (beschreibung.abgeschnitten) hinweise.push('Text gekürzt.')
   const ungelesen = gelesen.anhaenge.filter((a) => !a.gelesen).length
   if (ungelesen > 0) hinweise.push(`${ungelesen} Dokumente nicht gelesen.`)

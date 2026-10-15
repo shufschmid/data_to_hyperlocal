@@ -9,9 +9,12 @@ import {
   KODIERTE_STUFE,
   dauerangeboteHeute,
   detailPayload,
+  behalteneWiederOeffnung,
   kuerzeFelder,
   ladeNewsKontext,
+  oeffnetWieder,
   ortAusserhalb,
+  WIEDER_GEOEFFNET,
   raeumeAnlaesseAuf,
   schreibeAnlaesse,
   sichteAnlaesse,
@@ -258,6 +261,129 @@ describe('schreibeAnlaesse', () => {
     })
   })
 
+  // Gemessen am 13.10.2026: das Fenster erreichte den 12.12., und mit drei
+  // Terminen las die Rhythmusregel den 17.10. als Abweichung. Der 17.10. war
+  // der Tag, ueber den die Meldung schon geschrieben war.
+  it('oeffnet eine uebernommene Serie nicht wieder, wenn eine bekannte Durchfuehrung bloss neu als Abweichung gelesen wird', async () => {
+    const d = dienst()
+    const vorher = bekannt({
+      id: 'z1',
+      schluessel: 'repair café im landi',
+      anker: 'erinnerung',
+      anker_am: '2026-10-17',
+      entscheid: 'uebernommen',
+      vorschlag: true,
+      termine: ['2026-10-17', '2026-11-14']
+    })
+    const { geschrieben } = await schreibeAnlaesse(
+      d,
+      QUELLE,
+      [
+        anlass({
+          titel: 'Repair Café im Landi',
+          termine: ['2026-10-17', '2026-11-14', '2026-12-12']
+        })
+      ],
+      new Map([['repair café im landi', vorher]]),
+      HEUTE,
+      HEUTE_OBJ,
+      false,
+      logger
+    )
+    expect(geschrieben[0]?.befund).toMatchObject({
+      anker: 'abweichung',
+      ankerAm: '2026-10-17'
+    })
+    expect(d.geaendert[0]?.payload).toMatchObject({ anker: 'abweichung' })
+    expect(d.geaendert[0]?.payload).not.toHaveProperty('entscheid')
+    expect(d.geaendert[0]?.payload.hinweise).toEqual([])
+  })
+
+  it('oeffnet sie wieder, wenn eine Durchfuehrung auf einen neuen Tag rutscht', async () => {
+    const d = dienst()
+    const vorher = bekannt({
+      id: 'z1',
+      schluessel: 'repair café im landi',
+      anker: 'erinnerung',
+      entscheid: 'uebernommen',
+      termine: ['2026-10-10', '2026-11-14', '2026-12-12']
+    })
+    await schreibeAnlaesse(
+      d,
+      QUELLE,
+      [
+        anlass({
+          titel: 'Repair Café im Landi',
+          termine: ['2026-10-17', '2026-11-14', '2026-12-12']
+        })
+      ],
+      new Map([['repair café im landi', vorher]]),
+      HEUTE,
+      HEUTE_OBJ,
+      false,
+      logger
+    )
+    expect(d.geaendert[0]?.payload).toMatchObject({
+      anker: 'abweichung',
+      entscheid: 'offen',
+      vorschlag: null
+    })
+    expect(d.geaendert[0]?.payload.hinweise).toContain(
+      'Neuer Anker nach Entscheid: abweichung.'
+    )
+  })
+
+  it('behaelt den Hinweis einer Wiederoeffnung, bis die Redaktion neu entscheidet', async () => {
+    const hinweis = `${WIEDER_GEOEFFNET} ausfall.`
+    const d = dienst()
+    const offen = bekannt({
+      id: 'z1',
+      schluessel: 'gemeindeversammlung',
+      anker: 'ausfall',
+      entscheid: 'offen',
+      hinweise: [hinweis, 'Text gekürzt.']
+    })
+    const { geschrieben } = await schreibeAnlaesse(
+      d,
+      QUELLE,
+      [
+        anlass({
+          titel: 'Gemeindeversammlung',
+          abgesagt: true,
+          termine: ['2026-10-15']
+        })
+      ],
+      new Map([['gemeindeversammlung', offen]]),
+      HEUTE,
+      HEUTE_OBJ,
+      false,
+      logger
+    )
+    expect(d.geaendert[0]?.payload.hinweise).toEqual([hinweis])
+    expect(geschrieben[0]?.wiederHinweise).toEqual([hinweis])
+
+    const e = dienst()
+    await schreibeAnlaesse(
+      e,
+      QUELLE,
+      [
+        anlass({
+          titel: 'Gemeindeversammlung',
+          abgesagt: true,
+          termine: ['2026-10-15']
+        })
+      ],
+      new Map([
+        ['gemeindeversammlung', { ...offen, entscheid: 'uebernommen' }]
+      ]),
+      HEUTE,
+      HEUTE_OBJ,
+      false,
+      logger
+    )
+    expect(e.geaendert[0]?.payload.hinweise).toEqual([])
+  })
+
   it('ein Fehler beim Speichern kostet nur diese Zeile', async () => {
     const d = dienst()
     d.createOne = vi.fn(async () => {
@@ -320,6 +446,78 @@ describe('schreibeAnlaesse', () => {
       logger
     )
     expect(d.deleteMany).toHaveBeenCalledWith(['z9'])
+  })
+})
+
+describe('oeffnetWieder', () => {
+  const zeile = (
+    ueber: Partial<Pick<BekannteZeile, 'anker' | 'entscheid' | 'termine'>>
+  ): Pick<BekannteZeile, 'anker' | 'entscheid' | 'termine'> => ({
+    anker: 'erinnerung',
+    entscheid: 'uebernommen',
+    termine: ['2026-10-17', '2026-11-14'],
+    ...ueber
+  })
+
+  it('eine Abweichung auf einem bekannten Tag oeffnet nichts', () => {
+    expect(
+      oeffnetWieder(zeile({}), { anker: 'abweichung', ankerAm: '2026-10-17' })
+    ).toBe(false)
+  })
+
+  it('eine Abweichung auf einem neuen Tag oeffnet', () => {
+    expect(
+      oeffnetWieder(zeile({}), { anker: 'abweichung', ankerAm: '2026-10-18' })
+    ).toBe(true)
+  })
+
+  it('ohne gespeicherte Termine oeffnet eine Abweichung wie bisher', () => {
+    expect(
+      oeffnetWieder(zeile({ termine: null }), {
+        anker: 'abweichung',
+        ankerAm: '2026-10-17'
+      })
+    ).toBe(true)
+  })
+
+  it('ein Ausfall oeffnet auch an einem bekannten Tag — eine Absage ist die Nachricht', () => {
+    expect(
+      oeffnetWieder(zeile({}), { anker: 'ausfall', ankerAm: '2026-10-17' })
+    ).toBe(true)
+  })
+
+  it('nichts bei einer offenen Zeile, bei gleichem Anker und bei einem stillen Anker', () => {
+    expect(
+      oeffnetWieder(zeile({ entscheid: 'offen' }), {
+        anker: 'ausfall',
+        ankerAm: '2026-10-17'
+      })
+    ).toBe(false)
+    expect(
+      oeffnetWieder(zeile({ anker: 'ausfall' }), {
+        anker: 'ausfall',
+        ankerAm: '2026-10-17'
+      })
+    ).toBe(false)
+    expect(
+      oeffnetWieder(zeile({}), { anker: 'routine', ankerAm: '2026-10-17' })
+    ).toBe(false)
+  })
+})
+
+describe('behalteneWiederOeffnung', () => {
+  it('nur den eigenen Hinweis, und nur solange die Zeile offen ist', () => {
+    const eigener = `${WIEDER_GEOEFFNET} frist.`
+    const hinweise = [eigener, 'Text gekürzt.']
+    expect(behalteneWiederOeffnung({ entscheid: 'offen', hinweise })).toEqual([
+      eigener
+    ])
+    expect(
+      behalteneWiederOeffnung({ entscheid: 'abgelehnt', hinweise })
+    ).toEqual([])
+    expect(
+      behalteneWiederOeffnung({ entscheid: 'offen', hinweise: null })
+    ).toEqual([])
   })
 })
 
@@ -488,6 +686,17 @@ describe('detailPayload', () => {
     })
     expect(payload.hinweise).toContain('Über den Crawler gelesen')
     expect(befund.anker).toBe('frist')
+
+    const eigener = `${WIEDER_GEOEFFNET} frist.`
+    const wieder = detailPayload(
+      { ...g, wiederHinweise: [eigener] },
+      gelesen,
+      'Bottmingen',
+      HEUTE,
+      HEUTE_OBJ,
+      false
+    )
+    expect(wieder.payload.hinweise).toContain(eigener)
   })
 })
 
