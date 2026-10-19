@@ -774,7 +774,16 @@ them is wrong even if it works.
    Gemeindeversammlung". An **Ausfall or a Verschiebung** stands in the title
    or in the text („ist leider abgesagt", „findet nicht statt", „wurde vom 19.
    auf den 26. September verschoben") and is a Meldung in its own right — a
-   cancelled Gemeindeversammlung is news even though the meeting is not. A
+   cancelled Gemeindeversammlung is news even though the meeting is not. **A
+   CONDITION is not a cancellation** (19 October 2026): Riehen's „Mitmachtag:
+   Gemüsefeld in der Stadt" promised the day „bei jedem Wetter" and reserved
+   the cancellation for a storm, and the word „abgesagt" alone reopened the
+   published Meldung on the desk as „fällt aus". `abgesagtOderVerschoben`
+   reads sentence by sentence, and a sentence carrying a condition („bei
+   starkem Unwetter", „falls", „sollte", „kann … abgesagt werden") does not
+   count; „musste leider abgesagt werden" and „wurde abgesagt" still do, and
+   the TITLE is read without the filter — „Jassabend – abgesagt" leaves no
+   room for one. A
    **Gremium** is always a proposal, because of its Traktanden, and those live
    in a different place per CMS (i-web has a Sitzungsmodul with a table, the
    Backslash site links a sessions page, Weblication has only the entry — then
@@ -940,7 +949,9 @@ them is wrong even if it works.
    one series. The page carries no prose, so `nurEckdatenVorlage` names the
    family and everything follows from it: no generic detail fallback (it would
    make the whole page the description), an empty postcode is a verified
-   «keine Treffer» on the row rather than an error, one read of the detail
+   «keine Treffer» — neither an error nor, since 19 October 2026, a hint on
+   the row (it stood as a blue line on the desk; the newsroom: that is
+   normal, some places have few dates) — one read of the detail
    page is enough (`brauchtNachlesen`), the grade is 4 by code without a
    Sichtung (`kodierteStufe`), and the termin is `planeDreiAufrufe` — two
    weeks before, the Monday of the week, the day — with `wichtig: null` so
@@ -961,7 +972,16 @@ them is wrong even if it works.
    notice names (`gemeinden_genannt`); the 12:00 run writes the drafts itself,
    the Gemeindeseiten bargain; and `nur_erwaehnt` is this desk's own reject
    reason — a list of twenty municipalities is not a notice about Aesch, and
-   that is the lesson the Sichtung has to learn here. Three things measured
+   that is the lesson the Sichtung has to learn here. **The Sichtung sees the
+   passages that name the municipality, not only the beginning** (19 October
+   2026, `redaktion/auszug.ts`): it judged the Regierungsbulletin of 13
+   October from its first 400 characters — the naturalisations — and wrote
+   „Allschwil wird im Bulletin nicht genannt", while the 100th birthday of an
+   Allschwil resident stood at character 3'000 and the writer, handed the whole
+   text, made the right Meldung of it. `auszugMitFundstellen` appends a
+   window around every whole-word find of the name beyond what the beginning
+   shows, three at most, the rest counted; the SMD Sichtung, asking the same
+   question, uses it too. Three things measured
    before a line was written. The general list IS complete for the
    Direktionen (every one of their releases over 100 items), so the five
    „Aktuelles" pages are not watched; the Polizeimeldungen are a list of their
@@ -1142,7 +1162,10 @@ them is wrong even if it works.
    asked anything: the dossier is `processed` with a note („Wiederholung der
    Sendung vom …"), the edition it got while waiting is removed unless a
    candidate hangs on it, and the desk DECLARES it in a line of its own rather
-   than letting the day go missing. Measured over the eight transcripts of
+   than letting the day go missing — for THREE days (`jungeWiederholungen`,
+   `WIEDERHOLUNG_SICHTBAR_TAGE`; two weeks until 19 October 2026, when the
+   newsroom said an unimportant status line must not stand for ever: older
+   than three days, gone). Measured over the eight transcripts of
    20.–27.09.: 27.09. a 100-percent repeat of 26.09., every other day —
    Sunday 20.09. included — a show of its own. And the waiting now says WHICH
    wait it is (`grund`: `keine_marken` is too early, `passt_nicht` is a
@@ -1416,7 +1439,21 @@ them is wrong even if it works.
    page is read daily through the canton's Plone data door
    (`bl-api.webcloud7.ch`, the Kanton desk's, `quellen.typ: radar_bl`) while
    the PDF is fetched only when its address is new, direct and never through
-   the crawler. Measured on the sheet of 7 October 2026: six installations,
+   the crawler. **Three things the second sheet taught (18/19 October
+   2026).** The address is the FILE, without the query string: the page
+   renews a cache-buster (`?_t=…`) on every render, so the same sheet was a
+   new address every morning and the run fetched and re-planned it daily
+   (`blattAdresse`, and the rows store the address that way). The day in
+   the file name is not always the same way round — `20261007_…` then
+   `18102026_…` — and read year-first the second became „1810-20-26", which
+   Directus refused, so the run failed every morning after the upload with
+   „Invalid Date format in field publikation_am"; `publikationstagAus` tries
+   both orders and keeps only a real calendar day, else null. And the FIRST
+   sheet is the baseline: everything on it is stored and nothing proposed
+   (the newsroom's words: the installations already known are no hits), so a
+   new installation is a key a later sheet brings — on the sheet of 18
+   October that was SEMI 02 moving from Gelterkinden to Buckten, no covered
+   municipality, no proposal. Measured on the sheet of 7 October 2026: six installations,
    semi-stationary ones as `SEMI nn / Ab wann / Standort / Geschwindigkeit /
    Örtlichkeit` blocks between lines of asterisks, stationary ones the same
    block without number and date, an Örtlichkeit that wraps onto the next
@@ -1872,7 +1909,8 @@ Flow "Kanton pruefen"  (0 12 * * *)
        │    Wortgrenzen; nennt er keine → nicht gespeichert, morgen erneut
        ├─ eine Zeile je genannter Gemeinde (url, gemeinde) → kantonsmitteilungen
        ├─ 1× Sonnet je Gemeinde mit neuen Zeilen → Sichtung: betrifft es DIESE
-       │    Gemeinde konkret, oder ist sie ein Name in einer Liste? Regeln
+       │    Gemeinde konkret, oder ist sie ein Name in einer Liste? Auszug =
+       │    Anfang PLUS die Fundstellen des Gemeindenamens (auszug.ts); Regeln
        │    R1…Rn, Bilanz und Beispiele dieser Gemeinde; sortiert, filtert nie
        └─ je Vorschlag die Meldung gleich mit (hoechstens 20, Rest genannt) —
             dieselbe Funktion wie der Knopf; Attribution an Kanton oder

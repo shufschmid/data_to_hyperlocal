@@ -548,10 +548,6 @@ export interface Uebersicht {
   luecken?: string[]
 }
 
-/** What a calendar's row says when its postcode search answered with no date at all. */
-export const KEINE_TERMINE_HINWEIS =
-  'Der Kalender nennt zurzeit keinen Termin für diese Postleitzahl.'
-
 const ART_NAME: Record<Seitenart, string> = {
   nachricht: 'Newsuebersicht',
   termin: 'Veranstaltungsuebersicht'
@@ -609,8 +605,10 @@ export async function leseUebersicht(
   const eintraege = gelesen.eintraege
   // Eine Eckdaten-Vorlage darf leer antworten: ihr Parser hat den Satz
   // «keine Treffer» der Seite selbst gesehen, und eine Postleitzahl ohne
-  // Termin ist eine Antwort, kein Fehler. Gesagt wird sie trotzdem — als
-  // Luecke auf der Zeile des Kalenders, nie als Stille.
+  // Termin ist eine Antwort, kein Fehler — und auch kein Hinweis. Bis zum
+  // 19. Oktober 2026 stand sie als Luecke auf der Zeile des Kalenders und
+  // damit als blaue Zeile auf dem Tisch; die Redaktion: das ist normal so,
+  // an manchen Orten gibt es wenige Termine, dann zeigt der Kalender keine.
   const leerErlaubt = nurEckdatenVorlage(plattform)
   if (eintraege.length === 0 && gelesen.fehler.length === 0 && !leerErlaubt) {
     throw new GemeindeseiteFehler(
@@ -626,8 +624,7 @@ export async function leseUebersicht(
   }
   const luecken = [
     ...gelesen.abgeschnitten.map((t) => `${t}: Deckel erreicht`),
-    ...gelesen.fehler,
-    ...(leerErlaubt && eintraege.length === 0 ? [KEINE_TERMINE_HINWEIS] : [])
+    ...gelesen.fehler
   ]
   return {
     plattform,

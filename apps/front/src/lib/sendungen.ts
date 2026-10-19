@@ -146,11 +146,19 @@ export function sendungAusBetreff(betreff: string | null): string | null {
   return m === null ? null : `punkt6 vom ${m[1]}`
 }
 
-/** Die erkannten Wiederholungen der letzten zwei Wochen — ältere interessieren den Tisch nicht mehr. */
+/** Wie lange eine erkannte Wiederholung auf dem Tisch steht: drei Tage, die Regel der Redaktion vom 19.10.2026. */
+export const WIEDERHOLUNG_SICHTBAR_TAGE = 3
+
+/**
+ * Die erkannten Wiederholungen der letzten drei Tage — ältere interessieren
+ * den Tisch nicht mehr. Zwei Wochen waren es bis zum 19. Oktober 2026; die
+ * Redaktion: eine so unwichtige Statuszeile muss nicht für immer stehen
+ * bleiben, nach drei Tagen weg.
+ */
 export function jungeWiederholungen<T extends { date_created: string | null }>(
   dossiers: readonly T[],
   heute: Date = new Date()
 ): T[] {
-  const grenze = heute.getTime() - 14 * 86_400_000
+  const grenze = heute.getTime() - WIEDERHOLUNG_SICHTBAR_TAGE * 86_400_000
   return dossiers.filter((d) => d.date_created !== null && Date.parse(d.date_created) >= grenze)
 }

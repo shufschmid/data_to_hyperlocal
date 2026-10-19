@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Anlage } from '../shared/verkehr'
 import {
+  blattAdresse,
   blattBekannt,
   standortPlan,
   zuHolenKontrollen,
@@ -94,7 +95,7 @@ describe('standortPlan', () => {
         felder: expect.objectContaining({
           aktiv: true,
           zuletzt_gesehen: '2026-10-11',
-          quelle_url: PDF,
+          quelle_url: blattAdresse(PDF),
           publikation_am: '2026-10-07',
           gemeinde: 'g-binningen'
         })
@@ -106,15 +107,68 @@ describe('standortPlan', () => {
     )
   })
 
-  it('erkennt ein schon gelesenes Blatt an seiner Adresse auf den Zeilen', () => {
+  // The newsroom's words of 19 October 2026: the installations already
+  // known are no hits. The first sheet is the baseline — stored whole,
+  // nothing proposed, and the hint says so.
+  it('nimmt das erste Blatt als Bestand und schlaegt nichts vor', () => {
+    const plan = standortPlan({
+      anlagen: [augst, anlage({}), binningen],
+      bestand: [],
+      gemeinden: GEMEINDEN,
+      heute: '2026-10-12',
+      pdfUrl: PDF,
+      publiziertAm: '2026-10-07'
+    })
+    expect(plan.neu).toHaveLength(3)
+    expect(plan.neu.every((n) => !n.vorschlag && n.begruendung === null)).toBe(
+      true
+    )
+    expect(plan.neu[1]?.gemeinde).toBe('g-allschwil')
+    expect(plan.hinweise).toEqual([
+      'Radaranlagen: erstes Blatt, 3 Standorte auf dem Blatt vom 7. Oktober 2026 als Bestand uebernommen — nichts vorgeschlagen, neu ist erst, was ein spaeteres Blatt dazu bringt.'
+    ])
+  })
+
+  // The page renews the cache-buster on every render; the file is the
+  // identity, and the rows remember it without the query string.
+  it('erkennt ein schon gelesenes Blatt an seiner Adresse ohne Cache-Buster', () => {
     expect(blattBekannt([{ quelle_url: PDF }], PDF)).toBe(true)
     expect(
       blattBekannt(
-        [{ quelle_url: 'https://bl-api.webcloud7.ch/x/alt.pdf' }],
+        [{ quelle_url: PDF }],
+        'https://bl-api.webcloud7.ch/x/20261007_kontrollanlagen-standortmitteilung-1.pdf?_t=999'
+      )
+    ).toBe(true)
+    expect(
+      blattBekannt(
+        [
+          { quelle_url: 'https://bl-api.webcloud7.ch/x/alt.pdf' },
+          { quelle_url: null }
+        ],
         PDF
       )
     ).toBe(false)
     expect(blattBekannt([], PDF)).toBe(false)
+    expect(blattAdresse(PDF)).toBe(
+      'https://bl-api.webcloud7.ch/x/20261007_kontrollanlagen-standortmitteilung-1.pdf'
+    )
+    const plan = standortPlan({
+      anlagen: [binningen],
+      bestand: [
+        {
+          id: 'alt-binningen',
+          schluessel: binningen.schluessel,
+          gemeinde: 'g-binningen',
+          aktiv: true,
+          quelle_url: 'https://bl-api.webcloud7.ch/x/alt.pdf'
+        }
+      ],
+      gemeinden: GEMEINDEN,
+      heute: '2026-10-19',
+      pdfUrl: PDF,
+      publiziertAm: '2026-10-07'
+    })
+    expect(plan.aktualisieren[0]?.felder.quelle_url).toBe(blattAdresse(PDF))
   })
 })
 

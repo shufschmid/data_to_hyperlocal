@@ -77,6 +77,7 @@ import {
   type GemeindeZumZuordnen
 } from '../../shared/verkehr'
 import {
+  blattAdresse,
   blattBekannt,
   standortPlan,
   zuHolenKontrollen,
@@ -625,7 +626,7 @@ export default defineOperationApi<Options>({
           erstmals_gesehen: heute,
           zuletzt_gesehen: heute,
           publikation_am: seite.publiziertAm,
-          quelle_url: seite.pdfUrl,
+          quelle_url: blattAdresse(seite.pdfUrl),
           pruefsumme,
           vorschlag: n.vorschlag,
           vorschlag_begruendung: n.begruendung

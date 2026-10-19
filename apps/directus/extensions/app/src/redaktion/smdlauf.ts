@@ -14,13 +14,14 @@ import {
 import type { DossierLesung } from '../shared/smd/parse'
 import type { Linksucher } from '../shared/verlage'
 import type { SmdArt } from '../types/schema'
+import { auszugMitFundstellen } from './auszug'
 import type { RegelZeile } from './gedaechtnis'
 import { automatischeWeitergabe, type NummerierteRegel } from './lernen'
 import { ladeSmdSignale, LERN_FENSTER } from './lernsignale'
 import { pakete, SICHTUNG_AUFRUF, sichtungsFehlerText } from './sichtungspakete'
 import {
   aufraeumAktionSmd,
-  auszugVon,
+  AUSZUG_ZEICHEN,
   BLOG_FENSTER_TAGE,
   buildSmdSichtungPrompt,
   gekappterText,
@@ -385,7 +386,13 @@ export async function sichteSmdBeitraege(
   const zeilen: SmdSichtungsZeile[] = neue.map((z) => ({
     id: z.id,
     titel: z.titel,
-    auszug: auszugVon(z),
+    // The beginning plus every passage naming the municipality — the Kanton
+    // desk's lesson of 19 October 2026, and the same question here.
+    auszug: auszugMitFundstellen(
+      { anriss: z.lead, text: z.text },
+      gemeinde.name,
+      AUSZUG_ZEICHEN
+    ),
     datum: z.datum,
     medium: z.medium,
     blog: z.blog,

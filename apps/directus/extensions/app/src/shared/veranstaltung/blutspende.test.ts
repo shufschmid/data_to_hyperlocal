@@ -1,11 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import {
-  KEINE_TERMINE_HINWEIS,
-  leseUebersicht,
-  type Leser
-} from '../gemeindeseite'
+import { leseUebersicht, type Leser } from '../gemeindeseite'
 import { heuteAus } from '../gemeindeseite/datum'
 import {
   detailFamilie,
@@ -183,7 +179,10 @@ describe('eine leere Suche', () => {
     ).toThrow(/Seitenaufbau/)
   })
 
-  it('geht durch leseUebersicht als gueltige, deklarierte Antwort', async () => {
+  // A postcode without a date is a normal answer (the newsroom, 19 October
+  // 2026): no error, and no hint on the row either — it used to show as a
+  // blue line on the desk.
+  it('geht durch leseUebersicht als gueltige Antwort ohne Fehler und ohne Hinweis', async () => {
     const leer = await leseUebersicht(
       leserFuer(fixture('blutspende-leer.html')),
       LISTE,
@@ -192,7 +191,7 @@ describe('eine leere Suche', () => {
     )
     expect(leer.plattform).toBe('blutspende_termine')
     expect(leer.eintraege).toEqual([])
-    expect(leer.luecken).toEqual([KEINE_TERMINE_HINWEIS])
+    expect(leer.luecken).toBeUndefined()
     const voll = await leseUebersicht(
       leserFuer(fixture('blutspende-liste.html')),
       LISTE,

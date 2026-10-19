@@ -181,11 +181,44 @@ export function standortblattLink(seite: unknown): Standortseite {
   }
 }
 
-/** «…/20261007_kontrollanlagen-standortmitteilung-1.pdf» → «2026-10-07». */
+/**
+ * «…/20261007_kontrollanlagen-standortmitteilung-1.pdf» → «2026-10-07», and
+ * «…/18102026_kontrollanlagenstandortmitteilung.pdf» → «2026-10-18».
+ *
+ * The police write the day into the file name, but not always the same way
+ * round: the sheet of 7 October 2026 was named year-first, the one of 18
+ * October day-first — and read year-first that one became «1810-20-26»,
+ * which Directus refused, so the run failed on every morning after the
+ * upload (measured 19 October 2026). Both orders are tried, and only a
+ * figure that is a real calendar day counts; anything else is null, and a
+ * row without a publication day is better than no row.
+ */
 export function publikationstagAus(url: string): string | null {
-  const treffer = /\/(\d{4})(\d{2})(\d{2})_[^/]*\.pdf/i.exec(url)
-  if (treffer === null) return null
-  return `${treffer[1]}-${treffer[2]}-${treffer[3]}`
+  const treffer = /\/(\d{8})_[^/]*\.pdf/i.exec(url)
+  if (treffer?.[1] === undefined) return null
+  const ziffern = treffer[1]
+  const jahrZuerst = kalendertag(
+    ziffern.slice(0, 4),
+    ziffern.slice(4, 6),
+    ziffern.slice(6, 8)
+  )
+  if (jahrZuerst !== null) return jahrZuerst
+  return kalendertag(
+    ziffern.slice(4, 8),
+    ziffern.slice(2, 4),
+    ziffern.slice(0, 2)
+  )
+}
+
+/** `YYYY-MM-DD` when the three parts name a real day of this century, else null. */
+function kalendertag(jahr: string, monat: string, tag: string): string | null {
+  const j = Number(jahr)
+  const m = Number(monat)
+  const t = Number(tag)
+  if (j < 2000 || j > 2099 || m < 1 || m > 12 || t < 1 || t > 31) return null
+  const datum = new Date(Date.UTC(j, m - 1, t))
+  if (datum.getUTCMonth() !== m - 1 || datum.getUTCDate() !== t) return null
+  return `${jahr}-${monat}-${tag}`
 }
 
 /** The address a Plone file answers its bytes under, without the cache-buster. */

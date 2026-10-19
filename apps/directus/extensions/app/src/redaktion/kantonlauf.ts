@@ -20,10 +20,11 @@ import {
   type ListenItem
 } from '../shared/kanton/api'
 import type { KantonQuelle } from '../types/schema'
+import { auszugMitFundstellen } from './auszug'
 import type { RegelZeile } from './gedaechtnis'
+import { AUSZUG_ZEICHEN } from './gemeindeseite'
 import {
   aufraeumAktionKanton,
-  auszugVon,
   buildKantonSichtungPrompt,
   KANTON_SICHTUNG_SYSTEM_PROMPT,
   lernDigest,
@@ -217,7 +218,14 @@ export async function sichteKantonsmitteilungen(
   const zeilen: KantonSichtungsZeile[] = neue.map((z) => ({
     id: z.id,
     titel: z.titel,
-    auszug: auszugVon(z),
+    // The beginning plus every passage naming the municipality: the
+    // pre-filter put the item here because of a find, and a find at
+    // character 3'000 is invisible in a 400-character beginning.
+    auszug: auszugMitFundstellen(
+      { anriss: z.teaser, text: z.text },
+      gemeinde.name,
+      AUSZUG_ZEICHEN
+    ),
     publiziertAm: z.publiziert_am,
     quelle: z.quelle,
     behoerde: z.behoerde,

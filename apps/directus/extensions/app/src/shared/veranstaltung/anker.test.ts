@@ -60,6 +60,60 @@ describe('Erkenner', () => {
     expect(abgesagtOderVerschoben('Kein Vorwissen nötig.')).toBeNull()
   })
 
+  // Riehen's «Mitmachtag: Gemüsefeld in der Stadt» (19 October 2026): the
+  // description promised the day «bei jedem Wetter» and reserved the
+  // cancellation for a storm — the word alone made the row an Ausfall and
+  // reopened the published Meldung as «fällt aus». A condition is not a
+  // cancellation; a cancellation beside a condition still is.
+  it('nimmt einen bedingten Ausfall nicht fuer einen Ausfall', () => {
+    expect(
+      abgesagtOderVerschoben(
+        'Die Veranstaltung findet bei jedem Wetter statt. Bei starkem Unwetter wird die Veranstaltung abgesagt.'
+      )
+    ).toBeNull()
+    expect(
+      abgesagtOderVerschoben(
+        'Bei schlechter Witterung findet der Anlass nicht statt.'
+      )
+    ).toBeNull()
+    expect(
+      abgesagtOderVerschoben('Falls es regnet, fällt die Wanderung aus.')
+    ).toBeNull()
+    expect(
+      abgesagtOderVerschoben(
+        'Der Kurs kann bei zu wenig Anmeldungen abgesagt werden.'
+      )
+    ).toBeNull()
+    expect(
+      abgesagtOderVerschoben('Sollte es schneien, entfällt der Lauf.')
+    ).toBeNull()
+    // Stated cancellations keep their verdict, whatever the next sentence
+    // says and whichever verb carries them.
+    expect(
+      abgesagtOderVerschoben(
+        'Der Anlass wurde abgesagt. Bei Fragen melden Sie sich bei der Gemeinde.'
+      )
+    ).toBe('ausfall')
+    expect(
+      abgesagtOderVerschoben('Der Jassabend musste leider abgesagt werden.')
+    ).toBe('ausfall')
+    expect(
+      abgesagtOderVerschoben(
+        'Die Führung findet nicht statt, bei Fragen wenden Sie sich an das Sekretariat.'
+      )
+    ).toBe('ausfall')
+    // The title leaves no room for a condition.
+    expect(
+      abgesagtOderVerschoben(
+        'Bei Regen wird der Anlass abgesagt.',
+        'Dorffest – abgesagt'
+      )
+    ).toBe('ausfall')
+    expect(abgesagtOderVerschoben('', 'Konzert — neuer Termin folgt')).toBe(
+      'verschoben'
+    )
+  })
+
   it('liest die Anmeldefrist aus dem Satz, auch ohne Jahr', () => {
     expect(
       anmeldefrist('Anmeldung bis 21. September in der Bibliothek', HEUTE_OBJ)

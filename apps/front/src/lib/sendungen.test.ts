@@ -169,10 +169,13 @@ describe('Verarbeitung — was der Knopf berichtet', () => {
     expect(sendungAusBetreff('etwas anderes')).toBeNull()
   })
 
-  it('zeigt nur die Wiederholungen der letzten zwei Wochen', () => {
+  // Die Regel der Redaktion vom 19.10.2026: eine Wiederholung ist eine
+  // unwichtige Statuszeile und steht drei Tage, nicht zwei Wochen.
+  it('zeigt nur die Wiederholungen der letzten drei Tage', () => {
     const heute = new Date('2026-09-28T12:00:00Z')
     const d = [
       { id: 'a', date_created: '2026-09-27T20:30:00Z' },
+      { id: 'vier-tage', date_created: '2026-09-24T10:00:00Z' },
       { id: 'b', date_created: '2026-09-01T20:30:00Z' },
       { id: 'c', date_created: null }
     ]

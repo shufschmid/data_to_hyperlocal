@@ -68,12 +68,44 @@ export function istGremium(titel: string): boolean {
 const AUSFALL =
   /\babgesagt\b|findet nicht statt|f[äa]llt aus|\bentf[äa]llt\b|\babsage\b/iu
 const VERSCHOBEN = /\bverschoben\b|neues datum|neuer termin/iu
+/**
+ * A sentence that says only WHEN something would be cancelled — a condition,
+ * not a cancellation. «Bei starkem Unwetter wird die Veranstaltung
+ * abgesagt», «bei schlechter Witterung findet der Anlass nicht statt»,
+ * «falls es regnet, fällt die Wanderung aus», «kann bei zu wenig Anmeldungen
+ * abgesagt werden». Measured on Riehen's «Mitmachtag: Gemüsefeld in der
+ * Stadt» (19 October 2026): the description promised the day «bei jedem
+ * Wetter» and reserved the cancellation for a storm, and the word alone
+ * made the row an Ausfall — the published Meldung reopened on the desk
+ * under the label «fällt aus». A bare «bei» is not enough («bei Fragen
+ * melden Sie sich» follows real cancellations too), so the preposition
+ * counts only with a weather or a turnout word within three words. The
+ * modal verbs are the subjunctive and present forms only: «musste leider
+ * abgesagt werden» and «wurde abgesagt» are cancellations, not conditions.
+ */
+const BEDINGUNG =
+  /\b(?:falls|wenn|sofern|im falle|je nach|vorbehaltlich|allenfalls|gegebenenfalls|ggf\.?|eventuell|evtl\.?|unter umst[äa]nden|kann|könnten?|können|müssten?|würden?)\b|(?:^|[,;]\s*)sollten?\b|\bbei\s+(?:[\p{L}-]+\s+){0,3}(?:wetter\p{L}*|witterung\p{L}*|unwetter\p{L}*|regen\p{L}*|sturm\p{L}*|schnee\p{L}*|gewitter\p{L}*|hitze\p{L}*|anmeldungen|anmeldezahl\p{L}*|teilnehm\p{L}*|nachfrage|bedarf)|wetterbedingt|witterungsbedingt/iu
+
+/**
+ * Cancelled, moved, or neither — read sentence by sentence, so a condition
+ * in one sentence does not quash a cancellation in the next. The TITLE is
+ * read without that filter: «Jassabend — abgesagt» leaves no room for a
+ * condition, and the title is where a calendar announces it first.
+ */
 export function abgesagtOderVerschoben(
-  text: string
+  text: string,
+  titel = ''
 ): 'ausfall' | 'verschoben' | null {
-  const t = text.normalize('NFC')
-  if (AUSFALL.test(t)) return 'ausfall'
-  if (VERSCHOBEN.test(t)) return 'verschoben'
+  const t = titel.normalize('NFC')
+  if (t !== '' && AUSFALL.test(t)) return 'ausfall'
+  if (t !== '' && VERSCHOBEN.test(t)) return 'verschoben'
+  const saetze = text
+    .normalize('NFC')
+    .split(/(?<=[.!?])\s+|\n+/u)
+    .filter((s) => s.trim() !== '')
+  if (saetze.some((s) => AUSFALL.test(s) && !BEDINGUNG.test(s)))
+    return 'ausfall'
+  if (saetze.some((s) => VERSCHOBEN.test(s))) return 'verschoben'
   return null
 }
 
@@ -203,8 +235,8 @@ export function berechneAnker(
     )
 
   const ausfall = e.abgesagt
-    ? (abgesagtOderVerschoben(e.text) ?? 'ausfall')
-    : abgesagtOderVerschoben(e.text)
+    ? (abgesagtOderVerschoben(e.text, e.titel) ?? 'ausfall')
+    : abgesagtOderVerschoben(e.text, e.titel)
   if (ausfall !== null)
     return befund(
       ausfall,

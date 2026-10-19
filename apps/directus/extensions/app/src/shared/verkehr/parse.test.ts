@@ -177,6 +177,26 @@ describe('standortblattLink', () => {
     ).toBe('https://bl-api.webcloud7.ch/a/b/20261007_x.pdf/@@download/file')
     expect(publikationstagAus('https://x.ch/d/2026_x.pdf')).toBeNull()
   })
+
+  // The sheet of 18 October 2026 was named day-first; read year-first it
+  // became «1810-20-26», Directus refused the write and the run failed
+  // every morning after the upload. Both orders count, nonsense is null.
+  it('liest den Tag im Dateinamen in beiden Schreibweisen und nur als echten Kalendertag', () => {
+    expect(
+      publikationstagAus(
+        'https://bl-api.webcloud7.ch/a/18102026_kontrollanlagenstandortmitteilung.pdf?_t=1792311251114'
+      )
+    ).toBe('2026-10-18')
+    expect(publikationstagAus('https://x.ch/d/20261007_x.pdf')).toBe(
+      '2026-10-07'
+    )
+    // 2026-01-02 read year-first is the only reading that is a real day.
+    expect(publikationstagAus('https://x.ch/d/20260102_x.pdf')).toBe(
+      '2026-01-02'
+    )
+    expect(publikationstagAus('https://x.ch/d/99999999_x.pdf')).toBeNull()
+    expect(publikationstagAus('https://x.ch/d/20261332_x.pdf')).toBeNull()
+  })
 })
 
 describe('parseKontrollblatt', () => {

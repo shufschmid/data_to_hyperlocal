@@ -38,12 +38,29 @@ export interface StandortPlan {
   hinweise: string[]
 }
 
+/**
+ * The sheet's address as the rows remember it: without the query string.
+ *
+ * The page links the PDF with a cache-buster (`?_t=1791369921192`) that the
+ * CMS renews on every render, so the same sheet carried a new address every
+ * morning and the run fetched and re-planned it daily (measured 19 October
+ * 2026). The newsroom's rule is the file: a new document is a new address,
+ * and only then are there new installations.
+ */
+export function blattAdresse(pdfUrl: string): string {
+  return pdfUrl.split('?')[0] ?? pdfUrl
+}
+
 /** Whether a sheet at this address was already read: every row of a reading carries its address. */
 export function blattBekannt(
   bestand: ReadonlyArray<Pick<GespeicherterStandort, 'quelle_url'>>,
   pdfUrl: string
 ): boolean {
-  return bestand.some((zeile) => zeile.quelle_url === pdfUrl)
+  const gesucht = blattAdresse(pdfUrl)
+  return bestand.some(
+    (zeile) =>
+      zeile.quelle_url !== null && blattAdresse(zeile.quelle_url) === gesucht
+  )
 }
 
 /**
@@ -56,6 +73,14 @@ export function blattBekannt(
  * desk shows the whole sheet; a location the sheet dropped is marked
  * inactive and keeps its history. The hints name what happened, so the
  * run's result says so without anyone opening a row.
+ *
+ * The FIRST sheet is the baseline and proposes nothing (the newsroom's
+ * words of 19 October 2026: the installations already known are no hits).
+ * A sheet lists what stands today, not what came since the last one, so
+ * on the first read every location would look new — the Binningen camera
+ * that has stood on the Bottmingerstrasse for years was proposed as news.
+ * From the second sheet on, a key the rows never saw is what a new
+ * installation looks like.
  */
 export function standortPlan(eingabe: {
   anlagen: readonly Anlage[]
@@ -68,10 +93,12 @@ export function standortPlan(eingabe: {
   const bekannt = new Map(
     eingabe.bestand.map((zeile) => [zeile.schluessel, zeile])
   )
+  const erstesBlatt = eingabe.bestand.length === 0
   const namen = new Map(eingabe.gemeinden.map((g) => [g.id, g.name]))
   const gesehen = new Set<string>()
   const neu: NeuerStandort[] = []
   const aktualisieren: StandortPlan['aktualisieren'] = []
+  const adresse = blattAdresse(eingabe.pdfUrl)
 
   for (const anlage of eingabe.anlagen) {
     gesehen.add(anlage.schluessel)
@@ -89,13 +116,13 @@ export function standortPlan(eingabe: {
       gemeinde,
       aktiv: true,
       zuletzt_gesehen: eingabe.heute,
-      quelle_url: eingabe.pdfUrl,
+      quelle_url: adresse,
       publikation_am: eingabe.publiziertAm
     }
     const vorhanden = bekannt.get(anlage.schluessel)
     if (vorhanden === undefined) {
       const name = gemeinde === null ? null : (namen.get(gemeinde) ?? null)
-      const vorschlag = gemeinde !== null
+      const vorschlag = gemeinde !== null && !erstesBlatt
       neu.push({
         anlage,
         gemeinde,
@@ -118,12 +145,15 @@ export function standortPlan(eingabe: {
     .map((zeile) => zeile.id)
 
   const vorschlaege = neu.filter((n) => n.vorschlag).length
+  const blatt = `${eingabe.anlagen.length} Standorte auf dem Blatt${
+    eingabe.publiziertAm === null
+      ? ''
+      : ` vom ${datumDeutsch(eingabe.publiziertAm)}`
+  }`
   const hinweise = [
-    `Radaranlagen: ${eingabe.anlagen.length} Standorte auf dem Blatt${
-      eingabe.publiziertAm === null
-        ? ''
-        : ` vom ${datumDeutsch(eingabe.publiziertAm)}`
-    }, ${neu.length} neu, davon ${vorschlaege} in bespielten Gemeinden; ${stilllegen.length} nicht mehr aufgefuehrt.`
+    erstesBlatt
+      ? `Radaranlagen: erstes Blatt, ${blatt} als Bestand uebernommen — nichts vorgeschlagen, neu ist erst, was ein spaeteres Blatt dazu bringt.`
+      : `Radaranlagen: ${blatt}, ${neu.length} neu, davon ${vorschlaege} in bespielten Gemeinden; ${stilllegen.length} nicht mehr aufgefuehrt.`
   ]
   for (const n of neu) if (n.begruendung !== null) hinweise.push(n.begruendung)
 
