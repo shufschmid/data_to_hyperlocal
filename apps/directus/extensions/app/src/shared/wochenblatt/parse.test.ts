@@ -353,6 +353,13 @@ const BIBO_READER = readFileSync(
   join(__dirname, 'fixtures', 'bibo-reader.html'),
   'utf8'
 )
+// The same page saved 2026-10-25, after Localpoint replaced the JSON block by
+// a rendered list of the current year: 44 issues, each linked twice, the
+// reader coordinates URL-encoded.
+const BIBO_LISTE = readFileSync(
+  join(__dirname, 'fixtures', 'bibo-epaper-liste.html'),
+  'utf8'
+)
 
 describe('parseLocalpointEpaper', () => {
   const archiv = parseLocalpointEpaper(BIBO_EPAPER, 'https://bibo.ch/epaper')
@@ -377,6 +384,41 @@ describe('parseLocalpointEpaper', () => {
     expect(
       parseLocalpointEpaper('<html></html>', 'https://bibo.ch/epaper')
     ).toEqual([])
+  })
+
+  describe('gerenderte Liste (seit Oktober 2026)', () => {
+    const liste = parseLocalpointEpaper(BIBO_LISTE, 'https://bibo.ch/epaper')
+
+    it('liest jede Ausgabe einmal, obwohl sie zweimal verlinkt ist', () => {
+      expect(liste).toHaveLength(44)
+      expect(liste[0]?.schluessel).toBe('2026-10-22')
+      expect(liste[1]?.schluessel).toBe('2026-10-15')
+      expect(liste.at(-1)?.schluessel).toBe('2026-01-08')
+    })
+
+    it('baut dieselbe Reader-Adresse wie aus der eingebetteten Liste', () => {
+      // Die Seite kodiert den Schraegstrich (%2F); gespeichert wird die Form,
+      // die schon in seite_url der bisherigen Ausgaben steht.
+      expect(liste[0]).toEqual({
+        slug: '2026-10-22-6ca12e79-3c06-4558-9548-6a305effc8b7',
+        schluessel: '2026-10-22',
+        nummer: null,
+        datum: '2026-10-22',
+        seiteUrl:
+          'https://bibo.ch/bcms/read_epaper?id=2026/2026-10-22-6ca12e79-3c06-4558-9548-6a305effc8b7',
+        kw: expect.any(Number),
+        jahr: 2026
+      })
+    })
+
+    it('erkennt die bisher gelesene Ausgabe als bekannt', () => {
+      const bekannt = liste
+        .filter((e) => e.schluessel <= '2026-10-15')
+        .map((e) => e.schluessel)
+      expect(
+        waehleNeueAusgaben(liste, bekannt).map((e) => e.schluessel)
+      ).toEqual(['2026-10-22'])
+    })
   })
 })
 

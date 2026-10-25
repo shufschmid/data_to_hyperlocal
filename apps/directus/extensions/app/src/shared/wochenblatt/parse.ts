@@ -332,43 +332,31 @@ export function findeIssuuPublicationId(html: string): string | null {
 /**
  * Every issue of a Localpoint-CMS e-paper listing, in source order.
  *
- * The BiBo (Birsigtal-Bote) runs on Localpoint's CMS: the listing page embeds
- * its issues as JSON in `<script id="data-epapers">` — `name` is the issue
- * date as `DD.MM.YYYY`, `unique_id` identifies the document. The reader lives
- * at `/bcms/read_epaper?id={jahr}/{datum-iso}-{unique_id}` on the same host.
- * The printed number is not in the listing; it is read off the front page's
- * text layer once the PDF is downloaded (`nummerAusErsterSeite`).
+ * The BiBo (Birsigtal-Bote) runs on Localpoint's CMS, and the listing has
+ * come in two shapes. Until October 2026 it embedded its issues as JSON in
+ * `<script id="data-epapers">` — `name` the issue date as `DD.MM.YYYY`,
+ * `unique_id` the document. Since then (measured 25.10.2026) it renders a
+ * plain list instead, one `epaper-archive-item` per issue of the selected
+ * year, each linking the reader with the same coordinates URL-encoded
+ * (`read_epaper?id=2026%2F2026-10-22-<unique_id>`). Both are read; the JSON
+ * first, because where it exists it carries every year at once.
+ *
+ * The reader lives at `/bcms/read_epaper?id={jahr}/{datum-iso}-{unique_id}`
+ * on the same host. The printed number is not in the listing; it is read off
+ * the front page's text layer once the PDF is downloaded
+ * (`nummerAusErsterSeite`).
  */
 export function parseLocalpointEpaper(
   html: string,
   basisUrl: string
 ): ArchivEintrag[] {
   const basis = new URL(basisUrl)
-  const block = /<script[^>]*id="data-epapers"[^>]*>([\s\S]*?)<\/script>/i.exec(
-    html
-  )
-  if (block === null) return []
-
-  let roh: unknown
-  try {
-    roh = JSON.parse(block[1] ?? '')
-  } catch {
-    return []
-  }
-  if (!Array.isArray(roh)) return []
+  const ausgaben = localpointJson(html) ?? localpointLinks(html)
 
   const eintraege: ArchivEintrag[] = []
   const gesehen = new Set<string>()
 
-  for (const item of roh) {
-    if (typeof item !== 'object' || item === null) continue
-    const e = item as Record<string, unknown>
-    const name = typeof e.name === 'string' ? e.name : ''
-    const uniqueId = typeof e.unique_id === 'string' ? e.unique_id : ''
-    const datumTeile = /^(\d{2})\.(\d{2})\.(20\d{2})$/.exec(name)
-    if (datumTeile === null || uniqueId === '') continue
-
-    const iso = `${datumTeile[3]}-${datumTeile[2]}-${datumTeile[1]}`
+  for (const { iso, uniqueId } of ausgaben) {
     const kanon = normalisiereSchluessel(iso)
     if (kanon === null) continue
 
@@ -388,6 +376,57 @@ export function parseLocalpointEpaper(
   }
 
   return eintraege
+}
+
+interface LocalpointAusgabe {
+  iso: string
+  uniqueId: string
+}
+
+/** The embedded JSON listing; null when the page carries none. */
+function localpointJson(html: string): LocalpointAusgabe[] | null {
+  const block = /<script[^>]*id="data-epapers"[^>]*>([\s\S]*?)<\/script>/i.exec(
+    html
+  )
+  if (block === null) return null
+
+  let roh: unknown
+  try {
+    roh = JSON.parse(block[1] ?? '')
+  } catch {
+    return null
+  }
+  if (!Array.isArray(roh)) return null
+
+  const ausgaben: LocalpointAusgabe[] = []
+  for (const item of roh) {
+    if (typeof item !== 'object' || item === null) continue
+    const e = item as Record<string, unknown>
+    const name = typeof e.name === 'string' ? e.name : ''
+    const uniqueId = typeof e.unique_id === 'string' ? e.unique_id : ''
+    const datumTeile = /^(\d{2})\.(\d{2})\.(20\d{2})$/.exec(name)
+    if (datumTeile === null || uniqueId === '') continue
+    ausgaben.push({
+      iso: `${datumTeile[3]}-${datumTeile[2]}-${datumTeile[1]}`,
+      uniqueId
+    })
+  }
+  return ausgaben
+}
+
+/**
+ * The rendered listing: every reader link on the page, slash encoded or not.
+ * Each issue is linked twice (cover and „Lesen"); the caller dedupes by slug.
+ */
+function localpointLinks(html: string): LocalpointAusgabe[] {
+  const ausgaben: LocalpointAusgabe[] = []
+  for (const treffer of html.matchAll(
+    /read_epaper\?id=20\d{2}(?:%2F|\/)(20\d{2}-\d{2}-\d{2})-([\w-]+)/gi
+  )) {
+    if (treffer[1] === undefined || treffer[2] === undefined) continue
+    ausgaben.push({ iso: treffer[1], uniqueId: treffer[2] })
+  }
+  return ausgaben
 }
 
 /**

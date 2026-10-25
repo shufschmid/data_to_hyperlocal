@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+    <meta charset="UTF-8">
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width">
+    <title></title>
+            <script>
+        window.bcmsHideImagesAfterMonths = 6;
+        window.bcmsGalleryMinImages = 3;
+        window.bcmsHasAboSession = false;
+    </script>
+<script type="text/javascript">
+            var baseUrl = "//bibo.ch/"; var bd = bd || {}; bd.config = bd.config || {}; 
+            bd.config.protocol = "https"; 
+            bd.config.cookiepart = "/";
+            bd.config.table = "";
+            bd.userID = 0;
+            bd.userHash = "";
+            bd.username = "";
+
+	// #JSON #LOCALE
+            bd.config.page = "bcms-de_DE-.epaper";
+            bd.config.localizations = [];
+
+            bd.config.locale = "de_DE";
+            bd.config.date_format = "yyyy-MM-DD";
+            bd.config.datepicker_date_format = "yy-mm-dd";
+            bd.config.preload = true;
+            bd.config.offset = { localId:1, hashId:3, nested:0 };
+            bd.config.path = "bibo.ch/";
+            bd.config.username_instance = "https://usernames2.blitzdata.com/";
+            bd.config.username_instances = ["https:\/\/usernames2.blitzdata.com\/"];
+            var jsData = [];</script><script type="text/javascript" src="//bibo.ch/assets/js/jquery-3.6.0.min.js"  ></script><script type="text/javascript" src="//bibo.ch/apps/bcms/@themes/demo/assets/vendor/PhotoViewerJS-master/js/photo.js?v=5"  ></script><script type="text/javascript" src="//bibo.ch/apps/bcms/@themes/demo/assets/js/comments.min.js?v=20250210.1535"  ></script><script type="text/javascript" src="//cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"  ></script><link type="text/css" rel="stylesheet" href="//bibo.ch/assets/css/bootstrap-grid.min.css" /><link type="text/css" rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,600,700|Fjalla+One|Roboto+Slab:300,400,500,700" /><style type='text/css'>h1, h2, h3, h4, h5, h6 {font-family: "Roboto Slab";font-weight: 900;
+}.btn-danger:hover, .btn-danger:focus {background-position: 0 -30px;
+}div.menu-top > a:nth-child(1){margin-right:20px}.blog-header-logo #logo{/*max-width: 80%;*/float: left;
+}.main-content, .secondary-content {margin-top: 1em;
+}div.loaded-article, .loaded-article h3{cursor:pointer;}.pagination{font-size: 20px;
+}</style><style type='text/css'>body {padding: 0;margin: 0;font-size: 62.5%;font-family: 'Arial';
+}/**
+========================================
+Gallery
+========================================
+**/.photo-gallery {width: 100%;height: auto;position: relative;z-index: 1;margin-top: 20px;
+}.photo-gallery:after {content: '';display: table;clear: both;width: 100%;
+}.photo-gallery .photo-gallery--image {padding-right: 30px;padding-bottom: 30px;margin: 0;overflow: hidden;float: left;position: relative;z-index: 1;
+}.photo-gallery .photo-gallery--image a {border: none;
+}.photo-gallery .photo-gallery--image img {object-fit: cover;width: 130px;height: 130px;
+}/**
+========================================
+Viewer
+========================================
+**/</style><style type='text/css'>/**
+===========================================================
+Photo Viewer
+By Curtis Campbell
+Version 0.1
+March 24, 2015
+===========================================================
+**/@import url('https://fonts.googleapis.com/css?family=Open+Sans:400,700');.photo-viewer * {box-sizing: border-box;
+}.photo-viewer a {color: #FFF;text-decoration: none;
+}.photo-viewer a:hover {/*color: orange;*/text-decoration: none;color: #acacac;
+}.photo-viewer {width: 100%;height: 100%;background: #0e0e0e;  position: fixed;top: 0;left: -99999px;z-index: 9999;  overflow: hidden;  opacity: 0;  -webkit-transform: scale(0.2);transform: scale(0.2);  -webkit-transition: opacity 0.5s ease, -webkit-transform 0.2s ease;transition: opacity 0.5s ease, transform 0.2s ease;  font-family: 'Open Sans', Arial, sans-serif;
+}.photo-viewer--visible {opacity: 1;left: 0;  -webkit-transform: scale(1);transform: scale(1);
+}.photo-viewer--title {width: 100%;background: rgba(0,0,0,0.45) !important;position: absolute;top: 0;left: 0;z-index: 20;
+}.photo-viewer--title h1 {margin: 0;color: #FFF;text-align: center;font-size: 1.2rem;line-height: 1.2em;padding: 15px 40px;height: 100%;display: block;
+}.photo-viewer--title .photo-viewer--close {width: 40px;height: 40px;margin: 10px;  background: rgba(255,255,255,0.2);border-radius: 40px;  position: absolute;right: 0;top: 0;  font-size: 1.2rem;font-weight: bold;text-align: center;line-height: 40px;
+}.photo-viewer--container {position: relative;height: 100%;white-space: nowrap;
+}.photo-viewer--current-image {width: 100%;height: 100%;line-height: 1px;display: inline-block;text-align: center;margin: 0;  opacity: 0;  -webkit-transition: all 0.5s ease;transition: all 0.5s ease;  position: relative;left: 0;
+}.photo-viewer--current-image:before {content: "";display: inline-block;width: 1px;height: 100%;margin-right: -1px;vertical-align: middle;
+}.photo-viewer--current-image img {width: auto;height: auto;max-width: 100%;max-height: 100%;  display: inline-block;vertical-align: middle;
+}.photo-viewer--current-image.loaded {opacity: 1;
+}.photo-viewer--controls {width: 100%;height: 60px;padding: 0 20px;  /*background: rgba(0,0,0,0.75);*/  position: absolute;bottom: 50%;left: 0;z-index: 20;  color: #FFF;font-size: 4.0rem;line-height: 60px;
+}.photo-viewer--controls .photo-viewer--previous-image {width: 120px;float: left;
+}.photo-viewer--controls .photo-viewer--count {width: calc(100% - 240px);float: left;  text-align: center;
+}.photo-viewer--controls .photo-viewer--next-image {width: 120px;float: right;  text-align: right;
+}.photo-viewer--visible {opacity: 1;left: 0;  -webkit-transform: scale(1);transform: scale(1);background-color: rgba(0,0,0,0.85);
+}.photo-viewer--count{display: none;
+}#PhotoViewerTitle{position: absolute;bottom: 0;color: #fff;text-align: center;width: 100%;background: rgba(0,0,0,0.25) !important;font-size: 1.2rem;margin: 0;line-height: 1.2em;padding: 15px 40px;display: block;white-space: normal !important;}</style><link type="text/css" rel="stylesheet" href="//bibo.ch/apps/bcms/@themes/demo/home.css?20241016" /><link type="text/css" rel="stylesheet" href="https://bibo.ch/apps/bcms/@custom/bib/@themes/demo/epaper.css?t=1792183366" /><link type="text/css" rel="stylesheet" href="//bibo.ch/apps/bcms/@themes/demo/assets/vendor/PhotoViewerJS-master/css/page.css" /><link type="text/css" rel="stylesheet" href="//bibo.ch/apps/bcms/@themes/demo/assets/vendor/PhotoViewerJS-master/css/photo.css" /><link type="text/css" rel="stylesheet" href="//bibo.ch/apps/bcms/@themes/demo/banners.css?v=220301" /><link type="text/css" rel="stylesheet" href="//bibo.ch/apps/bcms/@themes/demo/menu.css?20230315.1329" /><link type="text/css" rel="stylesheet" href="//bibo.ch/apps/bcms/@themes/demo/assets/vendor/bootstrap/4.3.1/css/bootstrap.min.css" /><link type="text/css" rel="stylesheet" href="//bibo.ch/apps/bcms/@themes/demo/assets/css/search-box.css" /><link type="text/css" rel="stylesheet" href="//bibo.ch/apps/bcms/@themes/demo/assets/css/comments.css" /><link type="text/css" rel="stylesheet" href="//bibo.ch/apps/bcms/@custom/bib/@themes/demo/assets/css/custom.css?v=20260716"><!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-4NJ5DWVMX5"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-4NJ5DWVMX5');
+</script><br>
+<meta name="format-detection" content="telephone=no">
+<link href="/apps/bcms/@themes/demo/assets/vendor/fontawesome-free-6.6.0-web/css/fontawesome.min.css" rel="stylesheet"/>
+<link href="/apps/bcms/@themes/demo/assets/vendor/fontawesome-free-6.6.0-web/css/brands.min.css" rel="stylesheet"/>
+<link href="/apps/bcms/@themes/demo/assets/vendor/fontawesome-free-6.6.0-web/css/solid.min.css" rel="stylesheet"/>
+<meta name="robots" content="noarchive">
+
+</header>
+<span style='display:none' id='p_id'>1</span><span style='display:none' id='p_hash'>1jqbgi-19fh826</span><span style='display:none' id='fotostrecken_num'>3</span><div class="container">
+    <div id="fb-root"></div>
+<script>(function(d, s, id) {
+    var js, fjs = d.getElementsByTagName(s)[0];
+    if (d.getElementById(id)) return;
+    js = d.createElement(s); js.id = id;
+    js.src = "https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v3.0";
+    fjs.parentNode.insertBefore(js, fjs);
+}(document, "script", "facebook-jssdk"));
+</script>    <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel"><div class="search-icon search-icon-bg"></div></h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" name="qs" id="qs" style="max-width: 100%" placeholder="..."/>
+                    <span class="bd-button-header btn-outline-danger" style="margin-top:-6px"><div class="search-icon-bg search-icon"></div></span>
+                    <div id="qs-data"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bcms-header bcms-header-top py-1 d-none d-lg-block">
+        <div class="col-md-12 col-sm-12 d-flex justify-content-end align-items-right">
+            <div class="menu-top">
+                <span style="background: white;" class="bd-button-header btn-outline-danger bd-button_search"><div class="search-icon-bg search-icon"></div></span>
+                <div></div>            </div>
+        </div>
+    </div>
+    <header class="bcms-header bcms-header-middle py-3 d-none d-lg-block">
+        <div class="row justify-content-between align-items-center">
+
+            <div class="col-md-6 col-sm-12 col-logo text-center">
+
+                <a class="bcms-header-logo text-dark home-link" href='https://bibo.ch/'><img id="logo" src="https://bibo.ch/apps/bcms/@custom/bib/img/logo.png" alt="" loading="lazy"></a>
+            </div>
+<!--            TOP MENU-->
+            <div class="cms-top-menu-top col-md-6 d-none d-lg-block cms-top-menu-top d-none d-lg-block" style="">
+                    <div class="row" style="margin-top:20px">
+    <div class="col-lg-2 col-4" style="text-align:center">
+        <a href="/immobilien" style="color: #212529;text-align: center;  line-height: 1.5;">
+      <span style="width:100%; display: inline-block">
+
+          <i class="fas fa-building" aria-hidden="true" style="font-size:200%; height: 32.8px;"></i>
+      </span>
+            <span style="width:100%; display: block"><b>Immobilien</b>
+      </span>
+        </a>
+    </div>
+    <!-- <div class="col-md-3 col-4" style="text-align:center">
+        <a href="/veranstaltungen" style="color: #212529;text-align: center; line-height: 1.5;padding: .25rem .5rem;">
+            <i class="fas fa-calendar-alt"  aria-hidden="true" style="font-size:200%; height: 32.8px;"></i><br><b>Veranstaltungen</b>
+        </a>
+    </div> -->
+    <div class="col-lg-2 col-4" style="text-align:center">
+        <a href="/stellen" style="color: #212529;text-align: center; line-height: 1.5;">
+      <span style="width:100%; display: inline-block">
+          <i class="fas fa-users" style="font-size:200%; height: 32.8px;"></i>
+      </span>
+            <span style="width:100%; display: block"><b>Stellen</b>
+      </span>
+        </a>
+    </div>
+    <div class="col-lg-2 col-4" style="text-align:center">
+        <a href="/epaper" style="color: #212529;text-align: center; line-height: 1.5;">
+      <span style="width:100%; display: block">
+      <i class="fas fa-newspaper" aria-hidden="true" style="font-size:200%;height: 32.8px;"></i>
+      </span>
+            <span style="width:100%;; display: block"><b>E-Paper</b>
+      </span>
+        </a>
+    </div>
+    <!-- <div class="col-lg-2 col-4" style="text-align:center">
+        <a href="#" style="color: #212529;text-align: center; line-height: 1.5;">
+            <div class="col-12">
+                <i class="fas fa-mobile-alt" aria-hidden="true" style="font-size:200%; height: 32.8px;"></i>
+            </div>
+            <div class="col-12"><b>App</b>
+            </div>
+        </a>
+    </div> -->
+</div>
+          </div>
+        </div>
+    </header>
+
+    <div class="d-none d-lg-block bcms-header bcms-header-bottom">
+        <div class="col-2 col-md-12 col-2-custom" style="padding:0px">
+        
+            <nav class="navbar-expand-lg mainmenu" >
+                
+               
+                <div class="collapse navbar-collapse" id="bd-navbar">
+                    <ul class="navbar-nav mr-auto" style="width:100%"><li class="item-children dropdown  willkommen" style="text-align:center;"><a class="dropdown-toggle dropdown-entry text-muted" href="/willkommen" id="navbarDropdown-23ldkf-b2z41q" role="button" data-hover="dropdown" aria-haspopup="true" aria-expanded="false" data-toggle="dropdown" onclick="location.href='/willkommen'">Willkommen</a><ul class="dropdown-menu" style="width:100%" aria-labelledby="navbarDropdown-23ldkf-b2z41q"></ul></li><li class="item-children dropdown  bottmingen" style="text-align:center;"><a class="dropdown-toggle dropdown-entry text-muted" href="/c/bottmingen" id="navbarDropdown-1jrpar-235vhrmo" role="button" data-hover="dropdown" aria-haspopup="true" aria-expanded="false" data-toggle="dropdown" onclick="location.href='/c/bottmingen'">Bottmingen</a><ul class="dropdown-menu" style="width:100%" aria-labelledby="navbarDropdown-1jrpar-235vhrmo"></ul></li><li class="item-children dropdown  oberwil" style="text-align:center;"><a class="dropdown-toggle dropdown-entry text-muted" href="/c/oberwil" id="navbarDropdown-1jrpjb-10j6w8xf" role="button" data-hover="dropdown" aria-haspopup="true" aria-expanded="false" data-toggle="dropdown" onclick="location.href='/c/oberwil'">Oberwil</a><ul class="dropdown-menu" style="width:100%" aria-labelledby="navbarDropdown-1jrpjb-10j6w8xf"></ul></li><li class="item-children dropdown  therwil" style="text-align:center;"><a class="dropdown-toggle dropdown-entry text-muted" href="/c/therwil" id="navbarDropdown-1jrpld-1e48j4er" role="button" data-hover="dropdown" aria-haspopup="true" aria-expanded="false" data-toggle="dropdown" onclick="location.href='/c/therwil'">Therwil</a><ul class="dropdown-menu" style="width:100%" aria-labelledby="navbarDropdown-1jrpld-1e48j4er"></ul></li><li class="item-children dropdown  ettingen" style="text-align:center;"><a class="dropdown-toggle dropdown-entry text-muted" href="/c/ettingen" id="navbarDropdown-1jrpm1-alull7c" role="button" data-hover="dropdown" aria-haspopup="true" aria-expanded="false" data-toggle="dropdown" onclick="location.href='/c/ettingen'">Ettingen</a><ul class="dropdown-menu" style="width:100%" aria-labelledby="navbarDropdown-1jrpm1-alull7c"></ul></li><li class="item-children dropdown  leimental" style="text-align:center;"><a class="dropdown-toggle dropdown-entry text-muted" href="/c/leimental" id="navbarDropdown-1jrpbq-vpcopsg" role="button" data-hover="dropdown" aria-haspopup="true" aria-expanded="false" data-toggle="dropdown" onclick="location.href='/c/leimental'">Leimental</a><ul class="dropdown-menu" style="width:100%" aria-labelledby="navbarDropdown-1jrpbq-vpcopsg"></ul></li><li class="item-children dropdown  sport" style="text-align:center;"><a class="dropdown-toggle dropdown-entry text-muted" href="/c/sport" id="navbarDropdown-1jrpkk-2mr961it" role="button" data-hover="dropdown" aria-haspopup="true" aria-expanded="false" data-toggle="dropdown" onclick="location.href='/c/sport'">Sport</a><ul class="dropdown-menu" style="width:100%" aria-labelledby="navbarDropdown-1jrpkk-2mr961it"></ul></li><li class="item-children dropdown  kirchen" style="text-align:center;"><a class="dropdown-toggle dropdown-entry text-muted" href="/list-pager/kirchen" id="navbarDropdown-1jrpem-2v17uy37" role="button" data-hover="dropdown" aria-haspopup="true" aria-expanded="false" data-toggle="dropdown" onclick="location.href='/list-pager/kirchen'">Kirchen</a><ul class="dropdown-menu" style="width:100%" aria-labelledby="navbarDropdown-1jrpem-2v17uy37"><li class="item-children dropdown  kirchen" style="width:100%; text-align:left;"><a class="dropdown-toggle dropdown-entry text-muted" href="/list-pager/kirchen" id="navbarDropdown-1yytii-1s6kl6rl" role="button" data-hover="dropdown" aria-haspopup="true" aria-expanded="false" data-toggle="dropdown" onclick="location.href='/list-pager/kirchen'">KIRCHENZETTEL</a><ul class="dropdown-menu" style="width:100%" aria-labelledby="navbarDropdown-1yytii-1s6kl6rl"></ul></li><li class="item-children dropdown  evangelisch-reformierte-kirchgemeinde-binningen-bottmingen" style="width:100%; text-align:left;"><a class="dropdown-toggle dropdown-entry text-muted" href="/list-pager/evangelisch-reformierte-kirchgemeinde-binningen-bottmingen" id="navbarDropdown-1yyrka-1dbulaw9" role="button" data-hover="dropdown" aria-haspopup="true" aria-expanded="false" data-toggle="dropdown" onclick="location.href='/list-pager/evangelisch-reformierte-kirchgemeinde-binningen-bottmingen'">EVANGELISCH-REFORMIERTE KIRCHGEMEINDE BINNINGEN - BOTTMINGEN</a><ul class="dropdown-menu" style="width:100%" aria-labelledby="navbarDropdown-1yyrka-1dbulaw9"></ul></li><li class="item-children dropdown  evangelisch-reformierte-kirchgemeinde-oberwil-therwil-ettingen" style="width:100%; text-align:left;"><a class="dropdown-toggle dropdown-entry text-muted" href="/list-pager/evangelisch-reformierte-kirchgemeinde-oberwil-therwil-ettingen" id="navbarDropdown-1yyqve-2x0lcd3n" role="button" data-hover="dropdown" aria-haspopup="true" aria-expanded="false" data-toggle="dropdown" onclick="location.href='/list-pager/evangelisch-reformierte-kirchgemeinde-oberwil-therwil-ettingen'">EVANGELISCH-REFORMIERTE KIRCHGEMEINDE OBERWIL–THERWIL–ETTINGEN</a><ul class="dropdown-menu" style="width:100%" aria-labelledby="navbarDropdown-1yyqve-2x0lcd3n"></ul></li><li class="item-children dropdown  okumene-oberwil-therwil-ettingen" style="width:100%; text-align:left;"><a class="dropdown-toggle dropdown-entry text-muted" href="/list-pager/okumene-oberwil-therwil-ettingen" id="navbarDropdown-1zmil6-eb97vyr" role="button" data-hover="dropdown" aria-haspopup="true" aria-expanded="false" data-toggle="dropdown" onclick="location.href='/list-pager/okumene-oberwil-therwil-ettingen'">ÖKUMENE OBERWIL–THERWIL–ETTINGEN</a><ul class="dropdown-menu" style="width:100%" aria-labelledby="navbarDropdown-1zmil6-eb97vyr"></ul></li><li class="item-children dropdown  pastoralraum-leimental" style="width:100%; text-align:left;"><a class="dropdown-toggle dropdown-entry text-muted" href="/list-pager/pastoralraum-leimental" id="navbarDropdown-1yyrj4-10e1u2o1" role="button" data-hover="dropdown" aria-haspopup="true" aria-expanded="false" data-toggle="dropdown" onclick="location.href='/list-pager/pastoralraum-leimental'">PASTORALRAUM LEIMENTAL</a><ul class="dropdown-menu" style="width:100%" aria-labelledby="navbarDropdown-1yyrj4-10e1u2o1"></ul></li><li class="item-children dropdown  romisch-katholische-kirchgemeinde-therwil-benkenromisch-katholische-kirchgemeinde-oberwil" style="width:100%; text-align:left;"><a class="dropdown-toggle dropdown-entry text-muted" href="/list-pager/romisch-katholische-kirchgemeinde-therwil-benkenromisch-katholische-kirchgemeinde-oberwil" id="navbarDropdown-1yyr8k-1t4nu169" role="button" data-hover="dropdown" aria-haspopup="true" aria-expanded="false" data-toggle="dropdown" onclick="location.href='/list-pager/romisch-katholische-kirchgemeinde-therwil-benkenromisch-katholische-kirchgemeinde-oberwil'">RÖMISCH-KATHOLISCHE KIRCHGEMEINDE OBERWIL</a><ul class="dropdown-menu" style="width:100%" aria-labelledby="navbarDropdown-1yyr8k-1t4nu169"></ul></li><li class="item-children dropdown  romisch-katholische-kirchgemeinde-therwil-benken" style="width:100%; text-align:left;"><a class="dropdown-toggle dropdown-entry text-muted" href="/list-pager/romisch-katholische-kirchgemeinde-therwil-benken" id="navbarDropdown-1yyrd6-35du4apg" role="button" data-hover="dropdown" aria-haspopup="true" aria-expanded="false" data-toggle="dropdown" onclick="location.href='/list-pager/romisch-katholische-kirchgemeinde-therwil-benken'">RÖMISCH-KATHOLISCHE KIRCHGEMEINDE THERWIL/BENKEN</a><ul class="dropdown-menu" style="width:100%" aria-labelledby="navbarDropdown-1yyrd6-35du4apg"></ul></li><li class="item-children dropdown  romisch-katholische-kirchgemeinde-ettigen" style="width:100%; text-align:left;"><a class="dropdown-toggle dropdown-entry text-muted" href="/list-pager/romisch-katholische-kirchgemeinde-ettigen" id="navbarDropdown-1yyrlx-anqruaf" role="button" data-hover="dropdown" aria-haspopup="true" aria-expanded="false" data-toggle="dropdown" onclick="location.href='/list-pager/romisch-katholische-kirchgemeinde-ettigen'">RÖMISCH-KATHOLISCHE KIRCHGEMEINDE ETTIGEN</a><ul class="dropdown-menu" style="width:100%" aria-labelledby="navbarDropdown-1yyrlx-anqruaf"></ul></li></ul></li><li class="item-children dropdown  forum" style="text-align:center;"><a class="dropdown-toggle dropdown-entry text-muted" href="/c/forum" id="navbarDropdown-1jrpqi-21vx8qjt" role="button" data-hover="dropdown" aria-haspopup="true" aria-expanded="false" data-toggle="dropdown" onclick="location.href='/c/forum'">Forum</a><ul class="dropdown-menu" style="width:100%" aria-labelledby="navbarDropdown-1jrpqi-21vx8qjt"></ul></li><li class="item-children dropdown  #" style="text-align:center;"><a class="dropdown-toggle dropdown-entry text-muted" href="#" id="navbarDropdown-23hemx-2psjhptv" role="button" data-hover="dropdown" aria-haspopup="true" aria-expanded="false" data-toggle="dropdown" onclick="location.href='#'">Inserate</a><ul class="dropdown-menu" style="width:100%" aria-labelledby="navbarDropdown-23hemx-2psjhptv"><li class="  bibo" style="width:100%; text-align:left;"><a class="text-muted" href="https://inserate.reinhardt.ch/einzelinserate/bibo/">Inserate aufgeben</a></li><li class="  datenanlieferung" style="width:100%; text-align:left;"><a class="text-muted" href="/datenanlieferung">Datenanlieferung</a></li><li class="  immobilien" style="width:100%; text-align:left;"><a class="text-muted" href="/immobilien">Immobilien</a></li><li class="  stellen" style="width:100%; text-align:left;"><a class="text-muted" href="/stellen">Stellen</a></li><li class="  bauen-und-renovieren" style="width:100%; text-align:left;"><a class="text-muted" href="/bauen-und-renovieren">Bauen & Renovieren</a></li><li class="  sonderseiten-haus-und-garten" style="width:100%; text-align:left;"><a class="text-muted" href="/sonderseiten-haus-und-garten">Haus und Garten</a></li><li class="  auto-markt" style="width:100%; text-align:left;"><a class="text-muted" href="/auto-markt">Auto-Markt</a></li><li class="  gesund-schon" style="width:100%; text-align:left;"><a class="text-muted" href="/gesund-schon">Gsund & schön</a></li><li class="  diverses" style="width:100%; text-align:left;"><a class="text-muted" href="/diverses">Andere Inserate</a></li></ul></li>                </ul>
+                </div>
+            </nav>
+        
+    </div>        <!--            <a class="leaderboard" target="_blank" href="https://stroebele.ch/"><div style="text-align: center;padding:15px;"><img style="width:100%" src="https://seeblick-img.localpoint.ch/i/0/14//180x180_782f6ef5b5e9c2e529166939d5394f42.gif?140361772"></div></a>-->
+    </div>
+    <div class="d-lg-none">
+        <div id="menu-mobile" class="demo2">
+            <div id="burgerBtn"></div>
+
+            <ul id="nav">
+                <li class="top-menu-mobile">
+                    <div class="col-12 cms-top-menu-top">
+                    <div class="row" style="margin-top:20px">
+    <div class="col-lg-2 col-4" style="text-align:center">
+        <a href="/immobilien" style="color: #212529;text-align: center;  line-height: 1.5;">
+      <span style="width:100%; display: inline-block">
+
+          <i class="fas fa-building" aria-hidden="true" style="font-size:200%; height: 32.8px;"></i>
+      </span>
+            <span style="width:100%; display: block"><b>Immobilien</b>
+      </span>
+        </a>
+    </div>
+    <!-- <div class="col-md-3 col-4" style="text-align:center">
+        <a href="/veranstaltungen" style="color: #212529;text-align: center; line-height: 1.5;padding: .25rem .5rem;">
+            <i class="fas fa-calendar-alt"  aria-hidden="true" style="font-size:200%; height: 32.8px;"></i><br><b>Veranstaltungen</b>
+        </a>
+    </div> -->
+    <div class="col-lg-2 col-4" style="text-align:center">
+        <a href="/stellen" style="color: #212529;text-align: center; line-height: 1.5;">
+      <span style="width:100%; display: inline-block">
+          <i class="fas fa-users" style="font-size:200%; height: 32.8px;"></i>
+      </span>
+            <span style="width:100%; display: block"><b>Stellen</b>
+      </span>
+        </a>
+    </div>
+    <div class="col-lg-2 col-4" style="text-align:center">
+        <a href="/epaper" style="color: #212529;text-align: center; line-height: 1.5;">
+      <span style="width:100%; display: block">
+      <i class="fas fa-newspaper" aria-hidden="true" style="font-size:200%;height: 32.8px;"></i>
+      </span>
+            <span style="width:100%;; display: block"><b>E-Paper</b>
+      </span>
+        </a>
+    </div>
+    <!-- <div class="col-lg-2 col-4" style="text-align:center">
+        <a href="#" style="color: #212529;text-align: center; line-height: 1.5;">
+            <div class="col-12">
+                <i class="fas fa-mobile-alt" aria-hidden="true" style="font-size:200%; height: 32.8px;"></i>
+            </div>
+            <div class="col-12"><b>App</b>
+            </div>
+        </a>
+    </div> -->
+</div>
+          </div>                </li>
+                <li><span class="submenu not-arrows"><a href="/willkommen">Willkommen</a></span><span class="submenu mob-arrow"></span><ul class="submenu"></ul></li><li><span class="submenu not-arrows"><a href="/c/bottmingen">Bottmingen</a></span><span class="submenu mob-arrow"></span><ul class="submenu"></ul></li><li><span class="submenu not-arrows"><a href="/c/oberwil">Oberwil</a></span><span class="submenu mob-arrow"></span><ul class="submenu"></ul></li><li><span class="submenu not-arrows"><a href="/c/therwil">Therwil</a></span><span class="submenu mob-arrow"></span><ul class="submenu"></ul></li><li><span class="submenu not-arrows"><a href="/c/ettingen">Ettingen</a></span><span class="submenu mob-arrow"></span><ul class="submenu"></ul></li><li><span class="submenu not-arrows"><a href="/c/leimental">Leimental</a></span><span class="submenu mob-arrow"></span><ul class="submenu"></ul></li><li><span class="submenu not-arrows"><a href="/c/sport">Sport</a></span><span class="submenu mob-arrow"></span><ul class="submenu"></ul></li><li><span class="submenu not-arrows"><a href="/list-pager/kirchen">Kirchen</a></span><span class="submenu mob-arrow"></span><ul class="submenu"><li><span class="submenu not-arrows"><a href="/list-pager/kirchen">KIRCHENZETTEL</a></span><span class="submenu mob-arrow"></span><ul class="submenu"></ul></li><li><span class="submenu not-arrows"><a href="/list-pager/evangelisch-reformierte-kirchgemeinde-binningen-bottmingen">EVANGELISCH-REFORMIERTE KIRCHGEMEINDE BINNINGEN - BOTTMINGEN</a></span><span class="submenu mob-arrow"></span><ul class="submenu"></ul></li><li><span class="submenu not-arrows"><a href="/list-pager/evangelisch-reformierte-kirchgemeinde-oberwil-therwil-ettingen">EVANGELISCH-REFORMIERTE KIRCHGEMEINDE OBERWIL–THERWIL–ETTINGEN</a></span><span class="submenu mob-arrow"></span><ul class="submenu"></ul></li><li><span class="submenu not-arrows"><a href="/list-pager/okumene-oberwil-therwil-ettingen">ÖKUMENE OBERWIL–THERWIL–ETTINGEN</a></span><span class="submenu mob-arrow"></span><ul class="submenu"></ul></li><li><span class="submenu not-arrows"><a href="/list-pager/pastoralraum-leimental">PASTORALRAUM LEIMENTAL</a></span><span class="submenu mob-arrow"></span><ul class="submenu"></ul></li><li><span class="submenu not-arrows"><a href="/list-pager/romisch-katholische-kirchgemeinde-therwil-benkenromisch-katholische-kirchgemeinde-oberwil">RÖMISCH-KATHOLISCHE KIRCHGEMEINDE OBERWIL</a></span><span class="submenu mob-arrow"></span><ul class="submenu"></ul></li><li><span class="submenu not-arrows"><a href="/list-pager/romisch-katholische-kirchgemeinde-therwil-benken">RÖMISCH-KATHOLISCHE KIRCHGEMEINDE THERWIL/BENKEN</a></span><span class="submenu mob-arrow"></span><ul class="submenu"></ul></li><li><span class="submenu not-arrows"><a href="/list-pager/romisch-katholische-kirchgemeinde-ettigen">RÖMISCH-KATHOLISCHE KIRCHGEMEINDE ETTIGEN</a></span><span class="submenu mob-arrow"></span><ul class="submenu"></ul></li></ul></li><li><span class="submenu not-arrows"><a href="/c/forum">Forum</a></span><span class="submenu mob-arrow"></span><ul class="submenu"></ul></li><li><span class="submenu not-arrows"><a href="#">Inserate</a></span><span class="submenu mob-arrow"></span><ul class="submenu"><li><a href="https://inserate.reinhardt.ch/einzelinserate/bibo/">Inserate aufgeben</a></li><li><a href="/datenanlieferung">Datenanlieferung</a></li><li><a href="/immobilien">Immobilien</a></li><li><a href="/stellen">Stellen</a></li><li><a href="/bauen-und-renovieren">Bauen & Renovieren</a></li><li><a href="/sonderseiten-haus-und-garten">Haus und Garten</a></li><li><a href="/auto-markt">Auto-Markt</a></li><li><a href="/gesund-schon">Gsund & schön</a></li><li><a href="/diverses">Andere Inserate</a></li></ul></li>            </ul>
+            <div class="col-12">
+                <div class="menu-top menu-top-mobile">
+                    <span style="background: white;" class="bd-button-header btn-outline-danger bd-button_search"><div class="search-icon-bg search-icon"></div></span>
+                    <div></div>                </div>
+                <div class="dot"></div>
+            </div>
+            <div class="col-md-12 col-sm-12 col-logo logo-mobile">
+                <a class="bcms-header-logo text-dark home-link" href='https://bibo.ch/'><img id="logo" style="" src="https://bibo.ch/apps/bcms/@custom/bib/img/logo.png" alt="" loading="lazy"></a>
+            </div>
+            <div id="mobileBodyContent" style="display: none">
+                <div>
+                    <div class="col-12 cms-top-menu-top">
+                    <div class="row" style="margin-top:20px">
+    <div class="col-lg-2 col-4" style="text-align:center">
+        <a href="/immobilien" style="color: #212529;text-align: center;  line-height: 1.5;">
+      <span style="width:100%; display: inline-block">
+
+          <i class="fas fa-building" aria-hidden="true" style="font-size:200%; height: 32.8px;"></i>
+      </span>
+            <span style="width:100%; display: block"><b>Immobilien</b>
+      </span>
+        </a>
+    </div>
+    <!-- <div class="col-md-3 col-4" style="text-align:center">
+        <a href="/veranstaltungen" style="color: #212529;text-align: center; line-height: 1.5;padding: .25rem .5rem;">
+            <i class="fas fa-calendar-alt"  aria-hidden="true" style="font-size:200%; height: 32.8px;"></i><br><b>Veranstaltungen</b>
+        </a>
+    </div> -->
+    <div class="col-lg-2 col-4" style="text-align:center">
+        <a href="/stellen" style="color: #212529;text-align: center; line-height: 1.5;">
+      <span style="width:100%; display: inline-block">
+          <i class="fas fa-users" style="font-size:200%; height: 32.8px;"></i>
+      </span>
+            <span style="width:100%; display: block"><b>Stellen</b>
+      </span>
+        </a>
+    </div>
+    <div class="col-lg-2 col-4" style="text-align:center">
+        <a href="/epaper" style="color: #212529;text-align: center; line-height: 1.5;">
+      <span style="width:100%; display: block">
+      <i class="fas fa-newspaper" aria-hidden="true" style="font-size:200%;height: 32.8px;"></i>
+      </span>
+            <span style="width:100%;; display: block"><b>E-Paper</b>
+      </span>
+        </a>
+    </div>
+    <!-- <div class="col-lg-2 col-4" style="text-align:center">
+        <a href="#" style="color: #212529;text-align: center; line-height: 1.5;">
+            <div class="col-12">
+                <i class="fas fa-mobile-alt" aria-hidden="true" style="font-size:200%; height: 32.8px;"></i>
+            </div>
+            <div class="col-12"><b>App</b>
+            </div>
+        </a>
+    </div> -->
+</div>
+          </div>                </div>
+            </div>
+        </div>
+    </div>
+    <div class="menu-mobile-sep d-lg-none"></div>
+
+    <div id="overlay"></div>
+<div class="errorholder"></div><div class="epaper-archive container">
+    <form class="epaper-archive-filter" method="get" action="">
+        <label>
+            <span>Jahr</span>
+            <select name="year">
+                                    <option value="2026" selected>2026</option>
+                                    <option value="2025" >2025</option>
+                                    <option value="2024" >2024</option>
+                                    <option value="2023" >2023</option>
+                            </select>
+        </label>
+        <label>
+            <span>Monat</span>
+            <select name="month">
+                <option value="">Alle Monate</option>
+                                    <option value="1" >Januar</option>
+                                    <option value="2" >Februar</option>
+                                    <option value="3" >März</option>
+                                    <option value="4" >April</option>
+                                    <option value="5" >Mai</option>
+                                    <option value="6" >Juni</option>
+                                    <option value="7" >Juli</option>
+                                    <option value="8" >August</option>
+                                    <option value="9" >September</option>
+                                    <option value="10" >Oktober</option>
+                                    <option value="11" >November</option>
+                                    <option value="12" >Dezember</option>
+                            </select>
+        </label>
+        <noscript><button type="submit" class="btn btn-danger">Anzeigen</button></noscript>
+    </form>
+
+            <ul class="epaper-archive-grid">
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-10-22-6ca12e79-3c06-4558-9548-6a305effc8b7" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18/311pua-1lo3ljy//sd.jpeg?183158290" alt="22.10.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">22.10.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-10-22-6ca12e79-3c06-4558-9548-6a305effc8b7" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-10-15-34d06443-e257-45c5-8aae-8acc14dc385f" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18/30orfd-i4ytdz//sd.jpeg?182553818" alt="15.10.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">15.10.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-10-15-34d06443-e257-45c5-8aae-8acc14dc385f" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-10-08-4abd61d1-6ccc-43b3-b7a5-f810aba16f78" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18/30bwra-aqt4nd//sd.jpeg?181954198" alt="08.10.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">08.10.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-10-08-4abd61d1-6ccc-43b3-b7a5-f810aba16f78" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-10-01-26a835aa-4805-4eab-8a52-823b05fb211f" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18/2zyxaq-1vpcply//sd.jpeg?181348370" alt="01.10.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">01.10.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-10-01-26a835aa-4805-4eab-8a52-823b05fb211f" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-09-24-b96d7d28-dc24-4821-a88d-9ba15c518d7c" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18/2zlvfq-14x5ig3//sd.jpeg?180739430" alt="24.09.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">24.09.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-09-24-b96d7d28-dc24-4821-a88d-9ba15c518d7c" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-09-17-b254771b-58f8-4848-82b9-64e7e5e02620" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18/2z77c9-1yfnaiq//sd.jpeg?180055018" alt="17.09.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">17.09.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-09-17-b254771b-58f8-4848-82b9-64e7e5e02620" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-09-10-8462975e-d6d0-4a89-b6f0-f4566f4e268c" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18/2yw3w3-1hn0l8l//sd.jpeg?179537332" alt="10.09.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">10.09.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-09-10-8462975e-d6d0-4a89-b6f0-f4566f4e268c" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-09-03-e006834d-2b43-42a7-9b27-6907c417b71a" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18/2yj3iy-x8o5f3//sd.jpeg?178930330" alt="03.09.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">03.09.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-09-03-e006834d-2b43-42a7-9b27-6907c417b71a" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-09-03-78c2abe9-f8ef-4bd9-b291-cde3c4815247" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18/2ywm04-10otogl//sd.jpeg?179560804" alt="03.09.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">03.09.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-09-03-78c2abe9-f8ef-4bd9-b291-cde3c4815247" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-08-27-9228fa61-cee0-4be7-9e73-0b5c4a5c81cf" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18/2y5ih3-11xd6le//sd.jpeg?178296519" alt="27.08.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">27.08.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-08-27-9228fa61-cee0-4be7-9e73-0b5c4a5c81cf" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-08-20-0bd99b60-61e7-4b4e-ad26-3956370854e1" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18/2xt6l1-na6qxd//sd.jpeg?177721238" alt="20.08.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">20.08.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-08-20-0bd99b60-61e7-4b4e-ad26-3956370854e1" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-08-13-33503f3a-e6ce-451a-9d5b-5fafe799645a" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18/2xga86-qz1jf3//sd.jpeg?177119430" alt="13.08.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">13.08.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-08-13-33503f3a-e6ce-451a-9d5b-5fafe799645a" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-08-06-28051172-f357-4a17-9eb5-f3a1a7a84a24" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18/2x38de-1s2ak1l//sd.jpeg?176510499" alt="06.08.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">06.08.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-08-06-28051172-f357-4a17-9eb5-f3a1a7a84a24" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-07-30-8cb8e5f3-1cb9-41fc-9643-da04d823e644" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18/2wqb4t-qbl3x0//sd.jpeg?175907550" alt="30.07.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">30.07.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-07-30-8cb8e5f3-1cb9-41fc-9643-da04d823e644" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-07-23-b6b07394-98fd-4766-ac62-07c161520eaa" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18/2wbjhh-1cdbt68//sd.jpeg?175218533" alt="23.07.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">23.07.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-07-23-b6b07394-98fd-4766-ac62-07c161520eaa" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-07-16-08469bbd-92e1-44d1-a494-6c32a1457076" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18/2vz6qa-13irh74//sd.jpeg?174642130" alt="16.07.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">16.07.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-07-16-08469bbd-92e1-44d1-a494-6c32a1457076" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-07-09-dfdf6b11-1c01-409f-b27b-774058fe0e08" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18/2vld30-wukv2y//sd.jpeg?173997180" alt="09.07.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">09.07.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-07-09-dfdf6b11-1c01-409f-b27b-774058fe0e08" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-07-02-b8db7b62-0fc3-49cc-879c-d5a6bbd70981" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18/2vacro-j2id1//sd.jpeg?173483556" alt="02.07.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">02.07.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-07-02-b8db7b62-0fc3-49cc-879c-d5a6bbd70981" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-06-25-0a0a7706-6cf7-42b9-bab1-11370ba7bebb" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18/2uvltv-ni4eeb//sd.jpeg?172795459" alt="25.06.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">25.06.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-06-25-0a0a7706-6cf7-42b9-bab1-11370ba7bebb" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-06-18-33d261f6-e276-4a5d-93ee-2c5469dc6db3" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18/2uink4-119oafa//sd.jpeg?172191172" alt="18.06.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">18.06.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-06-18-33d261f6-e276-4a5d-93ee-2c5469dc6db3" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-06-11-4f26db6d-e3ec-4cf4-9025-0e117fca2e24" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18/2u7hgx-1w5ibby//sd.jpeg?171670066" alt="11.06.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">11.06.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-06-11-4f26db6d-e3ec-4cf4-9025-0e117fca2e24" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-06-04-799866e3-90ca-4a8e-a8de-12d5d3141e38" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18/2tulwt-1qqdeti//sd.jpeg?171069294" alt="04.06.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">04.06.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-06-04-799866e3-90ca-4a8e-a8de-12d5d3141e38" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-05-28-81d8117f-42ec-478f-b21a-803463cf3476" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18/2thkmm-ypsjft//sd.jpeg?170461103" alt="28.05.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">28.05.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-05-28-81d8117f-42ec-478f-b21a-803463cf3476" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-05-21-db2aa1b1-59da-494d-aaaf-1d6ee69b39cc" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18/2t4lbh-112p5y9//sd.jpeg?169855470" alt="21.05.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">21.05.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-05-21-db2aa1b1-59da-494d-aaaf-1d6ee69b39cc" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-05-15-6fd861d3-8772-40c7-a810-908cab3e761d" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18/2srqgm-1f1tu82//sd.jpeg?169255606" alt="15.05.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">15.05.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-05-15-6fd861d3-8772-40c7-a810-908cab3e761d" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-05-07-f5138a46-211e-43f9-8c1d-0c1d58e54b1e" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18/2sejk6-1gmo8oz//sd.jpeg?168640134" alt="07.05.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">07.05.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-05-07-f5138a46-211e-43f9-8c1d-0c1d58e54b1e" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-04-30-92ee1643-0db9-45a6-b002-d320e25c7611" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18/2s0wib-1abbuy9//sd.jpeg?168003732" alt="30.04.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">30.04.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-04-30-92ee1643-0db9-45a6-b002-d320e25c7611" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-04-23-fced19bf-596a-4cba-904f-9db2c34f7848" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18//sd_309b471b2f676c9e5999cec3d97225ba.jpg?167376980" alt="23.04.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">23.04.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-04-23-fced19bf-596a-4cba-904f-9db2c34f7848" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-04-23-56571191-a2c2-4a34-9d17-64901473c139" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18//sd_4d505273325c98ae6c9ff1183493cc1d.jpg?167482806" alt="23.04.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">23.04.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-04-23-56571191-a2c2-4a34-9d17-64901473c139" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-04-16-dbb76d2c-b883-4199-b8ae-2fa45d8027a5" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18//sd_ab73fb76909bf69c513cabc8db5ca8d8.jpg?166821519" alt="16.04.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">16.04.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-04-16-dbb76d2c-b883-4199-b8ae-2fa45d8027a5" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-04-09-7223c2e9-43da-427d-8424-cf81cf28aa7f" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18//sd_b051ba434e309225fdcb8d90a68927ea.jpg?166173409" alt="09.04.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">09.04.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-04-09-7223c2e9-43da-427d-8424-cf81cf28aa7f" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-04-02-f791f15e-c361-47da-8d0e-e637a7c1f14d" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18//sd_c8a9020c4a5dc41351b19276cab0f828.jpg?165517059" alt="02.04.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">02.04.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-04-02-f791f15e-c361-47da-8d0e-e637a7c1f14d" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-03-26-f237ca17-dbb9-4412-9cb7-ff5fc06eb8ea" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18//sd_43b6151b91a779fab9f905eb837f0533.jpg?164918120" alt="26.03.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">26.03.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-03-26-f237ca17-dbb9-4412-9cb7-ff5fc06eb8ea" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-03-19-3afddd3f-0064-4fc3-b898-ab4abea0def8" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18//sd_de559aca3c716b43071278898e290bc1.jpg?164313784" alt="19.03.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">19.03.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-03-19-3afddd3f-0064-4fc3-b898-ab4abea0def8" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-03-12-04f1b69b-068c-48f4-8ae0-b87425336080" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18//sd_3ff036e25580dc529cfd07f619e91e4b.jpg?163770788" alt="12.03.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">12.03.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-03-12-04f1b69b-068c-48f4-8ae0-b87425336080" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-03-05-00018a03-646e-45a9-b76c-23d937ecc07b" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18//sd_7511325d44333f2e8a67d8ff40f52d02.jpg?163168219" alt="05.03.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">05.03.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-03-05-00018a03-646e-45a9-b76c-23d937ecc07b" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-02-26-8afbc996-9859-4af5-aa35-fb8654a39876" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18//sd_2fcf50a06283a6325f97d368d044e7b1.jpg?162555575" alt="26.02.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">26.02.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-02-26-8afbc996-9859-4af5-aa35-fb8654a39876" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-02-19-5dfff850-39a4-41dc-bd39-86242a810f64" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18//sd_9d337c5141ea177ba00d1618dbcabea1.jpg?161936259" alt="19.02.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">19.02.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-02-19-5dfff850-39a4-41dc-bd39-86242a810f64" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-02-12-5f1f45e5-6791-4d7a-ba14-ba8b774cf2bb" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18//sd_0c41167614ce23152b9cbc64153612af.jpg?161344541" alt="12.02.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">12.02.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-02-12-5f1f45e5-6791-4d7a-ba14-ba8b774cf2bb" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-02-05-697c8952-e665-42fe-b05d-1e9277685bbd" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18//sd_08da7ceee532fff2de5ce4391b6e3f80.jpg?160758300" alt="05.02.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">05.02.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-02-05-697c8952-e665-42fe-b05d-1e9277685bbd" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-01-29-78e3bf50-435f-4863-b575-7bb2df7205c4" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18//sd_3dc8d1892a7d644fd9cb5c17d248000c.jpg?160173696" alt="29.01.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">29.01.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-01-29-78e3bf50-435f-4863-b575-7bb2df7205c4" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-01-22-bc31d951-ba5b-46b5-a8a6-1253215b0227" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18//sd_d5c6868f575d9bebe8678cc13ebc2376.jpg?159515298" alt="22.01.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">22.01.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-01-22-bc31d951-ba5b-46b5-a8a6-1253215b0227" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-01-15-285c4b30-4cce-4a82-9ecd-0911ba0df80e" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18//sd_279ac7c6e7d0da9eadf2dc50f41cdf7e.jpg?158965237" alt="15.01.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">15.01.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-01-15-285c4b30-4cce-4a82-9ecd-0911ba0df80e" target="_blank">Lesen</a>
+                </li>
+                            <li class="epaper-archive-item" >
+                    <a class="epaper-archive-link" href="/bcms/read_epaper?id=2026%2F2026-01-08-d7aeb347-5b56-4eef-936c-255417148309" target="_blank">
+                                                    <img src="https://bibo-img.localpoint.ch/i/0/18//sd_50ea073ab2674359e792a5316cf9ff26.jpg?158278958" alt="08.01.2026" loading="lazy" width="270" height="390">
+                                                <span class="epaper-archive-name">08.01.2026</span>
+                    </a>
+                    <a class="btn btn-danger epaper-archive-read" href="/bcms/read_epaper?id=2026%2F2026-01-08-d7aeb347-5b56-4eef-936c-255417148309" target="_blank">Lesen</a>
+                </li>
+                    </ul>
+    </div>
+</div>
+</div>
+
+<div id="article" class="jslc" style="display:none">
+    <div class="json-ld" style="display:none;"></div>
+    <div><a class="page-back fas fa-times-circle" href="//bibo.ch/"></a></div>
+    <span class="first-line-title tagline" style="font-weight: 600 !important;font-size: 2rem !important;"></span><br/>
+    <h1 class="title"></h1>
+    <i class="fas fa-clock fa-1x"></i>&nbsp;
+    <span class="_publishingdate"></span>
+    <span class="_publishingdate"></span>
+    <i class="fas fa-book-reader fa-1x" aria-hidden="true"></i>
+    <span class="category_name"></span>
+    <span class="category@name"></span>
+    <div class="image"></div>
+    <div class="content"></div>
+    <div class="paywalled-content" style="display: none;"></div>
+    <div class="sharing-buttons">
+        <div class="share-container fb-share-container"></div><div class="share-container email-share-container"></div>    </div>
+    <hr/>
+    <div id="PhotoGallery" class="photo-gallery"></div>
+    <div id="PhotoViewer" class="photo-viewer">
+        <header class="photo-viewer--title">
+            <div id="PhotoViewerClose" class="photo-viewer--close"><a href="#">X</a></div>
+        </header>
+        <div class="photo-viewer--container photo-viewer--close">
+            <figure class="photo-viewer--current-image" id="PhotoViewerCurrentImageContainer">
+                <img id="PhotoViewerCurrentImage" src="">
+            </figure>
+            <h1 id="PhotoViewerTitle">Image Title</h1>
+        </div>
+        <div class="photo-viewer--controls">
+            <div id="PhotoViewerPreviousImage" class="photo-viewer--previous-image"><a href="#">&lt; </a></div>
+            <div id="PhotoViewerCount" class="photo-viewer--count">1/10</div>
+            <div id="PhotoViewerNextImage" class="photo-viewer--next-image"><a href="#">&gt;</a></div>
+        </div>
+    </div>
+            <div id="comment-block"></div>
+                <div id="comment-block-free"></div>
+        <div class='col-md-12 col-sm-12'>
+            <div class='row'>
+                <div class='col-md-12 col-sm-12 rotator-container'><div id='content_rotator'><div class='field field-name-field-body-expert field-type-text-long field-label-hidden'><div class='field-items'><div class='field-item even'><div style='margin-top:-10px; height:600px;text-align: center;'><iframe class='lp-fusion-rotator-page lp-fusion-iframe' loading='lazy' data-src='https://fusion.localpoint.ch/widgets/5ed798d3-cc5e-46c0-a734-435c35f136df/rotator_ga_v3' style='height: 100%; border: 0px;' src='https://fusion.localpoint.ch/widgets/5ed798d3-cc5e-46c0-a734-435c35f136df/rotator_ga_v3'></iframe></div></div></div></div></div></div>
+            </div>
+        </div>
+        <br />    <div id="home"></div>
+</div>
+<footer class="bd-footer">
+    <div class="container">
+        <div class="row">
+            <div class="col-6 col-sm-6 col-md-9">
+                <div class="col-12 col-sm-10 col-md-4 col-lg-2 float-left"><ul class="footer-menu"><li class="parent"><span><a class="text-dark" href="/redaktion">Redaktion</a></span></li></ul></div><div class="col-12 col-sm-10 col-md-4 col-lg-2 float-left"><ul class="footer-menu"><li class="parent"><span><a class="text-dark" href="/kontakt">Kontakt</a></span></li></ul></div><div class="col-12 col-sm-10 col-md-4 col-lg-2 float-left"><ul class="footer-menu"><li class="parent"><span><a class="text-dark" href="/zeitungsarchiv">Zeitungsarchiv</a></span></li></ul></div><div class="col-12 col-sm-10 col-md-4 col-lg-2 float-left"><ul class="footer-menu"><li class="parent"><span><a class="text-dark" href="https://www.reinhardt.ch/de/zeitungen/43-4-abo-birsigtal-bote-bibo.html#/27-abos_bibo-jahresabo">Abo</a></span></li></ul></div><div class="col-12 col-sm-10 col-md-4 col-lg-2 float-left"><ul class="footer-menu"><li class="parent"><span><a class="text-dark" href="/impressum">Impressum</a></span><div><ul><li class="child"><a class="text-dark" href="/datenschutz">Datenschutz</a></li></ul></div></li></ul></div>            </div>
+            <div class="col-6 col-sm-6 col-md-3">
+                <div class="col-12 col-sm-12 col-md-12 float-left text-left">
+                    <div id="logo" class="footer-logo">
+                        <img src="https://bibo.localpoint.ch/apps/bcms/@custom/bib/img/logo_footer.png"/><br>
+                    </div>
+                    <!--                    -->                    <!--                        <h5 class="text-primary">-->
+                    <!--</h5>-->
+                    <!--                        <div class="subscribe">-->
+                    <!--                            <p>-->
+                    <!--</p>-->
+                    <!--                            <iframe transparent=0 src=-->
+                    <!-- width="100%" height="100" frameborder="0" scrolling="no"></iframe>-->
+                    <!--                        </div>-->
+                    <!--                    -->                    <br>
+                    <div id="icons" class="bd-social">
+                        
+                    </div>
+                    <div id="address-info">
+
+                        
+
+                    </div>
+                </div>
+            </div>
+        </div>
+                    <div class="row">
+                <div class="col-sm-12">
+                    <hr>
+                    <span>&#169;</span><span> Birsigtal-Bote</span>
+                </div>
+            </div>
+            </div>
+</footer>
+<script async src="https://securepubads.g.doubleclick.net/tag/js/gpt.js">
+  </script><script>
+    if(/android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase())){
+      window.googletag = window.googletag || {cmd: []};
+      googletag.cmd.push(function() {
+        googletag.defineSlot('/21822988163/vol_website/vol_mobile/vol_mobile_largemobile', [[320, 160], [320, 100]], 'div-gpt-ad-1573225556143-0').addService(googletag.pubads());
+        googletag.defineSlot('/21822988163/vol_website/vol_mobile/vol_mobile_mobilebanner', [[300, 50], [320, 50]], 'div-gpt-ad-1573225569459-0').addService(googletag.pubads());
+        googletag.defineSlot('/21822988163/vol_website/vol_mobile/vol_mobile_rectangle', [300, 250], 'div-gpt-ad-1573225596489-0').addService(googletag.pubads());
+        googletag.pubads().enableSingleRequest();
+        googletag.enableServices();
+      });
+    }
+    else{
+      window.googletag = window.googletag || {cmd: []};
+      googletag.cmd.push(function() {
+        googletag.defineSlot('/21822988163/vol_website/vol_display/vol_display_rectangle', [300, 250], 'div-gpt-ad-1573225486121-0').addService(googletag.pubads());
+        googletag.defineSlot('/21822988163/vol_website/vol_display/vol_display_sidebanner', [[160, 600], [300, 600]], 'div-gpt-ad-1573225501792-0').addService(googletag.pubads());
+        googletag.defineSlot('/21822988163/vol_website/vol_display/vol_display_topbanner', [[728, 90], [994, 250]], 'div-gpt-ad-1573225524595-0').addService(googletag.pubads());
+        googletag.pubads().enableSingleRequest();
+        googletag.enableServices();
+      });
+    }
+
+  </script><script type="text/javascript" src="https://bibo.ch/apps/bcms/@custom/bib/@themes/demo/epaper.js?t=1792183366"  ></script><script type="text/javascript" src="//bibo.ch/apps/bcms/@themes/demo/menu.min.js?v=20230315"  ></script><script type="text/javascript" src="//bibo.ch/apps/bcms/@themes/demo/assets/js/common_functions.min.js?v=20260909.3"  ></script><script type="text/javascript" src="//bibo.ch/apps/bcms/@themes/demo/assets/js/search_box.min.js?20240430"  ></script><script type="text/javascript" src="//bibo.ch/apps/bcms/@themes/demo/assets/js/timeme.min.js"  ></script><script type="text/javascript" src="//bibo.ch/apps/bcms/@themes/demo/assets/js/yandex.js?v=20231017.1548"  ></script><div class="overlay"><div class="loader"></div></div></body></html>
