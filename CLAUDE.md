@@ -1167,7 +1167,16 @@ them is wrong even if it works.
    newsroom said an unimportant status line must not stand for ever: older
    than three days, gone). Measured over the eight transcripts of
    20.–27.09.: 27.09. a 100-percent repeat of 26.09., every other day —
-   Sunday 20.09. included — a show of its own. And the waiting now says WHICH
+   Sunday 20.09. included — a show of its own. **The same holds for a
+   failure, at FIVE days** (`HINWEIS_SICHTBAR_TAGE`, 25 October 2026): the
+   „noch nicht verarbeitet" banner of both shows (`jungeDossiers`) and a
+   Regionaljournal edition whose audio could not be resolved
+   (`ordneEditionen`) stand on top while the show is at most five days old,
+   then the banner goes and the edition takes its place by day. The
+   edition's „on top" had been an accident: no audio means no
+   `broadcast_at`, Postgres sorts NULL first when descending, and the
+   01.10. edition stood above everything for 24 days — the query now sorts
+   by `broadcast_date` first. And the waiting now says WHICH
    wait it is (`grund`: `keine_marken` is too early, `passt_nicht` is a
    different cut), on the dossier and in the button's report. Two timings
    were wrong as well and are fixed in the Flows: SMD mails at about 22:05

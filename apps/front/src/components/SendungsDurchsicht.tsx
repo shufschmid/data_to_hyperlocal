@@ -16,9 +16,12 @@ import { PUNKT6_EDITIONS_QUERY, type Punkt6EditionsQueryResult } from '@/graphql
 import type { AlleMeldungFelder, SendungskandidatFelder } from '@/graphql/redaktion'
 import { LIVE_FETCH_POLICY } from '@/lib/apollo'
 import {
+  HINWEIS_SICHTBAR_TAGE,
+  jungeDossiers,
   jungeWiederholungen,
   kandidatenJeEdition,
   meldungJeKandidat,
+  ordneEditionen,
   sendungAusBetreff,
   verarbeitungsBericht,
   type Verarbeitungsergebnis
@@ -107,9 +110,12 @@ export function SendungsDurchsicht({
   })
 
   const abfrage = istPunkt6 ? p6 : rj
-  const offeneDossiers = istPunkt6
-    ? (p6Dossiers.data?.punkt6_dossiers ?? [])
-    : (rjDossiers.data?.dossiers ?? [])
+  // Ein Dossier, dessen Sendung mehr als fünf Tage zurückliegt, steht nicht
+  // mehr oben — die Regel der Redaktion vom 25.10.2026.
+  const offeneDossiers = jungeDossiers(
+    istPunkt6 ? (p6Dossiers.data?.punkt6_dossiers ?? []) : (rjDossiers.data?.dossiers ?? []),
+    HINWEIS_SICHTBAR_TAGE
+  )
   // Eine erkannte Wiederholung ist verarbeitet und erzeugt keine Ausgabe — ohne
   // diese Zeile fehlte der Tag einfach, und niemand wüsste, warum.
   const wiederholungen = istPunkt6 ? jungeWiederholungen(p6Dossiers.data?.wiederholungen ?? []) : []
@@ -282,7 +288,7 @@ export function SendungsDurchsicht({
               onKandidat={weiterreichen}
             />
           ))
-        : (rj.data?.editions ?? []).map((edition) => (
+        : ordneEditionen(rj.data?.editions ?? []).map((edition) => (
             <EditionCard
               key={edition.id}
               edition={edition}

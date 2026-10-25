@@ -159,6 +159,48 @@ export function jungeWiederholungen<T extends { date_created: string | null }>(
   dossiers: readonly T[],
   heute: Date = new Date()
 ): T[] {
-  const grenze = heute.getTime() - WIEDERHOLUNG_SICHTBAR_TAGE * 86_400_000
+  return jungeDossiers(dossiers, WIEDERHOLUNG_SICHTBAR_TAGE, heute)
+}
+
+/**
+ * Wie lange ein Hinweis zu einer gescheiterten Sendung oben steht: fünf Tage,
+ * die Regel der Redaktion vom 25.10.2026. Solche Hinweise sind gut, aber eine
+ * Regionaljournal-Ausgabe ohne Audio stand 24 Tage zuoberst und ein
+ * fehlgeschlagenes punkt6-Dossier elf.
+ */
+export const HINWEIS_SICHTBAR_TAGE = 5
+
+/**
+ * Die Dossiers, die höchstens `tage` Tage alt sind. Das Alter ist das der
+ * Zeile: SMD mailt das Transkript am Abend der Sendung (Regionaljournal um
+ * 14:30, punkt6 um 22:05), also ist es das Alter der Sendung.
+ */
+export function jungeDossiers<T extends { date_created: string | null }>(
+  dossiers: readonly T[],
+  tage: number,
+  heute: Date = new Date()
+): T[] {
+  const grenze = heute.getTime() - tage * 86_400_000
   return dossiers.filter((d) => d.date_created !== null && Date.parse(d.date_created) >= grenze)
+}
+
+/**
+ * Die Reihenfolge der Regionaljournal-Ausgaben: eine Ausgabe, deren Audio nicht
+ * aufgelöst werden konnte, steht als Hinweis oben — aber nur, solange die
+ * Sendung höchstens fünf Tage zurückliegt. Danach steht sie an ihrem Tag wie
+ * jede andere. Die übrige Reihenfolge ist die der Abfrage (neuester Tag
+ * zuerst).
+ *
+ * Bis zum 25.10.2026 war das „oben" ein Zufall der Sortierung: ohne Audio fehlt
+ * auch `broadcast_at`, und Postgres stellt NULL beim absteigenden Sortieren an
+ * den Anfang — für immer.
+ */
+export function ordneEditionen<T extends { broadcast_date: string; audio_url: string | null }>(
+  editionen: readonly T[],
+  heute: Date = new Date()
+): T[] {
+  const grenze = new Date(heute.getFullYear(), heute.getMonth(), heute.getDate() - HINWEIS_SICHTBAR_TAGE)
+  const grenzTag = `${grenze.getFullYear()}-${String(grenze.getMonth() + 1).padStart(2, '0')}-${String(grenze.getDate()).padStart(2, '0')}`
+  const istHinweis = (e: T) => e.audio_url === null && e.broadcast_date >= grenzTag
+  return [...editionen.filter(istHinweis), ...editionen.filter((e) => !istHinweis(e))]
 }

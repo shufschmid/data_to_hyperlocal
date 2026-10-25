@@ -2,9 +2,12 @@ import type { AlleMeldungFelder, SendungskandidatFelder } from '@/graphql/redakt
 import {
   anzahlOffen,
   bleibtOffen,
+  HINWEIS_SICHTBAR_TAGE,
+  jungeDossiers,
   jungeWiederholungen,
   kandidatenJeEdition,
   meldungJeKandidat,
+  ordneEditionen,
   sendungAusBetreff,
   verarbeitungsBericht,
   verarbeitungsergebnis,
@@ -180,5 +183,43 @@ describe('Verarbeitung — was der Knopf berichtet', () => {
       { id: 'c', date_created: null }
     ]
     expect(jungeWiederholungen(d, heute).map((x) => x.id)).toEqual(['a'])
+  })
+})
+
+// Die Regel der Redaktion vom 25.10.2026: Hinweise zu einer gescheiterten
+// Sendung sind gut, aber nach fünf Tagen weg. Gemessen an dem Tag: eine
+// Regionaljournal-Ausgabe ohne Audio vom 01.10. stand zuoberst, ein
+// fehlgeschlagenes punkt6-Dossier vom 14.10. auch.
+describe('Hinweise zu gescheiterten Sendungen', () => {
+  const heute = new Date(2026, 9, 25, 10, 0)
+
+  it('zeigt nur die offenen Dossiers der letzten fünf Tage', () => {
+    const d = [
+      { id: 'gestern', date_created: '2026-10-24T20:10:00Z' },
+      { id: 'vier-tage', date_created: '2026-10-21T12:35:00Z' },
+      { id: 'elf-tage', date_created: '2026-10-14T20:10:00Z' },
+      { id: 'ohne', date_created: null }
+    ]
+    expect(jungeDossiers(d, HINWEIS_SICHTBAR_TAGE, heute).map((x) => x.id)).toEqual(['gestern', 'vier-tage'])
+  })
+
+  it('stellt eine Ausgabe ohne Audio nur fünf Tage lang nach oben', () => {
+    // So, wie die Abfrage sie liefert: neuester Tag zuerst.
+    const editionen = [
+      { id: 'heute', broadcast_date: '2026-10-25', audio_url: 'a.mp3' },
+      { id: 'ohne-audio-jung', broadcast_date: '2026-10-22', audio_url: null },
+      { id: 'vorgestern', broadcast_date: '2026-10-23', audio_url: 'b.mp3' },
+      { id: 'grenze', broadcast_date: '2026-10-20', audio_url: null },
+      { id: 'ohne-audio-alt', broadcast_date: '2026-10-01', audio_url: null },
+      { id: 'alt', broadcast_date: '2026-09-30', audio_url: 'c.mp3' }
+    ]
+    expect(ordneEditionen(editionen, heute).map((e) => e.id)).toEqual([
+      'ohne-audio-jung',
+      'grenze',
+      'heute',
+      'vorgestern',
+      'ohne-audio-alt',
+      'alt'
+    ])
   })
 })

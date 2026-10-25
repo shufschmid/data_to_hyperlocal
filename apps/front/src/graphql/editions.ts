@@ -36,9 +36,12 @@ export interface EditionsQueryResult {
   editions: EditionFields[]
 }
 
+// The day first: `broadcast_at` is null where the audio could not be resolved,
+// and NULL sorts first in descending order. Which of them stands on top is
+// `ordneEditionen` (lib/sendungen.ts).
 export const EDITIONS_QUERY = gql`
   query Editions($limit: Int = 50) {
-    editions(limit: $limit, sort: ["-broadcast_at", "-date_created"]) {
+    editions(limit: $limit, sort: ["-broadcast_date", "-broadcast_at", "-date_created"]) {
       id
       broadcast_date
       edition_label
