@@ -16,6 +16,7 @@ export type Werkbank =
   | 'regionaljournal'
   | 'punkt6'
   | 'smd'
+  | 'buschtelefon'
   | 'statistik'
   | 'sport'
   | 'entsorgung'
@@ -50,7 +51,10 @@ export const BEREICHE: readonly Bereich[] = [
       { wert: 'punkt6', text: 'punkt6' },
       // Seit 12. Oktober 2026: das taegliche Dossier der Schweizer
       // Mediendatenbank — was andere Medien ueber die Gemeinden schreiben.
-      { wert: 'smd', text: 'SMD' }
+      { wert: 'smd', text: 'SMD' },
+      // Seit 10. November 2026: Rohfunde aus den sozialen Netzwerken der
+      // Gemeinden, unbestaetigt, vom Buschtelefon geliefert.
+      { wert: 'buschtelefon', text: 'Buschtelefon' }
     ]
   },
   {

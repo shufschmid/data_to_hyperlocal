@@ -94,6 +94,14 @@
       },
       {
         "type": "operation",
+        "name": "buschtelefon-abholen",
+        "source": {
+          "app": "src/operations/buschtelefon-abholen/app.ts",
+          "api": "src/operations/buschtelefon-abholen/api.ts"
+        }
+      },
+      {
+        "type": "operation",
         "name": "redaktion-abarbeiten",
         "source": {
           "app": "src/operations/redaktion-abarbeiten/app.ts",

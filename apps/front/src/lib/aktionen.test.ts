@@ -68,12 +68,13 @@ describe('Die Liste erlaubter Aktionen', () => {
   })
 
   it('liest nur die Pfade, deren Zustand im Prozess lebt', () => {
-    expect(LESBAR).toHaveLength(7)
+    expect(LESBAR).toHaveLength(8)
     for (const pfad of [
       'quellen/lauf',
       'gemeindeseiten/lauf',
       'kanton/lauf',
       'smd/lauf',
+      'buschtelefon/lauf',
       'wochenblaetter/formulieren',
       'bilanz',
       'verbrauch'

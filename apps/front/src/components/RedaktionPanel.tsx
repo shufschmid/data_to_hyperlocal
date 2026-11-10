@@ -77,6 +77,8 @@ import {
   type GemeindemitteilungenErgebnis,
   KANTONSMITTEILUNGEN_QUERY,
   type KantonsmitteilungenErgebnis,
+  BUSCHTELEFON_FUNDE_QUERY,
+  type BuschtelefonFundeErgebnis,
   SMD_BEITRAEGE_QUERY,
   type SmdBeitraegeErgebnis,
   VERANSTALTUNGEN_QUERY,
@@ -114,6 +116,7 @@ import { Amtsblatt } from './Amtsblatt'
 import { Gemeindeseiten } from './Gemeindeseiten'
 import { Kanton } from './Kanton'
 import { Smd } from './Smd'
+import { Buschtelefon } from './Buschtelefon'
 import { Veranstaltungen } from './Veranstaltungen'
 import { SendungsDurchsicht } from './SendungsDurchsicht'
 import IconButton from '@mui/material/IconButton'
@@ -125,6 +128,7 @@ import { anzahlOffen, liestUnterlagen } from '@/lib/amtsblatt'
 import { anzahlOffen as anzahlMitteilungen, type GemeindeseitenLaufStatus } from '@/lib/gemeindeseiten'
 import { anzahlOffen as anzahlKantonsmitteilungen, type KantonLaufStatus } from '@/lib/kanton'
 import { anzahlOffen as anzahlSmdBeitraege, type SmdLaufStatus } from '@/lib/smd'
+import { anzahlOffen as anzahlBuschtelefonFunde, type BuschtelefonLaufStatus } from '@/lib/buschtelefon'
 import { anzahlOffen as anzahlAnlaesse } from '@/lib/veranstaltungen'
 import { einstellungFuer } from '@/lib/tische'
 import { Chefredaktion } from './Chefredaktion'
@@ -179,6 +183,7 @@ type Reiter =
   | 'veranstaltungen'
   | 'kanton'
   | 'smd'
+  | 'buschtelefon'
   | 'regionaljournal'
   | 'punkt6'
   | 'chefredaktion'
@@ -368,6 +373,9 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
   const smd = useQuery<SmdBeitraegeErgebnis>(SMD_BEITRAEGE_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY
   })
+  const buschtelefon = useQuery<BuschtelefonFundeErgebnis>(BUSCHTELEFON_FUNDE_QUERY, {
+    fetchPolicy: LIVE_FETCH_POLICY
+  })
   const veranstaltungen = useQuery<VeranstaltungenErgebnis>(VERANSTALTUNGEN_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY
   })
@@ -528,6 +536,12 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
       return ursprung === null ? [] : [[ursprung.id, m.status] as const]
     })
   )
+  const meldungStatusJeFund = new Map(
+    meldungenAlle.flatMap((m) => {
+      const ursprung = m.buschtelefon_fund ?? null
+      return ursprung === null ? [] : [[ursprung.id, m.status] as const]
+    })
+  )
   const meldungStatusJeAnlass = new Map(
     meldungenAlle.flatMap((m) => (m.veranstaltung === null ? [] : [[m.veranstaltung.id, m.status] as const]))
   )
@@ -554,6 +568,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
       veranstaltungen.refetch(),
       kanton.refetch(),
       smd.refetch(),
+      buschtelefon.refetch(),
       suedanflug.refetch(),
       abstimmungen.refetch()
     ])
@@ -567,6 +582,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
     veranstaltungen,
     kanton,
     smd,
+    buschtelefon,
     suedanflug,
     abstimmungen
   ])
@@ -784,6 +800,35 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
     const intervall = setInterval(() => void ladeSmdLauf(), 10_000)
     return () => clearInterval(intervall)
   }, [smdLaufStatus?.laeuft, ladeSmdLauf, smdRefetch, alleMeldungenRefetch])
+
+  // The Buschtelefon pick-up, the same mirror: the desk polls while it runs
+  // and refetches once when it is over.
+  const [buschtelefonLaufStatus, setBuschtelefonLaufStatus] = useState<BuschtelefonLaufStatus | null>(null)
+  const ladeBuschtelefonLauf = useCallback(async () => {
+    try {
+      const antwort = await sitzungsFetch('/api/redaktion/buschtelefon/lauf')
+      if (!antwort.ok) return
+      const inhalt = (await antwort.json()) as { data?: BuschtelefonLaufStatus }
+      setBuschtelefonLaufStatus(inhalt.data ?? null)
+    } catch {
+      // Komfortanzeige; ein verpasster Abruf wird beim naechsten Poll nachgeholt.
+    }
+  }, [])
+  useEffect(() => {
+    void ladeBuschtelefonLauf()
+  }, [ladeBuschtelefonLauf])
+  const buschtelefonRefetch = buschtelefon.refetch
+  const buschtelefonWarUnterwegs = useRef(false)
+  useEffect(() => {
+    const unterwegs = buschtelefonLaufStatus?.laeuft === true
+    if (buschtelefonWarUnterwegs.current && !unterwegs) {
+      void Promise.all([buschtelefonRefetch(), alleMeldungenRefetch()])
+    }
+    buschtelefonWarUnterwegs.current = unterwegs
+    if (!unterwegs) return
+    const intervall = setInterval(() => void ladeBuschtelefonLauf(), 10_000)
+    return () => clearInterval(intervall)
+  }, [buschtelefonLaufStatus?.laeuft, ladeBuschtelefonLauf, buschtelefonRefetch, alleMeldungenRefetch])
 
   /**
    * Fuehrt eine Aktion aus und GIBT das Problem zurueck.
@@ -1006,6 +1051,10 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
     },
     smd: {
       anzahl: anzahlSmdBeitraege(smd.data?.smd_beitraege ?? [], meldungStatusJeSmdBeitrag),
+      art: 'arbeit'
+    },
+    buschtelefon: {
+      anzahl: anzahlBuschtelefonFunde(buschtelefon.data?.buschtelefon_funde ?? [], meldungStatusJeFund),
       art: 'arbeit'
     },
     regionaljournal: { anzahl: anzahlSendungOffen('regionaljournal'), art: 'arbeit' },
@@ -1726,6 +1775,45 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
         </Stack>
       )}
 
+      {reiter === 'buschtelefon' && (
+        <Stack spacing={2}>
+          <Typography variant="body2" color="text.secondary">
+            Hinweise aus den sozialen Netzwerken der Gemeinden, stündlich vom Buschtelefon abgeholt.
+            Rohmaterial von Privatpersonen, nicht bestätigt: Die Meldung entsteht auf Klick und geht einzeln
+            durch die normale Statusmaschine, nie auf einen Griff hinaus.
+          </Typography>
+          <Buschtelefon
+            funde={buschtelefon.data?.buschtelefon_funde ?? []}
+            lauf={buschtelefonLaufStatus}
+            gemeinden={gemeinden.data?.gemeinden ?? []}
+            meldungen={meldungenAlle}
+            onChat={async (id, anweisung) => {
+              await fuehreAus(`meldungen/${id}/chat`, { anweisung })
+            }}
+            onAktion={async (id, was, koerper) => {
+              await fuehreAus(`meldungen/${id}/${was}`, koerper)
+            }}
+            onTermin={async (id, eingabe) => {
+              await fuehreAus(`meldungen/${id}/termin`, eingabe)
+            }}
+            laeuft={sendet}
+            onLauf={async () => {
+              await fuehreAus('buschtelefon/pruefen')
+              await ladeBuschtelefonLauf()
+            }}
+            onUebernehmen={async (id) => {
+              await fuehreAus(`buschtelefon/${id}/meldung`)
+            }}
+            onAblehnen={async (id, grund, kommentar) => {
+              await fuehreAus(`buschtelefon/${id}/ablehnen`, { grund, kommentar })
+            }}
+            onGemeinde={async (id, gemeinde) => {
+              await fuehreAus(`buschtelefon/${id}/gemeinde`, { gemeinde })
+            }}
+          />
+        </Stack>
+      )}
+
       {reiter === 'veranstaltungen' && (
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
@@ -1873,6 +1961,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
                 veranstaltungen.refetch(),
                 kanton.refetch(),
                 smd.refetch(),
+                buschtelefon.refetch(),
                 sendungskandidaten.refetch()
               ])
             }}

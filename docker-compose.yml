@@ -98,6 +98,15 @@ services:
       # string, so the default carries it — a host without the variable reads
       # the dossiers from day one instead of failing loudly at 14:45.
       SMD_IMAP_SUBJECT_FILTER: '${SMD_IMAP_SUBJECT_FILTER:-gespeicherte Recherche: gemeinden}'
+      # Das Buschtelefon (Rohfunde aus Facebook-Gruppen, Instagram, TikTok): die
+      # stuendliche Abholung ueber dessen Uebergabetuer. Die URL hat einen
+      # Vorgabewert; die drei Zugangswerte nicht. Fehlt einer, laeuft die
+      # Abholung nicht und der Tisch sagt, was fehlt. Nie in ein Log, nie in
+      # eine Antwort.
+      BUSCHTELEFON_URL: ${BUSCHTELEFON_URL:-https://buschtelefon.raumschiffenterprise.ch}
+      BUSCHTELEFON_CF_CLIENT_ID: ${BUSCHTELEFON_CF_CLIENT_ID:-}
+      BUSCHTELEFON_CF_CLIENT_SECRET: ${BUSCHTELEFON_CF_CLIENT_SECRET:-}
+      BUSCHTELEFON_SCHLUESSEL: ${BUSCHTELEFON_SCHLUESSEL:-}
       SRGSSR_CLIENT_ID: ${SRGSSR_CLIENT_ID:-}
       SRGSSR_CLIENT_SECRET: ${SRGSSR_CLIENT_SECRET:-}
       SRGSSR_SHOW_ID: ${SRGSSR_SHOW_ID:-}

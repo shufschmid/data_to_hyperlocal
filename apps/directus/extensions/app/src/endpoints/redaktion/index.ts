@@ -296,6 +296,22 @@ import {
   mitQuelle as mitKantonQuelle
 } from '../../redaktion/kanton'
 import smdPruefen from '../../operations/smd-pruefen/api'
+import buschtelefonAbholen from '../../operations/buschtelefon-abholen/api'
+import {
+  buildBuschtelefonRevision,
+  buschtelefonFakten,
+  FUND_FELDER,
+  hatMaterial as hatFundMaterial,
+  mitQuelle as mitFundQuelle,
+  ohneQuelle as ohneFundQuelle,
+  type FundRohzeile
+} from '../../redaktion/buschtelefon'
+import {
+  fundMeldungMitChecks,
+  FundOhneGemeinde,
+  schreibeFundMeldung
+} from '../../redaktion/buschtelefonlauf'
+import { liesZugang } from '../../shared/buschtelefon/client'
 import {
   hatMaterial as hatSmdMaterial,
   smdFakten,
@@ -932,6 +948,7 @@ export default defineEndpoint(
               'kantonsmitteilung',
               'sendungskandidat',
               'smd_beitrag',
+              'buschtelefon_fund',
               'erscheint_am',
               'date_created',
               'freigegeben_am',
@@ -4220,6 +4237,308 @@ export default defineEndpoint(
       }
     )
 
+    // --- the Buschtelefon desk: raw finds from the social networks ---------
+    //
+    // The SMD desk's shape, with the differences that follow from WHO speaks:
+    // the finds are raw posts of private persons, so there is no model Sichtung
+    // and no learning (nothing is taught by a private post), the Meldung is
+    // written on the click and born unconfirmed, and what the desk reads
+    // never leaves through the public door. Three decisions: take it over
+    // (a Meldung), reject it (with a reason), and — for a find without a
+    // municipality — assign one.
+    const BuschtelefonLaeuftBereits = createError(
+      'BUSCHTELEFON_LAUF_LAEUFT',
+      'Das Buschtelefon wird gerade abgeholt. Bitte kurz warten.',
+      409
+    )
+    const FundOhneGemeindeFehler = createError(
+      'FUND_OHNE_GEMEINDE',
+      'Dieser Fund hat keine Gemeinde der Redaktion. Ohne Gemeinde entsteht keine Meldung: ordne zuerst eine Gemeinde zu oder lehne den Fund ab.',
+      422
+    )
+
+    interface BuschtelefonLaufStatus {
+      laeuft: boolean
+      gestartet_um: string | null
+      beendet_um: string | null
+      ergebnis: Record<string, unknown> | null
+      fehler: string | null
+    }
+    const buschtelefonLauf: BuschtelefonLaufStatus = {
+      laeuft: false,
+      gestartet_um: null,
+      beendet_um: null,
+      ergebnis: null,
+      fehler: null
+    }
+
+    function starteBuschtelefonLauf(): boolean {
+      if (buschtelefonLauf.laeuft) return false
+      buschtelefonLauf.laeuft = true
+      buschtelefonLauf.gestartet_um = new Date().toISOString()
+      buschtelefonLauf.beendet_um = null
+      buschtelefonLauf.ergebnis = null
+      buschtelefonLauf.fehler = null
+
+      const kontext = { services, getSchema, logger, database } as Parameters<
+        typeof buschtelefonAbholen.handler
+      >[1]
+      void Promise.resolve(buschtelefonAbholen.handler({}, kontext))
+        .then((ergebnis: unknown) => {
+          buschtelefonLauf.ergebnis =
+            typeof ergebnis === 'object' && ergebnis !== null
+              ? (ergebnis as Record<string, unknown>)
+              : null
+        })
+        .catch((fehler: unknown) => {
+          logger.error(fehler, 'redaktion: Buschtelefon-Lauf fehlgeschlagen')
+          buschtelefonLauf.fehler =
+            fehler instanceof Error ? fehler.message : String(fehler)
+        })
+        .finally(() => {
+          buschtelefonLauf.laeuft = false
+          buschtelefonLauf.beendet_um = new Date().toISOString()
+        })
+      return true
+    }
+
+    // The state the desk mirrors — and whether the feed is set up at all,
+    // by the NAMES of what is missing, never their values.
+    router.get(
+      '/buschtelefon/lauf',
+      (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        const zugang = liesZugang()
+        return res.json({
+          data: {
+            ...buschtelefonLauf,
+            eingerichtet: zugang.ok,
+            fehlend: zugang.ok ? [] : zugang.fehlend
+          }
+        })
+      }
+    )
+
+    router.post(
+      '/buschtelefon/pruefen',
+      (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+        if (!starteBuschtelefonLauf())
+          return next(new BuschtelefonLaeuftBereits())
+        return res.status(202).json({ data: { gestartet: true } })
+      }
+    )
+
+    async function ladeFundZeile(
+      id: string,
+      accountability: ApiRequest['accountability']
+    ): Promise<FundRohzeile> {
+      const service = new ItemsService('buschtelefon_funde', {
+        schema: await getSchema(),
+        accountability
+      })
+      return (await service.readOne(id, {
+        fields: FUND_FELDER
+      })) as FundRohzeile
+    }
+
+    async function ueberarbeiteBuschtelefon(
+      meldung: {
+        id: string
+        titel: string | null
+        lead: string | null
+        text: string | null
+      },
+      fundId: string,
+      anweisung: string
+    ): Promise<string[]> {
+      const schema = await getSchema()
+      const meldungen = new ItemsService('meldungen', { schema })
+
+      // Loaded fresh: the find's wording is the article's only source.
+      const zeile = await ladeFundZeile(fundId, undefined)
+      if (zeile.gemeinde === null) throw new FundOhneGemeinde()
+      const fakten = buschtelefonFakten({ ...zeile, gemeinde: zeile.gemeinde })
+      const { bericht, warnungen } = await fundMeldungMitChecks(
+        fakten,
+        buildBuschtelefonRevision(
+          fakten,
+          { ...meldung, text: ohneFundQuelle(meldung.text) },
+          anweisung
+        )
+      )
+
+      await meldungen.updateOne(meldung.id, {
+        titel: bericht.titel,
+        lead: bericht.lead,
+        text: mitFundQuelle(bericht.text, fakten),
+        zeit_warnungen: warnungen,
+        verarbeitung: 'idle',
+        anweisung: null,
+        fehler: null
+      })
+
+      return warnungen
+    }
+
+    router.post(
+      '/buschtelefon/:id/meldung',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const schema = await getSchema()
+          const funde = new ItemsService('buschtelefon_funde', {
+            schema,
+            accountability: req.accountability
+          })
+          const meldungenService = new ItemsService('meldungen', {
+            schema,
+            accountability: req.accountability
+          })
+
+          const zeile = await ladeFundZeile(id, req.accountability)
+          if (
+            zeile.entscheid === 'abgelehnt' ||
+            zeile.entscheid === 'verfallen'
+          )
+            return next(new MitteilungSchonEntschieden())
+
+          const vorhandene = (await meldungenService.readByQuery({
+            filter: {
+              buschtelefon_fund: { _eq: id },
+              status: { _neq: 'verworfen' }
+            },
+            fields: ['id'],
+            limit: 1
+          })) as { id: string }[]
+          if (vorhandene.length > 0)
+            return next(new MitteilungSchonEntschieden())
+
+          if (zeile.gemeinde === null) return next(new FundOhneGemeindeFehler())
+          if (
+            !hatFundMaterial({
+              text: zeile.text
+            })
+          ) {
+            throw new MitteilungOhneText()
+          }
+
+          const { meldung: meldungId, warnungen } = await schreibeFundMeldung(
+            { funde, meldungen: meldungenService },
+            zeile
+          )
+
+          return res.json({ data: { meldung: meldungId, warnungen } })
+        } catch (error) {
+          const status = (error as { status?: unknown }).status
+          if (
+            status === 403 ||
+            status === 404 ||
+            status === 400 ||
+            status === 409 ||
+            status === 422
+          ) {
+            return next(uebersetze(error))
+          }
+          logger.error(error, 'redaktion: Buschtelefon-Meldung fehlgeschlagen')
+          return next(new UeberarbeitungFehlgeschlagen())
+        }
+      }
+    )
+
+    router.post(
+      '/buschtelefon/:id/ablehnen',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        // `personenbezug` and `unbestaetigt` are this desk's own reasons: a
+        // find that is about a private person, or that nobody can confirm,
+        // is the commonest honest no.
+        const GRUENDE = [
+          'nicht_relevant',
+          'unbestaetigt',
+          'personenbezug',
+          'doublette',
+          'veraltet',
+          'andere'
+        ]
+        const koerper = (req.body ?? {}) as {
+          grund?: unknown
+          kommentar?: unknown
+        }
+        if (
+          typeof koerper.grund !== 'string' ||
+          !GRUENDE.includes(koerper.grund)
+        ) {
+          return next(new UngueltigerAblehnungsgrund())
+        }
+        const kommentar =
+          typeof koerper.kommentar === 'string' &&
+          koerper.kommentar.trim() !== ''
+            ? koerper.kommentar.trim()
+            : null
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const schema = await getSchema()
+          const funde = new ItemsService('buschtelefon_funde', {
+            schema,
+            accountability: req.accountability
+          })
+
+          await funde.updateOne(id, {
+            entscheid: 'abgelehnt',
+            ablehnungsgrund: koerper.grund,
+            ablehnungskommentar: kommentar
+          })
+          await verwirfEntwurfZu(
+            new ItemsService('meldungen', {
+              schema,
+              accountability: req.accountability
+            }),
+            { buschtelefon_fund: { _eq: id } },
+            `Fund abgelehnt: ${koerper.grund}`
+          )
+
+          return res.json({ data: { fund: id, entscheid: 'abgelehnt' } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
+    // A find the door filed under a municipality the newsroom does not cover
+    // (or one it could not match) gets its municipality from the editor.
+    router.post(
+      '/buschtelefon/:id/gemeinde',
+      async (req: ApiRequest, res: Response, next: NextFunction) => {
+        if (!isAuthenticated(req)) return next(new NichtAngemeldet())
+
+        try {
+          const id = pruefeId(req.params['id'])
+          const gemeindeId = pruefeId(
+            ((req.body ?? {}) as { gemeinde?: unknown }).gemeinde
+          )
+          const schema = await getSchema()
+          const gemeinden = new ItemsService('gemeinden', {
+            schema,
+            accountability: req.accountability
+          })
+          await gemeinden.readOne(gemeindeId, { fields: ['id'] })
+          const funde = new ItemsService('buschtelefon_funde', {
+            schema,
+            accountability: req.accountability
+          })
+          await funde.updateOne(id, { gemeinde: gemeindeId })
+          return res.json({ data: { fund: id, gemeinde: gemeindeId } })
+        } catch (error) {
+          return next(uebersetze(error))
+        }
+      }
+    )
+
     // --- the events desk: Anlässe from the municipalities' calendars ----------
     //
     // The same three decisions as the news desk, the same checks, one more
@@ -6673,6 +6992,7 @@ export default defineEndpoint(
               'radarstandort',
               'geschwindigkeitskontrolle',
               'smd_beitrag',
+              'buschtelefon_fund',
               // The south-approach revision needs it: the article is written
               // for ONE municipality, and the facts carry its name.
               'gemeinde',
@@ -6696,6 +7016,7 @@ export default defineEndpoint(
             radarstandort: string | null
             geschwindigkeitskontrolle: string | null
             smd_beitrag: string | null
+            buschtelefon_fund: string | null
             gemeinde: string
             lauf: { datensatz: string | null } | null
             titel: string | null
@@ -6959,6 +7280,41 @@ export default defineEndpoint(
               logger.error(
                 fehler,
                 'redaktion: SMD-Ueberarbeitung fehlgeschlagen'
+              )
+              throw new UeberarbeitungFehlgeschlagen()
+            }
+          }
+
+          // A Buschtelefon article: a lead from the municipality's social
+          // networks, revised from the raw find — the thirteenth kind without
+          // a `lauf`. Deliberately no `merkeAnweisung`: the desk learns
+          // nothing from raw private posts.
+          if (meldung.buschtelefon_fund !== null) {
+            await meldungen.updateOne(id, { verarbeitung: 'laeuft', anweisung })
+            try {
+              const warnungen = await ueberarbeiteBuschtelefon(
+                meldung,
+                meldung.buschtelefon_fund,
+                anweisung
+              )
+              await chat.createOne({
+                meldung: id,
+                rolle: 'assistant',
+                inhalt:
+                  warnungen.length === 0
+                    ? 'Neu formuliert.'
+                    : `Neu formuliert — mit Hinweisen: ${warnungen.join(' · ')}`,
+                position: position + 1
+              })
+              return res.json({ data: { meldung: id, warnungen } })
+            } catch (fehler) {
+              await meldungen.updateOne(id, {
+                verarbeitung: 'idle',
+                fehler: fehlerText(fehler)
+              })
+              logger.error(
+                fehler,
+                'redaktion: Buschtelefon-Ueberarbeitung fehlgeschlagen'
               )
               throw new UeberarbeitungFehlgeschlagen()
             }

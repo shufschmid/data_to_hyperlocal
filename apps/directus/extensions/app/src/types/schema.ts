@@ -300,6 +300,8 @@ export interface Meldung {
   geschwindigkeitskontrolle: string | null
   /** Set for an article written from a piece in the SMD dossier — another medium's reporting (SMD desk, since 12 October 2026). */
   smd_beitrag: string | null
+  /** Set for an article written from a raw find of the Buschtelefon (Buschtelefon desk). The find itself is readable by administrators only. */
+  buschtelefon_fund: string | null
   /**
    * Set for articles written from an Anlass in a municipality's events
    * calendar. Null otherwise — the ninth kind, since 20 September 2026.
@@ -896,6 +898,7 @@ export interface Schema {
   kantonsmitteilungen: Kantonsmitteilung[]
   smd_dossiers: SmdDossier[]
   smd_beitraege: SmdBeitrag[]
+  buschtelefon_funde: BuschtelefonFund[]
   suedanflugquoten: Suedanflugquote[]
   radarstandorte: Radarstandort[]
   geschwindigkeitskontrollen: Geschwindigkeitskontrolle[]
@@ -1816,6 +1819,54 @@ export interface Veranstaltung {
   dauerangebot: Dauerangebot | null
   zuletzt_vorgelegt_am: string | null
   zuletzt_gemeldet_am: string | null
+  date_created: string | null
+  date_updated: string | null
+}
+
+export type BuschtelefonFundEntscheid =
+  | 'offen'
+  | 'uebernommen'
+  | 'abgelehnt'
+  | 'verfallen'
+
+/**
+ * A raw find of the Buschtelefon: what is said in the municipalities'
+ * Facebook groups, on Instagram and on TikTok. RAW MATERIAL OF PRIVATE
+ * PERSONS — readable by administrators only (no permission row of any
+ * policy names this collection, and a test holds that), never projected by
+ * the public door. Identity is `kennung` (unique index per migration).
+ */
+export interface BuschtelefonFund {
+  id: string
+  kennung: string
+  kanal: 'facebook' | 'instagram' | 'tiktok'
+  gemeinde: string | null
+  gemeinde_slug: string | null
+  kanton: string | null
+  quelle_name: string | null
+  quelle_art: string | null
+  link: string
+  veroeffentlicht_am: string | null
+  datum_genauigkeit: string | null
+  erfasst_am: string
+  titel: string | null
+  text: string | null
+  zusammenfassung: string | null
+  artikel_text: string | null
+  kommentare: Array<{
+    text: string
+    autor_art: string | null
+    veroeffentlicht_am: string | null
+  }> | null
+  n_kommentare: number
+  n_reaktionen: number | null
+  n_geteilt: number | null
+  doublette_von: string | null
+  bildtext: string | null
+  pruefsumme: string | null
+  entscheid: BuschtelefonFundEntscheid
+  ablehnungsgrund: string | null
+  ablehnungskommentar: string | null
   date_created: string | null
   date_updated: string | null
 }

@@ -211,5 +211,19 @@
     },
     "operation": "a7c3e9d1-2b4f-4c6a-8e0d-5f1b3a7c9e21",
     "_syncId": "e2b8d4f6-1a3c-4e5b-9d7f-6c2a8b4e0d13"
+  },
+  {
+    "name": "Buschtelefon abholen",
+    "icon": "forum",
+    "color": null,
+    "description": "Holt stuendlich (zur Minute 20) die Rohfunde des Buschtelefons ueber dessen Uebergabetuer: ab dem letzten Stand minus zwei Stunden, seitenweise, je Fund einmal gespeichert (Upsert ueber die Kennung). Ohne die Zugangsdaten BUSCHTELEFON_* laeuft nichts, und der Lauf nennt, was fehlt. Die Funde sind Rohmaterial von Privatpersonen und nur fuer die Redaktion lesbar; was daraus eine Meldung wird, entscheidet der Tisch Buschtelefon.",
+    "status": "active",
+    "trigger": "schedule",
+    "accountability": "all",
+    "options": {
+      "cron": "0 20 * * * *"
+    },
+    "operation": "998a556a-f950-4bef-a5e6-ea0d453cce7b",
+    "_syncId": "6779944e-a207-41a2-97af-9956b5f52920"
   }
 ]
