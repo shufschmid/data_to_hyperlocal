@@ -453,15 +453,15 @@ der Beitrag, den sie hervorbringen.
 
 Je Tisch:
 
-| Feld                        | Typ             | Bedeutung                                                                                                                                       |
-| --------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tisch`                     | enum            | `statistik`, `sport`, `presseschau`, `amtsblatt`, `gemeindeseite`, `veranstaltung`, `kanton`, `sendung`, `entsorgung`, `verkehr`, `smd`, `ohne` |
-| `offen`                     | integer         | wartet auf einen Menschen (`entwurf`, `in_pruefung`)                                                                                            |
-| `freigegeben`               | integer         | unterschrieben, wartet auf den Zeitlauf                                                                                                         |
-| `aeltester_tage`            | integer \| null | Alter des ältesten wartenden Beitrags in ganzen Tagen; `null`, wenn keiner wartet                                                               |
-| `publiziert_im_fenster`     | integer         | im Fenster publiziert                                                                                                                           |
-| `freigegeben_im_fenster`    | integer         | im Fenster unterschrieben                                                                                                                       |
-| `zurueckgezogen_im_fenster` | integer         | im Fenster zurückgezogen                                                                                                                        |
+| Feld                        | Typ             | Bedeutung                                                                                                                                                       |
+| --------------------------- | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tisch`                     | enum            | `statistik`, `sport`, `presseschau`, `amtsblatt`, `gemeindeseite`, `veranstaltung`, `kanton`, `sendung`, `entsorgung`, `verkehr`, `smd`, `buschtelefon`, `ohne` |
+| `offen`                     | integer         | wartet auf einen Menschen (`entwurf`, `in_pruefung`)                                                                                                            |
+| `freigegeben`               | integer         | unterschrieben, wartet auf den Zeitlauf                                                                                                                         |
+| `aeltester_tage`            | integer \| null | Alter des ältesten wartenden Beitrags in ganzen Tagen; `null`, wenn keiner wartet                                                                               |
+| `publiziert_im_fenster`     | integer         | im Fenster publiziert                                                                                                                                           |
+| `freigegeben_im_fenster`    | integer         | im Fenster unterschrieben                                                                                                                                       |
+| `zurueckgezogen_im_fenster` | integer         | im Fenster zurückgezogen                                                                                                                                        |
 
 **Ein Tisch ohne Arbeit fällt nicht heraus**, er steht mit Nullen da: «kommt
 nicht vor» liest sich wie «gibt es nicht» und nicht wie «hat nichts zu tun».
@@ -588,4 +588,4 @@ ein zehnter Tisch `kanton` in der Bilanz — wieder ein neuer Wert je Enum,
 keine neue Form. Version 1.8.0 am 11. Oktober 2026: ein elfter Tisch
 `verkehr` in der Bilanz; seine Beiträge kommen unter den bestehenden Rubriken
 `kanton` (Radarstandort) und `gemeinde` (Geschwindigkeitskontrollen) — ein
-neuer Wert in EINEM Enum, keine neue Rubrik, keine neue Form. Version 1.9.0 am 12. Oktober 2026: ein zwölfter Tisch `smd` in der Bilanz; seine Beiträge kommen unter der bestehenden Rubrik `presseschau` mit dem Medium als `quelle_name` und der Seite beim Medium als `quelle_url` — oder `null`, wo der Verlag keine Tür hat. Wieder ein neuer Wert in EINEM Enum, keine neue Form._
+neuer Wert in EINEM Enum, keine neue Rubrik, keine neue Form. Version 1.9.0 am 12. Oktober 2026: ein zwölfter Tisch `smd` in der Bilanz; seine Beiträge kommen unter der bestehenden Rubrik `presseschau` mit dem Medium als `quelle_name` und der Seite beim Medium als `quelle_url` — oder `null`, wo der Verlag keine Tür hat. Wieder ein neuer Wert in EINEM Enum, keine neue Form. Version 1.10.0 im November 2026: ein dreizehnter Tisch `buschtelefon` in der Bilanz; seine Beiträge kommen unter der bestehenden Rubrik `gemeinde` mit der festen Quelle «Hinweis aus der Gemeinde (Buschtelefon)» als `quelle_name` und OHNE `quelle_url`: Gruppen und Konten von Privatpersonen werden nie genannt, der Originalbeitrag nie verlinkt. Die Rohfunde des Buschtelefons selbst stehen nie in dieser Schnittstelle; nur eine geprüfte, freigegebene und publizierte Meldung erscheint hier. Wieder ein neuer Wert in EINEM Enum, keine neue Form._

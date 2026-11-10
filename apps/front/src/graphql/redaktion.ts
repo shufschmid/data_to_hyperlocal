@@ -295,6 +295,8 @@ export interface AlleMeldungFelder {
   geschwindigkeitskontrolle?: { id: string } | null
   /** Set for an article written from another medium's piece in the SMD dossier (SMD desk). Optional like its siblings. */
   smd_beitrag?: { id: string } | null
+  /** Set for an article written from a raw find of the Buschtelefon (Buschtelefon desk). Optional like its siblings. */
+  buschtelefon_fund?: { id: string } | null
   /** Decided at publish time on press reviews: interesting for the city too. */
   perle: boolean | null
 }
@@ -370,6 +372,9 @@ export const ALLE_MELDUNGEN_QUERY = gql`
         id
       }
       smd_beitrag {
+        id
+      }
+      buschtelefon_fund {
         id
       }
       perle
@@ -1686,6 +1691,85 @@ export const SMD_BEITRAEGE_QUERY = gql`
       dossier {
         id
         datum
+      }
+    }
+  }
+`
+
+// --- Buschtelefon: Rohfunde aus den sozialen Netzwerken der Gemeinden --------
+//
+// ROHMATERIAL VON PRIVATPERSONEN. Die Sammlung ist nur fuer Administratoren
+// lesbar (keine Berechtigungszeile fuer die oeffentliche Rolle oder den
+// Dorfkoenig), und nichts davon verlaesst die offene Tuer. Ein Fund ist ein
+// Anhaltspunkt, kein Beleg; die Meldung entsteht auf Klick und traegt, dass sie
+// unbestaetigt ist.
+
+export interface BuschtelefonFundFelder {
+  id: string
+  /** `fb:…`, `ig:…`, `tt:…` — stable across runs. */
+  kennung: string
+  kanal: string
+  gemeinde_slug: string | null
+  kanton: string | null
+  /** Group, account or hashtag. For the newsroom only; never in a Meldung. */
+  quelle_name: string | null
+  quelle_art: string | null
+  link: string
+  veroeffentlicht_am: string | null
+  datum_genauigkeit: string | null
+  erfasst_am: string
+  titel: string | null
+  text: string | null
+  zusammenfassung: string | null
+  artikel_text: string | null
+  kommentare: Array<{ text: string; autor_art: string | null; veroeffentlicht_am?: string | null }> | null
+  n_kommentare: number
+  n_reaktionen: number | null
+  n_geteilt: number | null
+  /** The `kennung` of the earliest find with the same text elsewhere. */
+  doublette_von: string | null
+  entscheid: string
+  ablehnungsgrund: string | null
+  /** Null where the door named a municipality the newsroom does not cover. */
+  gemeinde: { id: string; name: string } | null
+}
+
+export interface BuschtelefonFundeErgebnis {
+  buschtelefon_funde: BuschtelefonFundFelder[]
+}
+
+export const BUSCHTELEFON_FUNDE_QUERY = gql`
+  query BuschtelefonFunde {
+    buschtelefon_funde(
+      filter: { entscheid: { _in: ["offen", "uebernommen"] } }
+      sort: ["-erfasst_am"]
+      limit: -1
+    ) {
+      id
+      kennung
+      kanal
+      gemeinde_slug
+      kanton
+      quelle_name
+      quelle_art
+      link
+      veroeffentlicht_am
+      datum_genauigkeit
+      erfasst_am
+      titel
+      text
+      zusammenfassung
+      artikel_text
+      kommentare
+      n_kommentare
+      n_reaktionen
+      n_geteilt
+      doublette_von
+      entscheid
+      ablehnungsgrund
+      gemeinde {
+        id
+        name
       }
     }
   }

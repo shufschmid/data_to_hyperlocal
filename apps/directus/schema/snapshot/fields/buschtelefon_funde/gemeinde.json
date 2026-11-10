@@ -1,0 +1,50 @@
+{
+  "collection": "buschtelefon_funde",
+  "field": "gemeinde",
+  "type": "uuid",
+  "meta": {
+    "collection": "buschtelefon_funde",
+    "conditions": null,
+    "display": "related-values",
+    "display_options": {
+      "template": "{{name}}"
+    },
+    "field": "gemeinde",
+    "group": null,
+    "hidden": false,
+    "interface": "select-dropdown-m2o",
+    "note": "Die Gemeinde, der der Fund zugeordnet ist. Leer, wenn die Tuer eine Gemeinde nennt, die die Redaktion nicht bespielt: ohne Gemeinde keine Meldung.",
+    "options": {
+      "template": "{{name}}"
+    },
+    "readonly": false,
+    "required": false,
+    "searchable": true,
+    "sort": 4,
+    "special": [
+      "m2o"
+    ],
+    "translations": null,
+    "validation": null,
+    "validation_message": null,
+    "width": "half"
+  },
+  "schema": {
+    "name": "gemeinde",
+    "table": "buschtelefon_funde",
+    "data_type": "uuid",
+    "default_value": null,
+    "max_length": null,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "is_nullable": true,
+    "is_unique": false,
+    "is_indexed": false,
+    "is_primary_key": false,
+    "is_generated": false,
+    "generation_expression": null,
+    "has_auto_increment": false,
+    "foreign_key_table": "gemeinden",
+    "foreign_key_column": "id"
+  }
+}

@@ -28,6 +28,10 @@ import { istZahlwarnung, istZeitwarnung } from '../../redaktion/warnungen'
 import { seitenLink } from '../../shared/wochenblatt/parse'
 import type { Entscheidung, Publikationsakteur } from '../../types/schema'
 
+/** The source line of every article that grew from a Buschtelefon find. */
+export const BUSCHTELEFON_QUELLE_NAME =
+  'Hinweis aus der Gemeinde (Buschtelefon)'
+
 export type Rubrik =
   | 'statistik'
   | 'sport'
@@ -96,6 +100,8 @@ export interface Rohzeile {
   geschwindigkeitskontrolle?: string | null
   /** Set for an article written from another medium's piece in the SMD dossier. Optional, like its siblings. */
   smd_beitrag?: string | null
+  /** Set for an article written from a raw find of the Buschtelefon. Optional, like its siblings. */
+  buschtelefon_fund?: string | null
   amtsblattmeldung: { quelle_typ: string | null } | string | null
   /** Set for articles written from a municipality's own news page. */
   gemeindemitteilung: string | null
@@ -298,6 +304,13 @@ export function rubrikVon(zeile: Rohzeile): Rubrik | null {
   // rubrik, the medium as `quelle_name`, its own page as `quelle_url` where
   // the door found one, null where the newsroom read it as if in print.
   if ((zeile.smd_beitrag ?? null) !== null) return 'presseschau'
+  // The Buschtelefon desk (November 2026): a lead from the municipality's own
+  // social networks, confirmed and put into the newsroom's words by an
+  // editor — a municipality's matter, so `gemeinde`, by the same decision
+  // that kept the Verkehr desk's articles in existing rubriks. The source is
+  // GENERIC (`quelle_name`, no `quelle_url`): the group or account of a
+  // private person is never named, and the original post is never linked.
+  if ((zeile.buschtelefon_fund ?? null) !== null) return 'gemeinde'
   return null
 }
 
@@ -354,6 +367,14 @@ export interface Quelle {
  */
 export function quelleVon(zeile: Rohzeile, rubrik: Rubrik | null): Quelle {
   const daten = objekt(zeile.datengrundlage)
+
+  // A Buschtelefon article is ALWAYS delivered under the generic source and
+  // without an address, whatever its `datengrundlage` says: the group or
+  // account of a private person is never named, the original post never
+  // linked. Decided here and not left to the desk's writer, so a row an
+  // administrator edited by hand cannot leak either.
+  if ((zeile.buschtelefon_fund ?? null) !== null)
+    return { name: BUSCHTELEFON_QUELLE_NAME, url: null }
 
   switch (rubrik) {
     case 'statistik': {
