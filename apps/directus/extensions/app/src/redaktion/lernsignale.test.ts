@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 import {
   bilanz,
   bilanzZeile,
+  BUSCHTELEFON_BILANZ,
   deklariereKappung,
   ladeAmtsblattSignale,
+  ladeBuschtelefonSignale,
   ladeGemeindeSignale,
   ladeKantonSignale,
   ladeSendungSignale,
@@ -491,6 +493,105 @@ describe('ladeKantonSignale', () => {
         rubrikName: 'Kanton',
         faehrte: expect.objectContaining({ status: 'brauchbar' })
       })
+    ])
+  })
+})
+
+describe('ladeBuschtelefonSignale — die Bilanz', () => {
+  /** Enough of Directus' filter language for these queries. */
+  function passt(zeile: Record<string, unknown>, filter: unknown): boolean {
+    if (typeof filter !== 'object' || filter === null) return true
+    return Object.entries(filter as Record<string, unknown>).every(
+      ([schluessel, bedingung]) => {
+        if (schluessel === '_or')
+          return (bedingung as unknown[]).some((b) => passt(zeile, b))
+        if (schluessel === '_and')
+          return (bedingung as unknown[]).every((b) => passt(zeile, b))
+        const wert = zeile[schluessel]
+        return Object.entries(bedingung as Record<string, unknown>).every(
+          ([op, soll]) =>
+            op === '_eq'
+              ? wert === soll
+              : op === '_neq'
+                ? wert !== soll
+                : op === '_in'
+                  ? (soll as unknown[]).includes(wert)
+                  : op === '_gte'
+                    ? String(wert) >= String(soll)
+                    : true
+        )
+      }
+    )
+  }
+
+  const zeile = (
+    entscheid: string,
+    vorschlag: boolean | null,
+    status = 'aktiv'
+  ): Record<string, unknown> => ({
+    id: `f-${Math.random()}`,
+    gemeinde: 'g-aesch',
+    date_created: '2026-11-05T12:00:00Z',
+    entscheid,
+    vorschlag,
+    status,
+    text: null,
+    bilder: [],
+    geteilt: null,
+    kanal: 'facebook',
+    quelle_art: 'gruppe',
+    quelle_name: 'Aesch',
+    veroeffentlicht_tag: '2026-11-05',
+    ablehnungsgrund: null,
+    ablehnungskommentar: null
+  })
+
+  it('zaehlt Vorschlaege und Entscheide — nicht das Unvorgeschlagene, nicht das an der Quelle Entfernte', async () => {
+    const alle = [
+      ...Array.from({ length: 6 }, () => zeile('uebernommen', true)),
+      zeile('abgelehnt', true),
+      // A person's verdict stays a verdict, even after a removal.
+      zeile('abgelehnt', false, 'entfernt'),
+      // A proposal nobody took up: that is «liegen gelassen».
+      zeile('verfallen', true),
+      // 72 graded 1–2 that nobody was ever asked about.
+      ...Array.from({ length: 72 }, () => zeile('verfallen', false)),
+      // A proposal the door withdrew before anyone could decide.
+      zeile('verfallen', true, 'entfernt'),
+      zeile('offen', null)
+    ]
+    const zeilen = dienst((q) =>
+      alle.filter((z) => passt(z, filterVon(q))).slice(0, 1000)
+    )
+    const leer = dienst(() => [])
+    const signale = await ladeBuschtelefonSignale(
+      { zeilen, hinweise: leer, meldungen: leer },
+      'g-aesch',
+      '2026-11-11'
+    )
+    const bilanzAbfrage = zeilen.aufrufe.find(
+      (q) => felderVon(q).join() === 'entscheid'
+    )
+    expect(filterVon(bilanzAbfrage ?? {})).toMatchObject(BUSCHTELEFON_BILANZ)
+    expect(signale.rahmen.bilanz).toBe(
+      'Bilanz der letzten 30 Tage in dieser Gemeinde (Buschtelefon): 9 Vorschlaege — 6 uebernommen, 0 weitergereicht, 2 abgelehnt, 1 liegen gelassen.'
+    )
+  })
+
+  it('laesst die Bilanz der anderen Tische, wie sie war', async () => {
+    const zeilen = dienst(() => [])
+    const leer = dienst(() => [])
+    await ladeKantonSignale(
+      { zeilen, hinweise: leer, meldungen: leer },
+      'g-aesch',
+      '2026-11-11'
+    )
+    const bilanzAbfrage = zeilen.aufrufe.find(
+      (q) => felderVon(q).join() === 'entscheid'
+    )
+    expect(Object.keys(filterVon(bilanzAbfrage ?? {})).sort()).toEqual([
+      'date_created',
+      'gemeinde'
     ])
   })
 })

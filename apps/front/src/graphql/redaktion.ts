@@ -295,6 +295,8 @@ export interface AlleMeldungFelder {
   geschwindigkeitskontrolle?: { id: string } | null
   /** Set for an article written from another medium's piece in the SMD dossier (SMD desk). Optional like its siblings. */
   smd_beitrag?: { id: string } | null
+  /** Set for an article written from a find of the Buschtelefon (a post in a social-network group). Optional like its siblings. */
+  buschtelefon_fund?: { id: string } | null
   /** Decided at publish time on press reviews: interesting for the city too. */
   perle: boolean | null
 }
@@ -370,6 +372,9 @@ export const ALLE_MELDUNGEN_QUERY = gql`
         id
       }
       smd_beitrag {
+        id
+      }
+      buschtelefon_fund {
         id
       }
       perle
@@ -1203,6 +1208,13 @@ export interface RecherchehinweisFelder {
   gemeindemitteilung: { id: string } | null
   veranstaltung: { id: string } | null
   kantonsmitteilung?: { id: string } | null
+  /**
+   * Der Fund hinter einer Fährte des Buschtelefons, LIVE über den Fremdschlüssel
+   * gelesen: die Fährte selbst trägt keinen Wortlaut (ihre Sammlung führt
+   * Revisionen, die Funde nicht), und was der Fund heute nicht mehr hält, zeigt
+   * auch die Chefredaktion nicht mehr.
+   */
+  buschtelefon_fund?: BuschtelefonHinweisFund | null
   sendungskandidat: { id: string; quelle: string } | null
   gemeinde: { id: string; name: string } | null
   ausgabe: {
@@ -1248,6 +1260,22 @@ export const RECHERCHEHINWEISE_QUERY = gql`
       }
       kantonsmitteilung {
         id
+      }
+      buschtelefon_fund {
+        id
+        status
+        material_geloescht_am
+        text
+        bilder
+        geteilt
+        verlinkt
+        kommentare
+        kommentare_stand
+        kommentare_fehlend
+        link
+        quelle_name
+        quelle_sichtbarkeit
+        veroeffentlicht_tag
       }
       sendungskandidat {
         id
@@ -2135,6 +2163,299 @@ export const ABSTIMMUNGEN_QUERY = gql`
       datum
       art
       vorlagen
+    }
+  }
+`
+
+// --- Buschtelefon: was in den sozialen Netzwerken der Gemeinden steht --------
+//
+// Ein Fund ist EIN Beitrag (Post) mit allem, was an ihm haengt — Bildtexte,
+// Verlinktes, Geteiltes, Kommentare —, wie ihn das Buschtelefon einmal am Tag
+// freigibt (Vertrag `buschtelefon-redaktion/2`,
+// apps/directus/BUSCHTELEFON_SCHNITTSTELLE.md). Die json-Felder tragen die
+// Formen des Vertrags; jedes kann null sein, weil das Material nach dem
+// Entscheid geleert wird und nur die Zeile bleibt.
+
+/** Ein Bild oder Video des Beitrags — nur sein TEXT wechselt das System, nie die Datei (Vertrag 4.5). */
+export interface BuschtelefonBild {
+  nr: number
+  /** foto · flyer · screenshot · textkachel · dokument · privatchat · ausweis_dokument · video · unbekannt */
+  art: string
+  /** gelesen · kein_text · nicht_lesbar · nicht_versucht · zurueckgehalten — fuenf Zustaende, nie verwechseln. */
+  text_status: string
+  text: string | null
+  text_abgeschnitten?: boolean
+  beschreibung?: string | null
+}
+
+/** Ein Link, den der Beitrag traegt (Vertrag 4.6). */
+export interface BuschtelefonVerlinkt {
+  url: string
+  kurzlink?: boolean
+  titel?: string | null
+  text_status?: string
+  text?: string | null
+  text_abgeschnitten?: boolean
+}
+
+/** Der Beitrag, den dieser Beitrag teilt — oft die eigentliche Nachricht (Vertrag 4.6). */
+export interface BuschtelefonGeteilt {
+  /** Nur bei einer Organisation gesetzt; bei einer Privatperson null. */
+  link?: string | null
+  quelle_name?: string | null
+  autor_art?: string | null
+  autor_rolle?: string | null
+  autor_name?: string | null
+  veroeffentlicht_am?: string | null
+  datum_genauigkeit?: string | null
+  text?: string | null
+  text_abgeschnitten?: boolean
+  bilder?: BuschtelefonBild[] | null
+  n_bilder?: number | null
+  verlinkt?: BuschtelefonVerlinkt[] | null
+}
+
+/** Ein Kommentar im Wortlaut (Vertrag 4.7). Die Liste ist kumulativ. */
+export interface BuschtelefonKommentar {
+  kennung: string
+  kennung_art?: string
+  /** sichtbar · nicht_mehr_gesehen · entfernt */
+  stand: string
+  erstmals_freigegeben_am?: string | null
+  /** `kennung` des Elternkommentars; null auf oberster Ebene. */
+  antwort_auf: string | null
+  /** Platzhalter innerhalb des Fundes: A schrieb den Beitrag, B, C … die weiteren. */
+  autor_ref: string | null
+  autor_art?: string | null
+  autor_rolle?: string | null
+  /** Nur bei einer Organisation. */
+  autor_name?: string | null
+  autor_vorname?: string | null
+  veroeffentlicht_am?: string | null
+  datum_genauigkeit?: string | null
+  text: string | null
+  text_abgeschnitten?: boolean
+  bilder?: BuschtelefonBild[] | null
+  n_reaktionen?: number | null
+}
+
+export interface BuschtelefonFundFelder {
+  id: string
+  /** aktiv · nicht_erreichbar · entfernt */
+  status: string
+  /** facebook · instagram · tiktok */
+  kanal: string
+  quelle: string | null
+  quelle_name: string | null
+  quelle_art: string | null
+  /** oeffentlich · geschlossen · unbekannt — entscheidet, was eine Meldung verlinken darf. */
+  quelle_sichtbarkeit: string | null
+  /** Die Adresse der Gruppe — was die Meldung einer geschlossenen Gruppe verlinkt. */
+  quelle_url: string | null
+  gemeinde: { id: string; name: string } | null
+  /** Der Permalink des Beitrags. Steht immer am Tisch; in der Meldung nur bei einer oeffentlichen Gruppe. */
+  link: string | null
+  veroeffentlicht_am: string | null
+  /** Der Kalendertag in Europe/Zurich, vom Code gerechnet. */
+  veroeffentlicht_tag: string | null
+  datum_genauigkeit: string | null
+  autor_art: string | null
+  autor_rolle: string | null
+  autor_name: string | null
+  autor_vorname: string | null
+  autor_ref: string | null
+  text: string | null
+  text_abgeschnitten: boolean | null
+  bilder: BuschtelefonBild[] | null
+  n_bilder: number | null
+  verlinkt: BuschtelefonVerlinkt[] | null
+  geteilt: BuschtelefonGeteilt | null
+  kommentare: BuschtelefonKommentar[] | null
+  kommentare_stand: string | null
+  kommentare_fehlend: number | null
+  n_kommentare: number | null
+  n_reaktionen: number | null
+  n_geteilt: number | null
+  /** Die Kennung des Originals, wenn dieser Fund eine Doublette ist. */
+  doublette_von: string | null
+  erstmals_freigegeben_am: string | null
+  /** Wann die Redaktion das Material einer bestehenden Zeile zuletzt ersetzt hat. */
+  aktualisiert_am: string | null
+  /** Kommentare, die die letzte Ersetzung dazubrachte. */
+  neue_kommentare: number | null
+  hinweise: string[] | null
+  /** Null heisst: die Sichtung hat nicht geurteilt — NICHT, dass sie nein sagte. */
+  vorschlag: boolean | null
+  /** Die Stufe 1–4 der Sichtung. */
+  vorschlag_wert: number | null
+  vorschlag_begruendung: string | null
+  /** Die Vorbehalte des Schreibers — nur am Tisch, nie in den Warnungen der Meldung. */
+  entwurf_bedenken: string | null
+  entscheid: string
+  ablehnungsgrund: string | null
+  /** Gesetzt, sobald das Rohmaterial geleert wurde — die Zeile bleibt als Gedaechtnis. */
+  material_geloescht_am: string | null
+  date_created: string | null
+}
+
+/** Was die Chefredaktion von einem Fund liest — über `recherchehinweise.buschtelefon_fund`, nie aus einer Kopie. */
+export type BuschtelefonHinweisFund = Pick<
+  BuschtelefonFundFelder,
+  | 'id'
+  | 'status'
+  | 'material_geloescht_am'
+  | 'text'
+  | 'bilder'
+  | 'geteilt'
+  | 'verlinkt'
+  | 'kommentare'
+  | 'kommentare_stand'
+  | 'kommentare_fehlend'
+  | 'link'
+  | 'quelle_name'
+  | 'quelle_sichtbarkeit'
+  | 'veroeffentlicht_tag'
+>
+
+export interface BuschtelefonFundeErgebnis {
+  buschtelefon_funde: BuschtelefonFundFelder[]
+}
+
+export const BUSCHTELEFON_FUNDE_QUERY = gql`
+  query BuschtelefonFunde {
+    buschtelefon_funde(
+      filter: { entscheid: { _in: ["offen", "uebernommen"] } }
+      sort: ["-erstmals_freigegeben_am"]
+      limit: -1
+    ) {
+      id
+      status
+      kanal
+      quelle
+      quelle_name
+      quelle_art
+      quelle_sichtbarkeit
+      quelle_url
+      gemeinde {
+        id
+        name
+      }
+      link
+      veroeffentlicht_am
+      veroeffentlicht_tag
+      datum_genauigkeit
+      autor_art
+      autor_rolle
+      autor_name
+      autor_vorname
+      autor_ref
+      text
+      text_abgeschnitten
+      bilder
+      n_bilder
+      verlinkt
+      geteilt
+      kommentare
+      kommentare_stand
+      kommentare_fehlend
+      n_kommentare
+      n_reaktionen
+      n_geteilt
+      doublette_von
+      erstmals_freigegeben_am
+      aktualisiert_am
+      neue_kommentare
+      hinweise
+      vorschlag
+      vorschlag_wert
+      vorschlag_begruendung
+      entwurf_bedenken
+      entscheid
+      ablehnungsgrund
+      material_geloescht_am
+      date_created
+    }
+  }
+`
+
+/** Eine Quelle des Buschtelefons, wie `/quellen` sie beschreibt (Vertrag 3.5) — eine Gruppe, eine Seite, ein Konto. */
+export interface BuschtelefonQuelleFelder {
+  id: string
+  kennung: string
+  kanal: string | null
+  art: string | null
+  name: string | null
+  url: string | null
+  sichtbarkeit: string | null
+  zugang: string | null
+  aktiv: boolean | null
+  /** gelesen · teilweise · fehlgeschlagen · nicht_versucht — im Lauf der letzten Freigabe. */
+  stand: string | null
+  zuletzt_vollstaendig_gelesen_am: string | null
+  n_beitraege_gesehen: number | null
+  /** Was das Buschtelefon als inhaltslos nicht geliefert hat (Vertrag 1.1). */
+  n_aussortiert: number | null
+  /** Erstmals gesehene Beitraege, die aelter waren als das Aufnahmefenster. */
+  n_zu_alt: number | null
+  /** Was es hat, aber nicht uebergeben kann (kein Link, keine stabile Kennung). */
+  n_ausgelassen: number | null
+  fehler_seit: string | null
+  letzter_fehler: string | null
+  hinweise: string[] | null
+}
+
+export interface BuschtelefonQuellenErgebnis {
+  buschtelefon_quellen: BuschtelefonQuelleFelder[]
+}
+
+export const BUSCHTELEFON_QUELLEN_QUERY = gql`
+  query BuschtelefonQuellen {
+    buschtelefon_quellen(sort: ["name"], limit: -1) {
+      id
+      kennung
+      kanal
+      art
+      name
+      url
+      sichtbarkeit
+      zugang
+      aktiv
+      stand
+      zuletzt_vollstaendig_gelesen_am
+      n_beitraege_gesehen
+      n_aussortiert
+      n_zu_alt
+      n_ausgelassen
+      fehler_seit
+      letzter_fehler
+      hinweise
+    }
+  }
+`
+
+/** Der Stand des Abrufs — ein Singleton: wann zuletzt geholt wurde und was dabei zu sagen war. */
+export interface BuschtelefonStandFelder {
+  /** Das `freigabe`-Objekt der letzten Antwort der Tuer (Vertrag 3.2). */
+  freigabe: { tag?: string | null; freigegeben_am?: string | null } | null
+  letzter_abruf: string | null
+  letzter_fehler: string | null
+  /** Zum Beispiel: «Heute noch keine Freigabe des Buschtelefons (letzte: …)». */
+  letzter_hinweis: string | null
+  ergebnis: Record<string, unknown> | null
+}
+
+export interface BuschtelefonStandErgebnis {
+  buschtelefon_stand: BuschtelefonStandFelder | null
+}
+
+export const BUSCHTELEFON_STAND_QUERY = gql`
+  query BuschtelefonStand {
+    buschtelefon_stand {
+      freigabe
+      letzter_abruf
+      letzter_fehler
+      letzter_hinweis
+      ergebnis
     }
   }
 `

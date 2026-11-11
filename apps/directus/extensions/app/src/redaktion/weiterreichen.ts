@@ -14,7 +14,9 @@
 // too when a learned rule tells them to (automatic hand-ups); the mappers are
 // the same, only `automatisch` and `regel` differ.
 
+import type { BuschtelefonFund } from '../types/schema'
 import { datumDeutsch } from './amtsblatt'
+import { bildTexte, istOeffentlich, quellenName } from './buschtelefon'
 import { gekuerzt } from './presseschau'
 import { SENDUNGEN, type SendungsQuelle } from './sendung'
 
@@ -35,6 +37,7 @@ export interface HinweisFelder {
   sendungskandidat?: string
   veranstaltung?: string
   smd_beitrag?: string
+  buschtelefon_fund?: string
 }
 
 /** An Anlass handed up: its fields and description travel with the lead. */
@@ -253,6 +256,12 @@ export async function reicheWeiter(
     felder: HinweisFelder
     automatisch?: boolean
     regel?: string | null
+    /**
+     * More columns for the origin row, written in the same update as the
+     * mark — the Buschtelefon desk stamps `entschieden_am`, which its
+     * retention counts from.
+     */
+    ursprungFelder?: Record<string, unknown>
   }
 ): Promise<string> {
   const hinweisId = (await dienste.hinweise.createOne({
@@ -262,6 +271,7 @@ export async function reicheWeiter(
   })) as string
 
   await dienste.ursprung.updateOne(auftrag.ursprungId, {
+    ...(auftrag.ursprungFelder ?? {}),
     entscheid: 'weitergereicht'
   })
 
@@ -351,5 +361,108 @@ export function smdBeitragAlsHinweis(
       .join('\n'),
     status: 'offen',
     smd_beitrag: zeile.id
+  }
+}
+
+/** How long a find's display line may be before it is cut — the first line of a post, never the whole of it. */
+export const FUND_TITEL_ZEICHEN = 90
+
+/**
+ * The display line of a find: a Facebook post has no title, so it is the
+ * start of its own text — else of the first read image text, else of what it
+ * shares — and where no words are left, the source and the day. It IS
+ * wording, so it goes only where retention reaches (a Sichtung's prompt, an
+ * example read fresh from the row) — never into a lead or a rule's `beleg`.
+ */
+export function fundTitel(
+  zeile: Pick<
+    BuschtelefonFund,
+    | 'kanal'
+    | 'quelle_art'
+    | 'quelle_name'
+    | 'veroeffentlicht_tag'
+    | 'text'
+    | 'bilder'
+    | 'geteilt'
+  >
+): string {
+  const kandidaten = [
+    zeile.text ?? '',
+    ...bildTexte(zeile.bilder),
+    zeile.geteilt?.text ?? ''
+  ]
+  for (const kandidat of kandidaten) {
+    const zeileEins = kandidat
+      .split('\n')
+      .map((z) => z.replace(/\s+/g, ' ').trim())
+      .find((z) => z !== '')
+    if (zeileEins === undefined) continue
+    return zeileEins.length <= FUND_TITEL_ZEICHEN
+      ? zeileEins
+      : `${zeileEins.slice(0, FUND_TITEL_ZEICHEN - 1).trimEnd()}…`
+  }
+  return fundOhneWortlaut(zeile)
+}
+
+/** A find named WITHOUT its wording — what may stand where the row's retention does not reach (a rule's `beleg`, a lead's `titel`). */
+export function fundOhneWortlaut(
+  zeile: Pick<
+    BuschtelefonFund,
+    'kanal' | 'quelle_art' | 'quelle_name' | 'veroeffentlicht_tag'
+  >
+): string {
+  const tag =
+    zeile.veroeffentlicht_tag === null
+      ? ''
+      : ` vom ${datumDeutsch(zeile.veroeffentlicht_tag)}`
+  return `Beitrag aus ${quellenName(zeile)}${tag}`
+}
+
+/**
+ * A find from a village's social-network group, handed to the Chefredaktion.
+ *
+ * The lead carries NO WORDING — neither in `titel` nor in `quelltext` —
+ * unlike every other desk's lead. A lead lives in `recherchehinweise`, which
+ * keeps revisions: the verdict and «Zurück auf den Tisch» are written with
+ * the caller's accountability, and each such update snapshots the whole
+ * item into `directus_revisions`, where neither the door's tombstone nor
+ * this desk's retention ever reaches. A private person's post, its image
+ * texts and its commenters' first names must not land there. So the lead
+ * names the find by source and day (`fundOhneWortlaut`), says «geschlossene
+ * Gruppe» where it is one, and points at the find through
+ * `buschtelefon_fund`; the Chefredaktion's view reads the material LIVE
+ * through that key from `buschtelefon_funde` (no revisions), so the
+ * retention that empties the find empties the lead's view with it.
+ *
+ * `begruendung` is the editor's own Begründung, else the Sichtung's
+ * `vorschlag_begruendung` — a paraphrase by the model, not the material,
+ * and accepted as such (decision of 11 November 2026).
+ */
+export function buschtelefonFundAlsHinweis(
+  zeile: Pick<
+    BuschtelefonFund,
+    | 'id'
+    | 'kanal'
+    | 'quelle_art'
+    | 'quelle_name'
+    | 'quelle_sichtbarkeit'
+    | 'veroeffentlicht_tag'
+    | 'vorschlag_begruendung'
+  > & { gemeinde: { id: string } | null },
+  begruendung: string | null
+): HinweisFelder {
+  const name = fundOhneWortlaut(zeile)
+  return {
+    gemeinde: zeile.gemeinde?.id ?? null,
+    titel: name,
+    fundort:
+      `${name}${istOeffentlich(zeile) ? '' : ' — geschlossene Gruppe'} (Buschtelefon)`.slice(
+        0,
+        300
+      ),
+    begruendung: begruendung ?? zeile.vorschlag_begruendung ?? null,
+    quelltext: null,
+    status: 'offen',
+    buschtelefon_fund: zeile.id
   }
 }

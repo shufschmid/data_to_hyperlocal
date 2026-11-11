@@ -394,6 +394,126 @@ describe('lerneAusEntscheid', () => {
     ).resolves.toBeUndefined()
     expect(warn).toHaveBeenCalled()
   })
+
+  describe('Buschtelefon — eine bewertete Faehrte', () => {
+    const fund = {
+      id: 'f-3',
+      kanal: 'facebook',
+      quelle_art: 'gruppe',
+      quelle_name: 'Aesch verkauft',
+      veroeffentlicht_tag: '2026-11-05',
+      text: 'Weiss jemand, wer der Typ mit dem roten Golf an der Hauptstrasse 12 ist?',
+      vorschlag_begruendung: null,
+      gemeinde: { id: 'g-aesch', name: 'Aesch' }
+    }
+
+    it('benennt die gleichgerichteten Faehrten ueber ihren Fund — nie ueber den Titel der Faehrte', async () => {
+      const aufrufe: Query[] = []
+      const hinweise = {
+        readByQuery: async (q: Query) => {
+          aufrufe.push(q)
+          // A lead from before leads stopped carrying wording: its `titel`
+          // is the post's first line, and must never reach the rule.
+          const alt = 'Wer kennt den Mann mit dem roten Golf?'
+          return felderVon(q).includes('titel')
+            ? [{ titel: alt }, { titel: alt }]
+            : [
+                {
+                  buschtelefon_fund: {
+                    kanal: 'facebook',
+                    quelle_art: 'gruppe',
+                    quelle_name: 'Aesch verkauft',
+                    veroeffentlicht_tag: '2026-11-02'
+                  }
+                },
+                // A relational read leaves out what is missing.
+                {
+                  buschtelefon_fund: {
+                    kanal: 'facebook',
+                    quelle_name: 'Du bisch vo Aesch'
+                  }
+                }
+              ]
+        }
+      }
+      const wissen = wissenDienst([])
+      const send = antwort({
+        urteil: 'neu',
+        regel_nr: null,
+        regel: 'Fragen nach unbekannten Personen nicht vorschlagen.',
+        wirkung: 'hinweis'
+      })
+
+      await lerneAusEntscheid(
+        {
+          zeilen: { readByQuery: async () => [fund] },
+          hinweise,
+          wissen,
+          logger: STILL,
+          send
+        },
+        {
+          tisch: 'buschtelefon',
+          art: 'faehrte',
+          zeileId: 'f-3',
+          hinweisId: 'h-3',
+          entscheid: 'kein_hinweis',
+          grund: null,
+          kommentar: null
+        }
+      )
+
+      expect(aufrufe).toHaveLength(1)
+      expect(felderVon(aufrufe[0] ?? {})).toEqual([
+        'buschtelefon_fund.kanal',
+        'buschtelefon_fund.quelle_art',
+        'buschtelefon_fund.quelle_name',
+        'buschtelefon_fund.veroeffentlicht_tag'
+      ])
+      expect(wissen.angelegt).toHaveLength(1)
+      const beleg = String(wissen.angelegt[0]?.['beleg'])
+      expect(beleg).toContain('Abgeleitet aus 3 gleichgerichteten Entscheiden')
+      expect(beleg).toContain(
+        '"Beitrag aus Facebook-Gruppe «Aesch verkauft» vom 2. November 2026"'
+      )
+      expect(beleg).toContain(
+        '"Beitrag aus Facebook-Gruppe «Du bisch vo Aesch»"'
+      )
+      expect(beleg).toContain(
+        'Beitrag aus Facebook-Gruppe «Aesch verkauft» vom 5. November 2026'
+      )
+      expect(beleg).not.toContain('Golf')
+      expect(beleg).not.toContain('Hauptstrasse')
+    })
+
+    it('loggt ein Scheitern nur mit seiner Klasse — die Antwort des Modells kann den Beitrag zitieren', async () => {
+      const warn = vi.fn()
+      const send = vi
+        .fn<MessageSender>()
+        .mockResolvedValue(
+          nachricht('kein JSON: roter Golf an der Hauptstrasse')
+        )
+      await lerneAusEntscheid(
+        {
+          zeilen: { readByQuery: async () => [fund] },
+          hinweise: leer,
+          wissen: wissenDienst([]),
+          logger: { info: vi.fn(), warn },
+          send
+        },
+        {
+          tisch: 'buschtelefon',
+          art: 'entscheid',
+          zeileId: 'f-3',
+          entscheid: 'abgelehnt',
+          grund: 'personenbezug',
+          kommentar: 'Fragen nach Personen nie'
+        }
+      )
+      expect(warn).toHaveBeenCalled()
+      expect(JSON.stringify(warn.mock.calls)).not.toContain('Golf')
+    })
+  })
 })
 
 describe('pausiereAutomatikWennNoetig', () => {

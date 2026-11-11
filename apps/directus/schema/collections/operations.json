@@ -257,5 +257,19 @@
     "reject": null,
     "flow": "e2b8d4f6-1a3c-4e5b-9d7f-6c2a8b4e0d13",
     "_syncId": "a7c3e9d1-2b4f-4c6a-8e0d-5f1b3a7c9e21"
+  },
+  {
+    "name": "Abholen",
+    "key": "abholen",
+    "type": "buschtelefon-abholen",
+    "position_x": 19,
+    "position_y": 1,
+    "options": {
+      "limit": 200
+    },
+    "resolve": null,
+    "reject": null,
+    "flow": "f3c9e5a7-2b4d-4f6c-8a0e-9d1b3c5e7a24",
+    "_syncId": "b6d4f0a2-3c5e-4a7b-9f1d-7e2c4b8a0f35"
   }
 ]

@@ -5,6 +5,7 @@ import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
+import Collapse from '@mui/material/Collapse'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
@@ -14,8 +15,11 @@ import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
-import type { PerleFelder, RecherchehinweisFelder } from '@/graphql/redaktion'
+import ForumOutlined from '@mui/icons-material/ForumOutlined'
+import type { BuschtelefonHinweisFund, PerleFelder, RecherchehinweisFelder } from '@/graphql/redaktion'
 import { seitenLink } from '@/lib/redaktion'
+import { fundKopf, fundNochDa, GESCHLOSSEN_SATZ, ORIGINAL_WEG, sichtbarkeitText } from '@/lib/buschtelefon'
+import { BeitragWortlaut, KommentarListe } from './BuschtelefonMaterial'
 import { Originaltext } from './Presseschau'
 
 // The chief editor's desk: everything that is NOT the everyday take-or-reject
@@ -53,10 +57,77 @@ export function herkunftVon(h: RecherchehinweisFelder): string {
   if (h.gemeindemitteilung !== null) return 'Gemeindeseite'
   if (h.veranstaltung !== null) return 'Veranstaltungskalender'
   if ((h.kantonsmitteilung ?? null) !== null) return 'Kanton'
+  if ((h.buschtelefon_fund ?? null) !== null) return 'Buschtelefon'
   if (h.sendungskandidat !== null) {
     return h.sendungskandidat.quelle === 'punkt6' ? 'punkt6' : 'Regionaljournal'
   }
   return 'Inventar'
+}
+
+/**
+ * The find behind a Buschtelefon lead, read LIVE through the lead's foreign
+ * key. The lead copies no wording (its collection keeps revisions, where no
+ * retention would ever reach a private person's post), so this is the one
+ * place the Chefredaktion reads the post — and once the find was removed at
+ * the source or its material emptied, there is nothing left to read.
+ */
+function BuschtelefonFaehrte({ fund }: { fund: BuschtelefonHinweisFund }) {
+  const [offen, setOffen] = useState(false)
+  const [kommentareOffen, setKommentareOffen] = useState(false)
+  const kopf = fundKopf(fund)
+
+  if (!fundNochDa(fund)) {
+    return (
+      <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+        {ORIGINAL_WEG} — das Rohmaterial dieses Fundes ist gelöscht.
+      </Typography>
+    )
+  }
+
+  const geschlossen = sichtbarkeitText(fund)
+  return (
+    <Stack spacing={0.5}>
+      <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', gap: 0.5 }}>
+        {kopf !== '' && (
+          <Typography variant="caption" color="text.secondary">
+            {kopf}
+          </Typography>
+        )}
+        {geschlossen !== null && <Chip size="small" color="warning" label={geschlossen} />}
+      </Stack>
+      {geschlossen !== null && (
+        <Alert severity="warning" sx={{ py: 0 }}>
+          {GESCHLOSSEN_SATZ}
+        </Alert>
+      )}
+      <Box>
+        <Button size="small" variant="text" onClick={() => setOffen((o) => !o)} sx={{ px: 0 }}>
+          {offen ? 'Beitrag verbergen' : 'Beitrag lesen'}
+        </Button>
+        <Collapse in={offen} unmountOnExit>
+          <Stack spacing={1}>
+            <BeitragWortlaut fund={fund} />
+            {fund.link !== null && fund.link !== '' && (
+              <Link
+                href={fund.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                variant="body2"
+                sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
+              >
+                <ForumOutlined fontSize="inherit" /> Original-Beitrag öffnen
+              </Link>
+            )}
+            <KommentarListe
+              fund={fund}
+              offen={kommentareOffen}
+              onUmschalten={() => setKommentareOffen((o) => !o)}
+            />
+          </Stack>
+        </Collapse>
+      </Box>
+    </Stack>
+  )
 }
 
 export function Chefredaktion({
@@ -176,6 +247,7 @@ export function Chefredaktion({
             <Typography variant="subtitle2">Recherche-Hinweise ({offeneHinweise.length} offen)</Typography>
             {offeneHinweise.map((h) => {
               const pdfUrl = h.ausgabe?.pdf_url ?? null
+              const fund = h.buschtelefon_fund ?? null
               return (
                 <Box key={h.id} sx={{ borderTop: 1, borderColor: 'divider', pt: 1 }}>
                   <Stack spacing={0.5}>
@@ -222,7 +294,13 @@ export function Chefredaktion({
                       </Typography>
                     )}
                     {h.begruendung !== null && <Typography variant="body2">{h.begruendung}</Typography>}
-                    <Originaltext text={h.quelltext} seite={h.seite} />
+                    {/* A Buschtelefon lead never shows a copy — not even one an
+                        older lead still holds: the find is the material. */}
+                    {fund !== null ? (
+                      <BuschtelefonFaehrte fund={fund} />
+                    ) : (
+                      <Originaltext text={h.quelltext} seite={h.seite} />
+                    )}
                     <Stack direction="row" spacing={1}>
                       <Button
                         size="small"

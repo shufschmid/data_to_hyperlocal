@@ -211,5 +211,19 @@
     },
     "operation": "a7c3e9d1-2b4f-4c6a-8e0d-5f1b3a7c9e21",
     "_syncId": "e2b8d4f6-1a3c-4e5b-9d7f-6c2a8b4e0d13"
+  },
+  {
+    "name": "Buschtelefon abholen",
+    "icon": "forum",
+    "color": null,
+    "description": "Holt um 12 Uhr ab, was das Buschtelefon freigegeben hat (Facebook-Gruppen, spaeter Instagram und TikTok): fuehrt die Quellen nach, uebernimmt neue und geaenderte Funde ueber das Lesezeichen folge, raeumt nach den Aufbewahrungsfristen auf, sichtet je Gemeinde mit Stufen 1 bis 4 und schreibt zu jedem Vorschlag den Entwurf. 13 und 14 Uhr sind die gratis Nachlaeufe: ohne neue Freigabe kostet ein Lauf zwei Abrufe und schreibt nichts.",
+    "status": "active",
+    "trigger": "schedule",
+    "accountability": "activity",
+    "options": {
+      "cron": "0 0 12,13,14 * * *"
+    },
+    "operation": "b6d4f0a2-3c5e-4a7b-9f1d-7e2c4b8a0f35",
+    "_syncId": "f3c9e5a7-2b4d-4f6c-8a0e-9d1b3c5e7a24"
   }
 ]

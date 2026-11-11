@@ -40,6 +40,7 @@ import {
   type LernFall,
   type LernTisch
 } from './lernen'
+import { fundOhneWortlaut } from './weiterreichen'
 
 export interface RegelZeile {
   id: string
@@ -319,6 +320,17 @@ async function ladeFall(
       'gemeinde.id',
       'gemeinde.name'
     ],
+    // A find has no title, and its wording is under retention: the case is
+    // named by source and day (`fundOhneWortlaut`), the text goes into the
+    // classifier's prompt only.
+    buschtelefon: [
+      'id',
+      ...FUND_NAME_FELDER,
+      'text',
+      'vorschlag_begruendung',
+      'gemeinde.id',
+      'gemeinde.name'
+    ],
     sendung: [
       'id',
       'titel',
@@ -445,6 +457,33 @@ async function ladeFall(
       kommentar: signal.kommentar
     }
     scope = gemeinde === null ? {} : { gemeinde: { _eq: gemeinde.id } }
+  } else if (signal.tisch === 'buschtelefon') {
+    const gemeinde = zeile['gemeinde'] as { id: string; name: string } | null
+    const inhalt = text(zeile['text'])
+    fall = {
+      tisch: 'buschtelefon',
+      quelleName: gemeinde?.name ?? 'ohne Gemeinde',
+      // NOT the post's first line: `titel` ends up in a rule's `beleg`,
+      // which is kept for good, while the wording of a private person's
+      // post is emptied after its retention. Source and day name the case.
+      titel: fundName(zeile),
+      // The source is the class hint: a buy-and-sell group and a village
+      // group are decided for different reasons.
+      merkmal: text(zeile['quelle_name']),
+      // Prompt only — `buildLernPrompt` caps it, nothing stores it.
+      zusammenfassung: inhalt === null ? null : inhalt.slice(0, 600),
+      modellBegruendung: text(zeile['vorschlag_begruendung']),
+      entscheid: signal.entscheid,
+      grund: signal.grund,
+      kommentar: signal.kommentar
+    }
+    // A find without a municipality has no narrower scope than its source.
+    scope =
+      gemeinde !== null
+        ? { gemeinde: { _eq: gemeinde.id } }
+        : text(zeile['quelle_name']) === null
+          ? {}
+          : { quelle_name: { _eq: zeile['quelle_name'] } }
   } else if (signal.tisch === 'veranstaltung') {
     const gemeinde = zeile['gemeinde'] as { id: string; name: string } | null
     const beschreibung = text(zeile['beschreibung'])
@@ -498,19 +537,35 @@ async function ladeFall(
               ? 'kantonsmitteilung'
               : signal.tisch === 'smd'
                 ? 'smd_beitrag'
-                : signal.tisch === 'veranstaltung'
-                  ? 'veranstaltung'
-                  : 'sendungskandidat'
+                : signal.tisch === 'buschtelefon'
+                  ? 'buschtelefon_fund'
+                  : signal.tisch === 'veranstaltung'
+                    ? 'veranstaltung'
+                    : 'sendungskandidat'
+    // A Buschtelefon lead is named through its find, by source and day —
+    // never by the lead's own `titel`: the names end up in the new rule's
+    // `beleg`, which is kept for good, and a lead written before the lead
+    // stopped carrying wording has the post's first line there.
+    const buschtelefon = signal.tisch === 'buschtelefon'
     const andere = (await dienste.hinweise.readByQuery({
       filter: {
         [fk]: { _nnull: true, _neq: zeileId },
         status: { _eq: signal.entscheid }
       },
-      fields: ['titel'],
+      fields: buschtelefon
+        ? FUND_NAME_FELDER.map((feld) => `buschtelefon_fund.${feld}`)
+        : ['titel'],
       sort: ['-date_updated'],
       limit: GLEICHGERICHTET_FENSTER
-    })) as Array<{ titel: string }>
-    return { fall, gleichgerichtete: andere.map((a) => a.titel) }
+    })) as Array<Record<string, unknown>>
+    return {
+      fall,
+      gleichgerichtete: andere.map((a) =>
+        buschtelefon
+          ? fundName(a['buschtelefon_fund'] as Record<string, unknown> | null)
+          : String(a['titel'] ?? '')
+      )
+    }
   }
   if (signal.art === 'verwerfen') {
     // Only ever reached with the editor's words — no repetition to count.
@@ -532,11 +587,41 @@ async function ladeFall(
         }
   const andere = (await dienste.zeilen.readByQuery({
     filter,
-    fields: ['titel'],
+    fields: signal.tisch === 'buschtelefon' ? [...FUND_NAME_FELDER] : ['titel'],
     sort: ['-date_updated'],
     limit: GLEICHGERICHTET_FENSTER
-  })) as Array<{ titel: string }>
-  return { fall, gleichgerichtete: andere.map((a) => a.titel) }
+  })) as Array<Record<string, unknown>>
+  return {
+    fall,
+    gleichgerichtete: andere.map((a) =>
+      signal.tisch === 'buschtelefon' ? fundName(a) : String(a['titel'] ?? '')
+    )
+  }
+}
+
+/** What names a find without its wording — see `fundOhneWortlaut`. */
+const FUND_NAME_FELDER = [
+  'kanal',
+  'quelle_art',
+  'quelle_name',
+  'veroeffentlicht_tag'
+] as const
+
+function fundName(zeile: Record<string, unknown> | null | undefined): string {
+  // Every field normalised to null: a relational read leaves out what is
+  // missing, and `fundOhneWortlaut` reads null as «not there».
+  const z = zeile ?? {}
+  const feld = <T>(name: (typeof FUND_NAME_FELDER)[number]): T =>
+    (z[name] ?? null) as T
+  type Name = Parameters<typeof fundOhneWortlaut>[0]
+  return fundOhneWortlaut({
+    kanal: feld<Name['kanal']>('kanal'),
+    quelle_art: feld<Name['quelle_art']>('quelle_art'),
+    quelle_name: feld<Name['quelle_name']>('quelle_name'),
+    veroeffentlicht_tag: feld<Name['veroeffentlicht_tag']>(
+      'veroeffentlicht_tag'
+    )
+  })
 }
 
 /** One learner at a time per desk, so two quick decisions cannot create twin rules. */
@@ -603,8 +688,14 @@ export function lerneAusEntscheid(
         })
       }
     } catch (fehler) {
+      // On the Buschtelefon desk the classifier read a private person's
+      // post, and a malformed answer's error carries the answer: the log
+      // gets the error's class only.
+      const f = (fehler ?? {}) as { name?: unknown; code?: unknown }
       dienste.logger.warn(
-        fehler,
+        signal.tisch === 'buschtelefon'
+          ? { name: f.name ?? null, code: f.code ?? null }
+          : fehler,
         `gedaechtnis: Entscheid (${signal.tisch}, ${signal.entscheid}) nicht gelernt`
       )
     }

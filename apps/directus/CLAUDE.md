@@ -81,6 +81,21 @@ Use it for structure _and_ for everything with presentation metadata — interfa
 field order, icons, translations, roles, permissions, dashboards, Flows. Directus
 writes that metadata for you; hand-written SQL does not.
 
+The three `buschtelefon_*` collections (11 November 2026) were written this way
+whole, and two of their properties had no sibling to copy: `accountability: null`
+(no activity, no revisions — the rows hold what private persons wrote, and a
+revision would be a copy no retention reaches) and `singleton: true` on
+`buschtelefon_stand`. Both are modelled on the `kantonsmitteilungen` collection
+file with those two values changed, and `folge`/`gesichtet_folge` are the
+snapshot's first `bigInteger` columns. `buschtelefon_funde.entfernt_grund`
+(string 30, the contract's three reasons, sort 55) followed the same day for the
+revival rule. The Flow «Buschtelefon abholen» is `accountability: activity`, so
+the operation's result is not kept as a revision either. **None of it had seen a
+running instance when it was committed** — `schema:diff` on the first boot is the
+gate that is still owed. `src/buschtelefon-modell.test.ts` holds what can be held
+without one: the field list, widths, uniques, the relation twins, the Flow with
+its accountability and its operation.
+
 After changing the model, update `extensions/app/src/types/schema.ts` and the
 frontend's GraphQL documents (`apps/front/src/graphql/`).
 
@@ -109,7 +124,7 @@ desks, seeded with the code's standard, insert-only), `20260930A-blutspende.mts`
 (ten `veranstaltungsquellen` rows, `art: organisation`, one per covered
 municipality with its POSTCODE in the blutspende.ch search address — seeded
 ACTIVE because the newsroom asked for exactly these, `plattform` stamped so the
-card does not read „noch kein Leser" before the first run, `down` throws), `20261011A-verkehr.mts` (the composite unique `(gemeinde, jahr, monat)` on `geschwindigkeitskontrollen`, plus the two Verkehr source rows — the canton's radar list through the data door, Reinach's speed-control page — seeded ACTIVE because the newsroom asked for both), `20261012A-smd.mts` (indexes only: the dossier's subject as the mailbox dedup, the composite unique `(schluessel, gemeinde)` on `smd_beitraege` — one piece naming three municipalities is three rows, and SMD's 26-hour window must not make a second — and the partial unique on `meldungen.smd_beitrag`; no source row, the desk's configuration is the mailbox and the publishers' doors are a table in code), `20261001A-modellpreise.mts` (one `modellpreise` row per
+card does not read „noch kein Leser" before the first run, `down` throws), `20261011A-verkehr.mts` (the composite unique `(gemeinde, jahr, monat)` on `geschwindigkeitskontrollen`, plus the two Verkehr source rows — the canton's radar list through the data door, Reinach's speed-control page — seeded ACTIVE because the newsroom asked for both), `20261111A-buschtelefon.mts` (the partial unique on `meldungen.buschtelefon_fund` — one non-discarded Meldung per find, the predicate the endpoint's own guard uses — plus the `tischeinstellungen` row `tisch: buschtelefon` with threshold 3, insert-only; the three collections themselves are snapshot files, and `kennung` is `is_unique` THERE, not here; `down` drops the index and removes the row only while it still carries the seeded threshold), `20261012A-smd.mts` (indexes only: the dossier's subject as the mailbox dedup, the composite unique `(schluessel, gemeinde)` on `smd_beitraege` — one piece naming three municipalities is three rows, and SMD's 26-hour window must not make a second — and the partial unique on `meldungen.smd_beitrag`; no source row, the desk's configuration is the mailbox and the publishers' doors are a table in code), `20261001A-modellpreise.mts` (one `modellpreise` row per
 model from the Anthropic price list of 25.09.2026, insert-only so an edited
 price survives a redeploy, `down` removes only the rows still carrying that
 `quelle`),
@@ -426,12 +441,12 @@ next Sichtung's user turn, as a candidate RULE in `redaktionswissen`, and, for o
 armed kind of rule, as an ACTION. Four modules in `src/redaktion/` carry it, and
 the split between them is the split between pure and Directus-bound code:
 
-| Module             | Pure? | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| ------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `lernsignale.ts`   | no    | ONE loader per desk (`ladeWochenblattSignale`, `ladeAmtsblattSignale`, `ladeGemeindeSignale`, `ladeVeranstaltungSignale`, `ladeSendungSignale`) for the scheduled run and the re-inventory button alike: decided rows of the window (last three issues / 30 days), the Verwerfen join, the Chefredaktion's verdict via the lead's origin FK, the `verfallen` titles and a `Bilanz`. The three municipality-scoped desks share one private loader — the events desk keys its examples on the `anker` where the gazette uses the rubric, so „a Gremium is always proposed" can be learned as such. Pure helpers `bilanzZeile`, `deklariereKappung`. |
-| `lernen.ts`        | yes   | The rules of learning: `lohntLernen` (a comment always, a bare click only after two same-direction decisions, doublette/veraltet/falsche Gemeinde never), the Lern prompt and schema, `parseLernUrteil` with its code guards, `regelnBlock` (R1…Rn for a Sichtung), `vorgabenZeilen` (for an article prompt), `automatischeWeitergabe` (fail-closed) and `automatikPausieren` (two rejections in a row).                                                                                                                                                                                                                                          |
-| `gedaechtnis.ts`   | no    | The store: `ladeRegeln(bereich, stufe)` capped at 30 with a warning, `merkeWissenAus` for words (chat, comments, Begründungen), `lerneAusEntscheid` for decisions (fire-and-forget, `logger.warn` on failure, one promise chain per desk so two quick decisions cannot create twin rules) and `pausiereAutomatikWennNoetig`.                                                                                                                                                                                                                                                                                                                      |
-| `weiterreichen.ts` | mixed | Five pure mappers build a lead from a candidate / publication / municipal item / Anlass / broadcast candidate with its origin FK; `reicheWeiter` creates the lead FIRST and marks the origin `weitergereicht` second. The endpoints and the Sichtungen share it — an automatic hand-up is `automatisch: true` plus the `regel` that asked for it.                                                                                                                                                                                                                                                                                                 |
+| Module             | Pure? | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `lernsignale.ts`   | no    | ONE loader per desk (`ladeWochenblattSignale`, `ladeAmtsblattSignale`, `ladeGemeindeSignale`, `ladeVeranstaltungSignale`, `ladeSendungSignale`, `ladeBuschtelefonSignale`) for the scheduled run and the re-inventory button alike: decided rows of the window (last three issues / 30 days), the Verwerfen join, the Chefredaktion's verdict via the lead's origin FK, the `verfallen` titles and a `Bilanz`. The three municipality-scoped desks share one private loader — the events desk keys its examples on the `anker` where the gazette uses the rubric, so „a Gremium is always proposed" can be learned as such. Pure helpers `bilanzZeile`, `deklariereKappung`.                                                   |
+| `lernen.ts`        | yes   | The rules of learning: `lohntLernen` (a comment always, a bare click only after two same-direction decisions, doublette/veraltet/falsche Gemeinde never), the Lern prompt and schema, `parseLernUrteil` with its code guards, `regelnBlock` (R1…Rn for a Sichtung), `vorgabenZeilen` (for an article prompt), `automatischeWeitergabe` (fail-closed) and `automatikPausieren` (two rejections in a row).                                                                                                                                                                                                                                                                                                                       |
+| `gedaechtnis.ts`   | no    | The store: `ladeRegeln(bereich, stufe)` capped at 30 with a warning, `merkeWissenAus` for words (chat, comments, Begründungen), `lerneAusEntscheid` for decisions (fire-and-forget, `logger.warn` on failure, one promise chain per desk so two quick decisions cannot create twin rules) and `pausiereAutomatikWennNoetig`.                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `weiterreichen.ts` | mixed | One pure mapper per desk builds a lead from a candidate / publication / municipal item / Anlass / broadcast candidate / Kanton notice / SMD piece / Buschtelefon find with its origin FK (the last, `buschtelefonFundAlsHinweis`, carries no wording — `quelltext` null, `titel` from `fundOhneWortlaut` (source and day), «geschlossene Gruppe» in `fundort` where it is one; the Chefredaktion reads post, comments and link live through `buschtelefon_fund`, because `recherchehinweise` keeps revisions); `reicheWeiter` creates the lead FIRST and marks the origin `weitergereicht` second. The endpoints and the Sichtungen share it — an automatic hand-up is `automatisch: true` plus the `regel` that asked for it. |
 
 Four things a change here must keep:
 
@@ -454,7 +469,12 @@ Endpoints of the learning layer, all in `src/endpoints/redaktion/`:
   (`wissenFelderManuell` validates, German messages); `herkunft: manuell`.
 - `POST /redaktion/hinweise/:id/zurueck` — „Zurück auf den Tisch": the lead must be
   `offen` and carry an origin FK; the origin goes back to `offen`, the lead becomes
-  `zurueckgegeben`, and a `regel` on it counts toward the pause.
+  `zurueckgegeben`, and a `regel` on it counts toward the pause. A Buschtelefon
+  find is the exception (`gibFundZurueck`): it reopens only while its material
+  is there, with `entschieden_am` stamped NOW so retention counts its fourteen
+  open days from the hand-back; a find whose material is gone or that was
+  removed at the source lapses to `verfallen` instead. The answer says which
+  (`ursprung_entscheid`), and the lead is closed either way.
 - `POST /redaktion/hinweise/:id/bewerten`, the four `…/ablehnen`, the four
   `…/weiterreichen`, `…/kandidaten/:id/perle` and `…/meldungen/:id/verwerfen` all
   store first and then call `lerne(signal)`; the optional `kommentar` in their
@@ -499,6 +519,66 @@ Endpoints of the learning layer, all in `src/endpoints/redaktion/`:
   refuses outright, because there an unreadable page is a wrong address.
   Editing takes only the switch and the name; deleting is a POST verb because
   the frontend proxy forwards GET and POST only.
+- `GET /redaktion/buschtelefon/lauf`, `POST /redaktion/buschtelefon/pruefen`
+  (202, 409 `RUN_IN_PROGRESS` while one runs — ANY run: the guard is
+  process-wide in `redaktion/buschtelefonlauf.ts` (`holeAbEinzeln`,
+  `abholungLaeuft`), shared by the button and the Flow's operation, which
+  are bundled into one module; `/lauf` reports a Flow run as `laeuft` too) and
+  `POST /redaktion/buschtelefon/:id/{meldung,ablehnen,weiterreichen,gemeinde}`
+  — the Buschtelefon desk (11 November 2026). The routes and the decisions as
+  functions over injected services are in
+  `src/endpoints/redaktion/buschtelefon.ts` (`verdrahteBuschtelefon`, one call
+  in `index.ts`); the rules in `redaktion/buschtelefon.ts`, the writer in
+  `redaktion/buschtelefonmeldungen.ts`, the run in
+  `redaktion/buschtelefonlauf.ts`. `/lauf` also says whether the door is set
+  up (`eingerichtet`, `fehlend` — the variable names, never a value). Things
+  this desk does that its neighbours do not:
+  - `/meldung` takes `{}`, `{ergaenzung}` or `{eigene}`. With the run's draft
+    already lying there, an empty body on an `offen` row only sets
+    `uebernommen` — no second article; a body, or a row already taken over,
+    is 409. It refuses 422 a find without a municipality
+    (`FUND_OHNE_GEMEINDE`), one whose material retention emptied
+    (`FUND_OHNE_MATERIAL`) and one the writer found too thin
+    (`MATERIAL_GENUEGT_NICHT`).
+  - `/ablehnen` empties comments and image texts IN THE SAME WRITE as the
+    decision (`leereKommentare`) and discards an unpublished draft; a
+    published article is never touched by a rejection. `/ablehnen` and
+    `/weiterreichen` both refuse 409 `MELDUNG_IN_ARBEIT` while the find's
+    article is past the draft (counter-check, approved, published): the row
+    would leave the desk with the article still under it.
+  - `/weiterreichen` creates the lead through a SYSTEM-level service, after
+    the find was read with the caller's own — `recherchehinweise` keeps
+    revisions — and the lead carries no wording (`buschtelefonFundAlsHinweis`).
+  - `/gemeinde` `{gemeinde: uuid}` assigns an active municipality by hand,
+    and refuses once a non-discarded Meldung exists.
+  - **Every decision stamps `entschieden_am`**, because retention counts from
+    it and a decided row without it is treated as old and emptied by the
+    next run. `POST /redaktion/meldungen/:id/(publizieren|pruefung|freigeben)`
+    therefore marks a still-open find `uebernommen` too
+    (`markiereUebernommen`) — a status change made directly in the admin UI
+    does not, and that find then lapses after fourteen days.
+  - **Nothing a person wrote reaches a place the retention cannot reach**: a
+    warning in `meldungen.zeit_warnungen` names the kind of finding only
+    (the details are in `buschtelefon_funde.entwurf_bedenken`), a learned
+    rule's `beleg` names the case as «Beitrag aus Facebook-Gruppe «X» vom …»,
+    `buschtelefon_stand.ergebnis` names finds without their wording, and a
+    failed chat revision writes a neutral sentence into `meldungen.fehler`,
+    since a provider error can carry the prompt. The same holds for the run
+    and the routes: a run's error lines are `fehlerSatz` (the desk's and the
+    door's own sentences as they are, a model error as a fixed German
+    sentence by class, anything else «Unerwarteter Fehler … Einzelheiten im
+    Protokoll»), a route's foreign error is a neutral 502 `REQUEST_FAILED`,
+    and the log gets the error's name and code (the routes also its
+    status), never its message. The Flow «Buschtelefon
+    abholen» is `accountability: activity`, so the operation's result is not
+    copied into revisions.
+  - `/meldung` does not call `lerne` — a take-over teaches nothing on any
+    desk; the reject, the hand-up, the lead's verdict and a discard with a
+    comment do.
+  - The scheduled run acts as the system (`operations/buschtelefon-abholen`
+    builds `ItemsService` without accountability — a run has no user); the
+    routes act as the caller, and the collections carry no permission rows,
+    so today the desk works for administrators only, like the Kanton desk.
 - `POST /redaktion/suedanflug/:id/meldung` — the south-approach article, ONE
   model call per municipality: the month's row in the path, the municipality in
   the body (`{gemeinde}`), because one sheet yields one article per affected
@@ -533,7 +613,31 @@ Endpoints of the learning layer, all in `src/endpoints/redaktion/`:
   a successful save starts a run so the editor sees the page's items within a
   minute. Empty clears the field.
 
-`src/shared/abstimmung/` is the newest reader and adds no client at all: it
+`src/shared/buschtelefon/` is the newest reader (11 November 2026) and the one
+written against a CONTRACT instead of a measured source
+([BUSCHTELEFON_SCHNITTSTELLE.md](BUSCHTELEFON_SCHNITTSTELLE.md), format
+`buschtelefon-redaktion/2`): `typen.ts` holds its shapes and enums — and
+`types/schema.ts` imports them, its first import, so the contract is defined
+once — `parse.ts` is pure, `client.ts` owns the two GETs. Four rules of the
+parser are worth knowing before touching it. Only an ENVELOPE that is not the
+contract's throws (`AntwortFormatFehler`); a find that fails validation is
+returned in `ungueltig` with its `folge`, so the bookmark passes it — in the
+rejected first attempt one unstorable find blocked the feed. A nested entry
+that fails (one image, one comment) is left out and declared in the find's
+`kuerzungen`; an over-long text is cut and declared, but an identity or an
+address (`kennung`, `link`, a url) is NEVER cut — that find is invalid, named.
+The contract's privacy rules are enforced at this boundary, each declared
+without the value: an `autor_name` without an `autor_rolle`, a first name that
+is not one word, an image text under any status but `gelesen` become null.
+And `tagInZuerich` is the only way a calendar day is taken from an instant —
+`.slice(0, 10)` on a UTC timestamp printed a post a day early. `holeFunde`
+follows `weiter`, throws on a failed FIRST page (that is where the run catches
+`stand_zu_alt` and reads once more without `nach`) and returns what it read
+plus `abbruch` on a later one; `jeSeite` lets the run store a page and write
+the bookmark before the next is fetched. The fixtures are invented, like every
+name in them.
+
+`src/shared/abstimmung/` is the reader before that and adds no client at all: it
 composes `shared/ods/`, because dataset 11990 on data.bl.ch is a dataset on the
 portal this newsroom already reads every morning. `parse.ts` is the ONE place
 the portal's spellings are known — `counted` as the string `"True"`/`"False"`,
@@ -624,6 +728,18 @@ with a path (or a trailing slash) can never authenticate at all.
 answers 503 `nicht_konfiguriert` and every read stays open. It is a shared
 secret with the Dorfkönig, travels in `X-Abnehmer-Key`, and is compared
 timing-safe in `shared/schluessel.ts`.
+
+`BUSCHTELEFON_URL`, `BUSCHTELEFON_CF_CLIENT_ID`, `BUSCHTELEFON_CF_CLIENT_SECRET`
+and `BUSCHTELEFON_SCHLUESSEL` (11 November 2026) are the newest four, read by
+`liesZugang` in `shared/buschtelefon/client.ts` with `optionalEnv`. The address
+has a default (compose carries it, the `ZETTELKASTEN_URL` pattern) and must be
+`https://host` without a path, or the client refuses it; the three secrets
+empty means the run answers `nicht_eingerichtet`, names the missing variables
+and is no error (the `CRAWLER_KEY` bargain) — but retention still runs, because
+the duty to forget does not depend on the door. The door sits behind Cloudflare
+Access AND a bearer key, so an HTML or redirect answer is classified before
+anything is parsed (`BuschtelefonFehler.art`), and no message ever carries a
+secret or a response body.
 
 **Not everything configurable is a variable.** Which statistics portals are read
 lives in `quellen` — one row per portal, `basis_url` for the address and

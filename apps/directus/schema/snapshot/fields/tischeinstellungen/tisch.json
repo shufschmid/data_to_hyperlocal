@@ -11,7 +11,7 @@
     "group": null,
     "hidden": false,
     "interface": "select-dropdown",
-    "note": "Der Tisch: gemeinde (Gemeindeseiten) oder veranstaltung (Veranstaltungen).",
+    "note": "Der Tisch: gemeinde (Gemeindeseiten), veranstaltung (Veranstaltungen) oder buschtelefon (Buschtelefon).",
     "options": {
       "choices": [
         {
@@ -21,6 +21,10 @@
         {
           "text": "Veranstaltungen",
           "value": "veranstaltung"
+        },
+        {
+          "text": "Buschtelefon",
+          "value": "buschtelefon"
         }
       ]
     },

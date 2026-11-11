@@ -1,4 +1,4 @@
-// Die Navigation des Arbeitsplatzes in zwei Stufen: oben vier Bereiche, darunter
+// Die Navigation des Arbeitsplatzes in zwei Stufen: oben fuenf Bereiche, darunter
 // die Werkbaenke des gewaehlten Bereichs.
 //
 // Die Redaktion am 27. September 2026: zehn Werkbaenke plus Zahnrad passten
@@ -6,6 +6,10 @@
 // Blaetterpfeil. Die Reihenfolge der Bereiche ist ihre: zuerst Gemeinde, dann
 // Medien, dann Daten, zuletzt die Chefredaktion. Pur, damit Gruppierung und
 // Zaehler pruefbar sind.
+//
+// Seit 11. November 2026 ein fuenfter Bereich, «Buschtelefon», zwischen Daten
+// und Chefredaktion: was in den sozialen Netzwerken der Gemeinden steht. Seine
+// drei Werkbaenke sind EIN Tisch, nach Kanal gefiltert.
 
 export type Werkbank =
   | 'gemeindeseiten'
@@ -20,9 +24,12 @@ export type Werkbank =
   | 'sport'
   | 'entsorgung'
   | 'verkehr'
+  | 'facebook'
+  | 'instagram'
+  | 'tiktok'
   | 'chefredaktion'
 
-export type BereichWert = 'gemeinde' | 'medien' | 'daten' | 'chefredaktion'
+export type BereichWert = 'gemeinde' | 'medien' | 'daten' | 'buschtelefon' | 'chefredaktion'
 
 export interface Bereich {
   wert: BereichWert
@@ -64,6 +71,18 @@ export const BEREICHE: readonly Bereich[] = [
       // Geschwindigkeitskontrollen der Gemeindepolizei — der Wunsch der
       // Redaktion, «das interessiert die Menschen».
       { wert: 'verkehr', text: 'Verkehr' }
+    ]
+  },
+  {
+    // Seit 11. November 2026: die Funde des Buschtelefons — Beitraege aus den
+    // Facebook-Gruppen der Gemeinden, spaeter Instagram und TikTok. Die zwei
+    // letzten stehen schon da und sagen, dass noch nichts geliefert wird.
+    wert: 'buschtelefon',
+    text: 'Buschtelefon',
+    werkbaenke: [
+      { wert: 'facebook', text: 'Facebook-Gruppen' },
+      { wert: 'instagram', text: 'Instagram' },
+      { wert: 'tiktok', text: 'TikTok' }
     ]
   },
   {

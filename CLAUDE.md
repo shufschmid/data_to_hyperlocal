@@ -108,6 +108,7 @@ them is wrong even if it works.
    | `bgauflage.bl.ch`                           | the building plans behind a Baselland permit, as plain images — the same public door the objection period opens, read only for a publication the newsroom acted on                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | `shared/amtsblatt/`                                                                      |
    | `www.simap.ch`                              | the joint public-procurement platform of the Confederation and the cantons — open search and detail endpoints, no key, a documented OpenAPI spec. Read once a day, anchored on registered procurement-office uuids and our own postcodes, never on municipality names (`simap.ch` without `www` answers 301)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | `shared/simap/`                                                                          |
    | `zettelkasten-tuer.raumschiffenterprise.ch` | the REST door of the Zettelkasten, We.Publish's evidence-bound knowledge layer: both Basel gazettes since 2018, every row with the raw fetch it came from and a checksum, plus the canton's own PDF address per publication. Read with a bearer token, one request per gazette row an editor opens, organisations only — the `personen` rubrics never leave this adapter. Off without `ZETTELKASTEN_TOKEN`, and the desk says so                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | `shared/zettelkasten/`                                                                   |
+   | `buschtelefon.raumschiffenterprise.ch`      | the hand-over door of the Buschtelefon, We.Publish's reader of the villages' Facebook groups (Instagram and TikTok later): `GET /api/redaktion/v2/funde?nach=<folge>` and `…/v2/quellen`, format `buschtelefon-redaktion/2`, behind a Cloudflare Access service token AND a bearer key. Read once a day at 12:00 (13:00 and 14:00 are free retries on the same bookmark), GET only, no filter. What comes through is what private persons wrote — posts, read image texts, comments — so the rows carry no revisions and their material is emptied on a schedule. This project never reads Facebook itself. Off without the three secrets, and the desk names the missing variable                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | `shared/buschtelefon/`                                                                   |
    | the We.Publish editor of this medium        | ONE request per entry from the editor: `/external-apps/userinfo` confirms the short-lived token a journalist arrives with and answers with their e-mail and permissions. Never polled, never read on a schedule. Off without `EDITOR_API_URL`, and the door says so (503)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | `endpoints/redaktion/editorzugang.ts`                                                    |
    | an IMAP mailbox                             | where SMD delivers the two shows' transcript PDFs — one mailbox, two subject filters. Dedup runs against THIS database's own `source_subject`, never the mailbox's seen-flag, so a second deployment reading the same mailbox costs nothing                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | `dossiers/mailbox.ts`                                                                    |
    | `api.srgssr.ch`                             | the SRGSSR Audio Metadata API (OAuth2) — resolves a Regionaljournal story to its public MP3. Read with `optionalEnv`: missing credentials fail PER STORY as `resolution_error`, never as a crashed dossier                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | `dossiers/srgssr-client.ts`                                                              |
@@ -176,12 +177,14 @@ them is wrong even if it works.
    it, answers 200, and silently ignores it — asking for "Riehen" that way
    returned Zurich fire bans.
 
-   The workspace has thirteen WORKBENCHES in four AREAS and a gear — since 27
+   The workspace has sixteen WORKBENCHES in five AREAS and a gear — since 27
    September 2026 in two rows, because ten tabs no longer fitted in one and
    the last ones hid behind the scroll arrow. The areas, in the newsroom's
    order: **Gemeinde** (Gemeindeseiten · Veranstaltungen · Amtsblatt · Kanton) ·
    **Medien** (Wochenblätter · Regionaljournal · punkt6 · SMD) · **Daten** (data to
-   hyperlocal · Sportresultate · Entsorgung · Verkehr) · **Chefredaktion**, with
+   hyperlocal · Sportresultate · Entsorgung · Verkehr) · **Buschtelefon**
+   (Facebook-Gruppen · Instagram · TikTok, since 11 November 2026 — one desk
+   shown three times, filtered by channel) · **Chefredaktion**, with
    **Gemeinden** and **Gelerntes** behind the settings gear at the end of the
    first row. The second row shows the chosen area's workbenches with their
    own counters; an area shows their sum, and a red revision counter beats
@@ -1538,6 +1541,134 @@ them is wrong even if it works.
    the same table is a second `quellen` row, a different table a second
    parser.
 
+   **„Buschtelefon" is the FIFTH area, workbenches fourteen to sixteen and
+   the NINTH desk** (11 November 2026): what people write in the villages'
+   Facebook groups — and it is the only desk whose material is private
+   persons speaking. This project reads no social network itself. The
+   Buschtelefon, a separate We.Publish system, collects, reads the text in
+   images, keeps the comments, and releases ONE fixed state a day; the
+   contract between the two is `apps/directus/BUSCHTELEFON_SCHNITTSTELLE.md`
+   (format `buschtelefon-redaktion/2`), and it is the source of truth for
+   every field. **The door in that form did not exist when this was built:
+   everything stands on fixtures and stubs, and only a first real fetch
+   proves it.** The split is the contract's first table and the reason for
+   the rest: the Buschtelefon delivers raw material and facts and sorts out
+   only what carries no content (fewer than two words, no read image text,
+   no link, no shared post, and comments that do not say what it is about —
+   a photo of a cat is not delivered, the flooded underpass with thirty
+   comments is; counted per source as `n_aussortiert`); every judgement is
+   the newsroom's, because a verdict from outside could be neither learned
+   nor measured. The newsroom's decisions, each where it lives.
+   **One fetch a day at 12:00** (`operations/buschtelefon-abholen`,
+   `redaktion/buschtelefonlauf.ts`), on a BOOKMARK that is the door's change
+   number `folge` and never a clock: kept in the singleton
+   `buschtelefon_stand`, written page by page, passing invalid and omitted
+   entries too — one find this side cannot store is named in the result and
+   skipped, it never blocks the feed. A `freigabe.tag` that is not today
+   puts «Heute noch keine Freigabe des Buschtelefons» on the desk; a missing
+   release and a quiet day must not look alike. **One run at a time,
+   process-wide** (`holeAbEinzeln`, `abholungLaeuft`): the Flow's three
+   slots and the desk's button go through the same guard — a click during
+   the noon run answers 409, a second call returns `status: 'laeuft'` and
+   asks neither the door nor a model, because two runs on one bookmark paid
+   every Sichtung twice and discarded each other's drafts. **An UNDECIDED
+   find is replaced** by a changed delivery, re-sighted, and shows how many
+   comments are new; **a decided one stays as it was at the decision.** Two
+   deliveries are neither: one that says only that the original can no
+   longer be opened (`nicht_erreichbar`, `aenderung: ["status"]`) is a hint
+   on the row, and grade and draft stay — a login wall must not take a
+   finished proposal off the desk; and a single comment removed at the
+   source (`stand: entfernt`) loses its words, image and first name on a
+   decided row too (`entferneKommentare`), nothing else of it moves.
+   **The Sichtung
+   GRADES 1–4 with its reason and never filters** — `buschtelefon` is the
+   third grading desk in `tischeinstellungen` (threshold only, default 3),
+   packets of 25 per municipality, a find without a municipality in a group
+   of its own; a private accusation against a recognisable person never gets
+   more than grade 2, and the post's wording is material, never an
+   instruction. **The run writes the draft of every proposal that has a
+   municipality** — the Gemeindeseiten bargain: twenty a run, the rest
+   named, it teaches nothing, and the three decisions stay open beside it. A
+   draft sent on (counter-check, release, publication) marks its find
+   `uebernommen`. Which municipality a find belongs to is
+   `gemeindeFuer`: the door assigns the SOURCE by BFS number, exactly one
+   covered municipality is it, with several («Birseck») the one the material
+   names with word boundaries, else none — and then the row says «Gemeinde
+   fehlt» and the editor assigns it. **The link is the decision that shaped
+   the model** (`quelleZeile`, `quellenAdresse` in `redaktion/buschtelefon.ts`):
+   a PUBLIC group's Meldung links the concrete post — people wrote there to
+   be read; a CLOSED group's (and one of unknown visibility) links only the
+   group, or nothing where its address is unknown, while the post link stays
+   on the desk for verification. The article need not say the group is
+   closed; the editor must not be able to miss it, so the row carries a
+   filled warning chip and a sentence. **First names may stand in an article
+   (`autor_vorname`), a private person's surname, phone number, e-mail or
+   street address may not** — a check next to the prompt, a warning and
+   never a block. Three things about those warnings are worth keeping. Every
+   article must say where it comes from AND that it is unconfirmed
+   (`herkunftsWarnung`, the one check that buys a second call). The faces in
+   `zeit_warnungen` name the KIND of finding and never its value, because
+   the Prüfsiegel serves that column to the public API — which name or
+   number was found, and the writer's own reservations, go to
+   `buschtelefon_funde.entwurf_bedenken` and are shown on the desk only. And
+   they carry no group name, which may hold a comma in a CSV column.
+   **Retention empties the MATERIAL and keeps the ROW** (`aufraeumAktion`):
+   an open find lapses after 14 days; a rejected one loses comments and
+   image texts AT the rejection and the rest after 30 days; a taken-over one
+   loses its comments once its Meldung is published or discarded and the
+   rest 30 days later; a handed-up one keeps it until the Chefredaktion's
+   verdict; nothing outlives 90 days after the decision. The `kennung` stays
+   for ever, because Facebook lifts a two-year-old post to the top the
+   moment someone comments on it, and a re-delivery of an emptied row is
+   counted and ignored, never «new». **Switching the door off does not
+   switch retention off**: without the three variables the run still empties
+   what is due and writes its result to the stand, the bookmark untouched,
+   and buys no Sichtung and no draft. The three collections are
+   `accountability: null` for the same reason — a revision would be a second
+   copy of the wording no retention reaches — the Flow «Buschtelefon
+   abholen» is `accountability: activity`, so its operation's result is not
+   copied into revisions either, and neither a learned rule's `beleg` nor a
+   run's result nor a warning ever quotes a post: a model's or a provider's
+   error text becomes a neutral German sentence by the error's class
+   (`fehlerSatz`), the log gets its name and code, and the overlap and link
+   warnings name only their kind while the passage and the address go to
+   `entwurf_bedenken`. **A lead handed to the Chefredaktion carries no
+   wording either** (`buschtelefonFundAlsHinweis`): source and day as its
+   title, «geschlossene Gruppe» where it is one, the municipality and the
+   Begründung — the editor's, else the Sichtung's paraphrase — because
+   `recherchehinweise` keeps revisions and the verdict writes one. The
+   Chefredaktion reads post, image texts, comments and link LIVE through
+   `recherchehinweise.buschtelefon_fund`, so the emptying of the find empties
+   her view with it («Original nicht mehr auffindbar»). «Zurück auf den
+   Tisch» reopens the find only while its material is there, stamping
+   `entschieden_am` so its fourteen open days start again; a find whose
+   material is gone lapses instead (`gibFundZurueck`). **`status: entfernt`**
+   (deleted at the source, a deletion request, or a deregistered source —
+   `buschtelefon_funde.entfernt_grund`) empties the material at once and
+   discards an UNPUBLISHED Meldung with the reason; every run finishes a
+   removal that broke off half-way (`vollendeEntfernungen`), because the
+   bookmark has passed the tombstone and no re-delivery will come. **A
+   published Meldung stays exactly as it is** — the newsroom's
+   words: a deletion request counts only while the article is unpublished,
+   otherwise it gets complicated. The row then says «Original nicht mehr
+   auffindbar». **Only a removal AT THE SOURCE can be undone**, and only
+   for a find no person decided (`wiederbelebbar`): when the door
+   re-delivers such a post whole and `aktiv` with a higher `folge`, the row
+   reopens and is sighted again; a deletion request and a deregistered
+   source are final. Where such a request is addressed is the contract's one open
+   point and has to be settled before the first publication. One trap from
+   the rejected first attempt is fixed in one place: a post of 8 November
+   arriving as `2026-11-08T00:00:00+01:00` became the 7th once stored in UTC
+   and cut to ten characters, so the day a source line prints is
+   `veroeffentlicht_tag`, computed in Europe/Zurich (`tagInZuerich`) and
+   left out where the door only knows it roughly. For the Dorfkönig these
+   articles are a NEW `rubrik: buschtelefon` (contract 1.10.0) with
+   `quelle_name` «Facebook-Gruppe ‹Name›» and `quelle_url` the post, the
+   group or null; `datengrundlage` holds the source and nothing a person
+   wrote, and a raw find never appears under `/api/v1`. Instagram and TikTok
+   are workbenches already and say «Das Buschtelefon liefert für diesen
+   Kanal noch nichts» until it does.
+
    When it turns us away, that is not silence: the workspace shows a banner
    naming the source, the reason and the date of the last attempt, with a link
    to the page and a form to type the entry in by hand
@@ -1634,6 +1765,12 @@ them is wrong even if it works.
 | a new rule about what an SMD Meldung may say                                                 | `redaktion/smd.ts` — the prompt **and** the checks (Attribution ans Medium — Domain oder Kurzname —, Ziffern gegen den Beitrag, absolute Daten, keine Links, 8-Gramm-Ueberlappung gegen den Beitrag); the source line is `quelleZeile`, with «(Abo)» or «(Artikel nicht online verfügbar)»                                                                                                                                                                                                                                                                        |
 | a publisher whose online articles the SMD desk should link                                   | `shared/verlage/` — a row in `TUEREN` where the family is CH Media or Tamedia, else a third family with its own measured handle (sitemap title, page field); a medium without a door stays «nicht online verfügbar», and the editor sets the link by hand (`POST /redaktion/smd/:id/link`)                                                                                                                                                                                                                                                                        |
 | the SMD mail: another saved search, another mailbox                                          | `SMD_IMAP_SUBJECT_FILTER` (the same `IMAP_*` mailbox as the two shows; docker-compose.yml carries the subject as its DEFAULT, because it is a fixed public string, so a host without the variable reads the dossiers from day one); which municipalities SMD searches for is the saved search on smd.ch, maintained there — on 12 October 2026 it named seven of the ten covered municipalities                                                                                                                                                                   |
+| a new rule about what a Buschtelefon-Meldung may say                                         | `redaktion/buschtelefon.ts` — the prompt **and** the checks (Herkunft genannt und als unbestätigt bezeichnet, Ziffern gegen das Material, absolute Daten, keine Links, kein Nachname, keine Telefonnummer, E-Mail oder Adresse einer Privatperson, 8-Gramm-Ueberlappung gegen Beitrag, Bildtexte und Kommentare). The faces live in `redaktion/warnungen.ts` and name only the KIND of finding; the details go to `buschtelefon_funde.entwurf_bedenken`, never into `zeit_warnungen`                                                                              |
+| which link a Buschtelefon-Meldung carries                                                    | `quellenAdresse`/`quelleZeile` in `redaktion/buschtelefon.ts` — the post for a public source, the group for a closed or unknown one, none where the group's address is unknown; `datengrundlageVon` hands the same address to the Dorfkönig                                                                                                                                                                                                                                                                                                                       |
+| how much reaches the Buschtelefon desk, or from which grade the run drafts                   | „Gelerntes" → „Tische": the threshold of `tisch: buschtelefon` (`POST /redaktion/tische/buschtelefon`, `tischFelder` keeps the threshold and drops the events-only keys). A proposal IS what gets a draft; what the grades mean stands in `BUSCHTELEFON_SICHTUNG_SYSTEM`                                                                                                                                                                                                                                                                                          |
+| how long a find's material is kept                                                           | `aufraeumAktion` with `OFFEN_TAGE`, `REST_TAGE`, `HOECHSTENS_TAGE` in `redaktion/buschtelefon.ts`, applied by `raeumeAuf` in every run; a row is never deleted, `leereMaterial` empties it                                                                                                                                                                                                                                                                                                                                                                        |
+| a field, enum or rule of the Buschtelefon door                                               | `apps/directus/BUSCHTELEFON_SCHNITTSTELLE.md` first — it is the contract with the other side — then `shared/buschtelefon/typen.ts` and `parse.ts` (an unknown extra field is ignored, an invalid find is named with its `folge` and never stops the read)                                                                                                                                                                                                                                                                                                         |
+| which Facebook groups are read, or a second channel                                          | nothing here: the sources are the Buschtelefon's, mirrored into `buschtelefon_quellen` on every fetch; Instagram and TikTok arrive through the same door and appear on their workbench by `kanal`                                                                                                                                                                                                                                                                                                                                                                 |
 | which lists of the canton are read                                                           | `quellen.konfiguration.listen` der Zeile `typ: kanton` (Admin-UI) — Kennung, Pfad und Sprechername je Liste, `seite` der oeffentliche Host; die Direktions-Seiten braucht es nicht, die allgemeine Liste ist gemessen vollstaendig                                                                                                                                                                                                                                                                                                                                |
 | how much reaches the Gemeinde or Veranstaltungen desk, or how far ahead an Anlass comes      | „Gelerntes" → „Tische" (Zahnrad): Schwelle 1–4 und Vorlauf je Stufe, eine Zeile je Tisch in `tischeinstellungen` (`POST /redaktion/tische/:tisch`); was die Stufen bedeuten, steht in den zwei Sichtungs-Prompts (`redaktion/gemeindeseite.ts`, `redaktion/veranstaltung.ts`), die Regel in `redaktion/tischeinstellungen.ts`, ihr Spiegel in `lib/tische.ts`                                                                                                                                                                                                     |
 | a fifth CMS family among the municipal websites                                              | `shared/gemeindeseite/erkennung.ts` (fingerprint) + one list parser in `liste.ts` and one detail parser in `detail.ts`, each with a saved fixture — never a host name                                                                                                                                                                                                                                                                                                                                                                                             |
@@ -1988,6 +2125,63 @@ editor takes an SMD piece over ── POST /redaktion/smd/:id/meldung
      verfügbar)». POST …/link setzt den Link von Hand, ein Entwurf folgt.
      Ablehnen mit Grund (nur_erwaehnt) und Weiterreichen lehren die naechste
      Sichtung (bereich smd).
+
+Flow "Buschtelefon abholen"  (0 0 12,13,14 * * *)   die Freigabe kommt vor 11:55, 13 und 14 Uhr sind gratis Nachlaeufe
+  └─ operations/buschtelefon-abholen   die Uebergabetuer des Buschtelefons, Vertrag buschtelefon-redaktion/2
+       ├─ holeAbEinzeln()   ein Lauf je Prozess, Flow und Knopf zusammen; ein
+       │    zweiter Aufruf → status «laeuft», kein Abruf, kein Modell
+       ├─ liesZugang()   fehlt eine der drei Variablen → «nicht eingerichtet», kein
+       │    Fehler; Aufraeumen und vollendeEntfernungen laufen trotzdem, das
+       │    Lesezeichen bleibt
+       ├─ /quellen → buschtelefon_quellen (Upsert auf kennung): Stand je Quelle,
+       │    fehler_seit, n_aussortiert, n_zu_alt — eine stille Gruppe und eine,
+       │    die seit drei Tagen scheitert, sehen sonst gleich aus
+       ├─ /funde?nach=<Lesezeichen>, Seite um Seite (hoechstens 100, deklariert);
+       │    410 stand_zu_alt → EINMAL ohne nach, auf kennung zusammengefuehrt;
+       │    freigabe.tag ≠ heute → Hinweis am Tisch
+       ├─ je Fund in aufsteigender folge, jeder fuer sich: abgleich()
+       │    ├─ neu            → Zeile, Gemeinde per BFS-Nummer (gemeindeFuer)
+       │    ├─ ersetzen       → nur solange offen: Material neu, Note weg,
+       │    │                   neue_kommentare gezaehlt, unberuehrter Entwurf verworfen
+       │    ├─ entschieden    → bleibt, wie er beim Entscheid war; an der Quelle
+       │    │                   entfernte Kommentare verlieren trotzdem ihren Wortlaut
+       │    ├─ nicht_erreichbar → nur ein Hinweis; Note und Entwurf bleiben
+       │    ├─ material_geloescht → ignoriert und gezaehlt, nie «neu»
+       │    ├─ wiederbeleben  → an der Quelle geloescht, nie von einer Person
+       │    │                   entschieden, nun wieder aktiv: offen, neu gesichtet
+       │    └─ entfernt       → Material sofort leer, entfernt_grund gespeichert,
+       │                        UNPUBLIZIERTE Meldung verworfen; publizierte bleibt.
+       │                        Die Faehrte traegt keinen Wortlaut, nichts zu leeren
+       │    was sich nicht schreiben laesst, wird genannt und uebersprungen —
+       │    das Lesezeichen rueckt trotzdem vor, nach jeder Seite geschrieben
+       ├─ raeumeAuf()   offen 14 Tage (ab Freigabe oder Rueckgabe, das Spaetere)
+       │    → verfallen; abgelehnt/uebernommen: erst Kommentare und Bildtexte,
+       │    nach 30 Tagen der Rest; laengstens 90. Die Zeile bleibt immer — ihre
+       │    kennung ist das Gedaechtnis. vollendeEntfernungen() beendet, was ein
+       │    Entfernen halb liegen liess
+       ├─ 1× Sonnet je Paket (25 Zeilen, je Gemeinde; ohne Gemeinde eine eigene
+       │    Gruppe) → Sichtung: BENOTET 1–4 mit Begruendung, filtert nie; Beitrag,
+       │    Bildtexte, Geteiltes, Linktitel und der Anfang der Kommentare; Regeln
+       │    R1…Rn, Bilanz und Beispiele dieser Gemeinde. Vorschlag ab der Schwelle
+       │    des Tischs, vom Lauf taeglich neu angewandt
+       └─ je Vorschlag MIT Gemeinde die Meldung gleich mit (hoechstens 20, Rest
+            genannt) — dieselbe Funktion wie der Knopf; lehrt nichts, die drei
+            Entscheide bleiben offen
+
+editor takes a find over ── POST /redaktion/buschtelefon/:id/meldung
+  └─ 1× Sonnet ueber Beitrag, gelesene Bildtexte, Geteiltes, Links und die
+     Kommentare (hoechstens 60, Rest deklariert) → kurze Meldung in eigenen
+     Worten; Herkunft und «nicht unabhaengig bestaetigt» erzwungen (Pruefung +
+     ein Nachfassen), Vornamen erlaubt, Nachname/Telefon/E-Mail/Adresse einer
+     Privatperson geprueft, Ziffern gegen das Material, absolute Daten, keine
+     selbst geschriebenen Links, 8-Gramm-Ueberlappung. Quellenzeile vom Code:
+     oeffentliche Gruppe → «Zum Beitrag», geschlossene → «Zur Gruppe» oder kein
+     Link. Liegt schon der Entwurf des Laufs da, setzt der Klick nur
+     «uebernommen». Ablehnen mit Grund (unbestaetigt, personenbezug …) leert
+     Kommentare und Bildtexte sofort; Ablehnen und Weiterreichen lehren die
+     naechste Sichtung (bereich buschtelefon). Ist die Meldung schon ueber den
+     Entwurf hinaus (Gegenpruefung, freigegeben, publiziert), verweigern beide
+     mit 409 MELDUNG_IN_ARBEIT — erst die Meldung verwerfen.
 
 Flow "Abstimmungen holen"  (*/30 14-20 * * 0)   nur am Abstimmungssonntag
   └─ operations/abstimmungen-holen   je aktivem ods-Portal mit Datensatz
@@ -2467,7 +2661,7 @@ checked rather than assumed, and there is a test.
 - `redaktionswissen` — the one rule store, for EVERY desk since September
   2026 (it was the statistics feed's alone before). Each rule carries its
   `bereich` (statistik · sport · entsorgung · presseschau · amtsblatt ·
-  gemeinde · veranstaltung · kanton · sendung · suedanflug), its `stufe` (`sichtung`: what gets proposed; `text`: how a
+  gemeinde · veranstaltung · kanton · sendung · suedanflug · buschtelefon), its `stufe` (`sichtung`: what gets proposed; `text`: how a
   Meldung is written), its `wirkung` (`hinweis`, or `weiterreichen` for a
   Sichtung rule that may hand matching proposals to the Chefredaktion by
   itself), its `herkunft` (chat · kommentar · entscheid · manuell) and a
@@ -2635,7 +2829,35 @@ checked rather than assumed, and there is a test.
   `link_abo` are the online address as the door found it or the editor set
   it (`manuell`), and null is a real answer: the source line then says
   «(Artikel nicht online verfügbar)».
-- `tischeinstellungen` — one row per grading desk (gemeinde, veranstaltung):
+- `buschtelefon_funde` + `buschtelefon_quellen` + `buschtelefon_stand` — the
+  Buschtelefon desk's memory, and the only one that forgets on purpose. A
+  find's identity is its `kennung`; `folge` is the door's change number last
+  applied and `gesichtet_folge` the one its grade was given for, so a changed
+  delivery is re-sighted and an unchanged one costs nothing (both are bigint
+  and come back as STRINGS — `alsZahl` before comparing). The decision rows
+  teach the next Sichtung PER MUNICIPALITY, keyed on the source's name
+  (`ladeBuschtelefonSignale`), but an example is named by its wording only
+  while the row still holds it, afterwards by source and day: `entscheid`,
+  `ablehnungsgrund` and the comment outlive the material, the post does not.
+  `material_geloescht_am` is what makes a re-delivered kennung «ignored»
+  instead of «new» — except where `entfernt_grund` is
+  `an_der_quelle_geloescht` and no person decided the find: then a whole
+  `aktiv` re-delivery reopens it (`wiederbelebbar`, which reads «never
+  decided» as `entschieden_am` equal to `material_geloescht_am`, the one
+  write the tombstone of an undecided find makes). `entwurf_bedenken` is
+  where the writer's reservations, the details of a person warning, the
+  overlapping passage and the found links live, off the public Prüfsiegel. The
+  sources are a mirror of the door's `/quellen`, never edited here;
+  `buschtelefon_stand` is a singleton holding the bookmark, the door's last
+  `freigabe`, and the last run's result. None of the three writes activity
+  or revisions. `meldungen.buschtelefon_fund` and
+  `recherchehinweise.buschtelefon_fund` are the origin fields — the second
+  is also how the Chefredaktion reads a lead's material, which the lead
+  itself never holds; one
+  non-discarded Meldung per find is a partial unique in
+  `migrations/20261111A-buschtelefon.mts`.
+- `tischeinstellungen` — one row per grading desk (gemeinde, veranstaltung,
+  and since 11 November 2026 buschtelefon, which uses the threshold alone):
   the threshold a grade has to reach, the lead per grade on the events desk,
   the Dauerangebote dose per week. The newsroom's appetite, never the
   model's — read by the 13:00 run and by the workspace, which computes the

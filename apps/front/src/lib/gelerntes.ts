@@ -21,7 +21,8 @@ export const BEREICHE: ReadonlyArray<{ wert: string; text: string }> = [
   { wert: 'kanton', text: 'Kanton' },
   { wert: 'verkehr', text: 'Verkehr' },
   { wert: 'sendung', text: 'Regionaljournal / punkt6' },
-  { wert: 'smd', text: 'SMD' }
+  { wert: 'smd', text: 'SMD' },
+  { wert: 'buschtelefon', text: 'Buschtelefon' }
 ]
 
 export function bereichText(wert: string): string {

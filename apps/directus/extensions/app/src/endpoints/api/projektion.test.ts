@@ -965,3 +965,106 @@ describe('Rubrik kanton', () => {
     ).toEqual({ name: 'Kanton Basel-Landschaft', url: null })
   })
 })
+
+describe('Rubrik buschtelefon', () => {
+  const OEFFENTLICH = {
+    quelle: 'buschtelefon',
+    kanal: 'facebook',
+    quelle_name: 'Facebook-Gruppe «Du bisch vo Aesch, wenn …»',
+    url: 'https://www.facebook.com/groups/1234567890/posts/987654321',
+    sichtbarkeit: 'oeffentlich'
+  }
+
+  it('erkennt einen Artikel aus einem Fund an seiner Relation', () => {
+    expect(rubrikVon(zeile({ buschtelefon_fund: 'f-1' }))).toBe('buschtelefon')
+  })
+
+  it('oeffentliche Gruppe: die Gruppe als Quelle, der Beitrag als Adresse', () => {
+    expect(
+      quelleVon(
+        zeile({ buschtelefon_fund: 'f-1', datengrundlage: OEFFENTLICH }),
+        'buschtelefon'
+      )
+    ).toEqual({
+      name: 'Facebook-Gruppe «Du bisch vo Aesch, wenn …»',
+      url: 'https://www.facebook.com/groups/1234567890/posts/987654321'
+    })
+  })
+
+  it('geschlossene Gruppe: nur die Gruppe — oder gar keine Adresse', () => {
+    expect(
+      quelleVon(
+        zeile({
+          buschtelefon_fund: 'f-2',
+          datengrundlage: {
+            ...OEFFENTLICH,
+            url: 'https://www.facebook.com/groups/1234567890',
+            sichtbarkeit: 'geschlossen'
+          }
+        }),
+        'buschtelefon'
+      ).url
+    ).toBe('https://www.facebook.com/groups/1234567890')
+    expect(
+      quelleVon(
+        zeile({
+          buschtelefon_fund: 'f-3',
+          datengrundlage: {
+            ...OEFFENTLICH,
+            url: null,
+            sichtbarkeit: 'unbekannt'
+          }
+        }),
+        'buschtelefon'
+      )
+    ).toEqual({
+      name: 'Facebook-Gruppe «Du bisch vo Aesch, wenn …»',
+      url: null
+    })
+    // Ohne Datengrundlage ein ehrliches Ersatzwort, keine erfundene Gruppe.
+    expect(
+      quelleVon(
+        zeile({ buschtelefon_fund: 'f-4', datengrundlage: null }),
+        'buschtelefon'
+      )
+    ).toEqual({ name: 'Soziale Medien', url: null })
+  })
+
+  it('liefert weder die Kennung des Fundes noch die Datengrundlage aus — auch nicht im Pruefsiegel', () => {
+    const FUND_ID = 'c0ffee00-1111-4222-8333-444455556666'
+    const roh = zeile({
+      buschtelefon_fund: FUND_ID,
+      zeit_warnungen: [
+        'Die Meldung nennt möglicherweise den Nachnamen einer Privatperson'
+      ],
+      datengrundlage: {
+        ...OEFFENTLICH,
+        // Nothing of this may ever be written here; if it were, it must
+        // still not leave the house.
+        kennung: 'fb:1234567890_987654321',
+        ergaenzung: 'Rueckruf bei der Gemeinde: Sperrung bis Freitag.'
+      }
+    })
+    const artikel = projektion(roh)
+    const draht = JSON.stringify(artikel)
+
+    expect(artikel.rubrik).toBe('buschtelefon')
+    expect(artikel.quelle_name).toBe(
+      'Facebook-Gruppe «Du bisch vo Aesch, wenn …»'
+    )
+    expect(artikel.pruefsiegel.herkunft).toEqual({
+      rubrik: 'buschtelefon',
+      quelle_name: 'Facebook-Gruppe «Du bisch vo Aesch, wenn …»',
+      quelle_url: 'https://www.facebook.com/groups/1234567890/posts/987654321'
+    })
+    expect(draht).not.toContain(FUND_ID)
+    expect(draht).not.toContain('buschtelefon_fund')
+    expect(draht).not.toContain('fb:1234567890_987654321')
+    expect(draht).not.toContain('datengrundlage')
+    expect(draht).not.toContain('Rueckruf')
+    expect(draht).not.toContain('sichtbarkeit')
+    // Die Warnung des Tischs ist Prosa und landet sichtbar unter `weitere`.
+    expect(JSON.stringify(pruefsiegel(roh))).not.toContain(FUND_ID)
+    expect(artikel.pruefsiegel.pruefungen.weitere).toHaveLength(1)
+  })
+})

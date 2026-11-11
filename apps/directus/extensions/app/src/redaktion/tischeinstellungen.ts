@@ -27,10 +27,14 @@ export const STUFEN_TEXT: Record<Stufe, string> = {
   1: 'Routine'
 }
 
-export type EinstellbarerTisch = 'gemeinde' | 'veranstaltung'
+// `buschtelefon` is the third grading desk (11 November 2026). It reads the
+// threshold alone: the lead per grade and the Dauerangebote dose belong to
+// the events desk and are ignored for it (`tischFelder`).
+export type EinstellbarerTisch = 'gemeinde' | 'veranstaltung' | 'buschtelefon'
 export const EINSTELLBARE_TISCHE: readonly EinstellbarerTisch[] = [
   'gemeinde',
-  'veranstaltung'
+  'veranstaltung',
+  'buschtelefon'
 ]
 
 export interface Tischeinstellung {
@@ -163,6 +167,23 @@ export function tischeinstellungFelder(
   if (Object.keys(felder).length === 0)
     throw new Error('Keine Einstellung angegeben.')
   return felder
+}
+
+/**
+ * The columns a POST may set FOR ONE DESK. The Buschtelefon desk has a
+ * threshold and nothing else: the events-only keys of its body are dropped
+ * before validation, so a form that sends the whole row changes only what
+ * the desk reads — and a body carrying nothing but those keys is refused
+ * like an empty one.
+ */
+export function tischFelder(
+  tisch: EinstellbarerTisch,
+  koerper: Record<string, unknown>
+): Partial<TischeinstellungZeile> {
+  if (tisch !== 'buschtelefon') return tischeinstellungFelder(koerper)
+  return tischeinstellungFelder(
+    'schwelle' in koerper ? { schwelle: koerper['schwelle'] } : {}
+  )
 }
 
 export function istEinstellbarerTisch(

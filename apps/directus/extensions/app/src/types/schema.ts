@@ -12,6 +12,26 @@
 // Relation fields are typed as `string` (the uuid), which is what an
 // ItemsService read returns unless the query asks for the nested object.
 
+import type {
+  Aenderung,
+  AutorArt,
+  AutorRolle,
+  Bild,
+  DatumGenauigkeit,
+  EntferntGrund,
+  Freigabe,
+  FundStatus,
+  Geteilt,
+  Kanal,
+  Kommentar,
+  KommentareStand,
+  QuellenArt,
+  QuellenStand,
+  Sichtbarkeit,
+  Verlinkt,
+  Zugang as BuschtelefonZugang
+} from '../shared/buschtelefon/typen'
+
 /** Municipalities. Identity is `bfs_nummer`, never `name` — see the migration. */
 export interface Gemeinde {
   id: string
@@ -301,6 +321,13 @@ export interface Meldung {
   /** Set for an article written from a piece in the SMD dossier — another medium's reporting (SMD desk, since 12 October 2026). */
   smd_beitrag: string | null
   /**
+   * Set for an article written from a find of the Buschtelefon — a post in a
+   * Facebook group, later Instagram or TikTok (Buschtelefon desk, since 11
+   * November 2026). The raw find never leaves the house: the public API reads
+   * only the rubrik off this field and the source off `datengrundlage`.
+   */
+  buschtelefon_fund: string | null
+  /**
    * Set for articles written from an Anlass in a municipality's events
    * calendar. Null otherwise — the ninth kind, since 20 September 2026.
    */
@@ -496,6 +523,7 @@ export type WissenBereich =
   | 'kanton'
   | 'verkehr'
   | 'smd'
+  | 'buschtelefon'
 /** A Sichtung rule steers what is proposed; a text rule, how a Meldung is written. */
 export type WissenStufe = 'sichtung' | 'text'
 /** `weiterreichen` lets a Sichtung hand a matching proposal to the Chefredaktion by itself. */
@@ -805,6 +833,7 @@ export interface Recherchehinweis {
   sendungskandidat: string | null
   veranstaltung: string | null
   smd_beitrag: string | null
+  buschtelefon_fund: string | null
   /** Handed up by a learned rule, not by a person. */
   automatisch: boolean
   /** The rule that did it — the automation's track record hangs on this. */
@@ -896,6 +925,9 @@ export interface Schema {
   kantonsmitteilungen: Kantonsmitteilung[]
   smd_dossiers: SmdDossier[]
   smd_beitraege: SmdBeitrag[]
+  buschtelefon_funde: BuschtelefonFund[]
+  buschtelefon_quellen: BuschtelefonQuelle[]
+  buschtelefon_stand: BuschtelefonStand
   suedanflugquoten: Suedanflugquote[]
   radarstandorte: Radarstandort[]
   geschwindigkeitskontrollen: Geschwindigkeitskontrolle[]
@@ -1532,7 +1564,7 @@ export interface Geschwindigkeitskontrolle {
 /** One row per grading desk: the newsroom's threshold and leads — see `redaktion/tischeinstellungen.ts`. */
 export interface Tischeinstellung {
   id: string
-  tisch: 'gemeinde' | 'veranstaltung'
+  tisch: 'gemeinde' | 'veranstaltung' | 'buschtelefon'
   schwelle: number
   vorlauf_stufe4: number
   vorlauf_stufe3: number
@@ -1818,4 +1850,161 @@ export interface Veranstaltung {
   zuletzt_gemeldet_am: string | null
   date_created: string | null
   date_updated: string | null
+}
+
+/** The five states of a find on the desk — the same five as every other desk's. */
+export type BuschtelefonEntscheid = MitteilungsEntscheid
+
+export type BuschtelefonGrund =
+  | 'nicht_relevant'
+  /** Nobody but the group says so — the reason this desk has and no other. */
+  | 'unbestaetigt'
+  /** About a private person; nothing the newsroom may make a Meldung of. */
+  | 'personenbezug'
+  | 'doublette'
+  | 'veraltet'
+  | 'andere'
+
+/**
+ * One find of the Buschtelefon: a post in a Facebook group (later Instagram,
+ * TikTok) with its image texts and comments, as the door delivered it
+ * (contract `buschtelefon-redaktion/2`, `apps/directus/BUSCHTELEFON_SCHNITTSTELLE.md`).
+ *
+ * Statements of private persons, so the collection carries NO activity and NO
+ * revisions (`accountability: null`), and a row is never deleted: its MATERIAL
+ * is emptied (`material_geloescht_am`) while `kennung` stays — the memory that
+ * keeps an old post from entering a second time as new. Identity is
+ * `kennung`, `is_unique` in the snapshot.
+ */
+export interface BuschtelefonFund {
+  id: string
+  kennung: string
+  /** The door's change number last applied. bigint — Postgres may hand it back as a string. */
+  folge: number | string
+  status: FundStatus
+  kanal: Kanal
+  /** `kennung` of the source (`buschtelefon_quellen.kennung`), not a relation. */
+  quelle: string | null
+  quelle_name: string | null
+  quelle_art: QuellenArt | null
+  /**
+   * `geschlossen` or `unbekannt`: the post link stays on the desk, a Meldung
+   * links only the group.
+   */
+  quelle_sichtbarkeit: Sichtbarkeit | null
+  /** The group's address, copied from `/quellen` at fetch time. */
+  quelle_url: string | null
+  /** Set when exactly one covered municipality fits, or by hand. Null: on the desk without one. */
+  gemeinde: string | null
+  gemeinden_bfs: number[] | null
+  /** Permalink of the post. */
+  link: string | null
+  veroeffentlicht_am: string | null
+  /** The calendar day in Europe/Zurich, computed by code — what a source line prints. */
+  veroeffentlicht_tag: string | null
+  datum_genauigkeit: DatumGenauigkeit | null
+  autor_art: AutorArt | null
+  autor_rolle: AutorRolle | null
+  /** Organisations only. */
+  autor_name: string | null
+  autor_vorname: string | null
+  autor_ref: string | null
+  text: string | null
+  text_abgeschnitten: boolean
+  bilder: Bild[] | null
+  n_bilder: number | null
+  verlinkt: Verlinkt[] | null
+  geteilt: Geteilt | null
+  kommentare: Kommentar[] | null
+  kommentare_stand: KommentareStand | null
+  kommentare_fehlend: number | null
+  kommentare_geprueft_am: string | null
+  n_kommentare: number | null
+  n_reaktionen: number | null
+  n_geteilt: number | null
+  doublette_von: string | null
+  erstmals_freigegeben_am: string
+  geaendert_am: string | null
+  /** The last delivery's. */
+  aenderung: Aenderung[] | null
+  beobachtet_bis: string | null
+  /** When THIS side last replaced the material of an existing row. */
+  aktualisiert_am: string | null
+  /** Comments added by the last replacement, by comment kennung. */
+  neue_kommentare: number
+  /** Declared caps, cuts, «Original nicht mehr auffindbar» — json, not csv: a sentence may carry a comma. */
+  hinweise: string[] | null
+  /** Sichtung verdict against the desk's threshold; null = not judged, not "no". */
+  vorschlag: boolean | null
+  /** The Sichtung's grade 1–4. */
+  vorschlag_wert: number | null
+  vorschlag_begruendung: string | null
+  /** The `folge` the grade was given for; re-sight when `folge` is higher. */
+  gesichtet_folge: number | string | null
+  /** The writer's reservations — shown on the desk, NEVER in `meldungen.zeit_warnungen`. */
+  entwurf_bedenken: string | null
+  entscheid: BuschtelefonEntscheid
+  ablehnungsgrund: BuschtelefonGrund | null
+  ablehnungskommentar: string | null
+  entschieden_am: string | null
+  material_geloescht_am: string | null
+  /**
+   * Why the door removed the find (contract 4.9), set with `status: entfernt`.
+   * Only `an_der_quelle_geloescht` of a find nobody decided on may be revived
+   * by a later delivery; a deletion request and a deregistered source are final.
+   */
+  entfernt_grund: EntferntGrund | null
+  date_created: string | null
+  date_updated: string | null
+}
+
+/** One source of the door's `/quellen`, upserted by `kennung` on every fetch. */
+export interface BuschtelefonQuelle {
+  id: string
+  kennung: string
+  kanal: Kanal | null
+  art: QuellenArt | null
+  name: string | null
+  /** The group's address — what a Meldung from a closed group links. */
+  url: string | null
+  sichtbarkeit: Sichtbarkeit | null
+  zugang: BuschtelefonZugang | null
+  gemeinden_bfs: number[] | null
+  aktiv: boolean | null
+  stand: QuellenStand | null
+  zuletzt_vollstaendig_gelesen_am: string | null
+  gelesen_zurueck_bis: string | null
+  n_beitraege_gesehen: number | null
+  n_aussortiert: number | null
+  n_zu_alt: number | null
+  /** Finds of this source the door currently omits — the length of `ausgelassen_offen`. */
+  n_ausgelassen: number | null
+  /**
+   * What the door currently omits, kept by the run across deliveries: the
+   * door re-delivers an omitted find only when it changes, so the count has
+   * to be carried, not recomputed from one delivery.
+   */
+  ausgelassen_offen: Array<{
+    kennung: string | null
+    folge: number
+    seit: string
+  }> | null
+  fehler_seit: string | null
+  letzter_fehler: string | null
+  hinweise: string[] | null
+  date_updated: string | null
+}
+
+/** The fetch's bookmark — a SINGLETON: one row, written by the run. */
+export interface BuschtelefonStand {
+  id: string
+  /** The highest `folge` processed; null = from the start. bigint — may come back as a string. */
+  folge: number | string | null
+  /** The door's last `freigabe` object. */
+  freigabe: Freigabe | null
+  letzter_abruf: string | null
+  letzter_fehler: string | null
+  letzter_hinweis: string | null
+  /** The last run's result (`AbholErgebnis` in `redaktion/buschtelefonlauf.ts`). */
+  ergebnis: Record<string, unknown> | null
 }

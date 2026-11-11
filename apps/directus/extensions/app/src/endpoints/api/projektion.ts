@@ -39,6 +39,7 @@ export type Rubrik =
   | 'kanton'
   | 'presseschau'
   | 'sendung'
+  | 'buschtelefon'
 
 /** A row as the query below reads it — deliberately narrower than `Meldung`. */
 export interface Rohzeile {
@@ -96,6 +97,12 @@ export interface Rohzeile {
   geschwindigkeitskontrolle?: string | null
   /** Set for an article written from another medium's piece in the SMD dossier. Optional, like its siblings. */
   smd_beitrag?: string | null
+  /**
+   * Set for an article written from a find of the Buschtelefon — a post in a
+   * village's social-network group. Read for the rubrik ONLY: the find's id
+   * is never delivered, and the find itself never leaves the house.
+   */
+  buschtelefon_fund?: string | null
   amtsblattmeldung: { quelle_typ: string | null } | string | null
   /** Set for articles written from a municipality's own news page. */
   gemeindemitteilung: string | null
@@ -298,6 +305,11 @@ export function rubrikVon(zeile: Rohzeile): Rubrik | null {
   // rubrik, the medium as `quelle_name`, its own page as `quelle_url` where
   // the door found one, null where the newsroom read it as if in print.
   if ((zeile.smd_beitrag ?? null) !== null) return 'presseschau'
+  // The Buschtelefon desk (11 November 2026) is a rubrik of its own, unlike
+  // the two desks above: what stands in a village's Facebook group is
+  // nobody's publication — not the municipality's, not a medium's — and
+  // unconfirmed by nature, which a consumer has to be able to tell apart.
+  if ((zeile.buschtelefon_fund ?? null) !== null) return 'buschtelefon'
   return null
 }
 
@@ -444,6 +456,16 @@ export function quelleVon(zeile: Rohzeile, rubrik: Rubrik | null): Quelle {
     case 'kanton':
       return {
         name: text(daten['quelle_name']) ?? 'Kanton Basel-Landschaft',
+        url: text(daten['url'])
+      }
+
+    // A post in a village's social-network group. The desk writes the source
+    // («Facebook-Gruppe ‹Name›») and the address into `datengrundlage` — the
+    // concrete post for a public group, only the group for a closed one, null
+    // where even that is unknown. Nothing else of the find is read here.
+    case 'buschtelefon':
+      return {
+        name: text(daten['quelle_name']) ?? 'Soziale Medien',
         url: text(daten['url'])
       }
 

@@ -1,14 +1,20 @@
 import { BEREICHE, bereichsZaehler, bereichVon, zielImBereich } from './bereiche'
 
 describe('Bereiche', () => {
-  it('stehen in der Reihenfolge der Redaktion: Gemeinde, Medien, Daten, Chefredaktion', () => {
-    expect(BEREICHE.map((b) => b.text)).toEqual(['Gemeinde', 'Medien', 'Daten', 'Chefredaktion'])
+  it('stehen in der Reihenfolge der Redaktion: Gemeinde, Medien, Daten, Buschtelefon, Chefredaktion', () => {
+    expect(BEREICHE.map((b) => b.text)).toEqual([
+      'Gemeinde',
+      'Medien',
+      'Daten',
+      'Buschtelefon',
+      'Chefredaktion'
+    ])
   })
 
   it('fuehren jede Werkbank genau einmal', () => {
     const alle = BEREICHE.flatMap((b) => b.werkbaenke.map((w) => w.wert))
     expect(new Set(alle).size).toBe(alle.length)
-    expect(alle).toHaveLength(13)
+    expect(alle).toHaveLength(16)
   })
 
   it('kennen den Bereich einer Werkbank, nicht aber die Einstellungen', () => {
@@ -17,6 +23,9 @@ describe('Bereiche', () => {
     expect(bereichVon('punkt6')?.wert).toBe('medien')
     expect(bereichVon('smd')?.wert).toBe('medien')
     expect(bereichVon('statistik')?.wert).toBe('daten')
+    expect(bereichVon('facebook')?.wert).toBe('buschtelefon')
+    expect(bereichVon('instagram')?.wert).toBe('buschtelefon')
+    expect(bereichVon('tiktok')?.wert).toBe('buschtelefon')
     expect(bereichVon('gemeinden')).toBeNull()
     expect(bereichVon('blog')).toBeNull()
   })
@@ -49,10 +58,30 @@ describe('bereichsZaehler', () => {
   })
 
   it('traegt die Farbe der Chefredaktion, wo nur sie etwas hat', () => {
-    expect(bereichsZaehler(BEREICHE[3]!, { chefredaktion: { anzahl: 3, art: 'chef' } })).toEqual({
+    expect(bereichsZaehler(BEREICHE[4]!, { chefredaktion: { anzahl: 3, art: 'chef' } })).toEqual({
       anzahl: 3,
       art: 'chef'
     })
+  })
+})
+
+describe('Der Bereich Buschtelefon', () => {
+  const buschtelefon = BEREICHE[3]!
+
+  it('steht nach den Daten und fuehrt drei Werkbaenke, Facebook zuerst', () => {
+    expect(buschtelefon.wert).toBe('buschtelefon')
+    expect(buschtelefon.werkbaenke.map((w) => w.text)).toEqual(['Facebook-Gruppen', 'Instagram', 'TikTok'])
+    expect(zielImBereich(buschtelefon, {})).toBe('facebook')
+  })
+
+  it('zaehlt die Arbeit seiner drei Kanaele zusammen', () => {
+    expect(
+      bereichsZaehler(buschtelefon, {
+        facebook: { anzahl: 5, art: 'arbeit' },
+        instagram: { anzahl: 1, art: 'arbeit' },
+        tiktok: { anzahl: 0, art: 'arbeit' }
+      })
+    ).toEqual({ anzahl: 6, art: 'arbeit' })
   })
 })
 

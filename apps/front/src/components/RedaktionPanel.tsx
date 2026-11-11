@@ -79,6 +79,12 @@ import {
   type KantonsmitteilungenErgebnis,
   SMD_BEITRAEGE_QUERY,
   type SmdBeitraegeErgebnis,
+  BUSCHTELEFON_FUNDE_QUERY,
+  type BuschtelefonFundeErgebnis,
+  BUSCHTELEFON_QUELLEN_QUERY,
+  type BuschtelefonQuellenErgebnis,
+  BUSCHTELEFON_STAND_QUERY,
+  type BuschtelefonStandErgebnis,
   VERANSTALTUNGEN_QUERY,
   type VeranstaltungenErgebnis,
   VERANSTALTUNGSQUELLEN_QUERY,
@@ -114,6 +120,7 @@ import { Amtsblatt } from './Amtsblatt'
 import { Gemeindeseiten } from './Gemeindeseiten'
 import { Kanton } from './Kanton'
 import { Smd } from './Smd'
+import { Buschtelefon } from './Buschtelefon'
 import { Veranstaltungen } from './Veranstaltungen'
 import { SendungsDurchsicht } from './SendungsDurchsicht'
 import IconButton from '@mui/material/IconButton'
@@ -126,6 +133,7 @@ import { anzahlOffen as anzahlMitteilungen, type GemeindeseitenLaufStatus } from
 import { anzahlOffen as anzahlKantonsmitteilungen, type KantonLaufStatus } from '@/lib/kanton'
 import { anzahlOffen as anzahlSmdBeitraege, type SmdLaufStatus } from '@/lib/smd'
 import { anzahlOffen as anzahlAnlaesse } from '@/lib/veranstaltungen'
+import { anzahlArbeit as anzahlFunde, type BuschtelefonLaufStatus, type Kanal } from '@/lib/buschtelefon'
 import { einstellungFuer } from '@/lib/tische'
 import { Chefredaktion } from './Chefredaktion'
 import { Gelerntes } from './Gelerntes'
@@ -179,6 +187,9 @@ type Reiter =
   | 'veranstaltungen'
   | 'kanton'
   | 'smd'
+  | 'facebook'
+  | 'instagram'
+  | 'tiktok'
   | 'regionaljournal'
   | 'punkt6'
   | 'chefredaktion'
@@ -319,10 +330,11 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
   const tische = useQuery<TischeinstellungenErgebnis>(TISCHEINSTELLUNGEN_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY
   })
-  // Die Regler der zwei benotenden Tische — der Tisch rechnet die Schwelle
+  // Die Regler der drei benotenden Tische — der Tisch rechnet die Schwelle
   // selbst, darum liegt sie hier und nicht nur im Lauf.
   const einstellungGemeinde = einstellungFuer(tische.data?.tischeinstellungen ?? [], 'gemeinde')
   const einstellungAnlass = einstellungFuer(tische.data?.tischeinstellungen ?? [], 'veranstaltung')
+  const einstellungBuschtelefon = einstellungFuer(tische.data?.tischeinstellungen ?? [], 'buschtelefon')
   const gemeinden = useQuery<GemeindenErgebnis>(GEMEINDEN_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY
   })
@@ -366,6 +378,17 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
     fetchPolicy: LIVE_FETCH_POLICY
   })
   const smd = useQuery<SmdBeitraegeErgebnis>(SMD_BEITRAEGE_QUERY, {
+    fetchPolicy: LIVE_FETCH_POLICY
+  })
+  // Das Buschtelefon: die Funde, die Quellen (welche Gruppe heute nicht oder
+  // nur halb gelesen wurde) und der Stand des Abrufs — ein Singleton.
+  const buschtelefonFunde = useQuery<BuschtelefonFundeErgebnis>(BUSCHTELEFON_FUNDE_QUERY, {
+    fetchPolicy: LIVE_FETCH_POLICY
+  })
+  const buschtelefonQuellen = useQuery<BuschtelefonQuellenErgebnis>(BUSCHTELEFON_QUELLEN_QUERY, {
+    fetchPolicy: LIVE_FETCH_POLICY
+  })
+  const buschtelefonStand = useQuery<BuschtelefonStandErgebnis>(BUSCHTELEFON_STAND_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY
   })
   const veranstaltungen = useQuery<VeranstaltungenErgebnis>(VERANSTALTUNGEN_QUERY, {
@@ -528,6 +551,15 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
       return ursprung === null ? [] : [[ursprung.id, m.status] as const]
     })
   )
+  // Eine lebende Meldung geht vor einer verworfenen: nach einem entfernten
+  // Beitrag verwirft der Lauf den Entwurf, und ein spaeterer zaehlt.
+  const meldungStatusJeFund = new Map<string, string>()
+  for (const m of meldungenAlle) {
+    const ursprung = m.buschtelefon_fund ?? null
+    if (ursprung === null) continue
+    const bisher = meldungStatusJeFund.get(ursprung.id)
+    if (bisher === undefined || bisher === 'verworfen') meldungStatusJeFund.set(ursprung.id, m.status)
+  }
   const meldungStatusJeAnlass = new Map(
     meldungenAlle.flatMap((m) => (m.veranstaltung === null ? [] : [[m.veranstaltung.id, m.status] as const]))
   )
@@ -554,6 +586,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
       veranstaltungen.refetch(),
       kanton.refetch(),
       smd.refetch(),
+      buschtelefonFunde.refetch(),
       suedanflug.refetch(),
       abstimmungen.refetch()
     ])
@@ -567,6 +600,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
     veranstaltungen,
     kanton,
     smd,
+    buschtelefonFunde,
     suedanflug,
     abstimmungen
   ])
@@ -755,6 +789,49 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
     const intervall = setInterval(() => void ladeKantonLauf(), 10_000)
     return () => clearInterval(intervall)
   }, [kantonLaufStatus?.laeuft, ladeKantonLauf, kantonRefetch, alleMeldungenRefetch])
+
+  // The Buschtelefon fetch, the same mirror. Its end reloads the finds, the
+  // sources and the stand as well — the run writes all three.
+  const [buschtelefonLaufStatus, setBuschtelefonLaufStatus] = useState<BuschtelefonLaufStatus | null>(null)
+  const ladeBuschtelefonLauf = useCallback(async () => {
+    try {
+      const antwort = await sitzungsFetch('/api/redaktion/buschtelefon/lauf')
+      if (!antwort.ok) return
+      const inhalt = (await antwort.json()) as { data?: BuschtelefonLaufStatus }
+      setBuschtelefonLaufStatus(inhalt.data ?? null)
+    } catch {
+      // Komfortanzeige; ein verpasster Abruf wird beim naechsten Poll nachgeholt.
+    }
+  }, [])
+  useEffect(() => {
+    void ladeBuschtelefonLauf()
+  }, [ladeBuschtelefonLauf])
+  const buschtelefonFundeRefetch = buschtelefonFunde.refetch
+  const buschtelefonQuellenRefetch = buschtelefonQuellen.refetch
+  const buschtelefonStandRefetch = buschtelefonStand.refetch
+  const buschtelefonWarUnterwegs = useRef(false)
+  useEffect(() => {
+    const unterwegs = buschtelefonLaufStatus?.laeuft === true
+    if (buschtelefonWarUnterwegs.current && !unterwegs) {
+      void Promise.all([
+        buschtelefonFundeRefetch(),
+        buschtelefonQuellenRefetch(),
+        buschtelefonStandRefetch(),
+        alleMeldungenRefetch()
+      ])
+    }
+    buschtelefonWarUnterwegs.current = unterwegs
+    if (!unterwegs) return
+    const intervall = setInterval(() => void ladeBuschtelefonLauf(), 10_000)
+    return () => clearInterval(intervall)
+  }, [
+    buschtelefonLaufStatus?.laeuft,
+    ladeBuschtelefonLauf,
+    buschtelefonFundeRefetch,
+    buschtelefonQuellenRefetch,
+    buschtelefonStandRefetch,
+    alleMeldungenRefetch
+  ])
 
   // The SMD run, the same mirror: the dossiers are read and the publishers'
   // pages asked while the desk polls; one refetch when it is over.
@@ -952,6 +1029,13 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
   // Die Zaehler der Werkbaenke an EINEM Ort: die zweite Zeile zeigt sie
   // einzeln, die Bereiche oben ihre Summe (`bereichsZaehler`).
   const heuteIsoTag = new Date().toISOString().slice(0, 10)
+  const anzahlBuschtelefon = (kanal: Kanal) =>
+    anzahlFunde(
+      buschtelefonFunde.data?.buschtelefon_funde ?? [],
+      kanal,
+      meldungStatusJeFund,
+      einstellungBuschtelefon.schwelle
+    )
   const zaehler: Partial<Record<Werkbank, Zaehler>> = {
     // Rot: nicht „hier liegt Arbeit", sondern „hier steht etwas Falsches
     // draussen" — die Revisionswaechter.
@@ -1008,6 +1092,11 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
       anzahl: anzahlSmdBeitraege(smd.data?.smd_beitraege ?? [], meldungStatusJeSmdBeitrag),
       art: 'arbeit'
     },
+    // Das Buschtelefon: ein Tisch, drei Kanaele — je Kanal die Vorschlaege
+    // und was uebernommen und noch nicht fertig ist.
+    facebook: { anzahl: anzahlBuschtelefon('facebook'), art: 'arbeit' },
+    instagram: { anzahl: anzahlBuschtelefon('instagram'), art: 'arbeit' },
+    tiktok: { anzahl: anzahlBuschtelefon('tiktok'), art: 'arbeit' },
     regionaljournal: { anzahl: anzahlSendungOffen('regionaljournal'), art: 'arbeit' },
     punkt6: { anzahl: anzahlSendungOffen('punkt6'), art: 'arbeit' },
     chefredaktion: {
@@ -1090,7 +1179,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
       <Wochenzahl bilanz={bilanz} />
 
       <Stack direction="row" sx={{ alignItems: 'center', gap: 1 }}>
-        {/* Oben die vier Bereiche in der Reihenfolge der Redaktion, darunter
+        {/* Oben die fuenf Bereiche in der Reihenfolge der Redaktion, darunter
             die Werkbaenke des gewaehlten. Zehn Werkbaenke passten nicht mehr
             in eine Zeile (27.09.2026). */}
         <Tabs
@@ -1873,8 +1962,65 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
                 veranstaltungen.refetch(),
                 kanton.refetch(),
                 smd.refetch(),
+                buschtelefonFunde.refetch(),
                 sendungskandidaten.refetch()
               ])
+            }}
+          />
+        </Stack>
+      )}
+
+      {(reiter === 'facebook' || reiter === 'instagram' || reiter === 'tiktok') && (
+        <Stack spacing={2}>
+          <Typography variant="body2" color="text.secondary">
+            Was in den sozialen Netzwerken der Gemeinden steht — Beiträge aus Gruppen und Konten, vom
+            Buschtelefon gesammelt und einmal am Tag freigegeben, um 12 Uhr abgeholt. Rohmaterial, kein
+            Urteil: die Sichtung der Redaktion benotet, der Lauf schreibt zu jedem Vorschlag den Entwurf, und
+            über jeden Fund entscheidet eine Person.
+          </Typography>
+          {buschtelefonFunde.error !== undefined && (
+            <Alert severity="error">
+              Die Funde konnten nicht geladen werden: {buschtelefonFunde.error.message}
+            </Alert>
+          )}
+          <Buschtelefon
+            kanal={reiter}
+            funde={buschtelefonFunde.data?.buschtelefon_funde ?? []}
+            quellen={buschtelefonQuellen.data?.buschtelefon_quellen ?? []}
+            stand={buschtelefonStand.data?.buschtelefon_stand ?? null}
+            lauf={buschtelefonLaufStatus}
+            gemeinden={gemeinden.data?.gemeinden ?? []}
+            meldungen={meldungenAlle}
+            schwelle={einstellungBuschtelefon.schwelle}
+            laeuft={sendet}
+            onChat={async (id, anweisung) => {
+              await fuehreAus(`meldungen/${id}/chat`, { anweisung })
+            }}
+            onAktion={async (id, was, koerper) => {
+              await fuehreAus(`meldungen/${id}/${was}`, koerper)
+            }}
+            onTermin={async (id, eingabe) => {
+              await fuehreAus(`meldungen/${id}/termin`, eingabe)
+            }}
+            onLauf={async () => {
+              await fuehreAus('buschtelefon/pruefen')
+              await Promise.all([
+                ladeBuschtelefonLauf(),
+                buschtelefonQuellen.refetch(),
+                buschtelefonStand.refetch()
+              ])
+            }}
+            onUebernehmen={async (id, koerper) => {
+              await fuehreAus(`buschtelefon/${id}/meldung`, koerper)
+            }}
+            onAblehnen={async (id, grund, kommentar) => {
+              await fuehreAus(`buschtelefon/${id}/ablehnen`, { grund, kommentar })
+            }}
+            onWeiterreichen={async (id, begruendung) => {
+              await fuehreAus(`buschtelefon/${id}/weiterreichen`, { begruendung })
+            }}
+            onGemeinde={async (id, gemeinde) => {
+              await fuehreAus(`buschtelefon/${id}/gemeinde`, { gemeinde })
             }}
           />
         </Stack>

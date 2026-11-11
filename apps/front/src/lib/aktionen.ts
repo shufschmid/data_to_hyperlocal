@@ -41,6 +41,10 @@ export const ERLAUBT: RegExp[] = [
   /^smd\/pruefen$/i,
   /^smd\/publizieren$/i,
   /^smd\/[0-9a-f-]{36}\/(meldung|ablehnen|weiterreichen|link)$/i,
+  // Der Buschtelefon-Tisch: der Abruf von Hand, die drei Entscheide und die
+  // Gemeinde, wo die Quelle keine eindeutige hergibt.
+  /^buschtelefon\/pruefen$/i,
+  /^buschtelefon\/[0-9a-f-]{36}\/(meldung|ablehnen|weiterreichen|gemeinde)$/i,
   // Die Anlaesse und ihre Kalender. `dauerangebot` ist der Schalter auf einer
   // Routine; die Kalenderpflege laeuft als POST-Verben, weil der Proxy nur
   // GET und POST weiterleitet.
@@ -70,7 +74,7 @@ export const ERLAUBT: RegExp[] = [
   /^modelleinstellungen$/i,
   /^modellpreise$/i,
   // Die Regler je Tisch hinter dem Zahnrad: Schwelle und Vorlauf.
-  /^tische\/(gemeinde|veranstaltung)$/i,
+  /^tische\/(gemeinde|veranstaltung|buschtelefon)$/i,
   /^sendungen\/[0-9a-f-]{36}\/(meldung|ablehnen|weiterreichen)$/i,
   /^amtsblatt\/pruefen$/i,
   /^amtsblatt\/[0-9a-f-]{36}\/(meldung|ablehnen|weiterreichen|unterlagen|vorgeschichte)$/i
@@ -84,6 +88,7 @@ export const LESBAR: RegExp[] = [
   /^gemeindeseiten\/lauf$/i,
   /^kanton\/lauf$/i,
   /^smd\/lauf$/i,
+  /^buschtelefon\/lauf$/i,
   /^wochenblaetter\/formulieren$/i,
   /^bilanz$/i,
   // Was die Modellaufrufe kosten, je Tisch — «Gelerntes» → «Kosten».

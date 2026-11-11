@@ -67,13 +67,29 @@ describe('Die Liste erlaubter Aktionen', () => {
     expect(darfSchreiben(`verkehr/anderes/${BEISPIEL_ID}/meldung`)).toBe(false)
   })
 
+  it('kennt den Buschtelefon-Tisch: Abruf, drei Entscheide, Gemeinde und Regler', () => {
+    for (const pfad of [
+      'buschtelefon/pruefen',
+      `buschtelefon/${BEISPIEL_ID}/meldung`,
+      `buschtelefon/${BEISPIEL_ID}/ablehnen`,
+      `buschtelefon/${BEISPIEL_ID}/weiterreichen`,
+      `buschtelefon/${BEISPIEL_ID}/gemeinde`,
+      'tische/buschtelefon'
+    ])
+      expect(darfSchreiben(pfad)).toBe(true)
+    expect(darfSchreiben(`buschtelefon/${BEISPIEL_ID}/loeschen`)).toBe(false)
+    expect(darfSchreiben('buschtelefon/lauf')).toBe(false)
+    expect(darfSchreiben('tische/kanton')).toBe(false)
+  })
+
   it('liest nur die Pfade, deren Zustand im Prozess lebt', () => {
-    expect(LESBAR).toHaveLength(7)
+    expect(LESBAR).toHaveLength(8)
     for (const pfad of [
       'quellen/lauf',
       'gemeindeseiten/lauf',
       'kanton/lauf',
       'smd/lauf',
+      'buschtelefon/lauf',
       'wochenblaetter/formulieren',
       'bilanz',
       'verbrauch'

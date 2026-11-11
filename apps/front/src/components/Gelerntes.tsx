@@ -86,7 +86,7 @@ function TischRegler({
   laeuft,
   onTisch
 }: {
-  tisch: 'gemeinde' | 'veranstaltung'
+  tisch: 'gemeinde' | 'veranstaltung' | 'buschtelefon'
   text: string
   zeilen: readonly TischeinstellungFelder[]
   laeuft: boolean

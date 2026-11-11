@@ -1,7 +1,50 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Chefredaktion } from './Chefredaktion'
-import type { PerleFelder, RecherchehinweisFelder } from '@/graphql/redaktion'
+import type { BuschtelefonHinweisFund, PerleFelder, RecherchehinweisFelder } from '@/graphql/redaktion'
+
+function busch(ueber: Partial<BuschtelefonHinweisFund> = {}): BuschtelefonHinweisFund {
+  return {
+    id: 'f-1',
+    status: 'aktiv',
+    material_geloescht_am: null,
+    text: 'Weiss jemand, warum die Hauptstrasse seit heute gesperrt ist?',
+    bilder: [{ nr: 1, art: 'flyer', text_status: 'gelesen', text: 'Umleitung über die Bruggstrasse' }],
+    geteilt: null,
+    verlinkt: [{ url: 'https://www.aesch.bl.ch/baustelle', titel: 'Baustelleninfo Hauptstrasse' }],
+    kommentare: [
+      {
+        kennung: 'k1',
+        stand: 'sichtbar',
+        antwort_auf: null,
+        autor_ref: 'B',
+        autor_vorname: 'Marc',
+        text: 'Wasserleitungsbruch, die IWB ist dran.'
+      }
+    ],
+    kommentare_stand: 'vollstaendig',
+    kommentare_fehlend: 0,
+    link: 'https://www.facebook.com/groups/1234567890/posts/987654321',
+    quelle_name: 'Du bisch vo Aesch, wenn …',
+    quelle_sichtbarkeit: 'geschlossen',
+    veroeffentlicht_tag: '2026-11-08',
+    ...ueber
+  }
+}
+
+function buschHinweis(fund: BuschtelefonHinweisFund): RecherchehinweisFelder {
+  return hinweis({
+    titel: 'Beitrag aus der Gruppe «Du bisch vo Aesch, wenn …» vom 8. November 2026',
+    fundort: null,
+    seite: null,
+    begruendung: 'Sperrung betrifft viele, Ursache unklar.',
+    // An older lead may still hold a copy — it is never shown.
+    quelltext: 'Alte Kopie des Beitrags',
+    ausgabe: null,
+    gemeinde: { id: 'g-2', name: 'Aesch' },
+    buschtelefon_fund: fund
+  })
+}
 
 function hinweis(ueber: Partial<RecherchehinweisFelder>): RecherchehinweisFelder {
   return {
@@ -161,6 +204,54 @@ describe('Chefredaktion', () => {
     ).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Zurück auf den Tisch' }))
     expect(onZurueck).toHaveBeenCalledWith('h-1')
+  })
+
+  it('liest den Fund einer Buschtelefon-Faehrte live und sagt, dass die Gruppe geschlossen ist', async () => {
+    render(<Chefredaktion hinweise={[buschHinweis(busch())]} perlen={[]} {...NICHTS} />)
+
+    expect(screen.getByText('Buschtelefon')).toBeInTheDocument()
+    expect(screen.getByText('Du bisch vo Aesch, wenn … · 8. November 2026')).toBeInTheDocument()
+    expect(screen.getByText('Geschlossene Gruppe')).toBeInTheDocument()
+    expect(screen.getByText(/Der Link zum Beitrag ist nur zur Überprüfung/)).toBeInTheDocument()
+    // The lead's own copy is never the material.
+    expect(screen.queryByRole('button', { name: /Originaltext lesen/ })).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Beitrag lesen' }))
+    expect(screen.getByText(/warum die Hauptstrasse seit heute gesperrt/)).toBeInTheDocument()
+    expect(screen.getByText('Umleitung über die Bruggstrasse')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Baustelleninfo Hauptstrasse' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Original-Beitrag öffnen/ })).toHaveAttribute(
+      'href',
+      'https://www.facebook.com/groups/1234567890/posts/987654321'
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Kommentare (1)' }))
+    expect(screen.getByText('Wasserleitungsbruch, die IWB ist dran.')).toBeInTheDocument()
+    expect(screen.queryByText('Alte Kopie des Beitrags')).not.toBeInTheDocument()
+  })
+
+  it('sagt bei einem entfernten oder geleerten Fund, dass das Original nicht mehr auffindbar ist', () => {
+    const { rerender } = render(
+      <Chefredaktion
+        hinweise={[
+          buschHinweis(busch({ status: 'entfernt', text: null, bilder: null, kommentare: null, link: null }))
+        ]}
+        perlen={[]}
+        {...NICHTS}
+      />
+    )
+    expect(screen.getByText(/Original nicht mehr auffindbar/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Beitrag lesen' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Alte Kopie des Beitrags')).not.toBeInTheDocument()
+
+    rerender(
+      <Chefredaktion
+        hinweise={[buschHinweis(busch({ material_geloescht_am: '2026-11-20T11:00:00Z', text: null }))]}
+        perlen={[]}
+        {...NICHTS}
+      />
+    )
+    expect(screen.getByText(/Original nicht mehr auffindbar/)).toBeInTheDocument()
+    expect(screen.queryByText('Geschlossene Gruppe')).not.toBeInTheDocument()
   })
 
   it('haelt fuer den Perlen-Entscheid den Originaltext bereit', async () => {

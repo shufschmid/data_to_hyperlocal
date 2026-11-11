@@ -147,6 +147,14 @@ describe('Gelerntes: die Regler der Tische', () => {
     expect(onTisch).toHaveBeenCalledWith('gemeinde', { schwelle: 2 })
   })
 
+  it('stellt auch die Schwelle des Buschtelefons um — ohne Vorlauf-Felder', async () => {
+    const onTisch = jest.fn().mockResolvedValue(undefined)
+    render(<Gelerntes regeln={[]} {...NICHTS} tische={[]} onTisch={onTisch} />)
+    await userEvent.click(screen.getByRole('combobox', { name: 'Schwelle Buschtelefon' }))
+    await userEvent.click(screen.getByRole('option', { name: 'Nur Wichtiges (Stufe 4)' }))
+    expect(onTisch).toHaveBeenCalledWith('buschtelefon', { schwelle: 4 })
+  })
+
   it('ohne Regler-Funktion bleibt der Abschnitt weg', () => {
     render(<Gelerntes regeln={[]} {...NICHTS} />)
     expect(screen.queryByText(/Tische — wie viel/)).not.toBeInTheDocument()

@@ -14,6 +14,7 @@
 // the model. Ignored rows are now marked `verfallen` and counted here.
 
 import { ANKER_TEXT } from './veranstaltung'
+import { fundOhneWortlaut, fundTitel } from './weiterreichen'
 import type {
   FaehrtenUrteil,
   GemeindeKorrektur,
@@ -162,6 +163,7 @@ type UrsprungsFeld =
   | 'veranstaltung'
   | 'kantonsmitteilung'
   | 'smd_beitrag'
+  | 'buschtelefon_fund'
 
 /** Discarded Meldungen written from these rows, by row id. */
 async function ladeVerwuerfe(
@@ -496,6 +498,82 @@ export async function ladeSmdSignale(
 }
 
 /**
+ * The Buschtelefon desk's examples per municipality — keyed on the SOURCE
+ * (`quelle_name`): what a village's buy-and-sell group posts is decided
+ * differently from what its «Du bisch vo …» group discusses.
+ *
+ * A find has no title. Its example is named by the start of its own text
+ * while the row still carries one, and by source and day once retention has
+ * emptied it — read off the row every time, so an example can never hold
+ * wording the row no longer has. `verfallen` rows are emptied at once and
+ * therefore carry no title to list.
+ *
+ * The Bilanz counts only what was a PROPOSAL or what a person decided. On
+ * the other desks an unproposed row is deleted after seven days; here no row
+ * is ever deleted, and every unproposed one ends as `verfallen` — counted
+ * whole, the Sichtung would read that the newsroom leaves nearly everything
+ * lying (72 «liegen gelassen» beside 6 of 8 real proposals taken over) and
+ * grade lower for it. A find removed at the source is no verdict either.
+ */
+export async function ladeBuschtelefonSignale(
+  dienste: LernDienste,
+  gemeindeId: string,
+  heute: string
+): Promise<AmtsblattSignale> {
+  return ladeGemeindebezogeneSignale(
+    dienste,
+    gemeindeId,
+    heute,
+    'quelle_name',
+    'buschtelefon_fund',
+    {
+      felder: [
+        'text',
+        'bilder',
+        'geteilt',
+        'kanal',
+        'quelle_art',
+        'quelle_name',
+        'veroeffentlicht_tag'
+      ],
+      titel: (z) => fundTitel(z as unknown as Parameters<typeof fundTitel>[0]),
+      verfallen: (z) => {
+        const zeile = z as unknown as Parameters<typeof fundTitel>[0]
+        const titel = fundTitel(zeile)
+        return titel === fundOhneWortlaut(zeile) ? null : titel
+      }
+    },
+    BUSCHTELEFON_BILANZ
+  )
+}
+
+/**
+ * Which finds the Buschtelefon desk's Bilanz counts — see
+ * `ladeBuschtelefonSignale`: every row a person decided, and every proposal
+ * that was not removed at the source before anyone could decide it.
+ */
+export const BUSCHTELEFON_BILANZ: Record<string, unknown> = {
+  _or: [
+    { entscheid: { _in: [...ENTSCHIEDEN] } },
+    { _and: [{ vorschlag: { _eq: true } }, { status: { _neq: 'entfernt' } }] }
+  ]
+}
+
+/** How a desk whose rows carry no `titel` column names an example. */
+interface TitelAus {
+  felder: string[]
+  titel: (zeile: Record<string, unknown>) => string
+  /** The title of a lapsed row, or null where there is nothing left to name it by. */
+  verfallen: (zeile: Record<string, unknown>) => string | null
+}
+
+const TITEL_SPALTE: TitelAus = {
+  felder: ['titel'],
+  titel: (z) => String(z['titel'] ?? ''),
+  verfallen: (z) => String(z['titel'] ?? '')
+}
+
+/**
  * One loader for the five desks scoped by MUNICIPALITY. What differs is the
  * column that carries the class hint (`rubrik_name` / `kategorie` / `anker`)
  * and the origin field a hand-up's lead points back through.
@@ -504,8 +582,17 @@ async function ladeGemeindebezogeneSignale(
   dienste: LernDienste,
   gemeindeId: string,
   heute: string,
-  merkmalFeld: 'rubrik_name' | 'kategorie' | 'anker' | 'behoerde' | 'medium',
-  ursprung: UrsprungsFeld
+  merkmalFeld:
+    | 'rubrik_name'
+    | 'kategorie'
+    | 'anker'
+    | 'behoerde'
+    | 'medium'
+    | 'quelle_name',
+  ursprung: UrsprungsFeld,
+  titelAus: TitelAus = TITEL_SPALTE,
+  /** Narrows which rows of the window the Bilanz counts; the others count every row. */
+  bilanzFilter: Record<string, unknown> = {}
 ): Promise<AmtsblattSignale> {
   const beispiele = (
     (await dienste.zeilen.readByQuery({
@@ -514,12 +601,14 @@ async function ladeGemeindebezogeneSignale(
         entscheid: { _in: [...ENTSCHIEDEN] }
       },
       fields: [
-        'id',
-        'titel',
-        merkmalFeld,
-        'entscheid',
-        'ablehnungsgrund',
-        'ablehnungskommentar'
+        ...new Set([
+          'id',
+          ...titelAus.felder,
+          merkmalFeld,
+          'entscheid',
+          'ablehnungsgrund',
+          'ablehnungskommentar'
+        ])
       ],
       sort: ['-date_updated'],
       limit: LERN_FENSTER
@@ -527,7 +616,7 @@ async function ladeGemeindebezogeneSignale(
   ).map(
     (z): AmtsblattZeile => ({
       id: String(z['id']),
-      titel: String(z['titel'] ?? ''),
+      titel: titelAus.titel(z),
       rubrik_name:
         typeof z[merkmalFeld] === 'string' ? (z[merkmalFeld] as string) : null,
       entscheid: String(z['entscheid']),
@@ -554,7 +643,8 @@ async function ladeGemeindebezogeneSignale(
   const imFenster = (await dienste.zeilen.readByQuery({
     filter: {
       gemeinde: { _eq: gemeindeId },
-      date_created: { _gte: tageZurueck(heute, BILANZ_TAGE) }
+      date_created: { _gte: tageZurueck(heute, BILANZ_TAGE) },
+      ...bilanzFilter
     },
     fields: ['entscheid'],
     limit: -1
@@ -562,10 +652,10 @@ async function ladeGemeindebezogeneSignale(
 
   const verfallene = (await dienste.zeilen.readByQuery({
     filter: { gemeinde: { _eq: gemeindeId }, entscheid: { _eq: 'verfallen' } },
-    fields: ['titel'],
+    fields: titelAus.felder,
     sort: ['-date_updated'],
     limit: VERFALLENE_BEISPIELE
-  })) as Array<{ titel: string }>
+  })) as Array<Record<string, unknown>>
 
   const verwuerfe = await ladeVerwuerfe(
     dienste.meldungen,
@@ -603,9 +693,13 @@ async function ladeGemeindebezogeneSignale(
           ? `der letzten ${BILANZ_TAGE} Tage in dieser Gemeinde (Veranstaltungen)`
           : merkmalFeld === 'behoerde'
             ? `der letzten ${BILANZ_TAGE} Tage in dieser Gemeinde (Kanton)`
-            : `der letzten ${BILANZ_TAGE} Tage in dieser Gemeinde`
+            : merkmalFeld === 'quelle_name'
+              ? `der letzten ${BILANZ_TAGE} Tage in dieser Gemeinde (Buschtelefon)`
+              : `der letzten ${BILANZ_TAGE} Tage in dieser Gemeinde`
       ),
-      verfallene: verfallene.map((z) => z.titel),
+      verfallene: verfallene
+        .map((z) => titelAus.verfallen(z))
+        .filter((t): t is string => t !== null),
       kappung: deklariereKappung(alleEntschiedenen.length, beispiele.length)
     }
   }

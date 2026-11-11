@@ -311,6 +311,15 @@ import {
   mitQuelle as mitKantonQuelle
 } from '../../redaktion/kanton'
 import smdPruefen from '../../operations/smd-pruefen/api'
+import buschtelefonAbholen from '../../operations/buschtelefon-abholen/api'
+import {
+  fehlerKennung as buschtelefonFehlerKennung,
+  gibFundZurueck,
+  markiereUebernommen,
+  ueberarbeiteFundMeldung,
+  verdrahteBuschtelefon,
+  type BuschtelefonUmgebung
+} from './buschtelefon'
 import {
   hatMaterial as hatSmdMaterial,
   smdFakten,
@@ -327,7 +336,7 @@ import {
 import { wissenFelderManuell } from '../../redaktion/wissen'
 import {
   istEinstellbarerTisch,
-  tischeinstellungFelder
+  tischFelder
 } from '../../redaktion/tischeinstellungen'
 import {
   extrahiereText,
@@ -968,6 +977,7 @@ export default defineEndpoint(
               'kantonsmitteilung',
               'sendungskandidat',
               'smd_beitrag',
+              'buschtelefon_fund',
               'erscheint_am',
               'date_created',
               'freigegeben_am',
@@ -3966,6 +3976,33 @@ export default defineEndpoint(
       }
     )
 
+    // --- the Buschtelefon desk: what the villages' social-network groups post ---
+    //
+    // Routes and rules next door in `buschtelefon.ts`; what is handed over
+    // are this file's own helpers, so an id, a Beitrag and a lesson are read
+    // the same way on every desk. The run is the operation's own handler —
+    // a button press and the 12:00 Flow are indistinguishable.
+    verdrahteBuschtelefon(router, {
+      services: services as unknown as BuschtelefonUmgebung['services'],
+      getSchema,
+      logger,
+      holeAb: () =>
+        Promise.resolve(
+          buschtelefonAbholen.handler({}, {
+            services,
+            getSchema,
+            logger,
+            database
+          } as Parameters<typeof buschtelefonAbholen.handler>[1])
+        ),
+      pruefeId,
+      beitragAus,
+      lerne,
+      textregeln: () => regelnFuer('buschtelefon', 'text'),
+      uebersetze,
+      NichtAngemeldet
+    })
+
     // --- the SMD desk: what other media wrote about a municipality ---------
     //
     // The Kanton desk's shape once more — a single-flight run the workspace
@@ -6030,8 +6067,9 @@ export default defineEndpoint(
     // --- the dials of a desk: threshold and leads ----------------------------
     //
     // One row per grading desk in `tischeinstellungen`; the rules of what a
-    // value may be are `tischeinstellungFelder`. Upsert, so the gear works
-    // before the seed row exists.
+    // value may be are `tischeinstellungFelder`; `tischFelder` narrows them to
+    // what the desk reads (the Buschtelefon desk: the threshold alone).
+    // Upsert, so the gear works before the seed row exists.
     router.post(
       '/tische/:tisch',
       async (req: ApiRequest, res: Response, next: NextFunction) => {
@@ -6041,7 +6079,8 @@ export default defineEndpoint(
 
         let felder: Record<string, unknown>
         try {
-          felder = tischeinstellungFelder(
+          felder = tischFelder(
+            tisch,
             (req.body ?? {}) as Record<string, unknown>
           )
         } catch (fehler) {
@@ -6458,6 +6497,7 @@ export default defineEndpoint(
               'veranstaltung',
               'kantonsmitteilung',
               'smd_beitrag',
+              'buschtelefon_fund',
               'sendungskandidat',
               'regel'
             ]
@@ -6468,6 +6508,7 @@ export default defineEndpoint(
             veranstaltung: string | null
             kantonsmitteilung: string | null
             smd_beitrag: string | null
+            buschtelefon_fund: string | null
             sendungskandidat: string | null
             regel: string | null
           }
@@ -6487,9 +6528,11 @@ export default defineEndpoint(
                       ? 'kanton'
                       : herkunft.smd_beitrag !== null
                         ? 'smd'
-                        : herkunft.sendungskandidat !== null
-                          ? 'sendung'
-                          : 'presseschau',
+                        : herkunft.buschtelefon_fund !== null
+                          ? 'buschtelefon'
+                          : herkunft.sendungskandidat !== null
+                            ? 'sendung'
+                            : 'presseschau',
             art: 'faehrte',
             zeileId:
               herkunft.kandidat ??
@@ -6498,6 +6541,7 @@ export default defineEndpoint(
               herkunft.veranstaltung ??
               herkunft.kantonsmitteilung ??
               herkunft.smd_beitrag ??
+              herkunft.buschtelefon_fund ??
               herkunft.sendungskandidat ??
               null,
             hinweisId: id,
@@ -6566,6 +6610,7 @@ export default defineEndpoint(
               'veranstaltung',
               'kantonsmitteilung',
               'smd_beitrag',
+              'buschtelefon_fund',
               'sendungskandidat',
               'regel'
             ]
@@ -6577,6 +6622,7 @@ export default defineEndpoint(
             veranstaltung: string | null
             kantonsmitteilung: string | null
             smd_beitrag: string | null
+            buschtelefon_fund: string | null
             sendungskandidat: string | null
             regel: string | null
           }
@@ -6596,19 +6642,41 @@ export default defineEndpoint(
                       ? ['kantonsmitteilungen', lead.kantonsmitteilung]
                       : lead.smd_beitrag !== null
                         ? ['smd_beitraege', lead.smd_beitrag]
-                        : lead.sendungskandidat !== null
-                          ? ['sendungskandidaten', lead.sendungskandidat]
-                          : null
+                        : lead.buschtelefon_fund !== null
+                          ? ['buschtelefon_funde', lead.buschtelefon_fund]
+                          : lead.sendungskandidat !== null
+                            ? ['sendungskandidaten', lead.sendungskandidat]
+                            : null
           if (ursprung === null) return next(new FaehrteOhneTisch())
 
-          await new ItemsService(ursprung[0], {
+          const ursprungsDienst = new ItemsService(ursprung[0], {
             schema,
             accountability: req.accountability
-          }).updateOne(ursprung[1], { entscheid: 'offen' })
+          })
+          // A Buschtelefon find reopens only while its material is there —
+          // else it lapses — and is stamped, because its retention counts
+          // the open days from the later of release and that stamp
+          // (`gibFundZurueck`). The lead is closed either way.
+          let ursprungEntscheid: 'offen' | 'verfallen' = 'offen'
+          if (ursprung[0] === 'buschtelefon_funde') {
+            ursprungEntscheid = await gibFundZurueck(
+              ursprungsDienst,
+              ursprung[1],
+              new Date().toISOString()
+            )
+          } else {
+            await ursprungsDienst.updateOne(ursprung[1], { entscheid: 'offen' })
+          }
           await hinweise.updateOne(id, { status: 'zurueckgegeben' })
           if (lead.regel !== null) void pruefeAutomatik(lead.regel)
 
-          return res.json({ data: { hinweis: id, ursprung: ursprung[1] } })
+          return res.json({
+            data: {
+              hinweis: id,
+              ursprung: ursprung[1],
+              ursprung_entscheid: ursprungEntscheid
+            }
+          })
         } catch (error) {
           return next(uebersetze(error))
         }
@@ -6993,6 +7061,7 @@ export default defineEndpoint(
               'radarstandort',
               'geschwindigkeitskontrolle',
               'smd_beitrag',
+              'buschtelefon_fund',
               // The south-approach revision needs it: the article is written
               // for ONE municipality, and the facts carry its name.
               'gemeinde',
@@ -7019,6 +7088,7 @@ export default defineEndpoint(
             radarstandort: string | null
             geschwindigkeitskontrolle: string | null
             smd_beitrag: string | null
+            buschtelefon_fund: string | null
             gemeinde: string
             lauf: { datensatz: string | null } | null
             titel: string | null
@@ -7291,6 +7361,62 @@ export default defineEndpoint(
               logger.error(
                 fehler,
                 'redaktion: SMD-Ueberarbeitung fehlgeschlagen'
+              )
+              throw new UeberarbeitungFehlgeschlagen()
+            }
+          }
+
+          // A Buschtelefon article: a post in a village's social-network
+          // group, revised from the find as it stands NOW — its material may
+          // have been emptied since the first write, and then only the
+          // editor's stored additions carry the revision.
+          if (meldung.buschtelefon_fund !== null) {
+            await meldungen.updateOne(id, { verarbeitung: 'laeuft', anweisung })
+            try {
+              // System-level like every revision here: the article is
+              // already the caller's to edit, the find is its source.
+              const warnungen = await ueberarbeiteFundMeldung(
+                {
+                  funde: new ItemsService('buschtelefon_funde', { schema }),
+                  meldungen: new ItemsService('meldungen', { schema }),
+                  regeln: await regelnFuer('buschtelefon', 'text')
+                },
+                meldung,
+                meldung.buschtelefon_fund,
+                anweisung,
+                ergaenzung
+              )
+              merkeAnweisung(anweisung, 'buschtelefon', 'Buschtelefon-Meldung')
+              await chat.createOne({
+                meldung: id,
+                rolle: 'assistant',
+                inhalt:
+                  warnungen.length === 0
+                    ? 'Neu formuliert.'
+                    : `Neu formuliert — mit Hinweisen: ${warnungen.join(' · ')}`,
+                position: position + 1
+              })
+              return res.json({ data: { meldung: id, warnungen } })
+            } catch (fehler) {
+              // The writer's own refusals are German sentences that carry
+              // nothing of the find; any other error may carry the prompt —
+              // a private person's post — and goes to the log only, never
+              // into a column of the article.
+              const code = (fehler as { code?: unknown } | null)?.code
+              const eigene =
+                code === 'FUND_OHNE_GEMEINDE' ||
+                code === 'FUND_OHNE_MATERIAL' ||
+                code === 'MATERIAL_GENUEGT_NICHT'
+              await meldungen.updateOne(id, {
+                verarbeitung: 'idle',
+                fehler: eigene
+                  ? fehlerText(fehler)
+                  : 'Die Überarbeitung ist fehlgeschlagen. Einzelheiten stehen im Protokoll.'
+              })
+              // By its class only — the error's text is what may carry the post.
+              logger.error(
+                buschtelefonFehlerKennung(fehler),
+                'redaktion: Buschtelefon-Ueberarbeitung fehlgeschlagen'
               )
               throw new UeberarbeitungFehlgeschlagen()
             }
@@ -7586,6 +7712,26 @@ export default defineEndpoint(
             ...(verwerfungsgrund === null ? {} : { verwerfungsgrund })
           })
 
+          // The Buschtelefon run writes its drafts while the decision on the
+          // find stays open. Sending such a draft on IS the decision — set
+          // here, or the find would lapse as «left lying» under an article
+          // the newsroom published.
+          if (ziel !== 'verworfen') {
+            const { buschtelefon_fund: fundId } = (await meldungen.readOne(id, {
+              fields: ['buschtelefon_fund']
+            })) as { buschtelefon_fund: string | null }
+            if (fundId !== null) {
+              await markiereUebernommen(
+                new ItemsService('buschtelefon_funde', {
+                  schema: await getSchema()
+                }),
+                fundId,
+                new Date().toISOString(),
+                { warn: (e: unknown, m?: string) => logger.warn(e, m) }
+              )
+            }
+          }
+
           if (verwerfungsgrund !== null) {
             const herkunft = (await meldungen.readOne(id, {
               fields: [
@@ -7594,6 +7740,7 @@ export default defineEndpoint(
                 'gemeindemitteilung',
                 'veranstaltung',
                 'kantonsmitteilung',
+                'buschtelefon_fund',
                 'sendungskandidat',
                 'spiel',
                 'erscheint_am',
@@ -7605,6 +7752,7 @@ export default defineEndpoint(
               gemeindemitteilung: string | null
               veranstaltung: string | null
               kantonsmitteilung: string | null
+              buschtelefon_fund: string | null
               sendungskandidat: string | null
               spiel: string | null
               erscheint_am: string | null
@@ -7621,9 +7769,11 @@ export default defineEndpoint(
                       ? 'veranstaltung'
                       : herkunft.kantonsmitteilung !== null
                         ? 'kanton'
-                        : herkunft.sendungskandidat !== null
-                          ? 'sendung'
-                          : null
+                        : herkunft.buschtelefon_fund !== null
+                          ? 'buschtelefon'
+                          : herkunft.sendungskandidat !== null
+                            ? 'sendung'
+                            : null
             if (tisch !== null) {
               lerne({
                 tisch,
@@ -7634,6 +7784,7 @@ export default defineEndpoint(
                   herkunft.gemeindemitteilung ??
                   herkunft.veranstaltung ??
                   herkunft.kantonsmitteilung ??
+                  herkunft.buschtelefon_fund ??
                   herkunft.sendungskandidat,
                 entscheid: 'verworfen',
                 grund: null,
@@ -9850,7 +10001,9 @@ export default defineEndpoint(
                     ? 'kantonsmitteilungen'
                     : signal.tisch === 'smd'
                       ? 'smd_beitraege'
-                      : 'sendungskandidaten'
+                      : signal.tisch === 'buschtelefon'
+                        ? 'buschtelefon_funde'
+                        : 'sendungskandidaten'
         await lerneAusEntscheid(
           {
             zeilen: new ItemsService(sammlung, { schema }),

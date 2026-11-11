@@ -41,10 +41,15 @@ describe('EigeneMeldungKnopf', () => {
 
     await user.click(screen.getByRole('button', { name: 'Mit eigenen Angaben' }))
     await user.click(screen.getByRole('button', { name: 'Selbst schreiben' }))
-    // Tippen ist in jsdom langsam; kurze Texte halten den Test unter der Frist.
-    await user.type(screen.getByLabelText('Titel'), 'Turnerobe')
-    await user.type(screen.getByLabelText('Lead'), 'Jahresshow.')
-    await user.type(screen.getByLabelText('Text'), 'Am 21. November 2026.')
+    // Tippen ist in jsdom langsam — Zeichen fuer Zeichen riss der Test unter
+    // der Last der ganzen Suite die Frist. Einfuegen ist ein Ereignis je Feld
+    // und geht durch dasselbe onChange.
+    await user.click(screen.getByLabelText('Titel'))
+    await user.paste('Turnerobe')
+    await user.click(screen.getByLabelText('Lead'))
+    await user.paste('Jahresshow.')
+    await user.click(screen.getByLabelText('Text'))
+    await user.paste('Am 21. November 2026.')
     await user.click(screen.getByRole('button', { name: 'Meldung anlegen' }))
 
     expect(onAbschicken).toHaveBeenCalledWith({

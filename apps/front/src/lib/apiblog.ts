@@ -54,6 +54,7 @@ export type Rubrik =
   | 'gemeinde'
   | 'veranstaltung'
   | 'kanton'
+  | 'buschtelefon'
   | 'presseschau'
   | 'sendung'
 
@@ -163,6 +164,7 @@ const RUBRIK_TEXT: Record<Rubrik, string> = {
   gemeinde: 'Gemeinde',
   veranstaltung: 'Veranstaltung',
   kanton: 'Kanton',
+  buschtelefon: 'Buschtelefon',
   presseschau: 'Presseschau',
   sendung: 'Sendung'
 }

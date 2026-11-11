@@ -191,6 +191,32 @@ const { data, loading, error, refetch } = useQuery<MeldungenErgebnis>(MELDUNGEN_
 - Anything that is not a plain collection read/write is a `fetch` to a route handler
   that forwards to an extension endpoint — see `aktion` in `RedaktionPanel.tsx`.
 
+### The Buschtelefon desk reads material LIVE, never from a copy
+
+What private persons wrote in a village's Facebook group lives in
+`buschtelefon_funde` only, the one collection without revisions, and is
+emptied on a schedule (root CLAUDE.md). The frontend keeps to that:
+
+- **A lead on the Chefredaktion desk carries no wording.** `Chefredaktion.tsx`
+  reads post, image texts, shared post, links and comments through
+  `recherchehinweise.buschtelefon_fund` (`RECHERCHEHINWEISE_QUERY`) and renders
+  them with the same components as the desk (`components/BuschtelefonMaterial.tsx`:
+  `Bildblock`, `GeteiltBlock`, `VerlinktListe`, `BeitragWortlaut`,
+  `KommentarListe`). An emptied or removed find reads «Original nicht mehr
+  auffindbar» (`fundNochDa`), and a Buschtelefon lead never shows `h.quelltext`,
+  not even the copy an older lead may still hold.
+- **The last fetch comes from two places** (`abrufAnzeige`, `letzterLauf` in
+  `lib/buschtelefon.ts`): `GET …/buschtelefon/lauf` knows only a run started by
+  hand in this process, so the scheduled noon run's result is read from
+  `buschtelefon_stand` (`letzter_abruf`, `ergebnis`). A running run always wins,
+  otherwise the later one; a hand call that met a run under way
+  (`status: 'laeuft'`) did nothing and never outranks the stand.
+- **The buttons follow the backend's refusals**: «An Chefredaktion» only on an
+  open row whose Meldung is at most a draft, «Ablehnen» only while the Meldung
+  is missing, discarded or a draft (`entscheide`) — the endpoints answer 409
+  `MELDUNG_IN_ARBEIT` otherwise. `KEIN_ENTWURF` is a literal copy of the
+  extension's constant of the same name; change both together.
+
 ## Adding a page
 
 1. `src/app/<route>/page.tsx` — a server component that renders client components.

@@ -1,6 +1,7 @@
 import type { TischeinstellungFelder } from '@/graphql/redaktion'
 import {
   anlassVorschlag,
+  EINSTELLBARE_TISCHE,
   einstellungFuer,
   imVorlauf,
   istVorschlag,
@@ -56,6 +57,12 @@ describe('Schwelle und Vorlauf', () => {
       true
     )
     expect(anlassVorschlag({ anker_am: '2026-10-02' }, '2026-09-29', grosszuegig)).toBe(false)
+  })
+
+  it('fuehrt das Buschtelefon als dritten einstellbaren Tisch, mit eigener Zeile', () => {
+    expect(EINSTELLBARE_TISCHE.map((t) => t.wert)).toEqual(['gemeinde', 'veranstaltung', 'buschtelefon'])
+    expect(einstellungFuer([zeile({ tisch: 'buschtelefon', schwelle: 4 })], 'buschtelefon').schwelle).toBe(4)
+    expect(einstellungFuer([zeile()], 'buschtelefon').schwelle).toBe(3)
   })
 
   it('benennt die Stufe auf der Zeile', () => {

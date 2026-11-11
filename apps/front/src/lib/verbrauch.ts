@@ -72,6 +72,7 @@ export const TISCH_NAMEN: Readonly<Record<string, string>> = {
   gemeindeseiten: 'Gemeindeseiten',
   veranstaltungen: 'Veranstaltungen',
   kanton: 'Kanton',
+  buschtelefon: 'Buschtelefon',
   sendung: 'Regionaljournal / punkt6',
   regionaljournal: 'Regionaljournal',
   punkt6: 'punkt6',

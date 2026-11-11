@@ -1,0 +1,28 @@
+{
+  "collection": "buschtelefon_quellen",
+  "meta": {
+    "accountability": null,
+    "archive_app_filter": true,
+    "archive_field": null,
+    "archive_value": null,
+    "collapse": "open",
+    "collection": "buschtelefon_quellen",
+    "color": null,
+    "display_template": "{{name}} ({{kanal}})",
+    "group": null,
+    "hidden": false,
+    "icon": "groups",
+    "item_duplication_fields": null,
+    "note": "Die Quellen des Buschtelefons (GET /quellen), eine Zeile je Gruppe, Seite oder Konto: welche heute nicht oder nur halb gelesen wurde und wie viel sie aussortierte. Bei jedem Abholen ueber die kennung nachgefuehrt; die Redaktion schreibt hier nichts von Hand.",
+    "preview_url": null,
+    "singleton": false,
+    "sort": null,
+    "sort_field": null,
+    "translations": null,
+    "unarchive_value": null,
+    "versioning": false
+  },
+  "schema": {
+    "name": "buschtelefon_quellen"
+  }
+}

@@ -69,6 +69,10 @@
         {
           "text": "SMD",
           "value": "smd"
+        },
+        {
+          "text": "Buschtelefon",
+          "value": "buschtelefon"
         }
       ]
     },

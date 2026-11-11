@@ -1,0 +1,25 @@
+{
+  "collection": "recherchehinweise",
+  "field": "buschtelefon_fund",
+  "related_collection": "buschtelefon_funde",
+  "meta": {
+    "junction_field": null,
+    "many_collection": "recherchehinweise",
+    "many_field": "buschtelefon_fund",
+    "one_allowed_collections": null,
+    "one_collection": "buschtelefon_funde",
+    "one_collection_field": null,
+    "one_deselect_action": "nullify",
+    "one_field": null,
+    "sort_field": null
+  },
+  "schema": {
+    "table": "recherchehinweise",
+    "column": "buschtelefon_fund",
+    "foreign_key_table": "buschtelefon_funde",
+    "foreign_key_column": "id",
+    "constraint_name": "recherchehinweise_buschtelefon_fund_foreign",
+    "on_update": "NO ACTION",
+    "on_delete": "SET NULL"
+  }
+}

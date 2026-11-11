@@ -146,6 +146,16 @@ services:
       ZETTELKASTEN_TOKEN: ${ZETTELKASTEN_TOKEN:-}
       ZETTELKASTEN_MANDANT: ${ZETTELKASTEN_MANDANT:-bajour}
 
+      # Die Uebergabetuer des Buschtelefons (Vertrag buschtelefon-redaktion/2):
+      # Beitraege aus Facebook-Gruppen, spaeter Instagram und TikTok, einmal am
+      # Tag um 12 Uhr abgeholt. Cloudflare-Access-Dienst-Token plus
+      # Bearer-Schluessel; fehlt eines, bleibt der Tisch still und sagt, welche
+      # Variable fehlt.
+      BUSCHTELEFON_URL: ${BUSCHTELEFON_URL:-https://buschtelefon.raumschiffenterprise.ch}
+      BUSCHTELEFON_CF_CLIENT_ID: ${BUSCHTELEFON_CF_CLIENT_ID:-}
+      BUSCHTELEFON_CF_CLIENT_SECRET: ${BUSCHTELEFON_CF_CLIENT_SECRET:-}
+      BUSCHTELEFON_SCHLUESSEL: ${BUSCHTELEFON_SCHLUESSEL:-}
+
       EXTENSIONS_PATH: ./extensions
       # Auto-reload watches the filesystem; pointless in an immutable image.
       EXTENSIONS_AUTO_RELOAD: 'false'

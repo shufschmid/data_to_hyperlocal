@@ -107,3 +107,68 @@ export function istZahlwarnung(warnung: string): boolean {
     UNGENAUE_PROZENTANGABE.test(warnung)
   )
 }
+
+// ---------------------------------------------------------------------------
+// The Buschtelefon desk (11 November 2026)
+// ---------------------------------------------------------------------------
+//
+// Its material is what private persons wrote in a Facebook group, and
+// `zeit_warnungen` leaves the house through the Pruefsiegel of `/api/v1`. So
+// these faces say WHICH check spoke and never WHAT it found: no name, no
+// number, no address, no group name. The details stand on the find's own row
+// (`buschtelefon_funde.entwurf_bedenken`), which no API serves. And none of
+// them carries a comma — the column is CSV. The Pruefsiegel sorts all of
+// them under `weitere`.
+
+/** The article does not say its content comes from a social network. `art`: «Facebook-Gruppe», «Instagram-Konto», … */
+export function herkunftFehltWarnung(art: string): string {
+  return `Die Meldung nennt ihre Herkunft nicht (${art.replace(/,/g, '')}).`
+}
+
+export const HERKUNFT_FEHLT = /^Die Meldung nennt ihre Herkunft nicht \(/
+
+export const UNBESTAETIGT_WARNUNG =
+  'Die Meldung sagt nicht dass ihr Inhalt nicht unabhängig bestätigt ist.'
+
+export const NACHNAMEN_WARNUNG =
+  'Die Meldung nennt möglicherweise den Nachnamen einer Privatperson — bitte prüfen.'
+
+export const TELEFON_WARNUNG =
+  'Die Meldung nennt eine Telefonnummer — bei einer Privatperson entfernen.'
+
+export const EMAIL_WARNUNG =
+  'Die Meldung nennt eine E-Mail-Adresse — bei einer Privatperson entfernen.'
+
+export const ADRESS_WARNUNG =
+  'Die Meldung nennt eine Strassenadresse mit Hausnummer — bei einer Privatperson entfernen.'
+
+/**
+ * The 8-gram overlap check of the other desks QUOTES what it found («Woertliche
+ * Uebernahme aus dem Blatt: "…"») — here that would be up to twenty words of a
+ * private person's post in the Pruefsiegel. So this desk says only THAT a
+ * passage was taken over; which one stands in `entwurf_bedenken`.
+ */
+export const UEBERNAHME_WARNUNG =
+  'Die Meldung übernimmt eine Passage wörtlich aus dem Beitrag — bitte umformulieren.'
+
+/**
+ * The link check of the other desks names the address («Der Text nennt selbst
+ * eine Adresse: …») — here possibly a commenter's chat invitation or a private
+ * profile. The face says only that the text carries one.
+ */
+export const LINK_WARNUNG =
+  'Die Meldung nennt selbst eine Webadresse — die Quellenzeile setzt der Code.'
+
+/** Whether a warning came out of one of the Buschtelefon desk's person and origin checks. */
+export function istBuschtelefonWarnung(warnung: string): boolean {
+  return (
+    HERKUNFT_FEHLT.test(warnung) ||
+    warnung === UNBESTAETIGT_WARNUNG ||
+    warnung === NACHNAMEN_WARNUNG ||
+    warnung === TELEFON_WARNUNG ||
+    warnung === EMAIL_WARNUNG ||
+    warnung === ADRESS_WARNUNG ||
+    warnung === UEBERNAHME_WARNUNG ||
+    warnung === LINK_WARNUNG
+  )
+}

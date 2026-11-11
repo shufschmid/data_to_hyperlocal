@@ -28,9 +28,15 @@ export const SCHWELLEN: ReadonlyArray<{ wert: number; text: string }> = [
   { wert: 1, text: 'Alles (ab Stufe 1)' }
 ]
 
-export const EINSTELLBARE_TISCHE: ReadonlyArray<{ wert: 'gemeinde' | 'veranstaltung'; text: string }> = [
+export const EINSTELLBARE_TISCHE: ReadonlyArray<{
+  wert: 'gemeinde' | 'veranstaltung' | 'buschtelefon'
+  text: string
+}> = [
   { wert: 'gemeinde', text: 'Gemeindeseiten' },
-  { wert: 'veranstaltung', text: 'Veranstaltungen' }
+  { wert: 'veranstaltung', text: 'Veranstaltungen' },
+  // Seit 11. November 2026 der dritte benotende Tisch: die Schwelle sagt hier
+  // auch, ab welcher Stufe der Lauf den Entwurf gleich mitschreibt.
+  { wert: 'buschtelefon', text: 'Buschtelefon' }
 ]
 
 const STUFEN_TEXT: Record<number, string> = {
