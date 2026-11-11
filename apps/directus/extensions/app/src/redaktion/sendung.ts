@@ -18,6 +18,7 @@ import { vorgabenZeilen } from './lernen'
 import type { Beispielrahmen, HinweisUrteil, Verwurf } from './lernsignale'
 // One direction only (presseschau → sendung would be circular in the bundle).
 import { empfehlungAus, gekuerzt } from './presseschau'
+import { ergaenzungsZeilen } from './ergaenzung'
 export { ueberlappungsWarnungen } from './presseschau'
 
 /** Which show a candidate came from. Decides attribution and the source link. */
@@ -362,6 +363,8 @@ export interface SendungsFakten {
   zeitmarkeSekunden: number | null
   /** Audio (Regionaljournal) or the episode page (punkt6). Resolved, never written. */
   quellUrl: string | null
+  /** What the editor added because the show did not say it — handed as facts, never attributed to the show (`redaktion/ergaenzung.ts`). */
+  ergaenzung?: string | null
 }
 
 export const SENDUNG_SYSTEM_PROMPT = `Du schreibst fuer eine lokale Redaktion in der Region Basel kurze Meldungen darueber, was eine regionale Radio- oder Fernsehsendung ueber eine Gemeinde berichtet hat.
@@ -393,7 +396,8 @@ function faktenZeilen(fakten: SendungsFakten): string[] {
     `Verwende im Text diese Wendung: "${info.attribution}"`,
     '',
     'Fakten aus dem Beitrag:',
-    fakten.zusammenfassung
+    fakten.zusammenfassung,
+    ...ergaenzungsZeilen(fakten.ergaenzung)
   ]
 }
 
@@ -517,6 +521,8 @@ export function zahlWarnungen(text: string, fakten: SendungsFakten): string[] {
   sammle(fakten.zusammenfassung)
   sammle(fakten.titel)
   sammle(fakten.datum)
+  // The editor's own additions are handed material too.
+  if (fakten.ergaenzung) sammle(fakten.ergaenzung)
 
   const gefunden = [...text.matchAll(/\d+/g)].map((t) => t[0])
   return [...new Set(gefunden.filter((z) => !erlaubt.has(z)))].map(

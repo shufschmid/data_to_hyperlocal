@@ -30,6 +30,8 @@ import type {
 } from '@/graphql/redaktion'
 import type { TerminEingabe } from '@/lib/termin'
 import { MeldungKarte, type MeldungAktion, type MeldungAktionKoerper } from './MeldungKarte'
+import { EigeneMeldungKnopf } from './EigeneMeldung'
+import type { MeldungErzeugenKoerper } from '@/lib/eigene'
 import { Originaltext } from './Presseschau'
 import { anhangHinweis } from '@/lib/gemeindeseiten'
 import {
@@ -70,7 +72,8 @@ export interface VeranstaltungenProps {
   /** Der Termin der Meldung fuer den Dorfkoenig — siehe `MeldungKarte`. */
   onTermin?: (id: string, eingabe: TerminEingabe) => Promise<void>
   onLauf?: () => Promise<void> | void
-  onUebernehmen?: (id: string) => Promise<void> | void
+  /** „Meldung schreiben" — mit Koerper, wenn die Redaktion eigene Angaben oder den Text selbst mitgibt. */
+  onUebernehmen?: (id: string, koerper?: MeldungErzeugenKoerper) => Promise<void> | void
   onAblehnen?: (id: string, grund: string, kommentar: string | null) => Promise<void> | void
   onWeiterreichen?: (id: string, begruendung: string | null) => Promise<void> | void
   /** Der Schalter auf einer Routine: `intervall`, `nie` — oder einmalig `jetzt`. */
@@ -299,6 +302,11 @@ export function Veranstaltungen({
               >
                 Meldung schreiben
               </Button>
+              <EigeneMeldungKnopf
+                titel={anlass.titel}
+                disabled={beschaeftigt === anlass.id}
+                onAbschicken={(koerper) => fuehreAus(anlass.id, () => onUebernehmen?.(anlass.id, koerper))}
+              />
               <Button
                 size="small"
                 disabled={beschaeftigt === anlass.id}

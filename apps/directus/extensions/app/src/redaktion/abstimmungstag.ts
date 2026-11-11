@@ -1,6 +1,7 @@
 import { datumDeutsch } from './amtsblatt'
 import { vorgabenZeilen } from './lernen'
 import { bundZwischenstandWarnung, zahlWarnung } from './warnungen'
+import { ergaenzungsZeilen } from './ergaenzung'
 import type { AbstimmungsFakten, Zahlenblock } from './abstimmung'
 
 // ONE article per municipality and vote Sunday — the newsroom's decision of
@@ -57,6 +58,8 @@ export interface TagesFakten {
   vergleich: { datum: string; datumText: string; beteiligung: number } | null
   /** The canton's page of the whole day — the one address the article carries. */
   quelleUrl: string
+  /** What the editor added because the figures do not say it — handed as facts, never attributed to the canton (`redaktion/ergaenzung.ts`). */
+  ergaenzung?: string | null
 }
 
 /** The Bund's outcome of a federal Vorlage, as the run stored it. */
@@ -253,6 +256,7 @@ function faktenZeilen(f: TagesFakten): string[] {
     zeilen.push(
       `Letzte Abstimmung davor (${f.vergleich.datumText}): Stimmbeteiligung ${alsDeutsch(f.vergleich.beteiligung)} Prozent`
     )
+  zeilen.push(...ergaenzungsZeilen(f.ergaenzung))
   return zeilen
 }
 
@@ -334,6 +338,8 @@ export function zahlWarnungenTag(text: string, f: TagesFakten): string[] {
     sammle(f.vergleich.datumText)
     sammle(f.vergleich.beteiligung)
   }
+  // The editor's own additions are handed material too.
+  sammle(f.ergaenzung ?? null)
   const gefunden = [...text.matchAll(/\d+/g)].map((t) => t[0])
   return [...new Set(gefunden.filter((z) => !erlaubt.has(z)))].map((z) =>
     zahlWarnung(z)

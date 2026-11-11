@@ -22,6 +22,13 @@ import {
   type BundErgebnis,
   type TagesFakten
 } from './abstimmungstag'
+import {
+  eigeneFelder,
+  ergaenzungsHinweis,
+  herkunftFelder,
+  OHNE_BEITRAG,
+  type RedaktionsBeitrag
+} from './ergaenzung'
 import type { Gemeinde } from '../types/schema'
 
 // The one path from a vote day's stored rows to a summary Meldung — shared by
@@ -90,14 +97,19 @@ export async function ladeTag(
  */
 export function tagesFaktenAus(
   zeilen: readonly Tageszeile[],
-  gemeinde: Pick<Gemeinde, 'name' | 'bfs_nummer'>
+  gemeinde: Pick<Gemeinde, 'name' | 'bfs_nummer'>,
+  /** The editor's additions (`redaktion/ergaenzung.ts`), or null. */
+  ergaenzung: string | null = null
 ): TagesFakten {
-  return tagesFakten(
-    zeilen.map((zeile) => ({
-      fakten: faktenFuer({ zeile, gemeinde }),
-      bund: zeile.bund ?? null
-    }))
-  )
+  return {
+    ...tagesFakten(
+      zeilen.map((zeile) => ({
+        fakten: faktenFuer({ zeile, gemeinde }),
+        bund: zeile.bund ?? null
+      }))
+    ),
+    ergaenzung
+  }
 }
 
 export interface Tagesentwurf {
@@ -157,7 +169,8 @@ export async function schreibeTagesmeldung(
       ...linkWarnungen(alles),
       ...stichfragenWarnungenTag(alles, fakten),
       ...bundWarnungenTag(fakten),
-      ...(attribution === null ? [] : [attribution])
+      ...(attribution === null ? [] : [attribution]),
+      ...ergaenzungsHinweis(fakten)
     ]
   }
 }
@@ -196,15 +209,40 @@ export async function vorhandeneTagesmeldung(
   return treffer[0]?.id ?? null
 }
 
-/** Writes and stores one day summary. The caller checked that none exists. */
+/**
+ * Writes and stores one day summary. The caller checked that none exists.
+ * `beitrag` is what the editor adds (`redaktion/ergaenzung.ts`); the Sunday
+ * run never adds anything.
+ */
 export async function legeTagesmeldungAn(
   kontext: TagesKontext,
   zeilen: readonly Tageszeile[],
-  gemeinde: Pick<Gemeinde, 'id' | 'name' | 'bfs_nummer'>
+  gemeinde: Pick<Gemeinde, 'id' | 'name' | 'bfs_nummer'>,
+  beitrag: RedaktionsBeitrag = OHNE_BEITRAG
 ): Promise<{ meldung: string; warnungen: string[] }> {
   const erste = zeilen[0]
   if (erste === undefined) throw new Error('Ein Abstimmungstag ohne Vorlage.')
-  const fakten = tagesFaktenAus(zeilen, gemeinde)
+  const fakten = tagesFaktenAus(zeilen, gemeinde, beitrag.ergaenzung)
+
+  if (beitrag.eigene !== null) {
+    const felder = eigeneFelder(beitrag.eigene, (text) =>
+      mitTagesQuelle(text, fakten)
+    )
+    const meldung = (await kontext.meldungen.createOne({
+      abstimmung: erste.id,
+      gemeinde: gemeinde.id,
+      ...felder,
+      datengrundlage: {
+        ...datengrundlageTag(fakten),
+        ...herkunftFelder(beitrag)
+      }
+    })) as string
+    return {
+      meldung,
+      warnungen: (felder['zeit_warnungen'] as string[] | null) ?? []
+    }
+  }
+
   const entwurf = await schreibeTagesmeldung(
     fakten,
     buildTagesPrompt(fakten, kontext.regeln)
@@ -214,7 +252,10 @@ export async function legeTagesmeldungAn(
     gemeinde: gemeinde.id,
     status: 'entwurf',
     ...tagesMeldungsfelder(entwurf, fakten),
-    datengrundlage: datengrundlageTag(fakten)
+    datengrundlage: {
+      ...datengrundlageTag(fakten),
+      ...herkunftFelder(beitrag)
+    }
   })) as string
   return { meldung, warnungen: entwurf.warnungen }
 }

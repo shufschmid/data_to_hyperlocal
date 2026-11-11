@@ -24,6 +24,8 @@ import OpenInNewOutlined from '@mui/icons-material/OpenInNewOutlined'
 import type { AlleMeldungFelder, GemeindeFelder, SmdBeitragFelder } from '@/graphql/redaktion'
 import type { TerminEingabe } from '@/lib/termin'
 import { MeldungKarte, type MeldungAktion, type MeldungAktionKoerper } from './MeldungKarte'
+import { EigeneMeldungKnopf } from './EigeneMeldung'
+import type { MeldungErzeugenKoerper } from '@/lib/eigene'
 import { Originaltext } from './Presseschau'
 import {
   ABLEHNUNGSGRUENDE,
@@ -55,7 +57,8 @@ export interface SmdProps {
   /** Der Termin der Meldung fuer den Dorfkoenig — siehe `MeldungKarte`. */
   onTermin?: (id: string, eingabe: TerminEingabe) => Promise<void>
   onLauf?: () => Promise<void> | void
-  onUebernehmen?: (id: string) => Promise<void> | void
+  /** „Meldung schreiben" — mit Koerper, wenn die Redaktion eigene Angaben oder den Text selbst mitgibt. */
+  onUebernehmen?: (id: string, koerper?: MeldungErzeugenKoerper) => Promise<void> | void
   onAblehnen?: (id: string, grund: string, kommentar: string | null) => Promise<void> | void
   onWeiterreichen?: (id: string, begruendung: string | null) => Promise<void> | void
   /** Der Link zum Online-Artikel von Hand — null entfernt ihn. */
@@ -236,6 +239,13 @@ export function Smd({
               >
                 Meldung schreiben
               </Button>
+            )}
+            {meldung === undefined && (
+              <EigeneMeldungKnopf
+                titel={eintrag.titel}
+                disabled={beschaeftigt === eintrag.id}
+                onAbschicken={(koerper) => fuehreAus(eintrag.id, () => onUebernehmen?.(eintrag.id, koerper))}
+              />
             )}
             <Button
               size="small"

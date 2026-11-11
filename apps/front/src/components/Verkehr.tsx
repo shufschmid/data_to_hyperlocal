@@ -17,6 +17,8 @@ import type {
   RadarstandortFelder
 } from '@/graphql/redaktion'
 import { MeldungKarte, type MeldungAktion, type MeldungAktionKoerper } from './MeldungKarte'
+import { EigeneMeldungKnopf } from './EigeneMeldung'
+import type { MeldungErzeugenKoerper } from '@/lib/eigene'
 import {
   bilanzText,
   datumLang,
@@ -45,7 +47,8 @@ export interface VerkehrProps {
   standorte: readonly RadarstandortFelder[]
   monate: readonly GeschwindigkeitskontrolleFelder[]
   meldungen: readonly AlleMeldungFelder[]
-  onMeldung: (art: VerkehrsArt, id: string) => Promise<void>
+  /** «Meldung erzeugen» — mit Koerper, wenn die Redaktion eigene Angaben oder den Text selbst mitgibt. */
+  onMeldung: (art: VerkehrsArt, id: string, koerper?: MeldungErzeugenKoerper) => Promise<void>
   onChat: (id: string, anweisung: string) => Promise<void>
   onAktion: (id: string, aktion: MeldungAktion, koerper?: MeldungAktionKoerper) => Promise<void>
   laeuft?: boolean
@@ -101,7 +104,7 @@ function StandortZeile({
             kompakt
           />
         ) : z.gemeinde !== null ? (
-          <Stack direction="row">
+          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
             <Button
               size="small"
               variant={neu ? 'contained' : 'outlined'}
@@ -110,6 +113,11 @@ function StandortZeile({
             >
               Meldung erzeugen
             </Button>
+            <EigeneMeldungKnopf
+              titel={standortTitel(z)}
+              disabled={laeuft}
+              onAbschicken={(koerper) => onMeldung('standorte', z.id, koerper)}
+            />
           </Stack>
         ) : null}
       </Stack>
@@ -180,7 +188,7 @@ function MonatZeile({
             kompakt
           />
         ) : (
-          <Stack direction="row">
+          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
             <Button
               size="small"
               variant="contained"
@@ -189,6 +197,11 @@ function MonatZeile({
             >
               Meldung erzeugen
             </Button>
+            <EigeneMeldungKnopf
+              titel={`Geschwindigkeitskontrollen ${monatLang(m.jahr, m.monat)}`}
+              disabled={laeuft || eintrag.bilanz === null}
+              onAbschicken={(koerper) => onMeldung('kontrollen', m.id, koerper)}
+            />
           </Stack>
         )}
       </Stack>

@@ -17,6 +17,8 @@ import {
 } from '@/lib/redaktion'
 import { LaufBerichte } from './LaufBerichte'
 import { MeldungKarte, type MeldungAktion, type MeldungAktionKoerper } from './MeldungKarte'
+import { EigeneMeldungKnopf } from './EigeneMeldung'
+import type { MeldungErzeugenKoerper } from '@/lib/eigene'
 
 // Woher unser Material kommt — in einer Liste, nach Datum.
 //
@@ -65,7 +67,11 @@ export interface ZeitleisteProps {
   suedanflugGemeinden?: readonly { id: string; name: string }[]
   /** Die Meldungen je Monatsblatt, eine je Gemeinde. */
   berichteZuSuedanflug?: Map<string, AlleMeldungFelder[]>
-  onSuedanflugMeldung?: (quoteId: string, gemeindeId: string) => Promise<void>
+  onSuedanflugMeldung?: (
+    quoteId: string,
+    gemeindeId: string,
+    koerper?: MeldungErzeugenKoerper
+  ) => Promise<void>
   /**
    * Die bespielten Gemeinden mit ihrer Id — die Abstimmungszeile kennt nur die
    * BFS-Nummer, der Knopf braucht die Id.
@@ -73,7 +79,11 @@ export interface ZeitleisteProps {
   gemeindenNachBfs?: ReadonlyMap<string, { id: string; name: string }>
   /** Die Meldungen je Vorlage, eine je Gemeinde. */
   berichteZuAbstimmung?: Map<string, AlleMeldungFelder[]>
-  onAbstimmungsMeldung?: (abstimmungId: string, gemeindeId: string) => Promise<void>
+  onAbstimmungsMeldung?: (
+    abstimmungId: string,
+    gemeindeId: string,
+    koerper?: MeldungErzeugenKoerper
+  ) => Promise<void>
   /** Eine Anweisung an alle Meldungen des Abstimmungstags. */
   onAbstimmungStapelChat?: (abstimmungId: string, anweisung: string) => Promise<void>
   onAbstimmungStapelAktion?: (abstimmungId: string, aktion: 'pruefung' | 'publizieren') => Promise<void>
@@ -186,10 +196,18 @@ interface BerichteBuendel {
   onAktion?: (id: string, aktion: MeldungAktion, koerper?: MeldungAktionKoerper) => Promise<void>
   suedanflugGemeinden?: readonly { id: string; name: string }[]
   zuSuedanflug?: Map<string, AlleMeldungFelder[]>
-  onSuedanflugMeldung?: (quoteId: string, gemeindeId: string) => Promise<void>
+  onSuedanflugMeldung?: (
+    quoteId: string,
+    gemeindeId: string,
+    koerper?: MeldungErzeugenKoerper
+  ) => Promise<void>
   gemeindenNachBfs?: ReadonlyMap<string, { id: string; name: string }>
   zuAbstimmung?: Map<string, AlleMeldungFelder[]>
-  onAbstimmungsMeldung?: (abstimmungId: string, gemeindeId: string) => Promise<void>
+  onAbstimmungsMeldung?: (
+    abstimmungId: string,
+    gemeindeId: string,
+    koerper?: MeldungErzeugenKoerper
+  ) => Promise<void>
   onAbstimmungStapelChat?: (abstimmungId: string, anweisung: string) => Promise<void>
   onAbstimmungStapelAktion?: (abstimmungId: string, aktion: 'pruefung' | 'publizieren') => Promise<void>
 }
@@ -339,7 +357,7 @@ interface SuedanflugProps {
   laeuft: boolean
   gemeinden: readonly { id: string; name: string }[]
   meldungen: readonly AlleMeldungFelder[]
-  onMeldung?: (quoteId: string, gemeindeId: string) => Promise<void>
+  onMeldung?: (quoteId: string, gemeindeId: string, koerper?: MeldungErzeugenKoerper) => Promise<void>
   onChat?: (id: string, anweisung: string) => Promise<void>
   onAktion?: (id: string, aktion: MeldungAktion, koerper?: MeldungAktionKoerper) => Promise<void>
 }
@@ -390,7 +408,7 @@ function Suedanflug({ eintrag, laeuft, gemeinden, meldungen, onMeldung, onChat, 
               )
             }
             return (
-              <Box key={gemeinde.id}>
+              <Stack key={gemeinde.id} direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
                 <Button
                   size="small"
                   variant={eintrag.vorschlag ? 'contained' : 'outlined'}
@@ -399,7 +417,12 @@ function Suedanflug({ eintrag, laeuft, gemeinden, meldungen, onMeldung, onChat, 
                 >
                   Meldung erzeugen · {gemeinde.name}
                 </Button>
-              </Box>
+                <EigeneMeldungKnopf
+                  titel={`Südanflug-Quote · ${gemeinde.name}`}
+                  disabled={laeuft}
+                  onAbschicken={(koerper) => onMeldung?.(quoteId, gemeinde.id, koerper)}
+                />
+              </Stack>
             )
           })}
         </Stack>
@@ -413,7 +436,7 @@ interface AbstimmungProps {
   laeuft: boolean
   gemeindenNachBfs?: ReadonlyMap<string, { id: string; name: string }>
   meldungen: readonly AlleMeldungFelder[]
-  onMeldung?: (abstimmungId: string, gemeindeId: string) => Promise<void>
+  onMeldung?: (abstimmungId: string, gemeindeId: string, koerper?: MeldungErzeugenKoerper) => Promise<void>
   onStapelChat?: (abstimmungId: string, anweisung: string) => Promise<void>
   onStapelAktion?: (abstimmungId: string, aktion: 'pruefung' | 'publizieren') => Promise<void>
   onChat?: (id: string, anweisung: string) => Promise<void>
@@ -504,7 +527,7 @@ function Abstimmung({
         }
 
         return (
-          <Box key={gemeinde.bfs}>
+          <Stack key={gemeinde.bfs} direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
             <Button
               size="small"
               variant="contained"
@@ -513,7 +536,12 @@ function Abstimmung({
             >
               Meldung erzeugen · {gemeinde.name}
             </Button>
-          </Box>
+            <EigeneMeldungKnopf
+              titel={`Abstimmungssonntag · ${gemeinde.name}`}
+              disabled={laeuft}
+              onAbschicken={(koerper) => onMeldung?.(abstimmungId, erfasst.id, koerper)}
+            />
+          </Stack>
         )
       })}
     </Stack>

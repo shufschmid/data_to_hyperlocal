@@ -39,7 +39,10 @@ import {
   schreibeSuedanflugmeldung,
   type Quotenzeile
 } from './suedanflug'
-import type { SuedanflugFakten } from '../../redaktion/suedanflug'
+import {
+  mitQuelle as mitSuedanflugQuelle,
+  type SuedanflugFakten
+} from '../../redaktion/suedanflug'
 import type { GespeicherterMonat } from '../../redaktion/suedanfluglauf'
 import {
   datengrundlageKontrollen,
@@ -60,7 +63,10 @@ import {
   buildKontrollenPrompt,
   buildKontrollenRevision,
   buildRadarPrompt,
-  buildRadarRevision
+  buildRadarRevision,
+  kontrollenQuelleZeile,
+  mitQuelle as mitVerkehrsQuelle,
+  radarQuelleZeile
 } from '../../redaktion/verkehr'
 import { createError } from '@directus/errors'
 import { defineEndpoint } from '@directus/extensions-sdk'
@@ -191,6 +197,15 @@ import {
   type MitteilungRohzeile
 } from '../../redaktion/gemeindemeldungen'
 import { verwirfEntwurfZu } from '../../redaktion/entwurf'
+import {
+  eigeneFelder,
+  ergaenzungAus,
+  ergaenzungsHinweis,
+  herkunftFelder,
+  leseBeitrag,
+  OHNE_BEITRAG,
+  type RedaktionsBeitrag
+} from '../../redaktion/ergaenzung'
 import {
   tageAus,
   verbrauchsBilanz,
@@ -677,6 +692,15 @@ const UngueltigerDauerangebotModus = createError(
   400
 )
 
+// The editor's part of a Meldung — ergaenzende Angaben, or the whole text by
+// hand (`redaktion/ergaenzung.ts`). The reason reaches the form, because every
+// refusal here is something she can fix in the dialog she is looking at.
+const UngueltigerBeitrag = createError<{ grund: string }>(
+  'INVALID_PAYLOAD',
+  ({ grund }) => grund,
+  400
+)
+
 const KalenderNichtLesbar = createError<{ grund: string }>(
   'PAGE_UNREADABLE',
   ({ grund }) => `Kalender nicht lesbar: ${grund}`,
@@ -727,6 +751,18 @@ export default defineEndpoint(
     function pruefeId(wert: unknown): string {
       if (typeof wert !== 'string' || !UUID.test(wert)) throw new UngueltigeId()
       return wert
+    }
+
+    /**
+     * The editor's part of a Meldung route's body — ergaenzende Angaben, or
+     * the whole text by hand — or a 400 naming what is wrong with it. Every
+     * per-row Meldung route reads it; an empty body is the ordinary path.
+     */
+    function beitragAus(req: ApiRequest): RedaktionsBeitrag {
+      const gelesen = leseBeitrag(req.body)
+      if (gelesen.beitrag === null)
+        throw new UngueltigerBeitrag({ grund: gelesen.grund })
+      return gelesen.beitrag
     }
 
     // --- the "run every scrape now" button -----------------------------------
@@ -1552,7 +1588,11 @@ export default defineEndpoint(
       })) as SendungsRohzeile
     }
 
-    function sendungsFakten(zeile: SendungsRohzeile): SendungsFakten {
+    function sendungsFakten(
+      zeile: SendungsRohzeile,
+      /** The editor's additions (`redaktion/ergaenzung.ts`), or null. */
+      ergaenzung: string | null = null
+    ): SendungsFakten {
       const beitrag = zeile.edition ?? zeile.punkt6_edition
       return {
         gemeinde: zeile.gemeinde.name,
@@ -1562,7 +1602,8 @@ export default defineEndpoint(
         zusammenfassung: zeile.zusammenfassung ?? '',
         zeitmarkeSekunden: zeile.zeitmarke_sekunden,
         quellUrl:
-          zeile.edition?.audio_url ?? zeile.punkt6_edition?.episode_url ?? null
+          zeile.edition?.audio_url ?? zeile.punkt6_edition?.episode_url ?? null,
+        ergaenzung
       }
     }
 
@@ -1623,7 +1664,8 @@ export default defineEndpoint(
         // must not do. Same 8-gram check as the Wochenblatt.
         ...(volltext.trim().length >= 50
           ? sendungUeberlappung(alles, volltext)
-          : ['Transkript fehlt — Ueberlappungs-Check uebersprungen.'])
+          : ['Transkript fehlt — Ueberlappungs-Check uebersprungen.']),
+        ...ergaenzungsHinweis(fakten)
       ]
 
       return { bericht, warnungen }
@@ -1637,13 +1679,15 @@ export default defineEndpoint(
         text: string | null
       },
       kandidatId: string,
-      anweisung: string
+      anweisung: string,
+      /** The editor's additions stored with the article, or null. */
+      ergaenzung: string | null = null
     ): Promise<string[]> {
       const schema = await getSchema()
       const meldungen = new ItemsService('meldungen', { schema })
 
       const zeile = await ladeSendungsZeile(kandidatId, undefined)
-      const fakten = sendungsFakten(zeile)
+      const fakten = sendungsFakten(zeile, ergaenzung)
       const volltext = sendungsVolltext(zeile)
       const { bericht, warnungen } = await sendungMitChecks(
         fakten,
@@ -1689,6 +1733,7 @@ export default defineEndpoint(
             accountability: req.accountability
           })
 
+          const beitrag = beitragAus(req)
           const zeile = await ladeSendungsZeile(id, req.accountability)
 
           const vorhandene = (await meldungenService.readByQuery({
@@ -1701,7 +1746,38 @@ export default defineEndpoint(
           })) as { id: string }[]
           if (vorhandene.length > 0) return next(new KandidatSchonEntschieden())
 
-          const fakten = sendungsFakten(zeile)
+          const fakten = sendungsFakten(zeile, beitrag.ergaenzung)
+          const datengrundlage = {
+            quelle: zeile.quelle,
+            sendung: SENDUNGEN[zeile.quelle].name,
+            datum: fakten.datum,
+            beitrag: zeile.titel,
+            zeitmarke_sekunden: zeile.zeitmarke_sekunden,
+            quell_url: fakten.quellUrl,
+            ...herkunftFelder(beitrag)
+          }
+
+          // The editor's own text: no model call, the source line still the
+          // code's (`redaktion/ergaenzung.ts`).
+          if (beitrag.eigene !== null) {
+            const felder = eigeneFelder(beitrag.eigene, (text) =>
+              mitSendungsQuelle(text, fakten)
+            )
+            const meldungId = (await meldungenService.createOne({
+              sendungskandidat: id,
+              gemeinde: zeile.gemeinde.id,
+              ...felder,
+              datengrundlage
+            })) as string
+            await kandidaten.updateOne(id, { entscheid: 'uebernommen' })
+            return res.json({
+              data: {
+                meldung: meldungId,
+                warnungen: (felder['zeit_warnungen'] as string[] | null) ?? []
+              }
+            })
+          }
+
           const { bericht, warnungen } = await sendungMitChecks(
             fakten,
             sendungsVolltext(zeile),
@@ -1717,14 +1793,7 @@ export default defineEndpoint(
             status: 'entwurf',
             verarbeitung: 'idle',
             zeit_warnungen: warnungen.length > 0 ? warnungen : null,
-            datengrundlage: {
-              quelle: zeile.quelle,
-              sendung: SENDUNGEN[zeile.quelle].name,
-              datum: fakten.datum,
-              beitrag: zeile.titel,
-              zeitmarke_sekunden: zeile.zeitmarke_sekunden,
-              quell_url: fakten.quellUrl
-            }
+            datengrundlage
           })) as string
 
           await kandidaten.updateOne(id, { entscheid: 'uebernommen' })
@@ -2027,8 +2096,13 @@ export default defineEndpoint(
       'gemeinde.name'
     ]
 
-    function amtsblattFakten(zeile: AmtsblattRohzeile): AmtsblattFakten {
+    function amtsblattFakten(
+      zeile: AmtsblattRohzeile,
+      /** The editor's additions (`redaktion/ergaenzung.ts`), or null. */
+      ergaenzung: string | null = null
+    ): AmtsblattFakten {
       return {
+        ergaenzung,
         gemeinde: zeile.gemeinde.name,
         kanton: zeile.kanton ?? '',
         titel: zeile.titel,
@@ -2112,7 +2186,8 @@ export default defineEndpoint(
         ...zeitWarnungen(alles),
         ...zahlWarnungenAmtsblatt(alles, fakten),
         ...personenWarnungen(alles, fakten.personen),
-        ...(attribution === null ? [] : [attribution])
+        ...(attribution === null ? [] : [attribution]),
+        ...ergaenzungsHinweis(fakten)
       ]
 
       return { bericht, warnungen }
@@ -2126,7 +2201,9 @@ export default defineEndpoint(
         text: string | null
       },
       publikationId: string,
-      anweisung: string
+      anweisung: string,
+      /** The editor's additions stored with the article, or null. */
+      ergaenzung: string | null = null
     ): Promise<string[]> {
       const schema = await getSchema()
       const meldungen = new ItemsService('meldungen', { schema })
@@ -2135,7 +2212,7 @@ export default defineEndpoint(
       // are the article's only source, and they must be the same ones on a
       // revision as on the first write.
       const zeile = await ladeAmtsblattZeile(publikationId, undefined)
-      const fakten = amtsblattFakten(zeile)
+      const fakten = amtsblattFakten(zeile, ergaenzung)
       const { bericht, warnungen } = await amtsblattMitChecks(
         fakten,
         buildAmtsblattRevision(
@@ -2302,6 +2379,7 @@ export default defineEndpoint(
             accountability: req.accountability
           })
 
+          const beitrag = beitragAus(req)
           let zeile = await ladeAmtsblattZeile(id, req.accountability)
 
           const vorhandene = (await meldungenService.readByQuery({
@@ -2371,11 +2449,50 @@ export default defineEndpoint(
           // unreadable), the honest answer is a refusal: a Meldung written
           // from title and date alone READS complete and is not — the
           // newsroom's rule is to not solve the task and say so.
-          if (zeile.angaben === null || zeile.angaben.length === 0) {
+          // Unless the editor brought the facts herself: her additions or
+          // her own text are material (`redaktion/ergaenzung.ts`).
+          if (
+            (zeile.angaben === null || zeile.angaben.length === 0) &&
+            beitrag.ergaenzung === null &&
+            beitrag.eigene === null
+          ) {
             throw new AngabenFehlen()
           }
 
-          const fakten = amtsblattFakten(zeile)
+          const fakten = amtsblattFakten(zeile, beitrag.ergaenzung)
+          const datengrundlage = {
+            quelle: 'amtsblatt',
+            publikationsnummer: zeile.publikations_id,
+            rubrik: zeile.rubrik_name,
+            gruppe: zeile.gruppe === null ? null : GRUPPEN_TEXT[zeile.gruppe],
+            amt: zeile.amt,
+            publiziert_am: zeile.publiziert_am,
+            frist: zeile.frist,
+            pdf_url: zeile.pdf_url,
+            unterlage: fakten.unterlage?.url ?? null,
+            planbefunde: zeile.planbefunde,
+            ...herkunftFelder(beitrag)
+          }
+
+          if (beitrag.eigene !== null) {
+            const felder = eigeneFelder(beitrag.eigene, (text) =>
+              mitAmtsblattQuelle(text, fakten)
+            )
+            const meldungId = (await meldungenService.createOne({
+              amtsblattmeldung: id,
+              gemeinde: zeile.gemeinde.id,
+              ...felder,
+              datengrundlage
+            })) as string
+            await publikationen.updateOne(id, { entscheid: 'uebernommen' })
+            return res.json({
+              data: {
+                meldung: meldungId,
+                warnungen: (felder['zeit_warnungen'] as string[] | null) ?? []
+              }
+            })
+          }
+
           const { bericht, warnungen } = await amtsblattMitChecks(
             fakten,
             buildAmtsblattPrompt(fakten, await regelnFuer('amtsblatt', 'text'))
@@ -2390,18 +2507,7 @@ export default defineEndpoint(
             status: 'entwurf',
             verarbeitung: 'idle',
             zeit_warnungen: warnungen.length > 0 ? warnungen : null,
-            datengrundlage: {
-              quelle: 'amtsblatt',
-              publikationsnummer: zeile.publikations_id,
-              rubrik: zeile.rubrik_name,
-              gruppe: zeile.gruppe === null ? null : GRUPPEN_TEXT[zeile.gruppe],
-              amt: zeile.amt,
-              publiziert_am: zeile.publiziert_am,
-              frist: zeile.frist,
-              pdf_url: zeile.pdf_url,
-              unterlage: fakten.unterlage?.url ?? null,
-              planbefunde: zeile.planbefunde
-            }
+            datengrundlage
           })) as string
 
           await publikationen.updateOne(id, { entscheid: 'uebernommen' })
@@ -2553,6 +2659,8 @@ export default defineEndpoint(
         uebernehmen: boolean
         accountability?: ApiRequest['accountability']
         wichtigkeit?: string
+        /** The editor's part (`redaktion/ergaenzung.ts`); the bulk button brings none. */
+        beitrag?: RedaktionsBeitrag
       }
     ): Promise<{ meldung: string; warnungen: string[] }> {
       const schema = await getSchema()
@@ -2565,7 +2673,44 @@ export default defineEndpoint(
         accountability: optionen.accountability
       })
 
-      const geladen = await ladePresseschauFakten(schema, kandidatId)
+      const beitrag = optionen.beitrag ?? OHNE_BEITRAG
+      const geladen = await ladePresseschauFakten(schema, kandidatId, beitrag)
+      const datengrundlage = {
+        quelle: 'wochenblatt',
+        blatt: geladen.fakten.blatt,
+        nummer: geladen.fakten.nummer,
+        datum: geladen.fakten.datum,
+        seite: geladen.fakten.seite,
+        beitrag: geladen.fakten.titel,
+        pdf_url: geladen.fakten.pdfUrl,
+        ...herkunftFelder(beitrag)
+      }
+
+      if (beitrag.eigene !== null) {
+        const felder = eigeneFelder(beitrag.eigene, (text) =>
+          mitQuelle(text, geladen.fakten)
+        )
+        const meldungId = (await meldungenService.createOne({
+          kandidat: kandidatId,
+          gemeinde: geladen.gemeindeId,
+          ...felder,
+          termin: null,
+          termin_vorschlag: null,
+          wichtig: null,
+          wichtig_vorschlag: null,
+          datengrundlage
+        })) as string
+        if (optionen.uebernehmen) {
+          await kandidatenService.updateOne(kandidatId, {
+            entscheid: 'uebernommen'
+          })
+        }
+        return {
+          meldung: meldungId,
+          warnungen: (felder['zeit_warnungen'] as string[] | null) ?? []
+        }
+      }
+
       const { bericht, warnungen, termin, wichtig } = await schreibePresseschau(
         geladen.fakten,
         geladen.volltext,
@@ -2587,15 +2732,7 @@ export default defineEndpoint(
         termin_vorschlag: termin,
         wichtig,
         wichtig_vorschlag: wichtig,
-        datengrundlage: {
-          quelle: 'wochenblatt',
-          blatt: geladen.fakten.blatt,
-          nummer: geladen.fakten.nummer,
-          datum: geladen.fakten.datum,
-          seite: geladen.fakten.seite,
-          beitrag: geladen.fakten.titel,
-          pdf_url: geladen.fakten.pdfUrl
-        }
+        datengrundlage
       })) as string
 
       if (optionen.uebernehmen) {
@@ -2631,6 +2768,7 @@ export default defineEndpoint(
             fields: ['id', 'status'],
             limit: 1
           })) as { id: string; status: string }[]
+          const beitrag = beitragAus(req)
           const vorhanden = vorhandene[0]
           if (vorhanden !== undefined) {
             // A draft the bulk button wrote beside an open candidate: taking
@@ -2640,13 +2778,31 @@ export default defineEndpoint(
             })) as { entscheid: string }
             if (kandidat.entscheid !== 'offen')
               return next(new KandidatSchonUebernommen())
-            await kandidatenService.updateOne(id, { entscheid: 'uebernommen' })
-            return res.json({ data: { meldung: vorhanden.id, warnungen: [] } })
+            // Unless the editor brings her own facts or her own text: then the
+            // machine draft gives way to hers, and only a DRAFT does.
+            const ersetzen =
+              beitrag.ergaenzung !== null || beitrag.eigene !== null
+            if (!ersetzen) {
+              await kandidatenService.updateOne(id, {
+                entscheid: 'uebernommen'
+              })
+              return res.json({
+                data: { meldung: vorhanden.id, warnungen: [] }
+              })
+            }
+            if (vorhanden.status !== 'entwurf')
+              return next(new KandidatSchonUebernommen())
+            await verwirfEntwurfZu(
+              meldungenService,
+              { kandidat: { _eq: id } },
+              'Durch eine Meldung mit eigenen Angaben der Redaktion ersetzt.'
+            )
           }
 
           const angelegt = await legePresseschauMeldungAn(id, {
             uebernehmen: true,
-            accountability: req.accountability
+            accountability: req.accountability,
+            beitrag
           })
           return res.json({ data: angelegt })
         } catch (error) {
@@ -3183,7 +3339,9 @@ export default defineEndpoint(
         text: string | null
       },
       mitteilungId: string,
-      anweisung: string
+      anweisung: string,
+      /** The editor's additions stored with the article, or null. */
+      ergaenzung: string | null = null
     ): Promise<string[]> {
       const schema = await getSchema()
       const meldungen = new ItemsService('meldungen', { schema })
@@ -3191,7 +3349,7 @@ export default defineEndpoint(
       // Loaded fresh: the item's text is the article's only source, and it
       // must be the same on a revision as on the first write.
       const zeile = await ladeMitteilungsZeile(mitteilungId, undefined)
-      const fakten = mitteilungFakten(zeile)
+      const fakten = mitteilungFakten(zeile, undefined, ergaenzung)
       const { bericht, warnungen } = await mitteilungMitChecks(
         fakten,
         buildMitteilungRevision(
@@ -3232,6 +3390,7 @@ export default defineEndpoint(
             accountability: req.accountability
           })
 
+          const beitrag = beitragAus(req)
           const zeile = await ladeMitteilungsZeile(id, req.accountability)
 
           const vorhandene = (await meldungenService.readByQuery({
@@ -3245,14 +3404,20 @@ export default defineEndpoint(
           if (vorhandene.length > 0)
             return next(new MitteilungSchonEntschieden())
 
-          const fakten = mitteilungFakten(zeile)
+          const fakten = mitteilungFakten(zeile, undefined, beitrag.ergaenzung)
           // No article from a title and a teaser: it READS complete and is
           // not. The reader stores what it could; if that was nothing, the
-          // honest answer is a refusal.
+          // honest answer is a refusal — unless the editor brought the facts
+          // or the text herself (`redaktion/ergaenzung.ts`).
           const hatAnhangtext = fakten.anhaenge.some(
             (a) => a.gelesen && (a.text ?? '').trim() !== ''
           )
-          if (fakten.text.trim() === '' && !hatAnhangtext) {
+          if (
+            fakten.text.trim() === '' &&
+            !hatAnhangtext &&
+            beitrag.ergaenzung === null &&
+            beitrag.eigene === null
+          ) {
             throw new MitteilungOhneText()
           }
 
@@ -3272,7 +3437,8 @@ export default defineEndpoint(
                   )
                 )
               },
-              zeile
+              zeile,
+              beitrag
             )
 
           return res.json({ data: { meldung: meldungId, warnungen } })
@@ -3510,7 +3676,9 @@ export default defineEndpoint(
         text: string | null
       },
       mitteilungId: string,
-      anweisung: string
+      anweisung: string,
+      /** The editor's additions stored with the article, or null. */
+      ergaenzung: string | null = null
     ): Promise<string[]> {
       const schema = await getSchema()
       const meldungen = new ItemsService('meldungen', { schema })
@@ -3518,7 +3686,7 @@ export default defineEndpoint(
       // Loaded fresh: the notice's wording is the article's only source, and
       // it must be the same on a revision as on the first write.
       const zeile = await ladeKantonsZeile(mitteilungId, undefined)
-      const fakten = kantonFakten(zeile)
+      const fakten = kantonFakten(zeile, undefined, ergaenzung)
       const { bericht, warnungen } = await kantonMeldungMitChecks(
         fakten,
         buildKantonRevision(
@@ -3559,6 +3727,7 @@ export default defineEndpoint(
             accountability: req.accountability
           })
 
+          const beitrag = beitragAus(req)
           const zeile = await ladeKantonsZeile(id, req.accountability)
 
           const vorhandene = (await meldungenService.readByQuery({
@@ -3573,8 +3742,13 @@ export default defineEndpoint(
             return next(new MitteilungSchonEntschieden())
 
           // No article from a title and a teaser — the same refusal the
-          // Gemeindeseiten desk makes.
-          if (!hatKantonMaterial(kantonFakten(zeile))) {
+          // Gemeindeseiten desk makes, unless the editor brought the text.
+          if (
+            beitrag.eigene === null &&
+            !hatKantonMaterial(
+              kantonFakten(zeile, undefined, beitrag.ergaenzung)
+            )
+          ) {
             throw new MitteilungOhneText()
           }
 
@@ -3591,7 +3765,8 @@ export default defineEndpoint(
                 )
               )
             },
-            zeile
+            zeile,
+            beitrag
           )
 
           return res.json({ data: { meldung: meldungId, warnungen } })
@@ -3892,7 +4067,9 @@ export default defineEndpoint(
         text: string | null
       },
       beitragId: string,
-      anweisung: string
+      anweisung: string,
+      /** The editor's additions stored with the article, or null. */
+      ergaenzung: string | null = null
     ): Promise<string[]> {
       const schema = await getSchema()
       const meldungen = new ItemsService('meldungen', { schema })
@@ -3900,7 +4077,7 @@ export default defineEndpoint(
       // Loaded fresh: the piece's wording is the article's only source, and
       // the link may have been set by hand since the first write.
       const zeile = await ladeSmdZeile(beitragId, undefined)
-      const fakten = smdFakten(zeile)
+      const fakten = smdFakten(zeile, undefined, ergaenzung)
       const { bericht, warnungen } = await smdMeldungMitChecks(
         fakten,
         buildSmdRevision(
@@ -3941,6 +4118,7 @@ export default defineEndpoint(
             accountability: req.accountability
           })
 
+          const beitrag = beitragAus(req)
           const zeile = await ladeSmdZeile(id, req.accountability)
 
           const vorhandene = (await meldungenService.readByQuery({
@@ -3954,7 +4132,10 @@ export default defineEndpoint(
           if (vorhandene.length > 0)
             return next(new MitteilungSchonEntschieden())
 
-          if (!hatSmdMaterial(smdFakten(zeile))) {
+          if (
+            beitrag.eigene === null &&
+            !hatSmdMaterial(smdFakten(zeile, undefined, beitrag.ergaenzung))
+          ) {
             throw new MitteilungOhneText()
           }
 
@@ -3967,7 +4148,8 @@ export default defineEndpoint(
                 await ladeWichtigkeitSignale(meldungenService, 'smd_beitrag')
               )
             },
-            zeile
+            zeile,
+            beitrag
           )
 
           return res.json({ data: { meldung: meldungId, warnungen } })
@@ -4289,7 +4471,8 @@ export default defineEndpoint(
           anlassVolltext(fakten)
         ).map((w) => w.replace('aus dem Blatt', 'aus dem Kalender')),
         ...(attribution === null ? [] : [attribution]),
-        ...(fakten.nurEckdaten === true ? [NUR_ECKDATEN_HINWEIS] : [])
+        ...(fakten.nurEckdaten === true ? [NUR_ECKDATEN_HINWEIS] : []),
+        ...ergaenzungsHinweis(fakten)
       ]
       return { bericht, warnungen, wichtig: wichtigAus(antwort) }
     }
@@ -4302,13 +4485,15 @@ export default defineEndpoint(
         text: string | null
       },
       anlassId: string,
-      anweisung: string
+      anweisung: string,
+      /** The editor's additions stored with the article, or null. */
+      ergaenzung: string | null = null
     ): Promise<string[]> {
       const schema = await getSchema()
       const meldungen = new ItemsService('meldungen', { schema })
       const heute = heuteIsoZuerich()
       const zeile = await ladeAnlassZeile(anlassId, undefined)
-      const fakten = anlassFakten(zeile, heute)
+      const fakten = anlassFakten(zeile, heute, ergaenzung)
       const { bericht, warnungen } = await anlassMitChecks(
         fakten,
         buildAnlassRevision(
@@ -4408,6 +4593,7 @@ export default defineEndpoint(
             schema,
             accountability: req.accountability
           })
+          const beitrag = beitragAus(req)
           let zeile = await ladeAnlassZeile(id, req.accountability)
           const vorhandene = (await meldungenService.readByQuery({
             filter: {
@@ -4429,16 +4615,109 @@ export default defineEndpoint(
           // documents are the overview's, not the Anlass's.
           // An Eckdaten template is the exception (`brauchtNachlesen`): its
           // page never carries a description, and one read of it is enough.
+          // Not for a text the editor wrote herself: nothing is written from
+          // the page then, so nothing is fetched (`redaktion/ergaenzung.ts`).
           let nachgelesen: Awaited<ReturnType<typeof lieseAnlassNach>> | null =
             null
-          if (brauchtNachlesen(zeile, anlassFakten(zeile, heute))) {
+          if (
+            beitrag.eigene === null &&
+            brauchtNachlesen(zeile, anlassFakten(zeile, heute))
+          ) {
             nachgelesen = await lieseAnlassNach(zeile, heute)
             zeile = await ladeAnlassZeile(id, req.accountability)
           }
-          const vorlage = anlassFakten(zeile, heute)
+          const vorlage = anlassFakten(zeile, heute, beitrag.ergaenzung)
+
+          // The termin is CODE, from the row's own fields: the deadline before
+          // the day, the anchor's day, the last known day. Only the judgement
+          // whether it is important comes from the model — and that is what
+          // the newsroom's edit teaches (`redaktion/termin.ts`).
+          // A Blutspende (an Eckdaten template) is the newsroom's own rule:
+          // three appearances by code, no "sofort", and no importance
+          // judgement stored at all — `wichtig: null` teaches the writer
+          // nothing, where `false` would teach it that blood donations are
+          // unimportant desk-wide.
+          const dreiAufrufe = nurEckdatenVorlage(zeile.plattform)
+          const terminFuer = (wichtig: boolean): Termin | null =>
+            dreiAufrufe
+              ? planeDreiAufrufe(zeile.von, zeile.zeit, heute)
+              : planeAnlassTermin(
+                  {
+                    anker: zeile.anker,
+                    anker_am: zeile.anker_am,
+                    frist_am: zeile.frist_am,
+                    von: zeile.von,
+                    bis: zeile.bis,
+                    termine: zeile.termine,
+                    zugang: zeile.zugang,
+                    heute: heuteIso()
+                  },
+                  wichtig
+                )
+          // Everything the public API needs without a join — the calendar's
+          // name and the Anlass's own page in particular (`quelleVon`).
+          const datengrundlage = {
+            quelle: 'veranstaltung',
+            quelle_name: zeile.quelle.name,
+            quelle_url: zeile.quelle.url,
+            gemeinde: zeile.gemeinde.name,
+            titel: zeile.titel,
+            termine: vorlage.termine,
+            von: zeile.von,
+            bis: zeile.bis,
+            zeit: zeile.zeit,
+            lokalitaet: zeile.lokalitaet,
+            ort: zeile.ort,
+            veranstalter: zeile.veranstalter,
+            anker: zeile.anker,
+            dauerangebot: vorlage.dauerangebot,
+            url: vorlage.url,
+            traktanden_url: zeile.traktanden_url,
+            dokumente: vorlage.dokumente.map((d) => ({
+              bezeichnung: d.bezeichnung,
+              url: d.url,
+              typ: d.typ,
+              gelesen: d.gelesen
+            })),
+            text_abgeschnitten: zeile.text_abgeschnitten,
+            ...herkunftFelder(beitrag)
+          }
+
+          // The editor's own text: no model call, the termin still the code's
+          // (one appearance — importance is hers to set on the card), no
+          // importance judgement stored, so the writer learns nothing from it.
+          if (beitrag.eigene !== null) {
+            const felder = eigeneFelder(beitrag.eigene, (text) =>
+              mitAnlassQuelle(text, vorlage)
+            )
+            const termin = terminFuer(false)
+            const meldungId = (await meldungenService.createOne({
+              veranstaltung: id,
+              gemeinde: zeile.gemeinde.id,
+              termin,
+              termin_vorschlag: termin,
+              wichtig: null,
+              wichtig_vorschlag: null,
+              ...felder,
+              datengrundlage
+            })) as string
+            await anlaesse.updateOne(id, {
+              entscheid: 'uebernommen',
+              ...dauerangebotNachEntscheid('uebernommen', null, heute)
+            })
+            return res.json({
+              data: {
+                meldung: meldungId,
+                warnungen: (felder['zeit_warnungen'] as string[] | null) ?? []
+              }
+            })
+          }
+
           // Without a description: a failed read is a retry, a page with the
           // key facts may still be written from them (the writer decides
           // whether the title says what takes place), a page without them not.
+          // The editor's additions count as material (`hatAnlassMaterial`),
+          // which is how the Turnerobe gets written after all.
           let fakten = vorlage
           if (!hatAnlassMaterial(vorlage)) {
             if (nachgelesen !== null && !nachgelesen.gelesen)
@@ -4457,31 +4736,7 @@ export default defineEndpoint(
               )
             )
           )
-          // The termin is CODE, from the row's own fields: the deadline before
-          // the day, the anchor's day, the last known day. Only the judgement
-          // whether it is important comes from the model — and that is what
-          // the newsroom's edit teaches (`redaktion/termin.ts`).
-          // A Blutspende (an Eckdaten template) is the newsroom's own rule:
-          // three appearances by code, no "sofort", and no importance
-          // judgement stored at all — `wichtig: null` teaches the writer
-          // nothing, where `false` would teach it that blood donations are
-          // unimportant desk-wide.
-          const dreiAufrufe = nurEckdatenVorlage(zeile.plattform)
-          const termin = dreiAufrufe
-            ? planeDreiAufrufe(zeile.von, zeile.zeit, heute)
-            : planeAnlassTermin(
-                {
-                  anker: zeile.anker,
-                  anker_am: zeile.anker_am,
-                  frist_am: zeile.frist_am,
-                  von: zeile.von,
-                  bis: zeile.bis,
-                  termine: zeile.termine,
-                  zugang: zeile.zugang,
-                  heute: heuteIso()
-                },
-                wichtig
-              )
+          const termin = terminFuer(wichtig)
           const wichtigWert = dreiAufrufe ? null : wichtig
           const meldungId = (await meldungenService.createOne({
             veranstaltung: id,
@@ -4496,33 +4751,7 @@ export default defineEndpoint(
             status: 'entwurf',
             verarbeitung: 'idle',
             zeit_warnungen: warnungen.length > 0 ? warnungen : null,
-            // Everything the public API needs without a join — the calendar's
-            // name and the Anlass's own page in particular (`quelleVon`).
-            datengrundlage: {
-              quelle: 'veranstaltung',
-              quelle_name: zeile.quelle.name,
-              quelle_url: zeile.quelle.url,
-              gemeinde: zeile.gemeinde.name,
-              titel: zeile.titel,
-              termine: fakten.termine,
-              von: zeile.von,
-              bis: zeile.bis,
-              zeit: zeile.zeit,
-              lokalitaet: zeile.lokalitaet,
-              ort: zeile.ort,
-              veranstalter: zeile.veranstalter,
-              anker: zeile.anker,
-              dauerangebot: fakten.dauerangebot,
-              url: fakten.url,
-              traktanden_url: zeile.traktanden_url,
-              dokumente: fakten.dokumente.map((d) => ({
-                bezeichnung: d.bezeichnung,
-                url: d.url,
-                typ: d.typ,
-                gelesen: d.gelesen
-              })),
-              text_abgeschnitten: zeile.text_abgeschnitten
-            }
+            datengrundlage
           })) as string
 
           await anlaesse.updateOne(id, {
@@ -4886,17 +5115,18 @@ export default defineEndpoint(
       },
       quoteId: string,
       gemeindeId: string,
-      anweisung: string
+      anweisung: string,
+      /** The editor's additions stored with the article, or null. */
+      ergaenzung: string | null = null
     ): Promise<string[]> {
       const meldungen = new ItemsService('meldungen', {
         schema: await getSchema()
       })
 
-      const fakten = await ladeSuedanflugMaterial(
-        quoteId,
-        gemeindeId,
-        undefined
-      )
+      const fakten: SuedanflugFakten = {
+        ...(await ladeSuedanflugMaterial(quoteId, gemeindeId, undefined)),
+        ergaenzung
+      }
       // The source line comes off before the prompt is built and goes back on
       // after — or the model copies it and `linkWarnungen` flags its own.
       const entwurf = await schreibeSuedanflugmeldung(
@@ -4929,6 +5159,7 @@ export default defineEndpoint(
         }
 
         try {
+          const beitrag = beitragAus(req)
           const schema = await getSchema()
           const meldungenService = new ItemsService('meldungen', {
             schema,
@@ -4948,11 +5179,37 @@ export default defineEndpoint(
           })) as { id: string }[]
           if (vorhandene.length > 0) return next(new MeldungSchonDa())
 
-          const fakten = await ladeSuedanflugMaterial(
-            quoteId,
-            gemeindeId,
-            req.accountability
-          )
+          const fakten: SuedanflugFakten = {
+            ...(await ladeSuedanflugMaterial(
+              quoteId,
+              gemeindeId,
+              req.accountability
+            )),
+            ergaenzung: beitrag.ergaenzung
+          }
+          const datengrundlage = {
+            ...datengrundlageSuedanflug(fakten),
+            ...herkunftFelder(beitrag)
+          }
+
+          if (beitrag.eigene !== null) {
+            const felder = eigeneFelder(beitrag.eigene, (text) =>
+              mitSuedanflugQuelle(text, fakten)
+            )
+            const meldungId = (await meldungenService.createOne({
+              suedanflugquote: quoteId,
+              gemeinde: gemeindeId,
+              ...felder,
+              datengrundlage
+            })) as string
+            return res.json({
+              data: {
+                meldung: meldungId,
+                warnungen: (felder['zeit_warnungen'] as string[] | null) ?? []
+              }
+            })
+          }
+
           const entwurf = await schreibeSuedanflugmeldung(
             fakten,
             buildSuedanflugPrompt(
@@ -4966,7 +5223,7 @@ export default defineEndpoint(
             gemeinde: gemeindeId,
             status: 'entwurf',
             ...meldungsfelder(entwurf, fakten),
-            datengrundlage: datengrundlageSuedanflug(fakten)
+            datengrundlage
           })) as string
 
           return res.json({
@@ -5109,12 +5366,15 @@ export default defineEndpoint(
         text: string | null
       },
       standortId: string,
-      anweisung: string
+      anweisung: string,
+      /** The editor's additions stored with the article, or null. */
+      ergaenzung: string | null = null
     ): Promise<string[]> {
       const meldungen = new ItemsService('meldungen', {
         schema: await getSchema()
       })
-      const { fakten } = await ladeRadarMaterial(standortId, undefined)
+      const geladen = await ladeRadarMaterial(standortId, undefined)
+      const fakten = { ...geladen.fakten, ergaenzung }
       const entwurf = await schreibeRadarmeldung(
         fakten,
         buildRadarRevision(
@@ -5139,12 +5399,15 @@ export default defineEndpoint(
         text: string | null
       },
       monatId: string,
-      anweisung: string
+      anweisung: string,
+      /** The editor's additions stored with the article, or null. */
+      ergaenzung: string | null = null
     ): Promise<string[]> {
       const meldungen = new ItemsService('meldungen', {
         schema: await getSchema()
       })
-      const { fakten } = await ladeKontrollenMaterial(monatId, undefined)
+      const geladen = await ladeKontrollenMaterial(monatId, undefined)
+      const fakten = { ...geladen.fakten, ergaenzung }
       const entwurf = await schreibeKontrollenmeldung(
         fakten,
         buildKontrollenRevision(
@@ -5189,10 +5452,36 @@ export default defineEndpoint(
           })) as { id: string }[]
           if (vorhandene.length > 0) return next(new VerkehrsMeldungSchonDa())
 
-          const { fakten, gemeindeId } = await ladeRadarMaterial(
+          const beitrag = beitragAus(req)
+          const geladen = await ladeRadarMaterial(
             standortId,
             req.accountability
           )
+          const gemeindeId = geladen.gemeindeId
+          const fakten = { ...geladen.fakten, ergaenzung: beitrag.ergaenzung }
+          const datengrundlage = {
+            ...datengrundlageRadar(fakten),
+            ...herkunftFelder(beitrag)
+          }
+
+          if (beitrag.eigene !== null) {
+            const felder = eigeneFelder(beitrag.eigene, (text) =>
+              mitVerkehrsQuelle(text, radarQuelleZeile(fakten))
+            )
+            const meldungId = (await meldungenService.createOne({
+              radarstandort: standortId,
+              gemeinde: gemeindeId,
+              ...felder,
+              datengrundlage
+            })) as string
+            return res.json({
+              data: {
+                meldung: meldungId,
+                warnungen: (felder['zeit_warnungen'] as string[] | null) ?? []
+              }
+            })
+          }
+
           const entwurf = await schreibeRadarmeldung(
             fakten,
             buildRadarPrompt(fakten, await regelnFuer('verkehr', 'text'))
@@ -5202,7 +5491,7 @@ export default defineEndpoint(
             gemeinde: gemeindeId,
             status: 'entwurf',
             ...radarMeldungsfelder(entwurf, fakten),
-            datengrundlage: datengrundlageRadar(fakten)
+            datengrundlage
           })) as string
           return res.json({
             data: { meldung: meldungId, warnungen: entwurf.warnungen }
@@ -5253,10 +5542,36 @@ export default defineEndpoint(
           })) as { id: string }[]
           if (vorhandene.length > 0) return next(new VerkehrsMeldungSchonDa())
 
-          const { fakten, gemeindeId } = await ladeKontrollenMaterial(
+          const beitrag = beitragAus(req)
+          const geladen = await ladeKontrollenMaterial(
             monatId,
             req.accountability
           )
+          const gemeindeId = geladen.gemeindeId
+          const fakten = { ...geladen.fakten, ergaenzung: beitrag.ergaenzung }
+          const datengrundlage = {
+            ...datengrundlageKontrollen(fakten),
+            ...herkunftFelder(beitrag)
+          }
+
+          if (beitrag.eigene !== null) {
+            const felder = eigeneFelder(beitrag.eigene, (text) =>
+              mitVerkehrsQuelle(text, kontrollenQuelleZeile(fakten))
+            )
+            const meldungId = (await meldungenService.createOne({
+              geschwindigkeitskontrolle: monatId,
+              gemeinde: gemeindeId,
+              ...felder,
+              datengrundlage
+            })) as string
+            return res.json({
+              data: {
+                meldung: meldungId,
+                warnungen: (felder['zeit_warnungen'] as string[] | null) ?? []
+              }
+            })
+          }
+
           const entwurf = await schreibeKontrollenmeldung(
             fakten,
             buildKontrollenPrompt(fakten, await regelnFuer('verkehr', 'text'))
@@ -5266,7 +5581,7 @@ export default defineEndpoint(
             gemeinde: gemeindeId,
             status: 'entwurf',
             ...kontrollenMeldungsfelder(entwurf, fakten),
-            datengrundlage: datengrundlageKontrollen(fakten)
+            datengrundlage
           })) as string
           return res.json({
             data: { meldung: meldungId, warnungen: entwurf.warnungen }
@@ -5353,7 +5668,9 @@ export default defineEndpoint(
       },
       abstimmungId: string,
       gemeindeId: string,
-      anweisung: string
+      anweisung: string,
+      /** The editor's additions stored with the article, or null. */
+      ergaenzung: string | null = null
     ): Promise<string[]> {
       // Deliberately without `accountability`, like every other inline
       // revision here: the caller has already read this Meldung with the
@@ -5384,7 +5701,8 @@ export default defineEndpoint(
         })) as Pick<Gemeinde, 'id' | 'name' | 'bfs_nummer'>
         const tag = tagesFaktenAus(
           await ladeTag(abstimmungen, zeile.datum),
-          gemeinde
+          gemeinde,
+          ergaenzung
         )
         const entwurf = await schreibeTagesmeldung(
           tag,
@@ -5439,6 +5757,7 @@ export default defineEndpoint(
         }
 
         try {
+          const beitrag = beitragAus(req)
           const schema = await getSchema()
           const meldungenService = new ItemsService('meldungen', {
             schema,
@@ -5482,7 +5801,8 @@ export default defineEndpoint(
               regeln: await regelnFuer('abstimmung', 'text')
             },
             tag,
-            gemeinde
+            gemeinde,
+            beitrag
           )
 
           return res.json({ data: angelegt })
@@ -6679,7 +6999,10 @@ export default defineEndpoint(
               'lauf.datensatz',
               'titel',
               'lead',
-              'text'
+              'text',
+              // The editor's additions, where she made any: a revision has
+              // to hand them over again or the model drops her facts.
+              'datengrundlage'
             ]
           })) as {
             id: string
@@ -6701,7 +7024,11 @@ export default defineEndpoint(
             titel: string | null
             lead: string | null
             text: string | null
+            datengrundlage: Record<string, unknown> | null
           }
+          // What the editor added on the first write — or wrote herself:
+          // handed material on every revision (`redaktion/ergaenzung.ts`).
+          const ergaenzung = ergaenzungAus(meldung.datengrundlage)
 
           const position = await naechstePosition(chat, {
             meldung: { _eq: id }
@@ -6762,7 +7089,8 @@ export default defineEndpoint(
               const warnungen = await ueberarbeitePresseschau(
                 meldung,
                 meldung.kandidat,
-                anweisung
+                anweisung,
+                ergaenzung
               )
               merkeAnweisung(
                 anweisung,
@@ -6837,7 +7165,8 @@ export default defineEndpoint(
               const warnungen = await ueberarbeiteAmtsblatt(
                 meldung,
                 meldung.amtsblattmeldung,
-                anweisung
+                anweisung,
+                ergaenzung
               )
               merkeAnweisung(anweisung, 'amtsblatt', 'Amtsblatt-Meldung')
               await chat.createOne({
@@ -6870,7 +7199,8 @@ export default defineEndpoint(
               const warnungen = await ueberarbeiteMitteilung(
                 meldung,
                 meldung.gemeindemitteilung,
-                anweisung
+                anweisung,
+                ergaenzung
               )
               merkeAnweisung(anweisung, 'gemeinde', 'Gemeindeseiten-Meldung')
               await chat.createOne({
@@ -6904,7 +7234,8 @@ export default defineEndpoint(
               const warnungen = await ueberarbeiteKanton(
                 meldung,
                 meldung.kantonsmitteilung,
-                anweisung
+                anweisung,
+                ergaenzung
               )
               merkeAnweisung(anweisung, 'kanton', 'Kanton-Meldung')
               await chat.createOne({
@@ -6938,7 +7269,8 @@ export default defineEndpoint(
               const warnungen = await ueberarbeiteSmd(
                 meldung,
                 meldung.smd_beitrag,
-                anweisung
+                anweisung,
+                ergaenzung
               )
               merkeAnweisung(anweisung, 'smd', 'SMD-Meldung')
               await chat.createOne({
@@ -6972,7 +7304,8 @@ export default defineEndpoint(
               const warnungen = await ueberarbeiteAnlass(
                 meldung,
                 meldung.veranstaltung,
-                anweisung
+                anweisung,
+                ergaenzung
               )
               merkeAnweisung(
                 anweisung,
@@ -7012,7 +7345,8 @@ export default defineEndpoint(
               const warnungen = await ueberarbeiteSendung(
                 meldung,
                 meldung.sendungskandidat,
-                anweisung
+                anweisung,
+                ergaenzung
               )
               merkeAnweisung(
                 anweisung,
@@ -7055,7 +7389,8 @@ export default defineEndpoint(
                 meldung,
                 meldung.suedanflugquote,
                 meldung.gemeinde,
-                anweisung
+                anweisung,
+                ergaenzung
               )
               merkeAnweisung(
                 anweisung,
@@ -7108,7 +7443,8 @@ export default defineEndpoint(
               const warnungen = await verkehr.ueberarbeite(
                 meldung,
                 verkehr.id,
-                anweisung
+                anweisung,
+                ergaenzung
               )
               merkeAnweisung(anweisung, 'verkehr', verkehr.titel)
               await chat.createOne({
@@ -7147,7 +7483,8 @@ export default defineEndpoint(
                 meldung,
                 meldung.abstimmung,
                 meldung.gemeinde,
-                anweisung
+                anweisung,
+                ergaenzung
               )
               merkeAnweisung(
                 anweisung,
@@ -8678,7 +9015,9 @@ export default defineEndpoint(
     /** Candidate, issue and paper in one read — the facts a press review runs on. */
     async function ladePresseschauFakten(
       schema: Awaited<ReturnType<typeof getSchema>>,
-      kandidatId: string
+      kandidatId: string,
+      /** The editor's part (`redaktion/ergaenzung.ts`): her additions ride as material, her own text needs no summary. */
+      beitrag: RedaktionsBeitrag = OHNE_BEITRAG
     ): Promise<GeladenePresseschau> {
       const kandidaten = new ItemsService('wochenblattkandidaten', { schema })
 
@@ -8723,12 +9062,14 @@ export default defineEndpoint(
       }
 
       if (
-        kandidat.zusammenfassung === null ||
-        kandidat.zusammenfassung.trim() === ''
+        (kandidat.zusammenfassung === null ||
+          kandidat.zusammenfassung.trim() === '') &&
+        beitrag.ergaenzung === null &&
+        beitrag.eigene === null
       ) {
         // Without the fact summary there is nothing to write FROM — and
         // writing from the model's memory of the PDF is exactly what the
-        // one-source rule forbids.
+        // one-source rule forbids. Unless the editor brought the facts.
         throw new NichtsZuTun()
       }
 
@@ -8755,9 +9096,12 @@ export default defineEndpoint(
       // the title and the piece's pages — read forward from today, because
       // an announced day lies ahead.
       const datenImText = alleDaten(
-        [kandidat.titel, kandidat.zusammenfassung, ...quelltextTeile].join(
-          '\n'
-        ),
+        [
+          kandidat.titel,
+          kandidat.zusammenfassung ?? '',
+          ...quelltextTeile,
+          beitrag.ergaenzung ?? ''
+        ].join('\n'),
         heuteAus(heuteIso())
       )
 
@@ -8775,9 +9119,10 @@ export default defineEndpoint(
           seite: kandidat.seite,
           typ: kandidat.typ,
           frontseite: kandidat.frontseite,
-          zusammenfassung: kandidat.zusammenfassung,
+          zusammenfassung: kandidat.zusammenfassung ?? '',
           pdfUrl: kandidat.ausgabe.pdf_url,
-          datenImText
+          datenImText,
+          ergaenzung: beitrag.ergaenzung
         }
       }
     }
@@ -8869,7 +9214,8 @@ export default defineEndpoint(
           : [
               'Volltext der Ausgabe fehlt — Ueberlappungs-Check uebersprungen.'
             ]),
-        ...(geplant.warnung === null ? [] : [geplant.warnung])
+        ...(geplant.warnung === null ? [] : [geplant.warnung]),
+        ...ergaenzungsHinweis(fakten)
       ]
 
       return { bericht, warnungen, termin: geplant.termin, wichtig }
@@ -8908,12 +9254,17 @@ export default defineEndpoint(
         text: string | null
       },
       kandidatId: string,
-      anweisung: string
+      anweisung: string,
+      /** The editor's additions stored with the article, or null. */
+      ergaenzung: string | null = null
     ): Promise<string[]> {
       const schema = await getSchema()
       const meldungen = new ItemsService('meldungen', { schema })
 
-      const geladen = await ladePresseschauFakten(schema, kandidatId)
+      const geladen = await ladePresseschauFakten(schema, kandidatId, {
+        ergaenzung,
+        eigene: null
+      })
       const { bericht, warnungen } = await presseschauMitChecks(
         geladen.fakten,
         geladen.volltext,

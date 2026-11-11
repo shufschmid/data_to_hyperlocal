@@ -199,6 +199,18 @@ hinaus. Ein Abnehmer **zeigt** sie; er parst sie nicht und liest keine Zahl aus
 ihnen heraus. Ein Tisch, der eine neue Warnung erfindet, landet unter `weitere` —
 sichtbar und unsortiert, nie stillschweigend verschwunden.
 
+**Zwei Hinweise unter `weitere` seit dem 4. November 2026**, und beide sind
+Herkunft, kein Mangel: «Mit ergänzenden Angaben der Redaktion geschrieben —
+diese stammen nicht aus der Quelle.» steht auf einem Beitrag, zu dem die
+Redaktion Fakten beigesteuert hat, die die Quelle nicht nennt (das Modell
+schrieb mit beidem; die Ziffern sind gegen Quelle UND Angaben geprüft). «Von
+der Redaktion selbst geschrieben — Zahlen und Wortlaut nicht gegen die Quelle
+geprüft.» steht auf einem Beitrag, den eine Person von Hand schrieb, ohne
+Modell; Zeitbezüge und Links sind trotzdem geprüft, die Quellenzeile ist
+weiterhin die des Codes. `bestanden` ist dann `false`, wie beim Eckdaten-Hinweis
+des Veranstaltungstischs — ein Abnehmer, der nur `bestanden` liest, sieht
+«nicht ganz sauber», und das ist in beiden Fällen die ehrliche Kurzform.
+
 **Zu `freigabe`:** Beide Stufen sind eine Unterschrift. `redaktion` heisst, eine
 Person am Tisch hat publiziert; `freigegeben_dann_zeitlauf` heisst, eine Person
 hat freigegeben und der Zeitlauf hat später ausgespielt — so entsteht jede
@@ -588,4 +600,4 @@ ein zehnter Tisch `kanton` in der Bilanz — wieder ein neuer Wert je Enum,
 keine neue Form. Version 1.8.0 am 11. Oktober 2026: ein elfter Tisch
 `verkehr` in der Bilanz; seine Beiträge kommen unter den bestehenden Rubriken
 `kanton` (Radarstandort) und `gemeinde` (Geschwindigkeitskontrollen) — ein
-neuer Wert in EINEM Enum, keine neue Rubrik, keine neue Form. Version 1.9.0 am 12. Oktober 2026: ein zwölfter Tisch `smd` in der Bilanz; seine Beiträge kommen unter der bestehenden Rubrik `presseschau` mit dem Medium als `quelle_name` und der Seite beim Medium als `quelle_url` — oder `null`, wo der Verlag keine Tür hat. Wieder ein neuer Wert in EINEM Enum, keine neue Form._
+neuer Wert in EINEM Enum, keine neue Rubrik, keine neue Form. Version 1.9.0 am 12. Oktober 2026: ein zwölfter Tisch `smd` in der Bilanz; seine Beiträge kommen unter der bestehenden Rubrik `presseschau` mit dem Medium als `quelle_name` und der Seite beim Medium als `quelle_url` — oder `null`, wo der Verlag keine Tür hat. Wieder ein neuer Wert in EINEM Enum, keine neue Form. Ohne Versionssprung am 4. November 2026: zwei neue Hinweise unter `pruefsiegel.pruefungen.weitere` (ergänzende Angaben der Redaktion; von der Redaktion selbst geschrieben) — Prosa wie jede Warnung, keine neue Form._

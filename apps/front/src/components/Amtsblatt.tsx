@@ -22,6 +22,8 @@ import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined'
 import MapOutlined from '@mui/icons-material/MapOutlined'
 import type { AlleMeldungFelder, AmtsblattFelder, GemeindeFelder } from '@/graphql/redaktion'
 import { MeldungKarte, type MeldungAktion, type MeldungAktionKoerper } from './MeldungKarte'
+import { EigeneMeldungKnopf } from './EigeneMeldung'
+import type { MeldungErzeugenKoerper } from '@/lib/eigene'
 import {
   ABLEHNUNGSGRUENDE,
   GRUPPEN,
@@ -49,7 +51,8 @@ export interface AmtsblattProps {
   onChat?: (id: string, anweisung: string) => Promise<void>
   onAktion?: (id: string, aktion: MeldungAktion, koerper?: MeldungAktionKoerper) => Promise<void>
   onLauf?: () => Promise<void> | void
-  onUebernehmen?: (id: string) => Promise<void> | void
+  /** „Meldung schreiben" — mit Koerper, wenn die Redaktion eigene Angaben oder den Text selbst mitgibt. */
+  onUebernehmen?: (id: string, koerper?: MeldungErzeugenKoerper) => Promise<void> | void
   onAblehnen?: (id: string, grund: string, kommentar: string | null) => Promise<void> | void
   onWeiterreichen?: (id: string, begruendung: string | null) => Promise<void> | void
   onUnterlagen?: (id: string) => Promise<void> | void
@@ -317,6 +320,11 @@ export function Amtsblatt({
               >
                 Meldung schreiben
               </Button>
+              <EigeneMeldungKnopf
+                titel={eintrag.titel}
+                disabled={beschaeftigt === eintrag.id}
+                onAbschicken={(koerper) => fuehreAus(eintrag.id, () => onUebernehmen?.(eintrag.id, koerper))}
+              />
               {kannUnterlagenLesen(eintrag) && (
                 <Button
                   size="small"

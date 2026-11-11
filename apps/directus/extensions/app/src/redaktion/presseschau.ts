@@ -18,6 +18,7 @@ import { heuteIso } from './feiertage'
 import { vorgabenZeilen } from './lernen'
 import type { HinweisUrteil, Verwurf } from './lernsignale'
 import { terminTageZeilen } from './termin'
+import { ergaenzungsZeilen } from './ergaenzung'
 import type {
   Ablehnungsgrund,
   KandidatEntscheid,
@@ -987,6 +988,8 @@ export interface PresseschauFakten {
    * no termin.
    */
   datenImText?: readonly string[]
+  /** What the editor added because the piece did not say it — handed as facts, never attributed to the paper (`redaktion/ergaenzung.ts`). */
+  ergaenzung?: string | null
 }
 
 export const PRESSESCHAU_SYSTEM_PROMPT = `Du schreibst fuer eine lokale Redaktion in der Region Basel kurze Presseschau-Meldungen: eigene Zusammenfassungen dessen, was die Wochenzeitung einer Gemeinde exklusiv berichtet.
@@ -1055,6 +1058,7 @@ function faktenZeilen(fakten: PresseschauFakten): string[] {
     '',
     'Fakten aus dem Beitrag:',
     fakten.zusammenfassung,
+    ...ergaenzungsZeilen(fakten.ergaenzung),
     ...(fakten.datenImText === undefined
       ? []
       : terminTageZeilen(fakten.datenImText, 'Beitrag'))
@@ -1220,6 +1224,8 @@ export function zahlWarnungenPresseschau(
   sammle(fakten.blatt)
   if (fakten.datum !== null) sammle(fakten.datum)
   if (fakten.seite !== null) erlaubt.add(String(fakten.seite))
+  // The editor's own additions are handed material too.
+  if (fakten.ergaenzung) sammle(fakten.ergaenzung)
 
   const gefunden = [...text.matchAll(/\d+/g)].map((t) => t[0])
   return [...new Set(gefunden.filter((z) => !erlaubt.has(z)))].map(

@@ -33,6 +33,7 @@ import {
   type MonatsBilanz,
   type RadarFakten
 } from '../../redaktion/verkehr'
+import { ergaenzungsHinweis } from '../../redaktion/ergaenzung'
 
 export const KeinStandort = createError(
   'NOT_FOUND',
@@ -232,7 +233,8 @@ export async function schreibeRadarmeldung(
       ...zeitWarnungen(alles),
       ...zahlWarnungenVerkehr(alles, fakten),
       ...linkWarnungen(alles),
-      ...(attribution === null ? [] : [attribution])
+      ...(attribution === null ? [] : [attribution]),
+      ...ergaenzungsHinweis(fakten)
     ]
   }
 }
@@ -280,7 +282,8 @@ export async function schreibeKontrollenmeldung(
       ...zeitWarnungen(alles),
       ...zahlWarnungenVerkehr(alles, fakten),
       ...linkWarnungen(alles),
-      ...(attribution === null ? [] : [attribution])
+      ...(attribution === null ? [] : [attribution]),
+      ...ergaenzungsHinweis(fakten)
     ]
   }
 }

@@ -16,6 +16,7 @@ import { GRUPPEN_TEXT } from '../shared/amtsblatt'
 import { vorgabenZeilen } from './lernen'
 import type { Beispielrahmen, HinweisUrteil, Verwurf } from './lernsignale'
 import { empfehlungAus } from './presseschau'
+import { ergaenzungsZeilen } from './ergaenzung'
 import type { AmtsblattQuelleTyp } from '../types/schema'
 
 export { parseMeldungstext as parseAmtsblattMeldung } from './spielbericht'
@@ -538,6 +539,8 @@ export interface AmtsblattFakten {
   pdfUrl: string
   /** The document link that belongs in the article, when there is a readable one. */
   unterlage: Unterlage | null
+  /** What the editor added because the publication did not say it — handed as facts, never attributed to the gazette (`redaktion/ergaenzung.ts`). */
+  ergaenzung?: string | null
 }
 
 export const AMTSBLATT_SYSTEM_PROMPT = `Du schreibst fuer eine lokale Redaktion in der Region Basel kurze Meldungen aus amtlichen Publikationen (Amtsblatt des Kantons, SHAB) und aus oeffentlichen Beschaffungen der Plattform simap.ch.
@@ -607,7 +610,8 @@ function faktenZeilen(fakten: AmtsblattFakten): string[] {
       : [
           '',
           `NICHT nennen (natuerliche Personen): ${fakten.personen.join(', ')}`
-        ])
+        ]),
+    ...ergaenzungsZeilen(fakten.ergaenzung)
   ]
 }
 
@@ -846,6 +850,8 @@ export function zahlWarnungen(text: string, fakten: AmtsblattFakten): string[] {
     sammle(a.wert)
   }
   for (const b of fakten.planbefunde) sammle(b)
+  // The editor's own additions are handed material too.
+  if (fakten.ergaenzung) sammle(fakten.ergaenzung)
   // The sheet counts are handed to the prompt, so the text may repeat them.
   if (fakten.blaetter !== null) {
     erlaubt.add(String(fakten.blaetter.gelesen))

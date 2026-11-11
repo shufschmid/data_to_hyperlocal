@@ -25,6 +25,7 @@ import { verschiebe } from './feiertage'
 import { terminTageZeilen } from './termin'
 import { vorgabenZeilen } from './lernen'
 import { gekuerzt } from './presseschau'
+import { ergaenzungsZeilen } from './ergaenzung'
 
 export { lernDigest, datumDeutsch }
 export type { LernEintrag }
@@ -656,6 +657,8 @@ export interface MitteilungFakten {
    * because older callers and fixtures predate it; absent means "none found".
    */
   datenImText?: readonly string[]
+  /** What the editor added because the page did not say it — handed as facts, never attributed to the municipality (`redaktion/ergaenzung.ts`). */
+  ergaenzung?: string | null
 }
 
 export const MELDUNG_SYSTEM_PROMPT = `Du schreibst fuer eine lokale Redaktion in der Region Basel kurze Meldungen aus Mitteilungen, die Gemeinden auf ihrer offiziellen Website veroeffentlichen.
@@ -756,6 +759,7 @@ function faktenZeilen(fakten: MitteilungFakten): string[] {
         ]
       : []),
     ...anhangZeilen(fakten.anhaenge),
+    ...ergaenzungsZeilen(fakten.ergaenzung),
     ...terminTageZeilen(fakten.datenImText ?? [])
   ]
 }
@@ -888,6 +892,8 @@ export function zahlWarnungen(
   sammle(fakten.veranstaltungAm)
   sammle(fakten.text)
   for (const a of fakten.anhaenge) sammle(a.text)
+  // The editor's own additions are handed material too.
+  sammle(fakten.ergaenzung ?? null)
 
   const gefunden = [...text.matchAll(/\d+/g)].map((t) => t[0])
   return [...new Set(gefunden.filter((z) => !erlaubt.has(z)))].map(

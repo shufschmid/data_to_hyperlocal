@@ -45,6 +45,13 @@ import {
   type Termin
 } from './termin'
 import { ladeWichtigkeitSignale, wichtigkeitDigest } from './wichtigkeit'
+import {
+  eigeneFelder,
+  ergaenzungsHinweis,
+  herkunftFelder,
+  OHNE_BEITRAG,
+  type RedaktionsBeitrag
+} from './ergaenzung'
 
 /** Wie viele Meldungen ein Lauf schreibt. Ein Modellaufruf je Stueck. */
 export const GEMEINDE_MELDUNGEN_JE_LAUF = 20
@@ -102,7 +109,9 @@ export const MITTEILUNG_FELDER = [
  */
 export function mitteilungFakten(
   zeile: MitteilungRohzeile,
-  heute: string = heuteIso()
+  heute: string = heuteIso(),
+  /** The editor's additions (`redaktion/ergaenzung.ts`) — their days count as possible termine too. */
+  ergaenzung: string | null = null
 ): MitteilungFakten {
   const anhaenge = (zeile.anhaenge ?? []).map((a) => ({
     bezeichnung: a.bezeichnung,
@@ -118,7 +127,8 @@ export function mitteilungFakten(
     zeile.titel,
     zeile.teaser ?? '',
     zeile.text ?? '',
-    ...anhaenge.map((a) => (a.gelesen ? (a.text ?? '') : ''))
+    ...anhaenge.map((a) => (a.gelesen ? (a.text ?? '') : '')),
+    ergaenzung ?? ''
   ].join('\n')
   return {
     gemeinde: zeile.gemeinde.name,
@@ -132,7 +142,8 @@ export function mitteilungFakten(
     anhaenge,
     // The page the article is shown on — canonical where known.
     url: zeile.url_kanonisch ?? zeile.url,
-    datenImText: alleDaten(material, heuteAus(heute))
+    datenImText: alleDaten(material, heuteAus(heute)),
+    ergaenzung
   }
 }
 
@@ -145,6 +156,8 @@ export function mitteilungFakten(
  */
 export function hatMaterial(fakten: MitteilungFakten): boolean {
   if (fakten.text.trim() !== '') return true
+  // What the editor typed is material: she took the page's silence on herself.
+  if ((fakten.ergaenzung ?? '').trim() !== '') return true
   return fakten.anhaenge.some((a) => a.gelesen && (a.text ?? '').trim() !== '')
 }
 
@@ -248,7 +261,8 @@ export async function mitteilungMitChecks(
       volltextVon(fakten)
     ).map((w) => w.replace('aus dem Blatt', 'aus der Mitteilung')),
     ...(attribution === null ? [] : [attribution]),
-    ...(geplant.warnung === null ? [] : [geplant.warnung])
+    ...(geplant.warnung === null ? [] : [geplant.warnung]),
+    ...ergaenzungsHinweis(fakten)
   ]
 
   return { bericht, warnungen, termin: geplant.termin, wichtig }
@@ -299,15 +313,51 @@ export interface GemeindeMeldungKontext {
   logger: { info: (text: string) => void; warn: (...args: unknown[]) => void }
 }
 
-/** Eine Meldung aus einer Zeile — der eine Weg, den Knopf und Lauf teilen. */
+/**
+ * Eine Meldung aus einer Zeile — der eine Weg, den Knopf und Lauf teilen.
+ *
+ * `beitrag` ist, was die Redaktion dazugibt (`redaktion/ergaenzung.ts`): der
+ * Lauf gibt nie etwas, der Knopf entweder ergaenzende Angaben (das Modell
+ * schreibt mit ihnen) oder die ganze Meldung von Hand (kein Modellaufruf,
+ * die Quellenzeile vom Code, kein Termin-Vorschlag — den setzt die Redaktion
+ * auf der Karte).
+ */
 export async function schreibeGemeindeMeldung(
   kontext: Pick<
     GemeindeMeldungKontext,
     'mitteilungen' | 'meldungen' | 'regeln' | 'wichtigkeit'
   >,
-  zeile: MitteilungRohzeile
+  zeile: MitteilungRohzeile,
+  beitrag: RedaktionsBeitrag = OHNE_BEITRAG
 ): Promise<{ meldung: string; warnungen: string[] }> {
-  const fakten = mitteilungFakten(zeile)
+  const fakten = mitteilungFakten(zeile, undefined, beitrag.ergaenzung)
+
+  if (beitrag.eigene !== null) {
+    const felder = eigeneFelder(beitrag.eigene, (text) =>
+      mitQuelle(text, fakten)
+    )
+    const meldungId = (await kontext.meldungen.createOne({
+      gemeindemitteilung: zeile.id,
+      gemeinde: zeile.gemeinde.id,
+      ...felder,
+      termin: null,
+      termin_vorschlag: null,
+      wichtig: null,
+      wichtig_vorschlag: null,
+      datengrundlage: {
+        ...datengrundlageVon(zeile, fakten),
+        ...herkunftFelder(beitrag)
+      }
+    })) as string
+    await kontext.mitteilungen.updateOne(zeile.id, {
+      entscheid: 'uebernommen'
+    })
+    return {
+      meldung: meldungId,
+      warnungen: (felder['zeit_warnungen'] as string[] | null) ?? []
+    }
+  }
+
   const { bericht, warnungen, termin, wichtig } = await mitteilungMitChecks(
     fakten,
     buildMitteilungPrompt(fakten, kontext.regeln, kontext.wichtigkeit ?? '')
@@ -328,7 +378,10 @@ export async function schreibeGemeindeMeldung(
     termin_vorschlag: termin,
     wichtig,
     wichtig_vorschlag: wichtig,
-    datengrundlage: datengrundlageVon(zeile, fakten)
+    datengrundlage: {
+      ...datengrundlageVon(zeile, fakten),
+      ...herkunftFelder(beitrag)
+    }
   })) as string
 
   await kontext.mitteilungen.updateOne(zeile.id, {

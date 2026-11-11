@@ -1277,13 +1277,13 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             onMehr={() => setZeilen((bisher) => bisher + 40)}
             suedanflugGemeinden={suedanflugGemeinden}
             berichteZuSuedanflug={berichteZuSuedanflug}
-            onSuedanflugMeldung={async (quoteId, gemeindeId) => {
-              await fuehreAus(`suedanflug/${quoteId}/meldung`, { gemeinde: gemeindeId })
+            onSuedanflugMeldung={async (quoteId, gemeindeId, koerper) => {
+              await fuehreAus(`suedanflug/${quoteId}/meldung`, { gemeinde: gemeindeId, ...koerper })
             }}
             gemeindenNachBfs={gemeindenNachBfs}
             berichteZuAbstimmung={berichteZuAbstimmung}
-            onAbstimmungsMeldung={async (abstimmungId, gemeindeId) => {
-              await fuehreAus(`abstimmungen/${abstimmungId}/meldung`, { gemeinde: gemeindeId })
+            onAbstimmungsMeldung={async (abstimmungId, gemeindeId, koerper) => {
+              await fuehreAus(`abstimmungen/${abstimmungId}/meldung`, { gemeinde: gemeindeId, ...koerper })
             }}
             onAbstimmungStapelChat={async (abstimmungId, anweisung) => {
               await fuehreAus(`abstimmungen/${abstimmungId}/tag/chat`, { anweisung })
@@ -1410,8 +1410,8 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             monate={kontrollen.data?.geschwindigkeitskontrollen ?? []}
             meldungen={meldungenAlle}
             laeuft={sendet}
-            onMeldung={async (art, id) => {
-              await fuehreAus(`verkehr/${art}/${id}/meldung`)
+            onMeldung={async (art, id, koerper) => {
+              await fuehreAus(`verkehr/${art}/${id}/meldung`, koerper)
             }}
             onChat={async (id, anweisung) => {
               await fuehreAus(`meldungen/${id}/chat`, { anweisung })
@@ -1498,8 +1498,8 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
               await fuehreAus(`ausgaben/${id}/inventar`)
               await Promise.all([wochenblaetter.refetch(), recherchehinweise.refetch()])
             }}
-            onMeldung={async (id) => {
-              await fuehreAus(`kandidaten/${id}/meldung`)
+            onMeldung={async (id, koerper) => {
+              await fuehreAus(`kandidaten/${id}/meldung`, koerper)
               await Promise.all([wochenblaetter.refetch(), alleMeldungen.refetch()])
             }}
             onAblehnen={async (id, grund, kommentar) => {
@@ -1566,8 +1566,8 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             onLauf={async () => {
               await fuehreAus('amtsblatt/pruefen')
             }}
-            onUebernehmen={async (id) => {
-              await fuehreAus(`amtsblatt/${id}/meldung`)
+            onUebernehmen={async (id, koerper) => {
+              await fuehreAus(`amtsblatt/${id}/meldung`, koerper)
             }}
             onAblehnen={async (id, grund, kommentar) => {
               await fuehreAus(`amtsblatt/${id}/ablehnen`, { grund, kommentar })
@@ -1614,8 +1614,8 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
               await fuehreAus('gemeindeseiten/pruefen')
               await ladeGemeindeseitenLauf()
             }}
-            onUebernehmen={async (id) => {
-              await fuehreAus(`gemeindeseiten/${id}/meldung`)
+            onUebernehmen={async (id, koerper) => {
+              await fuehreAus(`gemeindeseiten/${id}/meldung`, koerper)
             }}
             onAblehnen={async (id, grund, kommentar) => {
               await fuehreAus(`gemeindeseiten/${id}/ablehnen`, { grund, kommentar })
@@ -1662,8 +1662,8 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
               await fuehreAus('kanton/pruefen')
               await ladeKantonLauf()
             }}
-            onUebernehmen={async (id) => {
-              await fuehreAus(`kanton/${id}/meldung`)
+            onUebernehmen={async (id, koerper) => {
+              await fuehreAus(`kanton/${id}/meldung`, koerper)
             }}
             onAblehnen={async (id, grund, kommentar) => {
               await fuehreAus(`kanton/${id}/ablehnen`, { grund, kommentar })
@@ -1707,8 +1707,8 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
               await fuehreAus('smd/pruefen')
               await ladeSmdLauf()
             }}
-            onUebernehmen={async (id) => {
-              await fuehreAus(`smd/${id}/meldung`)
+            onUebernehmen={async (id, koerper) => {
+              await fuehreAus(`smd/${id}/meldung`, koerper)
             }}
             onAblehnen={async (id, grund, kommentar) => {
               await fuehreAus(`smd/${id}/ablehnen`, { grund, kommentar })
@@ -1756,8 +1756,8 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
               await fuehreAus('gemeindeseiten/pruefen')
               await ladeGemeindeseitenLauf()
             }}
-            onUebernehmen={async (id) => {
-              await fuehreAus(`veranstaltungen/${id}/meldung`)
+            onUebernehmen={async (id, koerper) => {
+              await fuehreAus(`veranstaltungen/${id}/meldung`, koerper)
             }}
             onAblehnen={async (id, grund, kommentar) => {
               await fuehreAus(`veranstaltungen/${id}/ablehnen`, { grund, kommentar })
@@ -1813,8 +1813,8 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
               } | null
               return verarbeitungsergebnis(inhalt?.data)
             }}
-            onMeldung={async (id) => {
-              await fuehreAus(`sendungen/${id}/meldung`)
+            onMeldung={async (id, koerper) => {
+              await fuehreAus(`sendungen/${id}/meldung`, koerper)
             }}
             onAblehnen={async (id, grund, kommentar) => {
               await fuehreAus(`sendungen/${id}/ablehnen`, { grund, kommentar })

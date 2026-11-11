@@ -14,6 +14,13 @@ import type { KantonQuelle } from '../types/schema'
 import { heuteIso } from './feiertage'
 import { schreibeEinmalMitNachfassen } from './gemeindemeldungen'
 import {
+  eigeneFelder,
+  ergaenzungsHinweis,
+  herkunftFelder,
+  OHNE_BEITRAG,
+  type RedaktionsBeitrag
+} from './ergaenzung'
+import {
   attributionsWarnung,
   buildKantonPrompt,
   buildKantonRevision,
@@ -75,12 +82,18 @@ export const KANTON_FELDER = [
 /** The facts the writer works from; `heute` anchors the year of dates the wording prints without one. */
 export function kantonFakten(
   zeile: KantonRohzeile,
-  heute: string = heuteIso()
+  heute: string = heuteIso(),
+  /** The editor's additions (`redaktion/ergaenzung.ts`) — their days count as possible termine too. */
+  ergaenzung: string | null = null
 ): KantonFakten {
-  const material = [zeile.titel, zeile.teaser ?? '', zeile.text ?? ''].join(
-    '\n'
-  )
+  const material = [
+    zeile.titel,
+    zeile.teaser ?? '',
+    zeile.text ?? '',
+    ergaenzung ?? ''
+  ].join('\n')
   return {
+    ergaenzung,
     gemeinde: zeile.gemeinde.name,
     quelle: zeile.quelle,
     quelleName: quelleNameFuer(zeile.quelle),
@@ -99,8 +112,10 @@ export function kantonFakten(
 }
 
 /** Kein Artikel aus Titel und Anriss allein: er LIEST sich vollstaendig und ist es nicht. */
-export function hatMaterial(fakten: Pick<KantonFakten, 'text'>): boolean {
-  return fakten.text.trim() !== ''
+export function hatMaterial(
+  fakten: Pick<KantonFakten, 'text' | 'ergaenzung'>
+): boolean {
+  return fakten.text.trim() !== '' || (fakten.ergaenzung ?? '').trim() !== ''
 }
 
 export interface GeschriebeneKantonMeldung {
@@ -170,7 +185,8 @@ export async function kantonMeldungMitChecks(
     ).map((w) => w.replace('aus dem Blatt', woher)),
     ...(attribution === null ? [] : [attribution]),
     ...(geplant.warnung === null ? [] : [geplant.warnung]),
-    ...polizeiPersonenWarnungen(alles, fakten)
+    ...polizeiPersonenWarnungen(alles, fakten),
+    ...ergaenzungsHinweis(fakten)
   ]
 
   return { bericht, warnungen, termin: geplant.termin, wichtig }
@@ -213,15 +229,47 @@ export interface KantonMeldungKontext {
   logger: { info: (text: string) => void; warn: (...args: unknown[]) => void }
 }
 
-/** Eine Meldung aus einer Zeile — der eine Weg, den Knopf und Lauf teilen. */
+/**
+ * Eine Meldung aus einer Zeile — der eine Weg, den Knopf und Lauf teilen.
+ * `beitrag` ist, was die Redaktion dazugibt (`redaktion/ergaenzung.ts`); der
+ * Lauf gibt nie etwas.
+ */
 export async function schreibeKantonMeldung(
   kontext: Pick<
     KantonMeldungKontext,
     'mitteilungen' | 'meldungen' | 'regeln' | 'wichtigkeit'
   >,
-  zeile: KantonRohzeile
+  zeile: KantonRohzeile,
+  beitrag: RedaktionsBeitrag = OHNE_BEITRAG
 ): Promise<{ meldung: string; warnungen: string[] }> {
-  const fakten = kantonFakten(zeile)
+  const fakten = kantonFakten(zeile, undefined, beitrag.ergaenzung)
+
+  if (beitrag.eigene !== null) {
+    const felder = eigeneFelder(beitrag.eigene, (text) =>
+      mitQuelle(text, fakten)
+    )
+    const meldungId = (await kontext.meldungen.createOne({
+      kantonsmitteilung: zeile.id,
+      gemeinde: zeile.gemeinde.id,
+      ...felder,
+      termin: null,
+      termin_vorschlag: null,
+      wichtig: null,
+      wichtig_vorschlag: null,
+      datengrundlage: {
+        ...datengrundlageVon(zeile, fakten),
+        ...herkunftFelder(beitrag)
+      }
+    })) as string
+    await kontext.mitteilungen.updateOne(zeile.id, {
+      entscheid: 'uebernommen'
+    })
+    return {
+      meldung: meldungId,
+      warnungen: (felder['zeit_warnungen'] as string[] | null) ?? []
+    }
+  }
+
   const { bericht, warnungen, termin, wichtig } = await kantonMeldungMitChecks(
     fakten,
     buildKantonPrompt(fakten, kontext.regeln, kontext.wichtigkeit ?? '')
@@ -240,7 +288,10 @@ export async function schreibeKantonMeldung(
     termin_vorschlag: termin,
     wichtig,
     wichtig_vorschlag: wichtig,
-    datengrundlage: datengrundlageVon(zeile, fakten)
+    datengrundlage: {
+      ...datengrundlageVon(zeile, fakten),
+      ...herkunftFelder(beitrag)
+    }
   })) as string
 
   await kontext.mitteilungen.updateOne(zeile.id, {

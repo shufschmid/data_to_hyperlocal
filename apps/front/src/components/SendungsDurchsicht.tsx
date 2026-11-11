@@ -45,7 +45,8 @@ export interface SendungsDurchsichtProps {
    * Transkript ist eine frühere Sendung unter neuem Datum.
    */
   onVerarbeiten?: (dossierId: string) => Promise<Verarbeitungsergebnis>
-  onMeldung?: (id: string) => Promise<void> | void
+  /** Durchgereicht an den Kandidaten — mit Koerper, wenn die Redaktion eigene Angaben mitgibt. */
+  onMeldung?: SendungsKandidatProps['onMeldung']
   onAblehnen?: (id: string, grund: string, kommentar: string | null) => Promise<void> | void
   onWeiterreichen?: (id: string, begruendung: string | null) => Promise<void> | void
   onChat?: (id: string, anweisung: string) => Promise<void>

@@ -27,6 +27,7 @@ import {
 } from './amtsblatt'
 import { vorgabenZeilen } from './lernen'
 import { gekuerzt } from './presseschau'
+import { ergaenzungsZeilen } from './ergaenzung'
 
 export { lernDigest, datumDeutsch }
 export type { LernEintrag }
@@ -414,6 +415,12 @@ export interface AnlassFakten {
    * im Restaurant Piazza» does, «Kultur am Sunntig mit Almi» does not).
    */
   nurEckdaten?: boolean
+  /**
+   * What the editor added because the calendar did not say it (4.11.2026, the
+   * Turnerobe): handed as facts in a block of its own, its digits allowed,
+   * never attributed to the calendar — `redaktion/ergaenzung.ts`.
+   */
+  ergaenzung?: string | null
 }
 
 /**
@@ -637,7 +644,8 @@ function faktenZeilen(f: AnlassFakten): string[] {
           'Der Beschrieb liegt nur unvollstaendig vor (beim Lesen gekuerzt) — behaupte keine Vollstaendigkeit.'
         ]
       : []),
-    ...dokumentZeilen(f.dokumente)
+    ...dokumentZeilen(f.dokumente),
+    ...ergaenzungsZeilen(f.ergaenzung)
   ]
 }
 
@@ -799,6 +807,8 @@ export function zahlWarnungen(text: string, f: AnlassFakten): string[] {
   sammle(f.heute)
   for (const t of f.traktanden) sammle(t)
   for (const d of f.dokumente) sammle(d.text)
+  // The editor's own additions are handed material too.
+  sammle(f.ergaenzung ?? null)
 
   const gefunden = [...text.matchAll(/\d+/g)].map((t) => t[0])
   return [...new Set(gefunden.filter((z) => !erlaubt.has(z)))].map(

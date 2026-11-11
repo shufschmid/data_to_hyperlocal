@@ -27,6 +27,7 @@ import {
 import { datumDeutsch } from './amtsblatt'
 import { vorgabenZeilen } from './lernen'
 import { zahlWarnung } from './warnungen'
+import { ergaenzungsZeilen } from './ergaenzung'
 
 export {
   linkWarnungen,
@@ -58,6 +59,8 @@ export interface RadarFakten {
   }>
   /** The public page on baselland.ch — what the article links. */
   seiteUrl: string
+  /** What the editor added because the sheet does not say it — handed as facts, never attributed to the police (`redaktion/ergaenzung.ts`). */
+  ergaenzung?: string | null
 }
 
 export const POLIZEI_BL = 'Polizei Basel-Landschaft'
@@ -153,6 +156,7 @@ function radarZeilen(fakten: RadarFakten): string[] {
       `Die Liste nennt in ${fakten.gemeinde} keine weitere Anlage der Polizei Basel-Landschaft. Kontrollen auf Gemeindestrassen durch die Gemeinde selbst stehen nicht auf dieser Liste.`
     )
   }
+  zeilen.push(...ergaenzungsZeilen(fakten.ergaenzung))
   return zeilen
 }
 
@@ -251,6 +255,8 @@ export interface KontrollenFakten {
   /** What the sheet said about itself (a header naming another month, a line not read). */
   hinweise: readonly string[]
   quelleUrl: string
+  /** What the editor added because the sheet does not say it — handed as facts, never attributed to the police (`redaktion/ergaenzung.ts`). */
+  ergaenzung?: string | null
 }
 
 export const KONTROLLEN_SYSTEM_PROMPT = `Du schreibst fuer eine lokale Redaktion in der Region Basel kurze Meldungen ueber die monatlichen Geschwindigkeitskontrollen einer Gemeindepolizei.
@@ -389,6 +395,7 @@ function kontrollenZeilen(fakten: KontrollenFakten): string[] {
     )
     for (const h of fakten.hinweise) zeilen.push(`- ${h}`)
   }
+  zeilen.push(...ergaenzungsZeilen(fakten.ergaenzung))
   return zeilen
 }
 

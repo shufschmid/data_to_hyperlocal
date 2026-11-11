@@ -16,12 +16,15 @@ import CampaignOutlined from '@mui/icons-material/CampaignOutlined'
 import type { AlleMeldungFelder, SendungskandidatFelder } from '@/graphql/redaktion'
 import { ABLEHNUNGSGRUENDE, zeitText } from '@/lib/sendungen'
 import { MeldungKarte, type MeldungAktion, type MeldungAktionKoerper } from './MeldungKarte'
+import { EigeneMeldungKnopf } from './EigeneMeldung'
+import type { MeldungErzeugenKoerper } from '@/lib/eigene'
 
 export interface SendungsKandidatProps {
   kandidat: SendungskandidatFelder
   meldung?: AlleMeldungFelder | undefined
   laeuft?: boolean
-  onMeldung?: (id: string) => Promise<void> | void
+  /** „Meldung schreiben" — mit Koerper, wenn die Redaktion eigene Angaben oder den Text selbst mitgibt. */
+  onMeldung?: (id: string, koerper?: MeldungErzeugenKoerper) => Promise<void> | void
   onAblehnen?: (id: string, grund: string, kommentar: string | null) => Promise<void> | void
   onWeiterreichen?: (id: string, begruendung: string | null) => Promise<void> | void
   onChat?: (id: string, anweisung: string) => Promise<void>
@@ -105,6 +108,11 @@ export function SendungsKandidat({
           >
             Meldung schreiben
           </Button>
+          <EigeneMeldungKnopf
+            titel={kandidat.titel}
+            disabled={laeuft}
+            onAbschicken={(koerper) => onMeldung?.(kandidat.id, koerper)}
+          />
           <Button size="small" disabled={laeuft} onClick={() => setAblehnung(true)}>
             Ablehnen
           </Button>

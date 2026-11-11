@@ -105,6 +105,9 @@ export const ANLASS_FELDER = [
 export function hatAnlassMaterial(fakten: AnlassFakten): boolean {
   if (fakten.beschreibung.trim() !== '') return true
   if (fakten.traktanden.length > 0) return true
+  // What the editor typed is material: she took the page's silence on
+  // herself (the Turnerobe, 4.11.2026).
+  if ((fakten.ergaenzung ?? '').trim() !== '') return true
   return fakten.dokumente.some((d) => d.gelesen && (d.text ?? '').trim() !== '')
 }
 
@@ -136,7 +139,9 @@ export function brauchtNachlesen(
 /** The row as the writer sees it. `heute` is the day the article is written — the Stand line names it. */
 export function anlassFakten(
   zeile: AnlassRohzeile,
-  heute: string
+  heute: string,
+  /** The editor's additions (`redaktion/ergaenzung.ts`), or null. */
+  ergaenzung: string | null = null
 ): AnlassFakten {
   // A detail read that landed on the calendar overview stored the OVERVIEW:
   // its text (the whole calendar), its documents (the site's how-to PDF) and
@@ -179,7 +184,8 @@ export function anlassFakten(
     zugang: zeile.zugang,
     dauerangebot: zeile.anker === 'dauerangebot',
     url: falschGelesen ? zeile.url : (zeile.url_kanonisch ?? zeile.url),
-    heute
+    heute,
+    ergaenzung
   }
 }
 

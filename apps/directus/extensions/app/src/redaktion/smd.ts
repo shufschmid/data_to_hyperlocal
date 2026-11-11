@@ -32,6 +32,7 @@ import { vorgabenZeilen } from './lernen'
 import { gekuerzt, ueberlappungsWarnungen } from './presseschau'
 import { gemeindeTreffer } from './sendung'
 import { terminTageZeilen } from './termin'
+import { ergaenzungsZeilen } from './ergaenzung'
 import { kappe, TEXT_MAX_ZEICHEN } from '../shared/gemeindeseite/text'
 import { normiereTitel, type SmdDokument } from '../shared/smd/parse'
 import type { LinkErgebnis } from '../shared/verlage'
@@ -352,6 +353,8 @@ export interface SmdFakten {
   weitereGemeinden: readonly string[]
   /** Every calendar day CODE found in the wording — the only days the model may name as termin. */
   datenImText: readonly string[]
+  /** What the editor added because the piece did not say it — handed as facts, never attributed to the medium (`redaktion/ergaenzung.ts`). */
+  ergaenzung?: string | null
 }
 
 export const SMD_MELDUNG_SYSTEM_PROMPT = `Du schreibst fuer eine lokale Redaktion in der Region Basel kurze Meldungen fuer EINE Gemeinde aus Beitraegen anderer Medien — eine Presseschau: was eine Tageszeitung, ein Magazin oder ein Radio ueber diese Gemeinde berichtet hat.
@@ -440,6 +443,7 @@ function faktenZeilen(fakten: SmdFakten): string[] {
           'Der Wortlaut liegt nur unvollstaendig vor (beim Lesen gekuerzt) — behaupte keine Vollstaendigkeit.'
         ]
       : []),
+    ...ergaenzungsZeilen(fakten.ergaenzung),
     ...terminTageZeilen(fakten.datenImText)
   ]
 }
@@ -581,6 +585,8 @@ export function zahlWarnungen(text: string, fakten: SmdFakten): string[] {
   sammle(fakten.datum)
   sammle(fakten.zeit)
   sammle(fakten.text)
+  // The editor's own additions are handed material too.
+  sammle(fakten.ergaenzung ?? null)
   const gefunden = [...text.matchAll(/\d+/g)].map((t) => t[0])
   return [...new Set(gefunden.filter((z) => !erlaubt.has(z)))].map(
     (z) => `Zahl "${z}" steht nicht in den Angaben.`

@@ -30,6 +30,8 @@ import { bleibtAufDemTisch, seitenLink } from '@/lib/redaktion'
 import { formulierbar, ordneKandidaten, zeitbezugText } from '@/lib/presseschau'
 import type { TerminEingabe } from '@/lib/termin'
 import { MeldungKarte, type MeldungAktion, type MeldungAktionKoerper } from './MeldungKarte'
+import { EigeneMeldungKnopf } from './EigeneMeldung'
+import type { MeldungErzeugenKoerper } from '@/lib/eigene'
 
 // The press review: what each municipality's weekly paper has exclusively.
 //
@@ -120,7 +122,8 @@ export interface PresseschauProps {
   onAnlegen: (eingabe: { gemeinden: string[]; name: string; archiv_url: string }) => Promise<void>
   onPruefen: () => Promise<void>
   onInventar: (ausgabeId: string) => Promise<void>
-  onMeldung: (kandidatId: string) => Promise<void>
+  /** «Meldung erzeugen» — mit Koerper, wenn die Redaktion eigene Angaben oder den Text selbst mitgibt. */
+  onMeldung: (kandidatId: string, koerper?: MeldungErzeugenKoerper) => Promise<void>
   onAblehnen: (kandidatId: string, grund: string, kommentar: string) => Promise<void>
   /** Gute Meldung, aber heute nicht verifizierbar — wandert als Fährte auf den Chefredaktions-Tisch. */
   onWeiterreichen: (kandidatId: string, begruendung: string) => Promise<void>
@@ -480,6 +483,11 @@ export function Presseschau({
                     >
                       {entwurfDaneben ? 'Übernehmen' : 'Meldung erzeugen'}
                     </Button>
+                    <EigeneMeldungKnopf
+                      titel={kandidat.titel}
+                      disabled={laeuft}
+                      onAbschicken={(koerper) => onMeldung(kandidat.id, koerper)}
+                    />
                     <Button size="small" onClick={() => setAblehnung(kandidat)} disabled={laeuft}>
                       Ablehnen
                     </Button>

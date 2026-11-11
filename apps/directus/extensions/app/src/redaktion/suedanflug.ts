@@ -2,6 +2,7 @@ import { tagDeutsch, type Monatsblatt, type Tag } from '../shared/euroairport'
 import { monatDeutsch, type GespeicherterMonat } from './suedanfluglauf'
 import { vorgabenZeilen } from './lernen'
 import { zahlWarnung } from './warnungen'
+import { ergaenzungsZeilen } from './ergaenzung'
 
 export {
   linkWarnungen,
@@ -310,6 +311,8 @@ export interface SuedanflugFakten {
   bewertung: Bewertung
   /** Where the sheet contradicts itself — stated, never quietly dropped. */
   befunde: string[]
+  /** What the editor added because the sheet does not say it — handed as facts, never attributed to the airport (`redaktion/ergaenzung.ts`). */
+  ergaenzung?: string | null
 }
 
 export function suedanflugFakten(eingabe: {
@@ -442,6 +445,7 @@ function faktenZeilen(fakten: SuedanflugFakten): string[] {
     for (const befund of fakten.befunde) zeilen.push(`- ${befund}`)
   }
 
+  zeilen.push(...ergaenzungsZeilen(fakten.ergaenzung))
   return zeilen
 }
 
@@ -687,6 +691,8 @@ export function zahlWarnungenSuedanflug(
   }
   for (const befund of fakten.befunde) sammle(befund)
   for (const schwelle of b.ueberschritten) sammle(schwelle)
+  // The editor's own additions are handed material too.
+  sammle(fakten.ergaenzung ?? null)
 
   const gefunden = [...text.matchAll(/\d+/g)].map((treffer) => treffer[0])
   return [...new Set(gefunden.filter((zahl) => !erlaubt.has(zahl)))].map(

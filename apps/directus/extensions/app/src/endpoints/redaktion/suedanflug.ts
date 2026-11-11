@@ -20,6 +20,7 @@ import {
   type SuedanflugFakten
 } from '../../redaktion/suedanflug'
 import type { GespeicherterMonat } from '../../redaktion/suedanfluglauf'
+import { ergaenzungsHinweis } from '../../redaktion/ergaenzung'
 import type { Monatsblatt, Tag } from '../../shared/euroairport'
 import type { Gemeinde, Quelle, Suedanflugquote } from '../../types/schema'
 
@@ -185,7 +186,8 @@ export async function schreibeSuedanflugmeldung(
     ...linkWarnungen(alles),
     ...ortsWarnungen(alles, fakten),
     ...(provisorik === null ? [] : [provisorik]),
-    ...(attribution === null ? [] : [attribution])
+    ...(attribution === null ? [] : [attribution]),
+    ...ergaenzungsHinweis(fakten)
   ]
 
   return { bericht, warnungen }

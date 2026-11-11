@@ -26,6 +26,7 @@ import { vorgabenZeilen } from './lernen'
 import { gekuerzt } from './presseschau'
 import { gemeindeTreffer } from './sendung'
 import { terminTageZeilen } from './termin'
+import { ergaenzungsZeilen } from './ergaenzung'
 import type { KantonQuelle } from '../types/schema'
 
 export {
@@ -203,6 +204,8 @@ export interface KantonFakten {
   weitereGemeinden: readonly string[]
   /** Every calendar day CODE found in the wording — the only days the model may name as termin. */
   datenImText: readonly string[]
+  /** What the editor added because the notice did not say it — handed as facts, never attributed to the canton (`redaktion/ergaenzung.ts`). */
+  ergaenzung?: string | null
 }
 
 export function quelleNameFuer(quelle: KantonQuelle): string {
@@ -286,6 +289,7 @@ function faktenZeilen(fakten: KantonFakten): string[] {
           'Der Wortlaut liegt nur unvollstaendig vor (beim Lesen gekuerzt) — behaupte keine Vollstaendigkeit.'
         ]
       : []),
+    ...ergaenzungsZeilen(fakten.ergaenzung),
     ...terminTageZeilen(fakten.datenImText)
   ]
 }
@@ -406,6 +410,8 @@ export function zahlWarnungen(text: string, fakten: KantonFakten): string[] {
   sammle(fakten.teaser)
   sammle(fakten.publiziertAm)
   sammle(fakten.text)
+  // The editor's own additions are handed material too.
+  sammle(fakten.ergaenzung ?? null)
   const gefunden = [...text.matchAll(/\d+/g)].map((t) => t[0])
   return [...new Set(gefunden.filter((z) => !erlaubt.has(z)))].map(
     (z) => `Zahl "${z}" steht nicht in den Angaben.`

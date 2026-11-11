@@ -13,6 +13,13 @@ import { alleDaten, heuteAus } from '../shared/gemeindeseite/datum'
 import type { SmdArt, SmdLinkStatus } from '../types/schema'
 import { schreibeEinmalMitNachfassen } from './gemeindemeldungen'
 import {
+  eigeneFelder,
+  ergaenzungsHinweis,
+  herkunftFelder,
+  OHNE_BEITRAG,
+  type RedaktionsBeitrag
+} from './ergaenzung'
+import {
   attributionsWarnung,
   buildSmdPrompt,
   buildSmdRevision,
@@ -85,10 +92,18 @@ export const SMD_FELDER = [
  */
 export function smdFakten(
   zeile: SmdRohzeile,
-  heute: string = zeile.datum
+  heute: string = zeile.datum,
+  /** The editor's additions (`redaktion/ergaenzung.ts`) — their days count as possible termine too. */
+  ergaenzung: string | null = null
 ): SmdFakten {
-  const material = [zeile.titel, zeile.lead ?? '', zeile.text ?? ''].join('\n')
+  const material = [
+    zeile.titel,
+    zeile.lead ?? '',
+    zeile.text ?? '',
+    ergaenzung ?? ''
+  ].join('\n')
   return {
+    ergaenzung,
     gemeinde: zeile.gemeinde.name,
     medium: zeile.medium,
     art: zeile.art,
@@ -113,8 +128,10 @@ export function smdFakten(
 }
 
 /** Kein Artikel aus Titel und Lead allein: er LIEST sich vollstaendig und ist es nicht. */
-export function hatMaterial(fakten: Pick<SmdFakten, 'text'>): boolean {
-  return fakten.text.trim() !== ''
+export function hatMaterial(
+  fakten: Pick<SmdFakten, 'text' | 'ergaenzung'>
+): boolean {
+  return fakten.text.trim() !== '' || (fakten.ergaenzung ?? '').trim() !== ''
 }
 
 export interface GeschriebeneSmdMeldung {
@@ -176,7 +193,8 @@ export async function smdMeldungMitChecks(
       w.replace('aus dem Blatt', `aus dem Beitrag von ${fakten.medium}`)
     ),
     ...(attribution === null ? [] : [attribution]),
-    ...(geplant.warnung === null ? [] : [geplant.warnung])
+    ...(geplant.warnung === null ? [] : [geplant.warnung]),
+    ...ergaenzungsHinweis(fakten)
   ]
   return { bericht, warnungen, termin: geplant.termin, wichtig }
 }
@@ -221,12 +239,41 @@ export interface SmdMeldungKontext {
   wichtigkeit?: string
 }
 
-/** Eine Meldung aus einer Zeile — der eine Weg, den der Knopf geht. */
+/**
+ * Eine Meldung aus einer Zeile — der eine Weg, den der Knopf geht. `beitrag`
+ * ist, was die Redaktion dazugibt (`redaktion/ergaenzung.ts`).
+ */
 export async function schreibeSmdMeldung(
   kontext: SmdMeldungKontext,
-  zeile: SmdRohzeile
+  zeile: SmdRohzeile,
+  beitrag: RedaktionsBeitrag = OHNE_BEITRAG
 ): Promise<{ meldung: string; warnungen: string[] }> {
-  const fakten = smdFakten(zeile)
+  const fakten = smdFakten(zeile, undefined, beitrag.ergaenzung)
+
+  if (beitrag.eigene !== null) {
+    const felder = eigeneFelder(beitrag.eigene, (text) =>
+      mitQuelle(text, fakten)
+    )
+    const meldungId = (await kontext.meldungen.createOne({
+      smd_beitrag: zeile.id,
+      gemeinde: zeile.gemeinde.id,
+      ...felder,
+      termin: null,
+      termin_vorschlag: null,
+      wichtig: null,
+      wichtig_vorschlag: null,
+      datengrundlage: {
+        ...datengrundlageVon(zeile, fakten),
+        ...herkunftFelder(beitrag)
+      }
+    })) as string
+    await kontext.beitraege.updateOne(zeile.id, { entscheid: 'uebernommen' })
+    return {
+      meldung: meldungId,
+      warnungen: (felder['zeit_warnungen'] as string[] | null) ?? []
+    }
+  }
+
   const { bericht, warnungen, termin, wichtig } = await smdMeldungMitChecks(
     fakten,
     buildSmdPrompt(fakten, kontext.regeln, kontext.wichtigkeit ?? '')
@@ -244,7 +291,10 @@ export async function schreibeSmdMeldung(
     termin_vorschlag: termin,
     wichtig,
     wichtig_vorschlag: wichtig,
-    datengrundlage: datengrundlageVon(zeile, fakten)
+    datengrundlage: {
+      ...datengrundlageVon(zeile, fakten),
+      ...herkunftFelder(beitrag)
+    }
   })) as string
   await kontext.beitraege.updateOne(zeile.id, { entscheid: 'uebernommen' })
   return { meldung: meldungId, warnungen }
