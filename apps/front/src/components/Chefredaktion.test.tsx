@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Chefredaktion } from './Chefredaktion'
 import type { BuschtelefonHinweisFund, PerleFelder, RecherchehinweisFelder } from '@/graphql/redaktion'
@@ -259,5 +259,43 @@ describe('Chefredaktion', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Originaltext lesen (S. 3)' }))
     expect(screen.getByText(/Wortlaut des Klimastuecks/)).toBeInTheDocument()
+  })
+
+  // Vierzehn Tage auf dem Tisch, dann das Archiv: die Zeile bleibt, einen
+  // Klick entfernt und mit ihren Knöpfen — nur nicht mehr vor den Augen.
+  it('legt nach vierzehn Tagen ins Archiv und zeigt es auf Verlangen', () => {
+    const heute = new Date('2026-11-16T10:00:00Z')
+    render(
+      <Chefredaktion
+        hinweise={[
+          hinweis({ id: 'neu', titel: 'Neue Fährte', date_created: '2026-11-14T08:00:00Z' }),
+          hinweis({ id: 'alt', titel: 'Alte Fährte', date_created: '2026-09-01T08:00:00Z' })
+        ]}
+        perlen={[]}
+        heute={heute}
+        {...NICHTS}
+      />
+    )
+    expect(screen.getByText('Neue Fährte')).toBeInTheDocument()
+    expect(screen.queryByText('Alte Fährte')).not.toBeInTheDocument()
+    expect(screen.getByText('Recherche-Hinweise (1 offen)')).toBeInTheDocument()
+    expect(screen.getByText(/Archiv: 1 Eintrag älter als 14 Tage/)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Archiv zeigen' }))
+    expect(screen.getByText('Alte Fährte')).toBeInTheDocument()
+    expect(screen.getByText(/1 offen, 1 im Archiv/)).toBeInTheDocument()
+  })
+
+  it('nennt den Tisch leer, wenn nur noch das Archiv etwas hält', () => {
+    render(
+      <Chefredaktion
+        hinweise={[hinweis({ id: 'alt', titel: 'Alte Fährte', date_created: '2026-09-01T08:00:00Z' })]}
+        perlen={[]}
+        heute={new Date('2026-11-16T10:00:00Z')}
+        {...NICHTS}
+      />
+    )
+    expect(screen.getByText(/Der Tisch ist leer/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Archiv zeigen' })).toBeInTheDocument()
   })
 })

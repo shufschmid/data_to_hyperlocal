@@ -106,7 +106,14 @@ describe('schreibeKantonMeldungen — die Entwuerfe des Laufs', () => {
     completeJson.mockClear()
     const { kontext, erstellt, geaendert } = dienste([zeile()])
     const r = await schreibeKantonMeldungen(kontext)
-    expect(r).toEqual({ geschrieben: 1, ohneText: [], wartend: 0, fehler: [] })
+    expect(r).toMatchObject({
+      geschrieben: 1,
+      ohneText: [],
+      wartend: 0,
+      fehler: []
+    })
+    // What the run wrote is handed on by id — Auto-Publish takes only these.
+    expect(r.ids).toHaveLength(1)
     expect(completeJson).toHaveBeenCalledTimes(1)
     const m = erstellt[0]!
     expect(m['kantonsmitteilung']).toBe('k1')

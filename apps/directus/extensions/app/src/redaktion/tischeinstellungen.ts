@@ -16,6 +16,7 @@ import {
   imVorschlagsfenster,
   VORSCHLAGSFENSTER_TAGE
 } from '../shared/veranstaltung/anker'
+import { istAutoTisch, type AutoTisch } from './autopublish'
 
 export type Stufe = 1 | 2 | 3 | 4
 
@@ -177,13 +178,43 @@ export function tischeinstellungFelder(
  * like an empty one.
  */
 export function tischFelder(
-  tisch: EinstellbarerTisch,
+  tisch: EinstellbarerTisch | AutoTisch,
   koerper: Record<string, unknown>
-): Partial<TischeinstellungZeile> {
-  if (tisch !== 'buschtelefon') return tischeinstellungFelder(koerper)
-  return tischeinstellungFelder(
-    'schwelle' in koerper ? { schwelle: koerper['schwelle'] } : {}
-  )
+): Partial<TischeinstellungZeile> & { auto_publizieren?: boolean } {
+  // Auto-Publish is a switch of its own (16.11.2026), on the desks whose run
+  // writes drafts — some of which grade nothing and have no other dial.
+  const auto: { auto_publizieren?: boolean } = {}
+  if ('auto_publizieren' in koerper) {
+    if (!istAutoTisch(tisch))
+      throw new Error(
+        'Auto-Publish gibt es nur auf Tischen, deren Lauf die Entwürfe selbst schreibt.'
+      )
+    if (typeof koerper['auto_publizieren'] !== 'boolean')
+      throw new Error('Auto-Publish ist ein oder aus.')
+    auto.auto_publizieren = koerper['auto_publizieren']
+  }
+
+  const regler: Record<string, unknown> = {}
+  if (istEinstellbarerTisch(tisch)) {
+    for (const spalte of SPALTEN) {
+      if (!(spalte.feld in koerper)) continue
+      if (tisch === 'buschtelefon' && spalte.feld !== 'schwelle') continue
+      regler[spalte.feld] = koerper[spalte.feld]
+    }
+  }
+  if (Object.keys(regler).length === 0) {
+    if (auto.auto_publizieren === undefined)
+      throw new Error('Keine Einstellung angegeben.')
+    return auto
+  }
+  return { ...tischeinstellungFelder(regler), ...auto }
+}
+
+/** Every desk that has a row of settings: the grading ones and the Auto-Publish ones. */
+export function istTischMitEinstellung(
+  wert: unknown
+): wert is EinstellbarerTisch | AutoTisch {
+  return istEinstellbarerTisch(wert) || istAutoTisch(wert)
 }
 
 export function istEinstellbarerTisch(

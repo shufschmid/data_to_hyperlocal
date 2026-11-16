@@ -11,9 +11,13 @@
     "group": null,
     "hidden": false,
     "interface": "select-dropdown",
-    "note": "Wer den Wechsel auf publiziert ausgeloest hat: eine Person am Tisch oder der Zeitlauf nach einer frueheren Freigabe.",
+    "note": "Wer den Wechsel auf publiziert ausgeloest hat: eine Person am Tisch, der Zeitlauf nach einer frueheren Freigabe oder Auto-Publish (der Lauf publiziert seinen eigenen Entwurf, ohne Person).",
     "options": {
       "choices": [
+        {
+          "text": "Auto-Publish",
+          "value": "automatik"
+        },
         {
           "text": "Redaktion",
           "value": "redaktion"

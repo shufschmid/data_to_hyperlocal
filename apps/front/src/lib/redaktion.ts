@@ -107,7 +107,9 @@ export function pruefsiegelText(
       ? 'publiziert von der Redaktion'
       : meldung.publiziert_durch === 'zeitlauf'
         ? 'publiziert vom Zeitlauf'
-        : 'publiziert, Unterschrift unbekannt'
+        : meldung.publiziert_durch === 'automatik'
+          ? 'automatisch publiziert'
+          : 'publiziert, Unterschrift unbekannt'
 
   const offen = meldung.zeit_warnungen?.length ?? 0
   const warnung = offen === 0 ? 'keine Warnung' : offen === 1 ? '1 Warnung' : `${offen} Warnungen`

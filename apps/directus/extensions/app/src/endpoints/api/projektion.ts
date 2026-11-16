@@ -185,6 +185,9 @@ export type Gegenpruefung = Entscheidung | 'keine'
 export type Freigabestufe =
   | 'redaktion'
   | 'freigegeben_dann_zeitlauf'
+  // No signature at all: the run published its own draft because the
+  // newsroom switched Auto-Publish on for that desk (16.11.2026).
+  | 'automatisch'
   | 'unbekannt'
 
 export interface Pruefsiegel {
@@ -558,9 +561,11 @@ export function pruefsiegel(zeile: Rohzeile): Pruefsiegel {
   const freigabe: Freigabestufe =
     zeile.publiziert_durch === 'redaktion'
       ? 'redaktion'
-      : zeile.publiziert_durch === 'zeitlauf' && zeile.freigegeben_am !== null
-        ? 'freigegeben_dann_zeitlauf'
-        : 'unbekannt'
+      : zeile.publiziert_durch === 'automatik'
+        ? 'automatisch'
+        : zeile.publiziert_durch === 'zeitlauf' && zeile.freigegeben_am !== null
+          ? 'freigegeben_dann_zeitlauf'
+          : 'unbekannt'
 
   return {
     pruefungen,

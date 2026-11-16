@@ -223,3 +223,15 @@ describe('Hinweise zu gescheiterten Sendungen', () => {
     ])
   })
 })
+
+describe('anzahlOffen — nur die letzten vierzehn Tage', () => {
+  it('zählt einen vergessenen Entwurf vom September nicht mehr', () => {
+    const heute = new Date('2026-11-16T10:00:00Z')
+    const alt = kandidat({ id: 'alt', entscheid: 'uebernommen', date_created: '2026-09-25T15:00:00Z' })
+    const neu = kandidat({ id: 'neu', entscheid: 'offen', date_created: '2026-11-14T15:00:00Z' })
+    const ohne = kandidat({ id: 'ohne', entscheid: 'offen' })
+    const entwurf = { sendungskandidat: { id: 'alt' }, status: 'entwurf' } as AlleMeldungFelder
+    expect(anzahlOffen([alt], [entwurf], heute)).toBe(0)
+    expect(anzahlOffen([alt, neu, ohne], [entwurf], heute)).toBe(2)
+  })
+})

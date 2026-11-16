@@ -35,6 +35,7 @@ import {
 } from '../../shared/veranstaltung'
 import { heuteIso } from '../../redaktion/feiertage'
 import { verwirfEntwurfZu } from '../../redaktion/entwurf'
+import { autoHinweis, publiziereAutomatisch } from '../../redaktion/autopublish'
 import { ladeRegeln } from '../../redaktion/gedaechtnis'
 import {
   schreibeGemeindeMeldungen,
@@ -1014,6 +1015,16 @@ export default defineOperationApi<Optionen>({
       ergebnis.meldungenWartend = geschrieben.wartend
       ergebnis.meldungenOhneText = geschrieben.ohneText
       for (const f of geschrieben.fehler) ergebnis.fehler.push(f)
+      // Auto-Publish, where the newsroom switched it on for this desk: only
+      // what this run wrote, only without a warning (`autopublish.ts`).
+      const auto = autoHinweis(
+        await publiziereAutomatisch(
+          { meldungen: artikel, einstellungen: tische, logger },
+          'gemeinde',
+          geschrieben.ids
+        )
+      )
+      if (auto !== null) ergebnis.hinweise.push(auto)
       if (geschrieben.wartend > 0)
         ergebnis.hinweise.push(
           `${geschrieben.wartend} Vorschlaege warten auf ihre Meldung — der naechste Lauf schreibt sie.`

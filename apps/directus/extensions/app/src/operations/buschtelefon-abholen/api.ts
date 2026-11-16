@@ -1,5 +1,9 @@
 import { defineOperationApi } from '@directus/extensions-sdk'
-import { reicheFundWeiter } from '../../endpoints/redaktion/buschtelefon'
+import {
+  markiereUebernommen,
+  reicheFundWeiter
+} from '../../endpoints/redaktion/buschtelefon'
+import { autoHinweis, publiziereAutomatisch } from '../../redaktion/autopublish'
 import {
   abholungLaeuft,
   holeAbEinzeln,
@@ -130,6 +134,25 @@ export default defineOperationApi<Optionen>({
           new Date().toISOString(),
           { regel: regel.id }
         )
+      },
+      // Auto-Publish, where the newsroom switched it on for this desk. A
+      // draft that goes out takes its find over, exactly as sending it on by
+      // hand does — otherwise the find would lapse as «left lying» under a
+      // published article.
+      autoPublizieren: async (entwuerfe) => {
+        const auto = await publiziereAutomatisch(
+          { meldungen, einstellungen: tische, logger },
+          'buschtelefon',
+          entwuerfe.map((e) => e.meldung)
+        )
+        const jetzt = new Date().toISOString()
+        for (const e of entwuerfe) {
+          if (!auto.publiziert.includes(e.meldung)) continue
+          await markiereUebernommen(funde as never, e.fund, jetzt, {
+            warn: (f: unknown, m?: string) => logger.warn(f, m ?? '')
+          })
+        }
+        return autoHinweis(auto)
       },
       logger: {
         info: (m: string) => logger.info(m),

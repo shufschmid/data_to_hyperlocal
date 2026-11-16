@@ -114,3 +114,60 @@ export function anlassVorschlag(
     imVorlauf(zeile.anker_am, zeile.vorschlag_wert, heute, einstellung)
   )
 }
+
+// --- Auto-Publish -----------------------------------------------------------
+//
+// Seit dem 16. November 2026 darf ein Lauf die Entwürfe, die er zu Vorschlägen
+// selbst geschrieben hat, auch gleich publizieren — je Tisch einzeln
+// eingeschaltet, nur ohne Warnung (`redaktion/autopublish.ts` im Backend). Was
+// so hinausging, bleibt auf seinem Tisch sichtbar und lässt sich zurückziehen.
+
+/** Die Tische, deren Lauf die Entwürfe selbst schreibt — nur dort gibt es etwas zu publizieren. */
+export const AUTO_TISCHE = [
+  { wert: 'gemeinde', text: 'Gemeindeseiten', feld: 'gemeindemitteilung' },
+  { wert: 'kanton', text: 'Kanton', feld: 'kantonsmitteilung' },
+  { wert: 'buschtelefon', text: 'Buschtelefon', feld: 'buschtelefon_fund' },
+  { wert: 'sport', text: 'Sportresultate', feld: 'spiel' },
+  { wert: 'abstimmung', text: 'Abstimmungen', feld: 'abstimmung' }
+] as const
+
+export type AutoTisch = (typeof AUTO_TISCHE)[number]['wert']
+
+/** Ob Auto-Publish für den Tisch eingeschaltet ist; ohne Zeile oder Feld: aus. */
+export function autoPublizieren(zeilen: readonly TischeinstellungFelder[], tisch: AutoTisch): boolean {
+  return zeilen.find((z) => z.tisch === tisch)?.auto_publizieren === true
+}
+
+/** Wie lange eine automatisch publizierte Meldung auf ihrem Tisch stehen bleibt. */
+export const AUTO_SICHTBAR_TAGE = 14
+
+interface AutoMeldung {
+  status: string
+  publiziert_durch: string | null
+  publiziert_am: string | null
+}
+
+/**
+ * Was der Lauf dieses Tischs von sich aus publiziert hat und noch draussen
+ * ist — die letzten `tage` Tage, das Neueste zuerst. Eine zurückgezogene
+ * Meldung ist nicht mehr `publiziert` und fällt heraus.
+ */
+export function automatischPublizierte<M extends AutoMeldung>(
+  meldungen: readonly M[],
+  tisch: AutoTisch,
+  heute: string,
+  tage: number = AUTO_SICHTBAR_TAGE
+): M[] {
+  const feld = AUTO_TISCHE.find((t) => t.wert === tisch)?.feld
+  if (feld === undefined) return []
+  const ab = verschiebe(heute, -tage)
+  return meldungen
+    .filter(
+      (m) =>
+        m.status === 'publiziert' &&
+        m.publiziert_durch === 'automatik' &&
+        (m as Record<string, unknown>)[feld] != null &&
+        (m.publiziert_am ?? '').slice(0, 10) >= ab
+    )
+    .sort((a, b) => (b.publiziert_am ?? '').localeCompare(a.publiziert_am ?? ''))
+}

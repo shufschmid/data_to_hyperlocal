@@ -393,6 +393,8 @@ export async function schreibeGemeindeMeldung(
 
 export interface GemeindeMeldungenErgebnis {
   geschrieben: number
+  /** Die Meldungen, die dieser Lauf geschrieben hat — fuer Auto-Publish (`redaktion/autopublish.ts`). */
+  ids: string[]
   /** Vorschlaege ohne lesbaren Text — benannt, nie still uebergangen. */
   ohneText: string[]
   /** Was der Deckel dieses Laufs liegen liess; der naechste holt es. */
@@ -412,6 +414,7 @@ export async function schreibeGemeindeMeldungen(
 ): Promise<GemeindeMeldungenErgebnis> {
   const ergebnis: GemeindeMeldungenErgebnis = {
     geschrieben: 0,
+    ids: [],
     ohneText: [],
     wartend: 0,
     fehler: []
@@ -469,7 +472,11 @@ export async function schreibeGemeindeMeldungen(
       continue
     }
     try {
-      await schreibeGemeindeMeldung({ ...kontext, wichtigkeit }, zeile)
+      const { meldung } = await schreibeGemeindeMeldung(
+        { ...kontext, wichtigkeit },
+        zeile
+      )
+      ergebnis.ids.push(meldung)
       ergebnis.geschrieben += 1
     } catch (fehler) {
       kontext.logger.warn(

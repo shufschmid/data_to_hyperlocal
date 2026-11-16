@@ -265,6 +265,8 @@ export const TAGESMELDUNGEN_JE_LAUF = 20
 
 export interface TagesmeldungenErgebnis {
   geschrieben: string[]
+  /** The summaries this run wrote — for Auto-Publish (`redaktion/autopublish.ts`). */
+  ids: string[]
   vorhanden: number
   /** Municipalities still counting or without figures — named, never quietly skipped. */
   offen: string[]
@@ -284,6 +286,7 @@ export async function schreibeTagesmeldungen(
 ): Promise<TagesmeldungenErgebnis> {
   const ergebnis: TagesmeldungenErgebnis = {
     geschrieben: [],
+    ids: [],
     vorhanden: 0,
     offen: [],
     fehler: [],
@@ -309,7 +312,8 @@ export async function schreibeTagesmeldungen(
       continue
     }
     try {
-      await legeTagesmeldungAn(kontext, zeilen, gemeinde)
+      const { meldung } = await legeTagesmeldungAn(kontext, zeilen, gemeinde)
+      ergebnis.ids.push(meldung)
       ergebnis.geschrieben.push(gemeinde.name)
     } catch (fehler) {
       const status = (fehler as { status?: unknown }).status

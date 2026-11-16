@@ -15,6 +15,7 @@ import { PUNKT6_DOSSIERS_QUERY, type Punkt6DossiersQueryResult } from '@/graphql
 import { PUNKT6_EDITIONS_QUERY, type Punkt6EditionsQueryResult } from '@/graphql/punkt6-editions'
 import type { AlleMeldungFelder, SendungskandidatFelder } from '@/graphql/redaktion'
 import { LIVE_FETCH_POLICY } from '@/lib/apollo'
+import { ARCHIV_TAGE, tagVor } from '@/lib/archiv'
 import {
   HINWEIS_SICHTBAR_TAGE,
   jungeDossiers,
@@ -92,12 +93,19 @@ export function SendungsDurchsicht({
   const [bericht, setBericht] = useState<string | null>(null)
   const [fortschritt, setFortschritt] = useState<{ fertig: number; gesamt: number } | null>(null)
 
+  // Geladen werden die letzten vierzehn Tage; der Rest erst auf Verlangen.
+  // Die Listen wuchsen auf 174 und 68 Sendungen, jede mit ihrem ganzen
+  // Transkript — und gezeigt wurden still die neuesten fünfzig.
+  const [aeltere, setAeltere] = useState(false)
+  const variables = aeltere ? {} : { ab: tagVor() }
   const rj = useQuery<EditionsQueryResult>(EDITIONS_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY,
+    variables,
     skip: istPunkt6
   })
   const p6 = useQuery<Punkt6EditionsQueryResult>(PUNKT6_EDITIONS_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY,
+    variables,
     skip: !istPunkt6
   })
 
@@ -273,8 +281,8 @@ export function SendungsDurchsicht({
 
       {!abfrage.loading && beitraege.length === 0 && abfrage.error === undefined && (
         <Alert severity="info">
-          Noch keine Sendungen. Der tägliche Lauf holt die Dossiers aus dem Postfach; „Postfach jetzt prüfen“
-          macht dasselbe von Hand.
+          {aeltere ? 'Noch keine Sendungen.' : `Keine Sendungen in den letzten ${ARCHIV_TAGE} Tagen.`} Der
+          tägliche Lauf holt die Dossiers aus dem Postfach; „Postfach jetzt prüfen“ macht dasselbe von Hand.
         </Alert>
       )}
 
@@ -299,6 +307,19 @@ export function SendungsDurchsicht({
               onKandidat={weiterreichen}
             />
           ))}
+
+      {abfrage.error === undefined && (
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', gap: 0.5 }}>
+          <Typography variant="body2" color="text.secondary">
+            {aeltere
+              ? 'Alle Sendungen sind geladen.'
+              : `Gezeigt sind die Sendungen der letzten ${ARCHIV_TAGE} Tage.`}
+          </Typography>
+          <Button size="small" disabled={abfrage.loading} onClick={() => setAeltere((a) => !a)}>
+            {aeltere ? `Nur die letzten ${ARCHIV_TAGE} Tage zeigen` : 'Ältere Sendungen laden'}
+          </Button>
+        </Stack>
+      )}
     </Stack>
   )
 }

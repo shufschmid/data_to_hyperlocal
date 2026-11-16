@@ -134,7 +134,9 @@ import { anzahlOffen as anzahlKantonsmitteilungen, type KantonLaufStatus } from 
 import { anzahlOffen as anzahlSmdBeitraege, type SmdLaufStatus } from '@/lib/smd'
 import { anzahlOffen as anzahlAnlaesse } from '@/lib/veranstaltungen'
 import { anzahlArbeit as anzahlFunde, type BuschtelefonLaufStatus, type Kanal } from '@/lib/buschtelefon'
-import { einstellungFuer } from '@/lib/tische'
+import { autoPublizieren, einstellungFuer, type AutoTisch } from '@/lib/tische'
+import { AutoPubliziert } from './AutoPubliziert'
+import { anzahlChefredaktion } from '@/lib/archiv'
 import { Chefredaktion } from './Chefredaktion'
 import { Gelerntes } from './Gelerntes'
 import { Zeitleiste } from './Zeitleiste'
@@ -335,6 +337,20 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
   const einstellungGemeinde = einstellungFuer(tische.data?.tischeinstellungen ?? [], 'gemeinde')
   const einstellungAnlass = einstellungFuer(tische.data?.tischeinstellungen ?? [], 'veranstaltung')
   const einstellungBuschtelefon = einstellungFuer(tische.data?.tischeinstellungen ?? [], 'buschtelefon')
+  // Was der Lauf eines Tischs von sich aus publiziert hat — sichtbar und mit
+  // einem Griff zurückzuziehen. Derselbe Kasten unter jedem der fünf Tische.
+  const autoKasten = (tisch: AutoTisch) => (
+    <AutoPubliziert
+      tisch={tisch}
+      meldungen={meldungenAlle}
+      heute={new Date().toISOString().slice(0, 10)}
+      eingeschaltet={autoPublizieren(tische.data?.tischeinstellungen ?? [], tisch)}
+      laeuft={sendet}
+      onZurueckziehen={async (id, kommentar) => {
+        await fuehreAus(`meldungen/${id}/verwerfen`, kommentar === undefined ? undefined : { kommentar })
+      }}
+    />
+  )
   const gemeinden = useQuery<GemeindenErgebnis>(GEMEINDEN_QUERY, {
     fetchPolicy: LIVE_FETCH_POLICY
   })
@@ -1100,9 +1116,12 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
     regionaljournal: { anzahl: anzahlSendungOffen('regionaljournal'), art: 'arbeit' },
     punkt6: { anzahl: anzahlSendungOffen('punkt6'), art: 'arbeit' },
     chefredaktion: {
-      anzahl:
-        (recherchehinweise.data?.recherchehinweise ?? []).filter((h) => h.status === 'offen').length +
-        (offenePerlen.data?.wochenblattkandidaten ?? []).length,
+      // Nur die letzten vierzehn Tage — was älter ist, liegt im Archiv des
+      // Tischs und zählt nicht mehr (`lib/archiv.ts`).
+      anzahl: anzahlChefredaktion(
+        recherchehinweise.data?.recherchehinweise ?? [],
+        offenePerlen.data?.wochenblattkandidaten ?? []
+      ),
       art: 'chef'
     }
   }
@@ -1276,6 +1295,10 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             die Abstimmungsresultate je Gemeinde. Angekündigtes ohne Termin steht unten und rückt nach oben,
             sobald es ein Datum hat.
           </Typography>
+          {/* Nur die Abstimmungsmeldungen dieses Tischs schreibt ein Lauf von
+              sich aus; steht Auto-Publish aus und ging nichts hinaus, bleibt
+              der Kasten weg. */}
+          {autoKasten('abstimmung')}
           {/* Der einzige Tisch, dessen Tag sich nicht wiederholt. Sein Flow
               laeuft nur sonntags, wenn ausgezaehlt wird — also braucht er den
               Knopf mehr als jeder andere: einmal zum Ausprobieren vorher,
@@ -1483,6 +1506,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
               await fuehreAus(`meldungen/${id}/${was}`, koerper)
             }}
           />
+          {autoKasten('sport')}
         </Stack>
       )}
 
@@ -1720,6 +1744,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             }}
             onZuGemeinden={() => setReiter('gemeinden')}
           />
+          {autoKasten('gemeinde')}
         </Stack>
       )}
 
@@ -1764,6 +1789,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
               await fuehreAus('kanton/publizieren')
             }}
           />
+          {autoKasten('kanton')}
         </Stack>
       )}
 
@@ -1927,8 +1953,8 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
           <Typography variant="body2" color="text.secondary">
             Der Tisch der Chefredaktion: Recherche-Hinweise (aus Leserbriefen, vom Inventar oder von der
             Redaktion weitergereicht) und die Perlen-Frage zu Beiträgen der Wochenblätter — unabhängig davon,
-            ob eine Meldung daraus wird. Beides bleibt liegen, bis es entschieden ist — auch über neue
-            Ausgaben hinweg.
+            ob eine Meldung daraus wird. Beides bleibt vierzehn Tage auf dem Tisch; was älter ist, liegt im
+            Archiv darunter und zählt nicht mehr.
           </Typography>
           <Chefredaktion
             hinweise={recherchehinweise.data?.recherchehinweise ?? []}
@@ -2023,6 +2049,7 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
               await fuehreAus(`buschtelefon/${id}/gemeinde`, { gemeinde })
             }}
           />
+          {autoKasten('buschtelefon')}
         </Stack>
       )}
 

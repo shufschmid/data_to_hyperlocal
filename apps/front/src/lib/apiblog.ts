@@ -62,7 +62,7 @@ export interface ApiPruefsiegel {
   pruefungen: { zeitbezug: string[]; zahlen: string[]; weitere: string[] }
   bestanden: boolean
   gegenpruefung: 'ja' | 'nein' | 'unklar' | 'keine'
-  freigabe: 'redaktion' | 'freigegeben_dann_zeitlauf' | 'unbekannt'
+  freigabe: 'redaktion' | 'freigegeben_dann_zeitlauf' | 'automatisch' | 'unbekannt'
   freigegeben_am: string | null
   publiziert_am: string | null
   herkunft: { rubrik: Rubrik | null; quelle_name: string | null; quelle_url: string | null }
@@ -207,6 +207,7 @@ export function gegenpruefungText(siegel: Pick<ApiPruefsiegel, 'gegenpruefung'>)
 const FREIGABE_TEXT: Record<ApiPruefsiegel['freigabe'], string> = {
   redaktion: 'publiziert von der Redaktion',
   freigegeben_dann_zeitlauf: 'freigegeben, vom Zeitlauf publiziert',
+  automatisch: 'automatisch publiziert, ohne Unterschrift',
   unbekannt: 'Freigabe unbekannt (vor dem 15. September 2026)'
 }
 

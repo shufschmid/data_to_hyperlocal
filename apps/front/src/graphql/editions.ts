@@ -36,12 +36,20 @@ export interface EditionsQueryResult {
   editions: EditionFields[]
 }
 
+// Since 16.11.2026 the query takes a lower bound: the desk loads the last
+// fourteen days and the rest on demand (`lib/archiv.ts`). Without a bound it
+// loads everything — the old silent cap of fifty is gone.
+//
 // The day first: `broadcast_at` is null where the audio could not be resolved,
 // and NULL sorts first in descending order. Which of them stands on top is
 // `ordneEditionen` (lib/sendungen.ts).
 export const EDITIONS_QUERY = gql`
-  query Editions($limit: Int = 50) {
-    editions(limit: $limit, sort: ["-broadcast_date", "-broadcast_at", "-date_created"]) {
+  query Editions($ab: String = "1900-01-01") {
+    editions(
+      filter: { broadcast_date: { _gte: $ab } }
+      limit: -1
+      sort: ["-broadcast_date", "-broadcast_at", "-date_created"]
+    ) {
       id
       broadcast_date
       edition_label

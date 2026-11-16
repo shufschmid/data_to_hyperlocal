@@ -22,6 +22,7 @@ import {
 import { optionalEnv } from '../../shared/env'
 import { ersteMannschaftAbgleich } from '../../redaktion/mannschaft'
 import { schreibeSpielberichte } from '../../redaktion/spielberichte'
+import { autoHinweis, publiziereAutomatisch } from '../../redaktion/autopublish'
 import { ladeRegeln } from '../../redaktion/gedaechtnis'
 import {
   revisionsSchreibungenSpiel,
@@ -806,6 +807,20 @@ export default defineOperationApi<Optionen>({
       fehler.push(`Spielbericht ${gescheitert}`)
     }
 
+    // Auto-Publish, where the newsroom switched it on for this desk: only
+    // the reports this run created, only without a warning.
+    const auto = await publiziereAutomatisch(
+      {
+        meldungen: meldungenService,
+        einstellungen: new ItemsService('tischeinstellungen', { schema }),
+        logger
+      },
+      'sport',
+      berichte.ids
+    )
+    const autoZeile = autoHinweis(auto)
+    if (autoZeile !== null) logger.info(`sportresultate: ${autoZeile}`)
+
     return {
       vereine: vereine.length,
       gefunden: zeilen.length,
@@ -816,6 +831,8 @@ export default defineOperationApi<Optionen>({
       entfernt,
       nachgetragen,
       berichte: berichte.erzeugt,
+      autoPubliziert: auto.publiziert.length,
+      autoZurueckgehalten: auto.zurueckgehalten.length,
       ohneKonnektor,
       fehler
     }

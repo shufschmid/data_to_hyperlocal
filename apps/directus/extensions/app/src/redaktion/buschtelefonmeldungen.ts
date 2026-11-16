@@ -471,6 +471,8 @@ export async function schreibeFundMeldung(
 
 export interface FundMeldungenErgebnis {
   geschrieben: number
+  /** The drafts this run wrote, each with its find — for Auto-Publish (`redaktion/autopublish.ts`). */
+  ids: Array<{ meldung: string; fund: string }>
   /** What the cap of this run left lying, named without its wording; the next run takes it. */
   wartend: string[]
   /** Proposals without a municipality — no draft, the desk shows «Gemeinde fehlt». */
@@ -519,6 +521,7 @@ export async function schreibeFundMeldungen(
 ): Promise<FundMeldungenErgebnis> {
   const ergebnis: FundMeldungenErgebnis = {
     geschrieben: 0,
+    ids: [],
     wartend: [],
     ohneGemeinde: 0,
     ohneMeldung: 0,
@@ -558,7 +561,8 @@ export async function schreibeFundMeldungen(
 
   for (const zeile of dran) {
     try {
-      await schreibeFundMeldung(dienste, zeile)
+      const { meldung } = await schreibeFundMeldung(dienste, zeile)
+      ergebnis.ids.push({ meldung, fund: zeile.id })
       ergebnis.geschrieben += 1
     } catch (fehler) {
       if (fehler instanceof MaterialGenuegtNicht) {

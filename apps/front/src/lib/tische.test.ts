@@ -1,6 +1,8 @@
 import type { TischeinstellungFelder } from '@/graphql/redaktion'
 import {
   anlassVorschlag,
+  automatischPublizierte,
+  autoPublizieren,
   EINSTELLBARE_TISCHE,
   einstellungFuer,
   imVorlauf,
@@ -68,5 +70,49 @@ describe('Schwelle und Vorlauf', () => {
   it('benennt die Stufe auf der Zeile', () => {
     expect(stufeText(4)).toBe('Stufe 4 · wichtig')
     expect(stufeText(null)).toBeNull()
+  })
+})
+
+describe('Auto-Publish', () => {
+  const meldung = (ueber: Record<string, unknown>) => ({
+    id: 'a',
+    status: 'publiziert',
+    publiziert_durch: 'automatik',
+    publiziert_am: '2026-11-15T12:00:00.000Z',
+    gemeindemitteilung: { id: 'g' },
+    spiel: null,
+    ...ueber
+  })
+
+  it('ist nur mit einem gespeicherten Ja eingeschaltet', () => {
+    const zeile = {
+      id: '1',
+      tisch: 'kanton',
+      schwelle: 3,
+      vorlauf_stufe4: 30,
+      vorlauf_stufe3: 10,
+      vorlauf_stufe2: 5,
+      dauerangebote_je_woche: 1
+    }
+    expect(autoPublizieren([], 'kanton')).toBe(false)
+    expect(autoPublizieren([zeile], 'kanton')).toBe(false)
+    expect(autoPublizieren([{ ...zeile, auto_publizieren: true }], 'kanton')).toBe(true)
+    expect(autoPublizieren([{ ...zeile, auto_publizieren: true }], 'sport')).toBe(false)
+  })
+
+  it('zeigt, was der Lauf dieses Tischs publiziert hat — neueste zuerst, 14 Tage', () => {
+    const liste = [
+      meldung({ id: 'alt', publiziert_am: '2026-10-20T12:00:00.000Z' }),
+      meldung({ id: 'gestern' }),
+      meldung({ id: 'heute', publiziert_am: '2026-11-16T12:00:00.000Z' }),
+      meldung({ id: 'person', publiziert_durch: 'redaktion' }),
+      meldung({ id: 'zurueck', status: 'verworfen' }),
+      meldung({ id: 'sport', gemeindemitteilung: null, spiel: { id: 's' } })
+    ]
+    expect(automatischPublizierte(liste, 'gemeinde', '2026-11-16').map((m) => m.id)).toEqual([
+      'heute',
+      'gestern'
+    ])
+    expect(automatischPublizierte(liste, 'sport', '2026-11-16').map((m) => m.id)).toEqual(['sport'])
   })
 })

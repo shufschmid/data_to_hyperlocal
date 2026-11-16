@@ -189,7 +189,7 @@ die in dem Moment veraltet, in dem eine Überarbeitung den Text neu schreibt.
 | `pruefungen.weitere`   | string[]       | alles andere: fehlende Quellenzeile, wörtliche Übernahme, Name einer Privatperson |
 | `bestanden`            | boolean        | true, wenn keine der drei Listen etwas enthält                                    |
 | `gegenpruefung`        | enum           | `ja`, `nein`, `unklar` — oder `keine`, wenn keine angefordert wurde               |
-| `freigabe`             | enum           | `redaktion`, `freigegeben_dann_zeitlauf` oder `unbekannt`                         |
+| `freigabe`             | enum           | `redaktion`, `freigegeben_dann_zeitlauf`, `automatisch` oder `unbekannt`          |
 | `freigegeben_am`       | string \| null | ISO 8601 in UTC                                                                   |
 | `publiziert_am`        | string \| null | ISO 8601 in UTC, dasselbe wie oben                                                |
 | `herkunft`             | object         | `rubrik`, `quelle_name`, `quelle_url` — dieselbe Rechnung wie beim Beitrag        |
@@ -215,7 +215,12 @@ des Veranstaltungstischs — ein Abnehmer, der nur `bestanden` liest, sieht
 Person am Tisch hat publiziert; `freigegeben_dann_zeitlauf` heisst, eine Person
 hat freigegeben und der Zeitlauf hat später ausgespielt — so entsteht jede
 Entsorgungserinnerung, die Wochen im Voraus freigegeben und am Vortag um zwölf
-publiziert wird. `unbekannt` gilt für die Beiträge, die publiziert wurden, bevor
+publiziert wird. `automatisch` (seit Version 1.11.0) ist **keine** Unterschrift:
+Die Redaktion hat für diesen Tisch Auto-Publish eingeschaltet, und der Lauf hat
+seinen eigenen Entwurf publiziert, ohne dass eine Person ihn vorher sah. Das
+geschieht nur bei einem Entwurf ohne Warnung — `bestanden` ist dann `true` —,
+und die Redaktion kann den Beitrag danach zurückziehen (`/korrekturen`).
+`unbekannt` gilt für die Beiträge, die publiziert wurden, bevor
 es diese Markierung gab (bis zum 15. September 2026), und ist ehrlicher als eine
 erfundene Stufe.
 
@@ -639,4 +644,4 @@ ein zehnter Tisch `kanton` in der Bilanz — wieder ein neuer Wert je Enum,
 keine neue Form. Version 1.8.0 am 11. Oktober 2026: ein elfter Tisch
 `verkehr` in der Bilanz; seine Beiträge kommen unter den bestehenden Rubriken
 `kanton` (Radarstandort) und `gemeinde` (Geschwindigkeitskontrollen) — ein
-neuer Wert in EINEM Enum, keine neue Rubrik, keine neue Form. Version 1.9.0 am 12. Oktober 2026: ein zwölfter Tisch `smd` in der Bilanz; seine Beiträge kommen unter der bestehenden Rubrik `presseschau` mit dem Medium als `quelle_name` und der Seite beim Medium als `quelle_url` — oder `null`, wo der Verlag keine Tür hat. Wieder ein neuer Wert in EINEM Enum, keine neue Form. Ohne Versionssprung am 4. November 2026: zwei neue Hinweise unter `pruefsiegel.pruefungen.weitere` (ergänzende Angaben der Redaktion; von der Redaktion selbst geschrieben) — Prosa wie jede Warnung, keine neue Form. Version 1.10.0 am 11. November 2026: Rubrik `buschtelefon` für Beiträge aus Funden in sozialen Netzwerken, mit der Quelle („Facebook-Gruppe «Name»") als `quelle_name` und dem Beitrag — bei einer geschlossenen Gruppe nur der Gruppe, sonst `null` — als `quelle_url`; ein dreizehnter Tisch `buschtelefon` in der Bilanz; neue Hinweise unter `pruefsiegel.pruefungen.weitere` (Herkunft nicht genannt, nicht als unbestätigt gekennzeichnet, möglicher Nachname, Telefonnummer, E-Mail- oder Wohnadresse). Ein neuer Wert je Enum, keine neue Form._
+neuer Wert in EINEM Enum, keine neue Rubrik, keine neue Form. Version 1.9.0 am 12. Oktober 2026: ein zwölfter Tisch `smd` in der Bilanz; seine Beiträge kommen unter der bestehenden Rubrik `presseschau` mit dem Medium als `quelle_name` und der Seite beim Medium als `quelle_url` — oder `null`, wo der Verlag keine Tür hat. Wieder ein neuer Wert in EINEM Enum, keine neue Form. Ohne Versionssprung am 4. November 2026: zwei neue Hinweise unter `pruefsiegel.pruefungen.weitere` (ergänzende Angaben der Redaktion; von der Redaktion selbst geschrieben) — Prosa wie jede Warnung, keine neue Form. Version 1.10.0 am 11. November 2026: Rubrik `buschtelefon` für Beiträge aus Funden in sozialen Netzwerken, mit der Quelle („Facebook-Gruppe «Name»") als `quelle_name` und dem Beitrag — bei einer geschlossenen Gruppe nur der Gruppe, sonst `null` — als `quelle_url`; ein dreizehnter Tisch `buschtelefon` in der Bilanz; neue Hinweise unter `pruefsiegel.pruefungen.weitere` (Herkunft nicht genannt, nicht als unbestätigt gekennzeichnet, möglicher Nachname, Telefonnummer, E-Mail- oder Wohnadresse). Ein neuer Wert je Enum, keine neue Form. Version 1.11.0 am 16. November 2026: `pruefsiegel.freigabe` kennt `automatisch` — der Lauf hat seinen eigenen Entwurf publiziert, weil die Redaktion Auto-Publish für den Tisch eingeschaltet hat; keine Person hat ihn vorher gesehen. Ein neuer Wert in EINEM Enum, keine neue Form._

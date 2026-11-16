@@ -14,6 +14,7 @@ import {
 } from '../../shared/abstimmung'
 import { ladeRegeln } from '../../redaktion/gedaechtnis'
 import { schreibeTagesmeldungen } from '../../redaktion/abstimmungsmeldungen'
+import { autoHinweis, publiziereAutomatisch } from '../../redaktion/autopublish'
 import { heuteIso } from '../../redaktion/feiertage'
 import {
   gemeindeStand,
@@ -353,6 +354,21 @@ export default defineOperationApi<Optionen>({
         )
       for (const f of geschrieben.fehler)
         ergebnis.fehler.push(`${quelle.name}: ${f}`)
+      // Auto-Publish, where the newsroom switched it on for this desk. A
+      // summary written against the Bund's interim result carries a warning
+      // and therefore always waits for a person.
+      const auto = autoHinweis(
+        await publiziereAutomatisch(
+          {
+            meldungen: new ItemsService('meldungen', { schema }),
+            einstellungen: new ItemsService('tischeinstellungen', { schema }),
+            logger
+          },
+          'abstimmung',
+          geschrieben.ids
+        )
+      )
+      if (auto !== null) ergebnis.hinweise.push(`${quelle.name}: ${auto}`)
     }
 
     /**

@@ -16,6 +16,7 @@ import {
   oeffentlicheSeite
 } from '../../shared/kanton'
 import { heuteIso } from '../../redaktion/feiertage'
+import { autoHinweis, publiziereAutomatisch } from '../../redaktion/autopublish'
 import { ladeRegeln } from '../../redaktion/gedaechtnis'
 import { vorfilter } from '../../redaktion/kanton'
 import {
@@ -357,6 +358,20 @@ export default defineOperationApi<Optionen>({
       ergebnis.meldungenWartend = geschrieben.wartend
       ergebnis.meldungenOhneText = geschrieben.ohneText
       ergebnis.fehler.push(...geschrieben.fehler)
+      // Auto-Publish, where the newsroom switched it on for this desk: only
+      // what this run wrote, only without a warning (`autopublish.ts`).
+      const auto = autoHinweis(
+        await publiziereAutomatisch(
+          {
+            meldungen: artikel,
+            einstellungen: new ItemsService('tischeinstellungen', { schema }),
+            logger
+          },
+          'kanton',
+          geschrieben.ids
+        )
+      )
+      if (auto !== null) ergebnis.hinweise.push(auto)
     } catch (fehler) {
       logger.warn(fehler, 'kanton: Meldungen schreiben fehlgeschlagen.')
       ergebnis.fehler.push(`Meldungen: ${fehlerText(fehler)}`)

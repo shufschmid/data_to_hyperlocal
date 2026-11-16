@@ -1,0 +1,46 @@
+{
+  "collection": "tischeinstellungen",
+  "field": "auto_publizieren",
+  "type": "boolean",
+  "meta": {
+    "collection": "tischeinstellungen",
+    "conditions": null,
+    "display": "boolean",
+    "display_options": null,
+    "field": "auto_publizieren",
+    "group": null,
+    "hidden": false,
+    "interface": "boolean",
+    "note": "Auto-Publish: Der Lauf publiziert die Entwuerfe, die er zu Vorschlaegen selbst geschrieben hat — nur ohne Warnung. Aus ist der Standard.",
+    "options": {
+      "label": "Entwuerfe des Laufs automatisch publizieren"
+    },
+    "readonly": false,
+    "required": false,
+    "searchable": true,
+    "sort": 9,
+    "special": null,
+    "translations": null,
+    "validation": null,
+    "validation_message": null,
+    "width": "half"
+  },
+  "schema": {
+    "name": "auto_publizieren",
+    "table": "tischeinstellungen",
+    "data_type": "boolean",
+    "default_value": false,
+    "max_length": null,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "is_nullable": false,
+    "is_unique": false,
+    "is_indexed": false,
+    "is_primary_key": false,
+    "is_generated": false,
+    "generation_expression": null,
+    "has_auto_increment": false,
+    "foreign_key_table": null,
+    "foreign_key_column": null
+  }
+}

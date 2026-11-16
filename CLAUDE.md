@@ -394,8 +394,9 @@ them is wrong even if it works.
    a lead carries its page's text itself in `quelltext`, so it outlives its
    issue). „Chefredaktion" is the fifth tab and the SECOND desk: the leads
    and the pending Perle decisions live there with a count badge, and they
-   deliberately survive new issues — the chief editor clears them by verdict,
-   however long that takes. The Wochenblätter desk, by contrast, cleans
+   deliberately survive new issues — the chief editor clears them by verdict.
+   Since 16 November 2026 they lie on the desk for fourteen days and in its
+   archive after that, uncounted (see „The fourteen-day window"). The Wochenblätter desk, by contrast, cleans
    itself twice over: FINISHED work vanishes immediately from the view
    (`bleibtAufDemTisch` — published, verworfen, abgelehnt and weitergereicht
    drop off; an übernommene Meldung stays while it is being edited), and when
@@ -1791,6 +1792,7 @@ them is wrong even if it works.
 | a new rule about what a Verkehr-Meldung may say                                              | `redaktion/verkehr.ts` — the two prompts (Radarstandort, Geschwindigkeitskontrollen) **and** the checks (Attribution an die Polizei BL bzw. die Gemeindepolizei, Ziffern gegen die Angaben, absolute Daten, keine Links); the figures themselves are `zusammenfassung` in `shared/verkehr/parse.ts`, code over every line                                                                                                                                                                                                                                         |
 | a second municipality's speed-control sheet, or another radar list                           | a `quellen` row: `typ: geschwindigkeitskontrollen` with `konfiguration.gemeinde_bfs` (+ `polizei`) where the table is Reinach's, else a second parser in `shared/verkehr/`; `typ: radar_bl` reads one page through the canton's data door, its PDF only when the address changes                                                                                                                                                                                                                                                                                  |
 | a Meldung the source does not carry enough for — the editor knows more, or writes it herself | the button «Mit eigenen Angaben» beside every «Meldung schreiben» (`components/EigeneMeldung.tsx`): ergänzende Angaben go to the SAME `…/meldung` endpoint as `{ergaenzung}` and ride into the prompt as a block of their own, their digits allowed, their days possible termine, never attributed to the source; `{eigene: {titel, lead, text}}` creates the article without a model call, the source line still the code's. Rules and faces in `redaktion/ergaenzung.ts`; both are kept in `datengrundlage.ergaenzung` so a chat revision hands them over again |
+| which desks publish their run's drafts by themselves (Auto-Publish)                          | «Gelerntes» → «Auto-Publish»: `tischeinstellungen.auto_publizieren` per desk, off by default. Rules in `redaktion/autopublish.ts` (only this run's drafts, only without a warning, signed `automatik`); a new desk joins `AUTO_TISCHE` there AND in `lib/tische.ts`, its writer returns `ids`, and its run calls `publiziereAutomatisch`                                                                                                                                                                                                                          |
 | a new environment variable                                                                   | `apps/directus/.env.example` **and** root `.env.example` **and** docker-compose.yml                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | what a desk's model calls cost, or a new model call                                          | «Gelerntes» → «Kosten» reads `modellaufrufe` (`GET /redaktion/verbrauch?tage=N`, `redaktion/verbrauch.ts`). Every call to `shared/claude.ts` names `zweck: 'tisch:zweck'`; a retry is its own purpose (`…:nachfassen`). In money since 1.10.2026: the prices per model are rows in `modellpreise`, edited in the same card                                                                                                                                                                                                                                        |
 | which model or token budget a desk or one purpose uses                                       | «Gelerntes» → «Kosten» → the desk → «Einstellen»: a row in `modelleinstellungen` per `zweck` or per `tisch` (`POST /redaktion/modelleinstellungen`), read by `shared/claude.ts` before every call (`wirksameOptionen`), cached a minute by `hooks/modellverbrauch`. Empty means: as in the code. Never a constant per desk                                                                                                                                                                                                                                        |
@@ -2999,6 +3001,70 @@ dashboard, and turn the tokens into costs. Three things, each with its reason.
   the same `modellaufrufe`, with the constraint amended in the same commit.
   Nothing of that exists today, and `pruefeEinstellung` refuses a model id
   without the `claude-` prefix on purpose.
+
+## The fourteen-day window of the workspace
+
+**Since 16 November 2026 three views show the last fourteen days and keep the
+rest one click away** (`apps/front/src/lib/archiv.ts`, `ARCHIV_TAGE`). It is a
+VIEW: nothing is deleted and no status changes. Measured on the day: the
+Chefredaktion desk held 124 open leads, 98 of them older than two weeks, plus
+14 open Perle questions, and its badge read 99+ for good; the two broadcast
+desks had grown to 174 and 68 editions, each loaded with its whole
+transcript, of which the newest fifty were shown without saying so.
+
+- **Chefredaktion.** Open leads and open Perle questions stay on the desk for
+  fourteen days from their creation; older ones lie in the ARCHIVE below
+  («Archiv zeigen»), with every button they had. The badge counts the desk,
+  not the archive (`anzahlChefredaktion`). This replaces the earlier rule
+  that both piles stay put until decided — they still survive new issues,
+  and a verdict on an archived row teaches exactly as before. A row without
+  a date counts as current: an unknown age never hides anything.
+- **Regionaljournal and punkt6.** The edition queries take a lower bound
+  (`$ab`, `tagVor()`): the last fourteen days load by default, «Ältere
+  Sendungen laden» loads everything, and the old silent `limit: 50` is gone.
+  The badge (`anzahlOffen`) counts only candidates of the same window — a
+  taken-over candidate of 25 September whose draft was never published kept
+  the Regionaljournal badge at 1 for seven weeks on a desk where everything
+  visible was done.
+
+## Auto-Publish — what a run may put out without a click
+
+**Since 16 November 2026 a run may publish the drafts it wrote itself, desk by
+desk.** The newsroom's words: several areas work very well already; give every
+one the option, I switch them on one at a time, and what went out must stay
+visible or be unpublishable by hand. `redaktion/autopublish.ts` is the whole
+mechanism, and six things hold it in place.
+
+- **The switch is `tischeinstellungen.auto_publizieren`**, one row per desk,
+  off by default and off when unreadable — «Gelerntes» → «Auto-Publish»
+  (`POST /redaktion/tische/:tisch`, `tischFelder`). It exists on the desks
+  whose RUN writes drafts — `gemeinde`, `kanton`, `buschtelefon`, `sport`,
+  `abstimmung` (`AUTO_TISCHE`) — and nowhere else: Amtsblatt, SMD,
+  Wochenblätter, Veranstaltungen, Verkehr and the Südanflug write only on a
+  click, so there is nothing for it to publish. Giving one of them the option
+  means first deciding that its run writes drafts.
+- **Only what THIS run wrote.** Every batch writer hands back the ids it
+  created (`ids` on its result); nothing older is touched, so switching the
+  option on never publishes a backlog, and a draft an editor asked for or
+  revised stays hers. «Above the relevance grade» follows from that: a run
+  drafts only proposals, i.e. rows at or above the desk's threshold.
+- **Only a draft without a warning** (`haltegrund`). A warning is a check that
+  found something, and a person reads it first — which is why a vote summary
+  written against the Bund's interim result never goes out by itself.
+- **Through the status hook, one row at a time**, like «Alle publizieren»; a
+  refusal is counted in the run's hint line (`autoHinweis`), never thrown.
+- **Signed as what it is.** `publiziert_durch: 'automatik'`, and the
+  Prüfsiegel says `freigabe: automatisch` (contract 1.11.0) — not a
+  signature, and never `redaktion`. On the Buschtelefon desk the published
+  draft takes its find over (`markiereUebernommen`), as sending it on by hand
+  does.
+- **Visible and reversible on the desk.** `components/AutoPubliziert.tsx`
+  hangs under each of the five desks (`autoKasten` in `RedaktionPanel.tsx`):
+  what the desk's run published in the last fourteen days
+  (`automatischPublizierte` in `lib/tische.ts`), readable in place, with
+  «Zurückziehen» — the ordinary `verwerfen`, so the hook stamps
+  `zurueckgezogen_am` and `/api/v1/korrekturen` carries it out. The box stays
+  away while the switch is off and nothing went out.
 
 ## Deployment
 

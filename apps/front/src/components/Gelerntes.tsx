@@ -19,7 +19,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import type { RecherchehinweisFelder, TischeinstellungFelder, WissenFelder } from '@/graphql/redaktion'
 import type { Modellpreis, VerbrauchsBilanz } from '@/lib/verbrauch'
-import { EINSTELLBARE_TISCHE, einstellungFuer, SCHWELLEN } from '@/lib/tische'
+import { AUTO_TISCHE, autoPublizieren, EINSTELLBARE_TISCHE, einstellungFuer, SCHWELLEN } from '@/lib/tische'
 import { Kosten } from './Kosten'
 import {
   automatikBilanz,
@@ -57,7 +57,7 @@ export interface GelerntesProps {
   onAnlegen: (regel: NeueRegel) => Promise<void>
   /** Die Regler je Tisch — Schwelle und Vorlauf; ohne `onTisch` bleibt der Abschnitt weg. */
   tische?: readonly TischeinstellungFelder[]
-  onTisch?: (tisch: string, felder: Record<string, number>) => Promise<void>
+  onTisch?: (tisch: string, felder: Record<string, number | boolean>) => Promise<void>
   /** Was die Modellaufrufe kosteten, je Tisch — null, solange nichts geladen ist. */
   verbrauch?: VerbrauchsBilanz | null
   onVerbrauchTage?: (tage: number) => void
@@ -90,7 +90,7 @@ function TischRegler({
   text: string
   zeilen: readonly TischeinstellungFelder[]
   laeuft: boolean
-  onTisch: (tisch: string, felder: Record<string, number>) => Promise<void>
+  onTisch: (tisch: string, felder: Record<string, number | boolean>) => Promise<void>
 }) {
   const aktuell = einstellungFuer(zeilen, tisch)
   const [vorlaeufe, setVorlaeufe] = useState<Vorlaufe | null>(null)
@@ -323,6 +323,40 @@ export function Gelerntes({
                 zeilen={tische}
                 laeuft={laeuft}
                 onTisch={onTisch}
+              />
+            ))}
+          </Stack>
+        </Paper>
+      )}
+
+      {/* Auto-Publish: je Tisch einzeln, aus ist der Standard. Nur die Tische
+          stehen hier, deren Lauf die Entwürfe selbst schreibt — sonst gäbe es
+          nichts zu publizieren. */}
+      {onTisch !== undefined && (
+        <Paper sx={{ p: 2 }}>
+          <Stack spacing={1.5}>
+            <Typography variant="subtitle2">Auto-Publish — was ohne Klick hinausgeht</Typography>
+            <Typography variant="caption" color="text.secondary">
+              Eingeschaltet publiziert der Lauf die Entwürfe, die er zu den Vorschlägen eines Tischs selbst
+              schreibt — also zu allem ab der Schwelle des Tischs. Ein Entwurf mit einer Warnung bleibt liegen
+              und wartet auf dich; ältere Entwürfe und alles, was du selbst angestossen oder überarbeitet
+              hast, rührt Auto-Publish nicht an. Was hinausging, steht 14 Tage unten auf dem Tisch und lässt
+              sich dort zurückziehen. Die übrigen Tische schreiben erst auf deinen Klick und haben darum
+              keinen Schalter.
+            </Typography>
+            {AUTO_TISCHE.map((t) => (
+              <FormControlLabel
+                key={t.wert}
+                control={
+                  <Switch
+                    size="small"
+                    checked={autoPublizieren(tische, t.wert)}
+                    disabled={laeuft}
+                    onChange={(e) => void onTisch(t.wert, { auto_publizieren: e.target.checked })}
+                    slotProps={{ input: { 'aria-label': `Auto-Publish ${t.text}` } }}
+                  />
+                }
+                label={t.text}
               />
             ))}
           </Stack>

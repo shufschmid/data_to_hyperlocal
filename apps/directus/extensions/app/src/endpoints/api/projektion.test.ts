@@ -799,6 +799,14 @@ describe('pruefsiegel', () => {
     )
   })
 
+  // Auto-Publish ist keine Unterschrift: der Lauf publizierte seinen eigenen
+  // Entwurf, und das Siegel sagt es, statt eine Person zu nennen.
+  it('nennt eine automatische Publikation beim Namen', () => {
+    expect(pruefsiegel(zeile({ publiziert_durch: 'automatik' })).freigabe).toBe(
+      'automatisch'
+    )
+  })
+
   // Altbestand: 167 Beitraege standen publiziert, bevor es das Feld gab.
   it('sagt bei Altbestand unbekannt statt etwas zu erfinden', () => {
     expect(

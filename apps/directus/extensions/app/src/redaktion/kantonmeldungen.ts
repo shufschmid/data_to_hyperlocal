@@ -303,6 +303,8 @@ export async function schreibeKantonMeldung(
 
 export interface KantonMeldungenErgebnis {
   geschrieben: number
+  /** Die Meldungen, die dieser Lauf geschrieben hat — fuer Auto-Publish (`redaktion/autopublish.ts`). */
+  ids: string[]
   /** Vorschlaege ohne lesbaren Text — benannt, nie still uebergangen. */
   ohneText: string[]
   /** Was der Deckel dieses Laufs liegen liess; der naechste holt es. */
@@ -317,6 +319,7 @@ export async function schreibeKantonMeldungen(
 ): Promise<KantonMeldungenErgebnis> {
   const ergebnis: KantonMeldungenErgebnis = {
     geschrieben: 0,
+    ids: [],
     ohneText: [],
     wartend: 0,
     fehler: []
@@ -360,7 +363,11 @@ export async function schreibeKantonMeldungen(
       continue
     }
     try {
-      await schreibeKantonMeldung({ ...kontext, wichtigkeit }, zeile)
+      const { meldung } = await schreibeKantonMeldung(
+        { ...kontext, wichtigkeit },
+        zeile
+      )
+      ergebnis.ids.push(meldung)
       ergebnis.geschrieben += 1
     } catch (fehler) {
       kontext.logger.warn(

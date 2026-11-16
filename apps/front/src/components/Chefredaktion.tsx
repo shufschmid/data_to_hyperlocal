@@ -17,14 +17,18 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import ForumOutlined from '@mui/icons-material/ForumOutlined'
 import type { BuschtelefonHinweisFund, PerleFelder, RecherchehinweisFelder } from '@/graphql/redaktion'
+import { ARCHIV_TAGE, teileNachAlter } from '@/lib/archiv'
 import { seitenLink } from '@/lib/redaktion'
 import { fundKopf, fundNochDa, GESCHLOSSEN_SATZ, ORIGINAL_WEG, sichtbarkeitText } from '@/lib/buschtelefon'
 import { BeitragWortlaut, KommentarListe } from './BuschtelefonMaterial'
 import { Originaltext } from './Presseschau'
 
 // The chief editor's desk: everything that is NOT the everyday take-or-reject
-// loop of the weekly-paper tab. Two piles, both staying put until she decides
-// — they deliberately survive new issues:
+// loop of the weekly-paper tab. Two piles that survive new issues — and since
+// 16 November 2026 only for FOURTEEN DAYS on the desk itself: what is older
+// lies in the archive below, one click away with every button it had, and
+// the badge no longer counts it (`lib/archiv.ts`). The desk held 124 open
+// leads, 98 of them older than two weeks, and its counter read 99+ for good.
 //
 // - Recherche-Hinweise: leads for the newsroom's own reporting, proposed by
 //   the inventory (Leserbriefe etc.) or handed over by the editor. Never
@@ -48,6 +52,8 @@ export interface ChefredaktionProps {
   onPerle: (kandidatId: string, perle: boolean, kommentar: string) => Promise<void>
   /** Gives a hand-up back to its desk — the way back for a lead a rule made. */
   onZurueck?: (hinweisId: string) => Promise<void>
+  /** The clock — tests replay a day. */
+  heute?: Date
 }
 
 /** Which desk a lead came from — read off the origin link, never stored twice. */
@@ -132,12 +138,14 @@ function BuschtelefonFaehrte({ fund }: { fund: BuschtelefonHinweisFund }) {
 
 export function Chefredaktion({
   hinweise,
-  perlen,
+  perlen: allePerlen,
   laeuft = false,
   onHinweisUrteil,
   onPerle,
-  onZurueck
+  onZurueck,
+  heute: uhr
 }: ChefredaktionProps) {
+  const heute = useMemo(() => uhr ?? new Date(), [uhr])
   const [urteil, setUrteil] = useState<{
     hinweis: RecherchehinweisFelder
     brauchbar: boolean
@@ -146,7 +154,15 @@ export function Chefredaktion({
   const [perlenUrteil, setPerlenUrteil] = useState<{ perle: PerleFelder; ja: boolean } | null>(null)
   const [perlenKommentar, setPerlenKommentar] = useState('')
 
-  const offeneHinweise = useMemo(() => hinweise.filter((h) => h.status === 'offen'), [hinweise])
+  const alleOffenenHinweise = useMemo(() => hinweise.filter((h) => h.status === 'offen'), [hinweise])
+  // Fourteen days on the desk, then the archive: nothing is deleted, the
+  // older rows are simply not shown until she asks for them.
+  const [archivOffen, setArchivOffen] = useState(false)
+  const hinweisTeile = useMemo(() => teileNachAlter(alleOffenenHinweise, heute), [alleOffenenHinweise, heute])
+  const perlenTeile = useMemo(() => teileNachAlter(allePerlen, heute), [allePerlen, heute])
+  const imArchiv = hinweisTeile.archiv.length + perlenTeile.archiv.length
+  const offeneHinweise = archivOffen ? alleOffenenHinweise : hinweisTeile.aktuell
+  const perlen = archivOffen ? allePerlen : perlenTeile.aktuell
 
   async function beurteilen() {
     if (urteil === null) return
@@ -165,13 +181,19 @@ export function Chefredaktion({
   return (
     <Stack spacing={2}>
       {offeneHinweise.length === 0 && perlen.length === 0 && (
-        <Alert severity="success">Der Tisch ist leer — keine offenen Fährten, keine Perlen-Entscheide.</Alert>
+        <Alert severity="success">
+          Der Tisch ist leer — keine offenen Fährten, keine Perlen-Entscheide
+          {imArchiv > 0 ? ` aus den letzten ${ARCHIV_TAGE} Tagen` : ''}.
+        </Alert>
       )}
 
       {perlen.length > 0 && (
         <Paper sx={{ p: 2, borderLeft: 4, borderColor: 'secondary.main' }}>
           <Stack spacing={1.5}>
-            <Typography variant="subtitle2">Perlen-Entscheide ({perlen.length} offen)</Typography>
+            <Typography variant="subtitle2">
+              Perlen-Entscheide ({perlenTeile.aktuell.length} offen
+              {archivOffen ? `, ${perlenTeile.archiv.length} im Archiv` : ''})
+            </Typography>
             <Typography variant="caption" color="text.secondary">
               Beiträge, die das Inventar für überörtlich kurios hält — Perle heisst: auch die Stadt will die
               Geschichte. Der Entscheid gilt dem Beitrag selbst, unabhängig davon, ob daraus eine Meldung
@@ -244,7 +266,10 @@ export function Chefredaktion({
       {offeneHinweise.length > 0 && (
         <Paper sx={{ p: 2, borderLeft: 4, borderColor: 'warning.main' }}>
           <Stack spacing={1.5}>
-            <Typography variant="subtitle2">Recherche-Hinweise ({offeneHinweise.length} offen)</Typography>
+            <Typography variant="subtitle2">
+              Recherche-Hinweise ({hinweisTeile.aktuell.length} offen
+              {archivOffen ? `, ${hinweisTeile.archiv.length} im Archiv` : ''})
+            </Typography>
             {offeneHinweise.map((h) => {
               const pdfUrl = h.ausgabe?.pdf_url ?? null
               const fund = h.buschtelefon_fund ?? null
@@ -332,6 +357,18 @@ export function Chefredaktion({
             })}
           </Stack>
         </Paper>
+      )}
+
+      {imArchiv > 0 && (
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', gap: 0.5 }}>
+          <Typography variant="body2" color="text.secondary">
+            Archiv: {imArchiv} {imArchiv === 1 ? 'Eintrag' : 'Einträge'} älter als {ARCHIV_TAGE} Tage,
+            unentschieden — nicht mehr im Zähler.
+          </Typography>
+          <Button size="small" onClick={() => setArchivOffen((o) => !o)}>
+            {archivOffen ? 'Archiv ausblenden' : 'Archiv zeigen'}
+          </Button>
+        </Stack>
       )}
 
       {/* The lead verdict dialog — "war das ein Recherchehinweis?" is the

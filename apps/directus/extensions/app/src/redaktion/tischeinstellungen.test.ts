@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 import {
   anlassVorschlag,
   imVorlauf,
+  istTischMitEinstellung,
   istVorschlag,
   ladeTischeinstellung,
+  tischFelder,
   STANDARD_EINSTELLUNG,
   stufeAus,
   tischeinstellungAus,
@@ -138,5 +140,43 @@ describe('ladeTischeinstellung', () => {
     expect(await ladeTischeinstellung(kaputt, 'gemeinde', STILL)).toEqual(
       STANDARD_EINSTELLUNG
     )
+  })
+})
+
+describe('tischFelder with Auto-Publish', () => {
+  it('takes the switch alone on a desk that grades nothing', () => {
+    expect(tischFelder('kanton', { auto_publizieren: true })).toEqual({
+      auto_publizieren: true
+    })
+    expect(tischFelder('sport', { auto_publizieren: false })).toEqual({
+      auto_publizieren: false
+    })
+  })
+
+  it('takes switch and threshold together on a grading desk', () => {
+    expect(
+      tischFelder('gemeinde', { auto_publizieren: true, schwelle: 2 })
+    ).toEqual({ schwelle: 2, auto_publizieren: true })
+    expect(
+      tischFelder('buschtelefon', { auto_publizieren: true, vorlauf_stufe4: 9 })
+    ).toEqual({ auto_publizieren: true })
+  })
+
+  it('refuses the switch where no run writes drafts, and anything but a boolean', () => {
+    expect(() =>
+      tischFelder('veranstaltung', { auto_publizieren: true })
+    ).toThrow(/Auto-Publish/)
+    expect(() => tischFelder('gemeinde', { auto_publizieren: 'ja' })).toThrow(
+      /ein oder aus/
+    )
+  })
+
+  it('refuses an empty body and a threshold on a desk without one', () => {
+    expect(() => tischFelder('kanton', {})).toThrow(/Keine Einstellung/)
+    expect(() => tischFelder('kanton', { schwelle: 2 })).toThrow(
+      /Keine Einstellung/
+    )
+    expect(istTischMitEinstellung('abstimmung')).toBe(true)
+    expect(istTischMitEinstellung('amtsblatt')).toBe(false)
   })
 })

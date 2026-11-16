@@ -36,8 +36,8 @@ export interface Punkt6EditionsQueryResult {
 }
 
 export const PUNKT6_EDITIONS_QUERY = gql`
-  query Punkt6Editions($limit: Int = 50) {
-    punkt6_editions(limit: $limit, sort: ["-broadcast_date"]) {
+  query Punkt6Editions($ab: String = "1900-01-01") {
+    punkt6_editions(filter: { broadcast_date: { _gte: $ab } }, limit: -1, sort: ["-broadcast_date"]) {
       id
       broadcast_date
       headline

@@ -11,7 +11,7 @@
     "group": null,
     "hidden": false,
     "interface": "select-dropdown",
-    "note": "Der Tisch: gemeinde (Gemeindeseiten), veranstaltung (Veranstaltungen) oder buschtelefon (Buschtelefon).",
+    "note": "Der Tisch. Benotend (Schwelle): gemeinde, veranstaltung, buschtelefon. Nur fuer Auto-Publish: kanton, sport, abstimmung.",
     "options": {
       "choices": [
         {
@@ -25,6 +25,18 @@
         {
           "text": "Buschtelefon",
           "value": "buschtelefon"
+        },
+        {
+          "text": "Kanton",
+          "value": "kanton"
+        },
+        {
+          "text": "Sportresultate",
+          "value": "sport"
+        },
+        {
+          "text": "Abstimmungen",
+          "value": "abstimmung"
         }
       ]
     },

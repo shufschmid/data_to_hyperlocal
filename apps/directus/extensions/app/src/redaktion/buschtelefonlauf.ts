@@ -165,6 +165,15 @@ export interface AbholDienste {
     fundId: string,
     regel: NummerierteRegel
   ) => Promise<void>
+  /**
+   * Auto-Publish for the drafts this run wrote (`redaktion/autopublish.ts`),
+   * bound to its services by the operation. Answers the line for the run's
+   * hints, or null when nothing happened. Left out: every draft waits for a
+   * person.
+   */
+  autoPublizieren?: (
+    entwuerfe: ReadonlyArray<{ meldung: string; fund: string }>
+  ) => Promise<string | null>
   logger: Logger
   env?: NodeJS.ProcessEnv
   fetchImpl?: FetchLike
@@ -1775,6 +1784,10 @@ export async function holeAb(
     ergebnis.entwuerfe = geschrieben.geschrieben
     ergebnis.wartend = geschrieben.wartend
     ergebnis.fehler.push(...geschrieben.fehler)
+    if (dienste.autoPublizieren !== undefined && geschrieben.ids.length > 0) {
+      const auto = await dienste.autoPublizieren(geschrieben.ids)
+      if (auto !== null) ergebnis.hinweise.push(auto)
+    }
     if (geschrieben.ohneGemeinde > 0)
       ergebnis.hinweise.push(
         `${geschrieben.ohneGemeinde} ${geschrieben.ohneGemeinde === 1 ? 'Vorschlag' : 'Vorschläge'} ohne Gemeinde — kein Entwurf, bis eine zugeordnet ist.`

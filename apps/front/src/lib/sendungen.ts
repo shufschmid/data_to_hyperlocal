@@ -1,4 +1,5 @@
 import type { AlleMeldungFelder, SendungskandidatFelder } from '@/graphql/redaktion'
+import { istArchiv } from './archiv'
 
 // Presentation rules for the two broadcast tabs. Pure, so they are tested
 // without rendering a card.
@@ -70,13 +71,22 @@ export function meldungJeKandidat<T extends { sendungskandidat: { id: string } |
  *
  * Only the candidates — the shows themselves are a review queue that never
  * empties, and counting their contributions would make the number meaningless.
+ *
+ * And only those of the last fourteen days (16.11.2026): the desk loads that
+ * window, and a taken-over candidate whose draft was forgotten in September
+ * kept the Regionaljournal badge at 1 for seven weeks on a desk where
+ * everything visible was done. An older one is still there under «Ältere
+ * Sendungen laden».
  */
 export function anzahlOffen(
   kandidaten: readonly SendungskandidatFelder[],
-  meldungen: readonly AlleMeldungFelder[] = []
+  meldungen: readonly AlleMeldungFelder[] = [],
+  heute: Date = new Date()
 ): number {
   const status = meldungJeKandidat(meldungen)
-  return kandidaten.filter((k) => bleibtOffen(k, status.get(k.id)?.status ?? null)).length
+  return kandidaten.filter(
+    (k) => !istArchiv(k.date_created, heute) && bleibtOffen(k, status.get(k.id)?.status ?? null)
+  ).length
 }
 
 /** `261` → `4:21`. The timestamp a listener actually jumps to. */

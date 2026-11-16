@@ -79,7 +79,10 @@ describe('Die Liste erlaubter Aktionen', () => {
       expect(darfSchreiben(pfad)).toBe(true)
     expect(darfSchreiben(`buschtelefon/${BEISPIEL_ID}/loeschen`)).toBe(false)
     expect(darfSchreiben('buschtelefon/lauf')).toBe(false)
-    expect(darfSchreiben('tische/kanton')).toBe(false)
+    // Seit 16.11.2026 haben auch die Tische ohne Schwelle eine Zeile: der
+    // Schalter «Auto-Publish». Ein Tisch, dessen Lauf nichts schreibt, nicht.
+    for (const tisch of ['kanton', 'sport', 'abstimmung']) expect(darfSchreiben(`tische/${tisch}`)).toBe(true)
+    expect(darfSchreiben('tische/amtsblatt')).toBe(false)
   })
 
   it('liest nur die Pfade, deren Zustand im Prozess lebt', () => {

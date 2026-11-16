@@ -335,7 +335,8 @@ import {
 } from '../../redaktion/smd'
 import { wissenFelderManuell } from '../../redaktion/wissen'
 import {
-  istEinstellbarerTisch,
+  istTischMitEinstellung,
+  STANDARD_EINSTELLUNG,
   tischFelder
 } from '../../redaktion/tischeinstellungen'
 import {
@@ -6069,13 +6070,15 @@ export default defineEndpoint(
     // One row per grading desk in `tischeinstellungen`; the rules of what a
     // value may be are `tischeinstellungFelder`; `tischFelder` narrows them to
     // what the desk reads (the Buschtelefon desk: the threshold alone).
-    // Upsert, so the gear works before the seed row exists.
+    // Upsert, so the gear works before the seed row exists. Since 16.11.2026
+    // the row also carries `auto_publizieren` — the one setting of the desks
+    // whose run writes drafts but grades nothing (`redaktion/autopublish.ts`).
     router.post(
       '/tische/:tisch',
       async (req: ApiRequest, res: Response, next: NextFunction) => {
         if (!isAuthenticated(req)) return next(new NichtAngemeldet())
         const tisch = req.params['tisch']
-        if (!istEinstellbarerTisch(tisch)) return next(new UnbekannterTisch())
+        if (!istTischMitEinstellung(tisch)) return next(new UnbekannterTisch())
 
         let felder: Record<string, unknown>
         try {
@@ -6106,7 +6109,15 @@ export default defineEndpoint(
           })) as Array<{ id: string }>
           let id: string
           if (vorhanden === undefined) {
-            id = (await tische.createOne({ tisch, ...felder })) as string
+            // A desk that grades nothing (Kanton, Sport, Abstimmungen) has no
+            // row until its Auto-Publish switch is first touched.
+            // The threshold is written out: the column is required, and a
+            // row created by the switch alone must not depend on a default.
+            id = (await tische.createOne({
+              tisch,
+              schwelle: STANDARD_EINSTELLUNG.schwelle,
+              ...felder
+            })) as string
           } else {
             await tische.updateOne(vorhanden.id, felder)
             id = vorhanden.id

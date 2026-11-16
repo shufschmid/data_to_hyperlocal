@@ -260,7 +260,10 @@ export type Entscheidung = 'ja' | 'nein' | 'unklar'
  * a person clicking at the desk, `zeitlauf` the scheduled run putting out an
  * article somebody approved earlier.
  */
-export type Publikationsakteur = 'redaktion' | 'zeitlauf'
+// `automatik`: a run published its own draft because the newsroom switched
+// Auto-Publish on for that desk (`redaktion/autopublish.ts`) — no person saw
+// the article before it went out, and the Pruefsiegel says so.
+export type Publikationsakteur = 'redaktion' | 'zeitlauf' | 'automatik'
 
 /**
  * An article, whatever it was written from.
@@ -1564,7 +1567,15 @@ export interface Geschwindigkeitskontrolle {
 /** One row per grading desk: the newsroom's threshold and leads — see `redaktion/tischeinstellungen.ts`. */
 export interface Tischeinstellung {
   id: string
-  tisch: 'gemeinde' | 'veranstaltung' | 'buschtelefon'
+  tisch:
+    | 'gemeinde'
+    | 'veranstaltung'
+    | 'buschtelefon'
+    | 'kanton'
+    | 'sport'
+    | 'abstimmung'
+  /** Auto-Publish for the drafts the desk's run writes — `redaktion/autopublish.ts`. */
+  auto_publizieren: boolean
   schwelle: number
   vorlauf_stufe4: number
   vorlauf_stufe3: number

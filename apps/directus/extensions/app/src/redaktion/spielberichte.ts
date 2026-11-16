@@ -88,6 +88,8 @@ export interface SpielberichtErgebnis {
   /** Drafts rewritten because their telegram arrived after the first write. */
   erneuert: number
   fehlgeschlagen: string[]
+  /** The reports this pass CREATED (not the rewritten ones) — for Auto-Publish (`redaktion/autopublish.ts`). */
+  ids: string[]
 }
 
 // Ask for the ids explicitly: requesting `gemeinde` alongside `gemeinde.name`
@@ -192,6 +194,7 @@ export async function schreibeSpielberichte(
   let erzeugt = 0
   let erneuert = 0
   const fehlgeschlagen: string[] = []
+  const ids: string[] = []
 
   for (const spiel of offen) {
     try {
@@ -306,11 +309,15 @@ export async function schreibeSpielberichte(
         await kontext.meldungen.updateOne(entwurf, felder)
         erneuert += 1
       } else {
-        await kontext.meldungen.createOne({
-          spiel: spiel.id,
-          gemeinde: spiel.gemeinde.id,
-          ...felder
-        })
+        ids.push(
+          String(
+            await kontext.meldungen.createOne({
+              spiel: spiel.id,
+              gemeinde: spiel.gemeinde.id,
+              ...felder
+            })
+          )
+        )
         erzeugt += 1
       }
     } catch (fehler) {
@@ -323,5 +330,5 @@ export async function schreibeSpielberichte(
     }
   }
 
-  return { erzeugt, offen: offen.length, erneuert, fehlgeschlagen }
+  return { erzeugt, offen: offen.length, erneuert, fehlgeschlagen, ids }
 }

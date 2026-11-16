@@ -347,7 +347,16 @@ describe('Buschtelefon-Datenmodell', () => {
       bereich?.schema.max_length ?? 0
     )
     const tisch = felder('tischeinstellungen').get('tisch')
-    expect(werte(tisch)).toEqual(['gemeinde', 'veranstaltung', 'buschtelefon'])
+    // The three grading desks first; since 16.11.2026 the desks that only
+    // carry the Auto-Publish switch follow.
+    expect(werte(tisch)).toEqual([
+      'gemeinde',
+      'veranstaltung',
+      'buschtelefon',
+      'kanton',
+      'sport',
+      'abstimmung'
+    ])
   })
 
   it('lässt den Flow um 12, 13 und 14 Uhr auf seine Operation zeigen — und sie zurück', () => {

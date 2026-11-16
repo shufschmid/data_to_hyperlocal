@@ -949,6 +949,8 @@ export interface TischeinstellungFelder {
   vorlauf_stufe3: number
   vorlauf_stufe2: number
   dauerangebote_je_woche: number
+  /** Auto-Publish: der Lauf publiziert seine eigenen Entwürfe ohne Warnung. Optional, weil eine ältere Antwort das Feld nicht kennt. */
+  auto_publizieren?: boolean | null
 }
 
 export interface TischeinstellungenErgebnis {
@@ -965,6 +967,7 @@ export const TISCHEINSTELLUNGEN_QUERY = gql`
       vorlauf_stufe3
       vorlauf_stufe2
       dauerangebote_je_woche
+      auto_publizieren
     }
   }
 `
@@ -1231,7 +1234,7 @@ export interface RecherchehinweiseErgebnis {
 
 export const RECHERCHEHINWEISE_QUERY = gql`
   query Recherchehinweise {
-    recherchehinweise(sort: ["-date_created"], limit: 100) {
+    recherchehinweise(sort: ["-date_created"], limit: -1) {
       id
       titel
       fundort
@@ -1320,6 +1323,8 @@ export interface PerleFelder {
   zusammenfassung: string | null
   perle_begruendung: string | null
   entscheid: string
+  /** Wann der Kandidat entstand — nach vierzehn Tagen liegt die Perlen-Frage im Archiv (`lib/archiv.ts`). */
+  date_created?: string | null
   gemeinde: { id: string; name: string } | null
   ausgabe: {
     id: string
@@ -1339,7 +1344,7 @@ export const OFFENE_PERLEN_QUERY = gql`
     wochenblattkandidaten(
       filter: { perle_vorschlag: { _eq: true }, perle: { _null: true } }
       sort: ["-date_created"]
-      limit: 50
+      limit: -1
     ) {
       id
       titel
@@ -1347,6 +1352,7 @@ export const OFFENE_PERLEN_QUERY = gql`
       zusammenfassung
       perle_begruendung
       entscheid
+      date_created
       gemeinde {
         id
         name
@@ -1920,6 +1926,8 @@ export interface SendungskandidatFelder {
   /** Exactly one of the two is set. */
   edition: { id: string } | null
   punkt6_edition: { id: string } | null
+  /** When the candidate was found — the badge counts the last fourteen days only (`lib/archiv.ts`). */
+  date_created?: string | null
 }
 
 export interface SendungskandidatenErgebnis {
@@ -1937,6 +1945,7 @@ export const SENDUNGSKANDIDATEN_QUERY = gql`
       zeitmarke_sekunden
       entscheid
       ablehnungsgrund
+      date_created
       gemeinde {
         id
         name

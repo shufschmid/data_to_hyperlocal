@@ -73,8 +73,9 @@ export const ERLAUBT: RegExp[] = [
   // «Kosten»: Modell und Etat je Zweck, und die Preise je Modell.
   /^modelleinstellungen$/i,
   /^modellpreise$/i,
-  // Die Regler je Tisch hinter dem Zahnrad: Schwelle und Vorlauf.
-  /^tische\/(gemeinde|veranstaltung|buschtelefon)$/i,
+  // Die Regler je Tisch hinter dem Zahnrad: Schwelle und Vorlauf — und der
+  // Schalter «Auto-Publish» auf den Tischen, deren Lauf die Entwürfe schreibt.
+  /^tische\/(gemeinde|veranstaltung|buschtelefon|kanton|sport|abstimmung)$/i,
   /^sendungen\/[0-9a-f-]{36}\/(meldung|ablehnen|weiterreichen)$/i,
   /^amtsblatt\/pruefen$/i,
   /^amtsblatt\/[0-9a-f-]{36}\/(meldung|ablehnen|weiterreichen|unterlagen|vorgeschichte)$/i
