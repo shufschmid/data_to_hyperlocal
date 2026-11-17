@@ -316,7 +316,8 @@ export function kuenftigeTage(zeile: AbgleichZeile, heute: string): string[] {
 const ABGLEICH_MAX_TAGE = 8
 const ABGLEICH_MAX_ANLAESSE = 4
 
-function anlassAnTag(a: KalenderAnlass, tag: string): boolean {
+/** Whether an Anlass takes place on a day — also how the events door matches duplicates. */
+export function anlassAnTag(a: KalenderAnlass, tag: string): boolean {
   if (a.termine !== null && a.termine.includes(tag)) return true
   if (a.von === tag) return true
   // A running span (an exhibition, a Ferienpass) covers every day between

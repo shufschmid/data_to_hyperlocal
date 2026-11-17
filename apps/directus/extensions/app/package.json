@@ -132,6 +132,11 @@
         "source": "src/endpoints/sokrates/index.ts"
       },
       {
+        "type": "endpoint",
+        "name": "veranstaltungen",
+        "source": "src/endpoints/veranstaltungen/index.ts"
+      },
+      {
         "type": "hook",
         "name": "kandidat-gemeinde",
         "source": "src/hooks/kandidat-gemeinde/index.ts"

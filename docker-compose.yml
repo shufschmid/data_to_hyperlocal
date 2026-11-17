@@ -125,6 +125,10 @@ services:
       # ungeprueft (Abschnitte + ganzes Transkript). Schluessel in der
       # Kopfzeile "X-Sokrates-Key"; leer heisst abgeschaltet (503).
       SOKRATES_API_KEY: ${SOKRATES_API_KEY:-}
+      # Die geschuetzte Veranstaltungs-Schnittstelle (/veranstaltungen/v1/anlaesse):
+      # eine externe Veranstaltungsseite holt alle kommenden Anlaesse ungeprueft.
+      # Schluessel in der Kopfzeile "X-Veranstaltungen-Key"; leer heisst abgeschaltet (503).
+      VERANSTALTUNGEN_API_KEY: ${VERANSTALTUNGEN_API_KEY:-}
 
       # Der Editor-Zugang (POST /redaktion/editor-zugang). EDITOR_API_URL ist
       # die Editor-API, an der /external-apps/userinfo das kurzlebige Token

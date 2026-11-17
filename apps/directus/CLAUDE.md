@@ -286,8 +286,9 @@ export default defineEndpoint((router, { services, getSchema, logger }) => {
   Both variables empty → 503 and the door says so (the `CRAWLER_KEY` bargain).
   The front half of this — why the session travels as a marker and not as a
   cookie — is in [apps/front/CLAUDE.md](../front/CLAUDE.md).
-- **The one endpoint gated by a key instead of a login:** `src/endpoints/sokrates/`
-  (`GET /sokrates/sendungen`) serves the day's Regionaljournal editions —
+- **The endpoints gated by a key instead of a login:** `src/endpoints/sokrates/`
+  and, since 17 November 2026, `src/endpoints/veranstaltungen/` (below).
+  `GET /sokrates/sendungen` serves the day's Regionaljournal editions —
   Abschnitte plus whole transcript — to Sokrates, the „Frage des Tages" AI.
   The key (`SOKRATES_API_KEY`) travels in the **`X-Sokrates-Key` header, never
   in `Authorization`**: Directus' own auth middleware runs before every custom
@@ -296,6 +297,33 @@ export default defineEndpoint((router, { services, getSchema, logger }) => {
   endpoint's code (measured here). Unset key → 503 on the content route, wrong
   key → 401, comparison timing-safe (`pruefeZugang`). The rules live in
   `sokrates.ts` next to the wiring and are unit-tested without a database.
+- **The events door** (`src/endpoints/veranstaltungen/`, 17 November 2026):
+  `GET /veranstaltungen/v1/anlaesse` hands an outside events site EVERY
+  coming Anlass (today to +60 days) the moment a run collected it —
+  unreviewed, no Meldung, no counter-check, which is why it is a door of its
+  own and not a route of `/api/v1`. Key `VERANSTALTUNGEN_API_KEY` in
+  `X-Veranstaltungen-Key` (the Sokrates gate, `shared/schluessel.ts`), errors
+  in the API's `{fehler:{code,meldung}}` shape, `/v1/gesundheit` without key.
+  Every answer is the WHOLE state with a stable `kennung` — no bookmark, no
+  paging; the consumer replaces its copy. The rules are pure in `tuer.ts`
+  (`baueAntwort`), and four of them were measured on production rows before
+  the first answer went out: a past Anlass is `ausserhalb`, checked BEFORE
+  „gone from the calendar" (the other order called 205 past rows vanished);
+  „gone" means `zuletzt_gesehen_am` before the source's last SUCCESSFUL read,
+  except on a day that read's `letzter_hinweis` names (Riehen's day-by-day
+  door answered 500 for 12.12.); a series whose calendar prints only first
+  and last day (Münchenstein's monthly „Suppentopf") reads „Monatlich bis …",
+  never as a span; and only weekly-paper previews of `typ` veranstaltung,
+  service or vereinsleben are Anlässe — interviews and background pieces
+  announce votes. Duplicates between sources (calendar vs. preview, two
+  calendars) are MERGED here, without a model: same municipality, a common
+  day (`anlassAnTag`), a similar title (`gleicherTitel`, or two calendar-title
+  words in the preview's headline plus summary); the higher-ranking source
+  stays and the other rides in `weitere_quellen` with its own kennung.
+  Placeholders and rows rejected as `doublette`/`veraltet`/`falsche_gemeinde`
+  stay out; `nicht_relevant` does not, it judges the newsletter. Handover
+  for the consumer: `2026-11-17_anleitung_veranstaltungen_schnittstelle.md`
+  at the repo root.
 
 ### Hook — react to a write, from any source
 
@@ -728,6 +756,10 @@ with a path (or a trailing slash) can never authenticate at all.
 answers 503 `nicht_konfiguriert` and every read stays open. It is a shared
 secret with the Dorfkönig, travels in `X-Abnehmer-Key`, and is compared
 timing-safe in `shared/schluessel.ts`.
+
+`VERANSTALTUNGEN_API_KEY` (17 November 2026) follows `SOKRATES_API_KEY`
+exactly: `optionalEnv`, read per request, empty means the events door answers
+503 `nicht_konfiguriert`; travels in `X-Veranstaltungen-Key`.
 
 `BUSCHTELEFON_URL`, `BUSCHTELEFON_CF_CLIENT_ID`, `BUSCHTELEFON_CF_CLIENT_SECRET`
 and `BUSCHTELEFON_SCHLUESSEL` (11 November 2026) are the newest four, read by
