@@ -72,6 +72,20 @@ export function sichtbarkeitText(fund: Pick<BuschtelefonFundFelder, 'quelle_sich
 export const GESCHLOSSEN_SATZ =
   'Aus einer geschlossenen Gruppe: Der Link zum Beitrag ist nur zur Überprüfung; eine Meldung verlinkt nur die Gruppe.'
 
+/**
+ * The same rule where the Buschtelefon could NOT tell — it must not claim the
+ * group is closed (22 November 2026: all eleven Facebook groups arrived as
+ * `unbekannt`, a public one among them, and the desk called each one closed).
+ */
+export const UNBEKANNT_SATZ =
+  'Das Buschtelefon konnte nicht feststellen, ob diese Gruppe öffentlich ist. Bis das geklärt ist, gilt sie als geschlossen: Der Link zum Beitrag ist nur zur Überprüfung; eine Meldung verlinkt nur die Gruppe.'
+
+/** The sentence under the chips: null for a public source, else the one that fits what is known. */
+export function sichtbarkeitSatz(fund: Pick<BuschtelefonFundFelder, 'quelle_sichtbarkeit'>): string | null {
+  if (!istGeschlossen(fund)) return null
+  return fund.quelle_sichtbarkeit === 'geschlossen' ? GESCHLOSSEN_SATZ : UNBEKANNT_SATZ
+}
+
 /** The material was emptied (retention, or the post was removed at the source); the row stays as memory. */
 export function materialGeleert(fund: Pick<BuschtelefonFundFelder, 'material_geloescht_am'>): boolean {
   return fund.material_geloescht_am !== null

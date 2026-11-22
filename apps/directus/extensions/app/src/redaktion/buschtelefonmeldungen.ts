@@ -282,6 +282,13 @@ export function fundBezeichnung(
 
 const ZWECK = 'buschtelefon:meldung'
 
+/**
+ * 1500 broke on long Instagram captions (measured 21 November 2026: two
+ * drafts failed at the cap, and a failed draft is retried every run). The
+ * notice stays short; the budget only stops cutting the answer.
+ */
+const MAX_TOKENS = 3000
+
 /** One attempt, and on unparseable JSON exactly one more — the house's rule since the first unattended run. */
 async function frage(
   prompt: string,
@@ -291,7 +298,7 @@ async function frage(
   const anfrage = {
     system: BUSCHTELEFON_SYSTEM_PROMPT,
     prompt,
-    maxTokens: 1500
+    maxTokens: MAX_TOKENS
   }
   try {
     return await completeJson<unknown>({ ...anfrage, zweck }, send)
@@ -338,7 +345,7 @@ export async function fundMeldungMitChecks(
           bericht,
           herkunftsSatz(fakten)
         ),
-        maxTokens: 1500
+        maxTokens: MAX_TOKENS
       },
       send
     )

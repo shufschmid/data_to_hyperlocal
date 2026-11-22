@@ -19,7 +19,7 @@ import ForumOutlined from '@mui/icons-material/ForumOutlined'
 import type { BuschtelefonHinweisFund, PerleFelder, RecherchehinweisFelder } from '@/graphql/redaktion'
 import { ARCHIV_TAGE, teileNachAlter } from '@/lib/archiv'
 import { seitenLink } from '@/lib/redaktion'
-import { fundKopf, fundNochDa, GESCHLOSSEN_SATZ, ORIGINAL_WEG, sichtbarkeitText } from '@/lib/buschtelefon'
+import { fundKopf, fundNochDa, ORIGINAL_WEG, sichtbarkeitSatz, sichtbarkeitText } from '@/lib/buschtelefon'
 import { BeitragWortlaut, KommentarListe } from './BuschtelefonMaterial'
 import { Originaltext } from './Presseschau'
 
@@ -103,7 +103,7 @@ function BuschtelefonFaehrte({ fund }: { fund: BuschtelefonHinweisFund }) {
       </Stack>
       {geschlossen !== null && (
         <Alert severity="warning" sx={{ py: 0 }}>
-          {GESCHLOSSEN_SATZ}
+          {sichtbarkeitSatz(fund)}
         </Alert>
       )}
       <Box>

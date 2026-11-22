@@ -41,7 +41,6 @@ import {
   entwurfVorbehalt,
   fehlendeBilder,
   fundTitel,
-  GESCHLOSSEN_SATZ,
   kanalText,
   keinEntwurf,
   materialGeleert,
@@ -49,6 +48,7 @@ import {
   OHNE_GEMEINDE,
   quellenProbleme,
   quellenZahlen,
+  sichtbarkeitSatz,
   sichtbarkeitText,
   tisch,
   type BuschtelefonLaufStatus,
@@ -223,7 +223,7 @@ export function Buschtelefon({
 
           {geschlossen !== null && (
             <Alert severity="warning" sx={{ py: 0 }}>
-              {GESCHLOSSEN_SATZ}
+              {sichtbarkeitSatz(fund)}
             </Alert>
           )}
 

@@ -34,6 +34,7 @@ import {
   passt,
   quellenProbleme,
   quellenZahlen,
+  sichtbarkeitSatz,
   sichtbarkeitText,
   tisch,
   vorgeschlagen,
@@ -142,6 +143,17 @@ describe('Sichtbarkeit der Gruppe', () => {
     expect(sichtbarkeitText(fund({ quelle_sichtbarkeit: 'unbekannt' }))).toBe(
       'Sichtbarkeit der Gruppe unbekannt'
     )
+  })
+
+  it('behauptet bei «unbekannt» nicht, die Gruppe sei geschlossen', () => {
+    expect(sichtbarkeitSatz(fund())).toBeNull()
+    expect(sichtbarkeitSatz(fund({ quelle_sichtbarkeit: 'geschlossen' }))).toMatch(
+      /^Aus einer geschlossenen Gruppe/
+    )
+    const unbekannt = sichtbarkeitSatz(fund({ quelle_sichtbarkeit: 'unbekannt' }))
+    expect(unbekannt).toMatch(/konnte nicht feststellen/)
+    expect(unbekannt).not.toMatch(/^Aus einer geschlossenen/)
+    expect(unbekannt).toMatch(/verlinkt nur die Gruppe/)
   })
 })
 
