@@ -420,6 +420,8 @@ export type AnkuendigungStatus = 'geplant' | 'publiziert'
  */
 export interface Ankuendigung {
   id: string
+  /** Set by the newsroom («Vergiss es» in the workspace's inbox): this state of the row is dealt with; a later date brings it back. */
+  abgelegt_am: string | null
   quelle: string
   schluessel: string
   titel: string
@@ -454,6 +456,8 @@ export interface Ankuendigung {
  */
 export interface PortalBereich {
   id: string
+  /** Set by the newsroom («Vergiss es» in the workspace's inbox): this state of the row is dealt with; a later date brings it back. */
+  abgelegt_am: string | null
   /** e.g. "5_1". */
   pfad: string
   titel: string
@@ -1455,6 +1459,8 @@ export interface Suedanflugtag {
  */
 export interface Suedanflugquote {
   id: string
+  /** Set by the newsroom («Vergiss es» in the workspace's inbox): this state of the row is dealt with; a later date brings it back. */
+  abgelegt_am: string | null
   jahr: number
   monat: number
   anfluege: number | null

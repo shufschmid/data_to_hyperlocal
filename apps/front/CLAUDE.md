@@ -217,6 +217,19 @@ emptied on a schedule (root CLAUDE.md). The frontend keeps to that:
   `MELDUNG_IN_ARBEIT` otherwise. `KEIN_ENTWURF` is a literal copy of the
   extension's constant of the same name; change both together.
 
+### The desk «data to hyperlocal» is an inbox, and the rule is one pure function
+
+`lib/eingang.ts` → `eingangskorb()` files the entries `zeitleiste()` builds
+into compartments by what there is to do (Neu, In Arbeit, Demnächst, Liegen
+geblieben, Erledigt, Südanflug-Verlauf); `components/Eingangskorb.tsx` renders
+each compartment with the unchanged `Zeitleiste` list, folded and unmounted
+while closed. `RedaktionPanel` computes the basket ONCE — the tab's counter
+(`korb.neu.length`) and the view read the same thing. A new kind of entry
+needs its branch in `meldungenZu` (which articles hang on it) or it is «Neu»
+for ever; a new kind that can be set aside without a dataset needs an
+`abgelegt_am` column, its line in `ABLEGBAR` (`Zeitleiste.tsx`) and its
+mutation in `legeEintragAb`.
+
 ### A new write path needs a line in `lib/aktionen.ts`
 
 `app/api/redaktion/[...pfad]` forwards only what `ERLAUBT` (POST) and

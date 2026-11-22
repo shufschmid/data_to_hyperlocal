@@ -48,6 +48,21 @@ export function revisionZaehler(zeilen: readonly MitRevision[]): number {
  */
 export interface MitSpiel extends MitRevision {
   spiel: { id: string } | null
+  status?: string | null
+}
+
+/**
+ * A finding the newsroom still has to act on: the article is still out.
+ *
+ * The watchdog writes on a PUBLISHED article and clears only published ones,
+ * so a finding stays on the row for ever once the article was withdrawn —
+ * and withdrawing it IS the answer the finding asks for. Measured on 22
+ * November 2026: six Sozialhilfe articles, flagged and then retracted on the
+ * 19th, kept the red (6) on the Daten area for three days with nothing left
+ * to do. A discarded article therefore no longer counts.
+ */
+function nochDraussen(zeile: MitSpiel): boolean {
+  return zeile.status !== 'verworfen'
 }
 
 /**
@@ -58,10 +73,10 @@ export interface MitSpiel extends MitRevision {
  * that does not show the report and cannot open it.
  */
 export function revisionZaehlerSport(zeilen: readonly MitSpiel[]): number {
-  return revisionZaehler(zeilen.filter((z) => z.spiel !== null))
+  return revisionZaehler(zeilen.filter((z) => z.spiel !== null && nochDraussen(z)))
 }
 
 /** The red counter on the statistik.bl tab — everything that is no match report. */
 export function revisionZaehlerStatistik(zeilen: readonly MitSpiel[]): number {
-  return revisionZaehler(zeilen.filter((z) => z.spiel === null))
+  return revisionZaehler(zeilen.filter((z) => z.spiel === null && nochDraussen(z)))
 }

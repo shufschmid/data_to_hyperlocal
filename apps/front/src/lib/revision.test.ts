@@ -77,4 +77,17 @@ describe('revisionZaehlerSport und revisionZaehlerStatistik', () => {
     expect(revisionZaehlerStatistik([s('a', 'Zahlen revidiert', null)])).toBe(1)
     expect(revisionZaehlerSport([s('a', 'Zahlen revidiert', null)])).toBe(0)
   })
+
+  // 22.11.2026: sechs zurueckgezogene Sozialhilfe-Meldungen hielten die rote
+  // (6) am Bereich Daten, obwohl nichts mehr zu tun war.
+  it('zaehlt einen Befund nicht mehr, wenn die Meldung zurueckgezogen ist', () => {
+    const zeilen = [
+      { ...s('a', 'Befund', null), status: 'publiziert' },
+      { ...s('b', 'Befund', null), status: 'verworfen' },
+      { ...s('c', 'Befund', 'sp1'), status: 'verworfen' },
+      { ...s('d', 'Befund', 'sp2'), status: 'publiziert' }
+    ]
+    expect(revisionZaehlerStatistik(zeilen)).toBe(1)
+    expect(revisionZaehlerSport(zeilen)).toBe(1)
+  })
 })

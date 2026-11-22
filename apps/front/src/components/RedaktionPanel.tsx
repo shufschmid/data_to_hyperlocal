@@ -46,6 +46,10 @@ import {
   type PerlenErgebnis,
   LAEUFE_QUERY,
   PORTAL_BEOBACHTEN_MUTATION,
+  ANKUENDIGUNG_ABLEGEN_MUTATION,
+  PORTAL_ABLEGEN_MUTATION,
+  SUEDANFLUG_ABLEGEN_MUTATION,
+  type AblegenErgebnis,
   PORTAL_QUERY,
   QUELLEN_QUERY,
   WISSEN_QUERY,
@@ -100,6 +104,7 @@ import {
   meldungenNachSuedanflug,
   meldungenNachAbstimmung,
   zeitleiste,
+  type ZeitleistenEintrag,
   type QuellenLaufStatus
 } from '@/lib/redaktion'
 import { revisionZaehlerSport, revisionZaehlerStatistik } from '@/lib/revision'
@@ -136,11 +141,12 @@ import { anzahlOffen as anzahlAnlaesse } from '@/lib/veranstaltungen'
 import { anzahlArbeit as anzahlFunde, type BuschtelefonLaufStatus, type Kanal } from '@/lib/buschtelefon'
 import { autoPublizieren, einstellungFuer, type AutoTisch } from '@/lib/tische'
 import { AutoPubliziert } from './AutoPubliziert'
+import { Eingangskorb } from './Eingangskorb'
+import { eingangskorb } from '@/lib/eingang'
 import { WochenblattErfassen } from './WochenblattErfassen'
 import { anzahlChefredaktion } from '@/lib/archiv'
 import { Chefredaktion } from './Chefredaktion'
 import { Gelerntes } from './Gelerntes'
-import { Zeitleiste } from './Zeitleiste'
 import { AuftragDialog, type AuftragZiel } from './AuftragDialog'
 import { GemeindenAuswahl } from './GemeindenAuswahl'
 import { Sportresultate } from './Sportresultate'
@@ -491,10 +497,12 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
   const portal = useQuery<PortalErgebnis>(PORTAL_QUERY, { fetchPolicy: LIVE_FETCH_POLICY })
   const [setzeBeobachten] = useMutation<PortalBeobachtenErgebnis>(PORTAL_BEOBACHTEN_MUTATION)
   const [verwirf] = useMutation<DatensatzVerwerfenErgebnis>(DATENSATZ_VERWERFEN_MUTATION)
+  const [legeAgendaAb] = useMutation<AblegenErgebnis>(ANKUENDIGUNG_ABLEGEN_MUTATION)
+  const [legePortalAb] = useMutation<AblegenErgebnis>(PORTAL_ABLEGEN_MUTATION)
+  const [legeSuedanflugAb] = useMutation<AblegenErgebnis>(SUEDANFLUG_ABLEGEN_MUTATION)
   const quellen = useQuery<QuellenErgebnis>(QUELLEN_QUERY, { fetchPolicy: LIVE_FETCH_POLICY })
   const [auftragFuer, setAuftragFuer] = useState<AuftragZiel | null>(null)
   // Der Deckel der Zeitleiste; „mehr anzeigen" hebt ihn schrittweise an.
-  const [zeilen, setZeilen] = useState(40)
 
   const meldungenAlle = alleMeldungen.data?.meldungen ?? []
   // Schreiben und Ueberarbeiten laufen im Hintergrund weiter, nachdem der
@@ -533,6 +541,30 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
     .filter((g) => g.aktiv && g.suedanflug)
     .map((g) => ({ id: g.id, name: g.name }))
   const laufStatus = new Map((laeufe.data?.laeufe ?? []).map((l) => [l.id, l.status]))
+
+  // Der Eingangskorb von «data to hyperlocal»: dieselben Einträge wie früher
+  // die Zeitleiste, nach dem sortiert, was zu tun ist (`lib/eingang.ts`).
+  // Einmal gerechnet — der Zähler am Reiter und die Ansicht lesen dasselbe.
+  const alleEintraege = zeitleiste(
+    {
+      ankuendigungen: ankuendigungen.data?.ankuendigungen ?? [],
+      bereiche: portal.data?.portal_bereiche ?? [],
+      datensaetze: datensaetze.data?.datensaetze ?? [],
+      laeufe: laeufe.data?.laeufe ?? [],
+      suedanflug: suedanflug.data?.suedanflugquoten ?? [],
+      abstimmungen: abstimmungen.data?.abstimmungen ?? [],
+      abstimmungstermine: abstimmungen.data?.abstimmungstermine ?? []
+    },
+    Number.MAX_SAFE_INTEGER
+  )
+  const korb = eingangskorb({
+    datiert: alleEintraege.datiert,
+    ohneDatum: alleEintraege.ohneDatum,
+    zuLauf: berichteZuLauf,
+    zuSuedanflug: berichteZuSuedanflug,
+    zuAbstimmung: berichteZuAbstimmung,
+    heute: new Date().toISOString().slice(0, 10)
+  })
   const spielBerichte = meldungenAlle.filter((m) => m.spiel !== null)
   // Der Tisch der Redaktorin zählt, was noch Arbeit ist — dieselbe Regel wie
   // die Presseschau-Ansicht, damit Badge und Karten nie auseinanderlaufen.
@@ -981,6 +1013,39 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
   }
 
   /**
+   * „Vergiss es" für einen Eintrag OHNE Datensatz — ein Südanflug-Monat, ein
+   * Portal-Zweig, ein Agenda-Eintrag. Abgelegt wird nur dieser Stand (der Tag
+   * von heute steht auf der Zeile); rückt das Datum des Eintrags danach vor,
+   * steht er wieder im Eingang. `ablegen: false` holt ihn zurück.
+   */
+  async function legeEintragAb(eintrag: ZeitleistenEintrag, ablegen: boolean) {
+    setSendet(true)
+    setFehler(null)
+    const tag = ablegen ? new Date().toISOString().slice(0, 10) : null
+
+    try {
+      if (eintrag.herkunft === 'suedanflug' && eintrag.quoteId !== null) {
+        await legeSuedanflugAb({ variables: { id: eintrag.quoteId, tag } })
+        await suedanflug.refetch()
+      } else if (eintrag.herkunft === 'portal') {
+        await legePortalAb({ variables: { id: eintrag.id.replace('portal-', ''), tag } })
+        await portal.refetch()
+      } else if (eintrag.herkunft === 'agenda') {
+        await legeAgendaAb({ variables: { id: eintrag.id.replace('agenda-', ''), tag } })
+        await ankuendigungen.refetch()
+      }
+    } catch (error) {
+      setFehler(
+        error instanceof Error
+          ? `Der Eintrag konnte nicht abgelegt werden: ${error.message}`
+          : 'Der Eintrag konnte nicht abgelegt werden.'
+      )
+    } finally {
+      setSendet(false)
+    }
+  }
+
+  /**
    * „Vergiss es" — die redaktionelle Hälfte der Arbeitsteilung.
    *
    * Die Maschine sortiert aus, was mechanisch entscheidbar ist: keine
@@ -1058,7 +1123,12 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
   const zaehler: Partial<Record<Werkbank, Zaehler>> = {
     // Rot: nicht „hier liegt Arbeit", sondern „hier steht etwas Falsches
     // draussen" — die Revisionswaechter.
-    statistik: { anzahl: revisionZaehlerStatistik(meldungenAlle), art: 'fehler' },
+    // Rot, wenn draussen etwas nicht mehr stimmt; sonst blau, was im Fach
+    // «Neu» auf einen Entscheid wartet.
+    statistik:
+      revisionZaehlerStatistik(meldungenAlle) > 0
+        ? { anzahl: revisionZaehlerStatistik(meldungenAlle), art: 'fehler' }
+        : { anzahl: korb.neu.length, art: 'arbeit' },
     sport: { anzahl: revisionZaehlerSport(meldungenAlle), art: 'fehler' },
     verkehr: {
       // Neue Anlagen ohne Meldung und die neuesten Monate ohne Meldung.
@@ -1297,76 +1367,19 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
       {reiter === 'statistik' && (
         <Stack spacing={1}>
           <Typography variant="body2" color="text.secondary">
-            Woher unser Material kommt, nach Datum: die Publikationsagenda des Amts, Änderungen an den
-            überwachten Portal-Zweigen, neue Zahlen auf data.bl.ch, die Südanflug-Quote des EuroAirport und
-            die Abstimmungsresultate je Gemeinde. Angekündigtes ohne Termin steht unten und rückt nach oben,
-            sobald es ein Datum hat.
+            Was die Quellen Neues bringen — die Publikationsagenda des Amts, die überwachten Portal-Zweige,
+            data.bl.ch, die Südanflug-Quote des EuroAirport und die Abstimmungsresultate — und was daraus
+            wird. Zuoberst steht, was einen Entscheid braucht: etwas daraus machen oder vergessen. Was in
+            Arbeit, angekündigt, liegen geblieben oder erledigt ist, liegt darunter in eingeklappten Fächern.
           </Typography>
           {/* Nur die Abstimmungsmeldungen dieses Tischs schreibt ein Lauf von
               sich aus; steht Auto-Publish aus und ging nichts hinaus, bleibt
               der Kasten weg. */}
           {autoKasten('abstimmung')}
-          {/* Der einzige Tisch, dessen Tag sich nicht wiederholt. Sein Flow
-              laeuft nur sonntags, wenn ausgezaehlt wird — also braucht er den
-              Knopf mehr als jeder andere: einmal zum Ausprobieren vorher,
-              einmal zum Nachfassen, wenn am Abstimmungssonntag etwas
-              schiefgeht. Derselbe Lauf wie der Flow. */}
-          {/* Der einzige Tisch, dessen Tag sich nicht wiederholt. Sein Flow
-              laeuft nur sonntags, wenn ausgezaehlt wird. Das Datumsfeld ist
-              darum kein Testwerkzeug: an einem gewoehnlichen Tag findet der
-              Lauf keine Abstimmung, und ein vergangener Abstimmungstag ist der
-              einzige Weg, die ganze Kette an echten Zahlen zu sehen, bevor es
-              zaehlt — und der Weg, einen Sonntag nachzuholen, an dem etwas
-              schiefging. Leer heisst heute, wie der Flow. */}
-          <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end', alignItems: 'center' }}>
-            <TextField
-              size="small"
-              label="Abstimmungstag (leer = heute)"
-              placeholder="2026-09-27"
-              value={abstimmungsTag}
-              onChange={(e) => setAbstimmungsTag(e.target.value)}
-              sx={{ width: 240 }}
-            />
-            <Button
-              size="small"
-              variant="outlined"
-              disabled={sendet}
-              onClick={async () => {
-                const tag = abstimmungsTag.trim()
-                await fuehreAus('abstimmungen/pruefen', tag === '' ? {} : { datum: tag })
-              }}
-            >
-              Abstimmungsresultate jetzt holen
-            </Button>
-          </Stack>
-          <AgendaErfassen
-            quartale={[
-              ...new Set(
-                (ankuendigungen.data?.ankuendigungen ?? [])
-                  .map((a) => a.quartal)
-                  .filter((q): q is string => q !== null)
-              )
-            ].sort()}
-            laeuft={sendet}
-            onAnlegen={erfasseAnkuendigung}
-          />
           {ankuendigungen.loading && <CircularProgress />}
-          {ankuendigungen.data?.ankuendigungen.length === 0 && (
-            <Alert severity="info">Noch keine Agenda gelesen.</Alert>
-          )}
-          <Zeitleiste
-            ergebnis={zeitleiste(
-              {
-                ankuendigungen: ankuendigungen.data?.ankuendigungen ?? [],
-                bereiche: portal.data?.portal_bereiche ?? [],
-                datensaetze: datensaetze.data?.datensaetze ?? [],
-                laeufe: laeufe.data?.laeufe ?? [],
-                suedanflug: suedanflug.data?.suedanflugquoten ?? [],
-                abstimmungen: abstimmungen.data?.abstimmungen ?? [],
-                abstimmungstermine: abstimmungen.data?.abstimmungstermine ?? []
-              },
-              zeilen
-            )}
+          <Eingangskorb
+            korb={korb}
+            onAblegen={(eintrag, ablegen) => void legeEintragAb(eintrag, ablegen)}
             laeuft={sendet}
             berichteZuLauf={berichteZuLauf}
             laufStatus={laufStatus}
@@ -1393,7 +1406,6 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
               if (eintrag.datensatzId === null) return
               void verwirfDatensatz(eintrag.datensatzId, eintrag.titel)
             }}
-            onMehr={() => setZeilen((bisher) => bisher + 40)}
             suedanflugGemeinden={suedanflugGemeinden}
             berichteZuSuedanflug={berichteZuSuedanflug}
             onSuedanflugMeldung={async (quoteId, gemeindeId, koerper) => {
@@ -1412,20 +1424,67 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             }}
           />
 
+          {/* Die Werkzeuge: selten gebraucht, darum unter der Arbeit und
+              zugeklappt — bis zum 22. November 2026 standen das Datumsfeld und
+              das Agenda-Formular über der Liste. */}
           <Accordion disableGutters>
             <AccordionSummary expandIcon={<span aria-hidden>▾</span>}>
               <Typography variant="body2">
-                Alle {portal.data?.portal_bereiche.length ?? 0} Portal-Zweige
+                Werkzeuge — Agenda-Eintrag von Hand, Abstimmungsresultate holen, Portal-Zweige
               </Typography>
             </AccordionSummary>
             <AccordionDetails>
-              <PortalUebersicht
-                bereiche={portal.data?.portal_bereiche ?? []}
-                seiten={portal.data?.portal_seiten ?? []}
-                offen={portal.data?.offen[0]?.count.id ?? 0}
-                laeuft={sendet}
-                onBeobachten={(id, beobachten) => void schalteBereich(id, beobachten)}
-              />
+              <Stack spacing={2}>
+                {ankuendigungen.data?.ankuendigungen.length === 0 && (
+                  <Alert severity="info">Noch keine Agenda gelesen.</Alert>
+                )}
+                <AgendaErfassen
+                  quartale={[
+                    ...new Set(
+                      (ankuendigungen.data?.ankuendigungen ?? [])
+                        .map((a) => a.quartal)
+                        .filter((q): q is string => q !== null)
+                    )
+                  ].sort()}
+                  laeuft={sendet}
+                  onAnlegen={erfasseAnkuendigung}
+                />
+                {/* Der einzige Lauf, dessen Tag sich nicht wiederholt: sein
+                    Flow läuft nur am Abstimmungssonntag. Das Datumsfeld ist
+                    der Weg, die Kette an einem vergangenen Sonntag zu sehen
+                    oder einen nachzuholen. Leer heisst heute, wie der Flow. */}
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 1 }}>
+                  <TextField
+                    size="small"
+                    label="Abstimmungstag (leer = heute)"
+                    placeholder="2026-09-27"
+                    value={abstimmungsTag}
+                    onChange={(e) => setAbstimmungsTag(e.target.value)}
+                    sx={{ width: 240 }}
+                  />
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    disabled={sendet}
+                    onClick={async () => {
+                      const tag = abstimmungsTag.trim()
+                      await fuehreAus('abstimmungen/pruefen', tag === '' ? {} : { datum: tag })
+                    }}
+                  >
+                    Abstimmungsresultate jetzt holen
+                  </Button>
+                </Stack>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  Alle {portal.data?.portal_bereiche.length ?? 0} Portal-Zweige
+                </Typography>
+                <PortalUebersicht
+                  bereiche={portal.data?.portal_bereiche ?? []}
+                  seiten={portal.data?.portal_seiten ?? []}
+                  offen={portal.data?.offen[0]?.count.id ?? 0}
+                  laeuft={sendet}
+                  onBeobachten={(id, beobachten) => void schalteBereich(id, beobachten)}
+                />
+              </Stack>
             </AccordionDetails>
           </Accordion>
 

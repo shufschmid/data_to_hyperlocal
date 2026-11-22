@@ -114,15 +114,26 @@ describe('die kommenden Abstimmungstage des Bundes', () => {
     { id: 't5', datum: '2026-06-14', art: 'genutzt', vorlagen: 2 }
   ]
 
-  it('zeigt die Tage des nächsten Jahres, aber keinen, der schon Resultate hat', () => {
-    const zeilen = zeitleiste(
-      { ...LEER, abstimmungen: [VORLAGE], abstimmungstermine: TERMINE, heute: '2026-09-27' },
-      40
-    ).datiert
-    const termine = zeilen.filter((z) => z.herkunft === 'abstimmungstermin').map((z) => z.datum)
-    // Der 27.09. steht als Abstimmungszeile da, der 24.10.2027 liegt über ein Jahr voraus.
-    expect(termine).toEqual(['2027-02-28', '2026-11-29'])
-    expect(zeilen.filter((z) => z.herkunft === 'abstimmung')).toHaveLength(1)
+  // Seit dem 22. November 2026 nur noch in der Woche davor: die Redaktion
+  // braucht einen Abstimmungstermin nicht ein Jahr voraus auf dem Tisch.
+  it('zeigt einen Abstimmungstag erst in der Woche davor, und keinen, der schon Resultate hat', () => {
+    const termineAm = (heute: string) =>
+      zeitleiste({ ...LEER, abstimmungen: [VORLAGE], abstimmungstermine: TERMINE, heute }, 40)
+        .datiert.filter((z) => z.herkunft === 'abstimmungstermin')
+        .map((z) => z.datum)
+
+    // Der 27.09. steht als Abstimmungszeile da; der 29.11. liegt noch zwei Monate voraus.
+    expect(termineAm('2026-09-27')).toEqual([])
+    expect(termineAm('2026-11-21')).toEqual([])
+    expect(termineAm('2026-11-22')).toEqual(['2026-11-29'])
+    expect(termineAm('2026-11-29')).toEqual(['2026-11-29'])
+    expect(termineAm('2026-11-30')).toEqual([])
+    expect(
+      zeitleiste(
+        { ...LEER, abstimmungen: [VORLAGE], abstimmungstermine: TERMINE, heute: '2026-09-27' },
+        40
+      ).datiert.filter((z) => z.herkunft === 'abstimmung')
+    ).toHaveLength(1)
   })
 
   it('sagt, was die Liste weiss und was nicht', () => {

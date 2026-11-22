@@ -413,6 +413,8 @@ export const LAUF_CHAT_QUERY = gql`
 
 export interface AnkuendigungFelder {
   id: string
+  /** Von der Redaktion abgelegt («Vergiss es») — gilt nur bis zu diesem Tag, siehe `istAbgelegt`. */
+  abgelegt_am?: string | null
   titel: string
   status: string
   datum: string | null
@@ -461,9 +463,45 @@ export const ANKUENDIGUNGEN_QUERY = gql`
         }
       }
       zuordnung_hinweis
+      abgelegt_am
     }
   }
 `
+
+// «Vergiss es» im Eingangskorb, fuer Eintraege ohne Datensatz: der Tag, an dem
+// die Redaktion DIESEN Stand abgelegt hat. Kein Zustandsautomat, keine
+// Nebenwirkung — schlichte Konfiguration wie `gemeinden.aktiv`, darum eine
+// Mutation. `null` holt den Eintrag zurueck.
+export const ANKUENDIGUNG_ABLEGEN_MUTATION = gql`
+  mutation AnkuendigungAblegen($id: ID!, $tag: Date) {
+    update_ankuendigungen_item(id: $id, data: { abgelegt_am: $tag }) {
+      id
+      abgelegt_am
+    }
+  }
+`
+
+export const PORTAL_ABLEGEN_MUTATION = gql`
+  mutation PortalAblegen($id: ID!, $tag: Date) {
+    update_portal_bereiche_item(id: $id, data: { abgelegt_am: $tag }) {
+      id
+      abgelegt_am
+    }
+  }
+`
+
+export const SUEDANFLUG_ABLEGEN_MUTATION = gql`
+  mutation SuedanflugAblegen($id: ID!, $tag: Date) {
+    update_suedanflugquoten_item(id: $id, data: { abgelegt_am: $tag }) {
+      id
+      abgelegt_am
+    }
+  }
+`
+
+export interface AblegenErgebnis {
+  [feld: string]: { id: string; abgelegt_am: string | null } | null
+}
 
 // Every dataset, for the picker in the agenda tab — including the ones without
 // a municipality column and the ones already dealt with. That is the point:
@@ -730,6 +768,8 @@ export interface PortalBereichFelder {
   pfad: string
   titel: string
   stand: string | null
+  /** Von der Redaktion abgelegt («Vergiss es») — gilt nur bis zu diesem Tag, siehe `istAbgelegt`. */
+  abgelegt_am?: string | null
   beobachten: boolean
   inventur_offen: boolean
   unklar: number
@@ -774,6 +814,7 @@ export const PORTAL_QUERY = gql`
       pfad
       titel
       stand
+      abgelegt_am
       beobachten
       inventur_offen
       unklar
@@ -1974,6 +2015,8 @@ export const SENDUNGSKANDIDATEN_QUERY = gql`
 // Markierung, keine Meldung.
 export interface SuedanflugFelder {
   id: string
+  /** Von der Redaktion abgelegt («Vergiss es») — gilt nur bis zu diesem Tag, siehe `istAbgelegt`. */
+  abgelegt_am?: string | null
   jahr: number
   monat: number
   anfluege: number | null
@@ -2009,6 +2052,7 @@ export const SUEDANFLUG_QUERY = gql`
       vorschlag_begruendung
       befunde
       quelle_url
+      abgelegt_am
     }
   }
 `

@@ -1324,6 +1324,43 @@ them is wrong even if it works.
    of 188 datasets have an agenda entry, so without it most articles would have
    no visible origin at all. Announced entries without a date hang below the
    list, grouped by quarter, and move up by themselves once they get one.
+   **Since 22 November 2026 the desk shows that list as an INBOX, sorted by
+   what there is to DO and no longer by date** (`lib/eingang.ts`,
+   `components/Eingangskorb.tsx`). Measured that day on the server: the first
+   four rows were vote days up to October 2027, and of the first forty rows
+   eighteen were agenda entries, eleven portal branches («geändert», no
+   button), six south-approach months with their buttons standing open and
+   one a vote — new, begun and finished work in one column. The newsroom's
+   words: I always want to know, there is a new dataset, and then make
+   something of it or forget it; what is published goes down; the vote days
+   are not needed that far ahead. `zeitleiste()` still builds the entries;
+   `eingangskorb()` files each into one compartment: **Neu** (no decision, at
+   most fourteen days old — the only one that stands open, and what the tab's
+   blue counter counts; a red revision counter still beats it), **In Arbeit**
+   (articles written, not all out), **Demnächst** (a dated agenda entry in
+   the future, the undated ones, and a vote day in the week before it —
+   `ABSTIMMUNGSTERMINE_VORAUS_TAGE` is 7 now, it was 365), **Liegen
+   geblieben** (older than fourteen days and never decided, or drafts nobody
+   touched for fourteen days — the `ARCHIV_TAGE` rule of the other desks),
+   **Erledigt** (everything published or discarded, or set aside; fourteen
+   days on sight, older on a click) and the **Südanflug-Verlauf** (only the
+   NEWEST month can be new, the earlier ones without an article are history).
+   It is a VIEW: nothing is deleted, no status changes, and a row keeps every
+   button in every compartment — each compartment is rendered by the old
+   `Zeitleiste` list. Three things changed on the row itself. **«Vergiss es»
+   exists without a dataset too** — a south-approach month, a portal branch,
+   an agenda entry — and there it sets aside only THIS state:
+   `abgelegt_am` (a date, on `suedanflugquoten`, `portal_bereiche` and
+   `ankuendigungen`, written by a plain GraphQL mutation like
+   `gemeinden.aktiv`), and `istAbgelegt` holds only while the entry's own
+   date is not later, so a revised month, the next change in the branch or
+   new figures for the topic bring it back; «Zurückholen» clears it. Discarding
+   a DATASET stays permanent, as before. **A portal row carries «Tabelle
+   wählen»** instead of the grey word, opening the Auftrag dialog. **And the
+   south-approach buttons sit behind a toggle** on the row, closed by default,
+   which says how many municipalities or articles lie under it. The tools —
+   the hand-entry form of the agenda, the vote-day field, the branch overview
+   — moved under the work into one folded box.
    **The name is a label and nothing else:** the tab's value stays
    `reiter === 'statistik'`, because renumbering has hurt this house twice. It
    was renamed because it had long since stopped being one portal — the agenda,
@@ -1506,10 +1543,13 @@ them is wrong even if it works.
    Council decides at least four months ahead), `nationalratswahlen`. A moved
    Blanko-Termin disappears from the window (`termineAbgleich`), a past day is
    never touched, an unknown type is counted in the run's hints rather than
-   guessed, and a failed read leaves the rows standing. The timeline shows the
-   next twelve months as `herkunft: 'abstimmungstermin'`, linking the Bund's
-   page and saying plainly that the list names no cantonal Vorlagen; the day
-   the results arrive, the vote line replaces the date.
+   guessed, and a failed read leaves the rows standing. The desk shows a
+   coming day as `herkunft: 'abstimmungstermin'` under «Demnächst» — since 22
+   November 2026 only in the SEVEN days before it (the newsroom: it can be
+   announced in the week before the vote; the rows are still kept 400 days
+   ahead) — linking the Bund's page and saying plainly that the list names no
+   cantonal Vorlagen; the day the results arrive, the vote line replaces the
+   date.
 
    **„Verkehr" is the TWELFTH workbench and the SEVENTH desk** (11 October
    2026, the newsroom's words: „das interessiert die Menschen"), in the
@@ -3093,6 +3133,16 @@ transcript, of which the newest fifty were shown without saying so.
   taken-over candidate of 25 September whose draft was never published kept
   the Regionaljournal badge at 1 for seven weeks on a desk where everything
   visible was done.
+- **data to hyperlocal** (22 November 2026). The same fourteen days decide
+  three things in its inbox (`EINGANG_TAGE` in `lib/eingang.ts`): how long an
+  undecided entry is «Neu», how long untouched drafts count as «In Arbeit»,
+  and how long finished work stays on sight under «Erledigt».
+- **The red revision counter counts only what is still out** (same day,
+  `lib/revision.ts`): the watchdog writes and clears its finding on PUBLISHED
+  articles only, so a finding stays on the row for ever once the article was
+  withdrawn — six retracted Sozialhilfe articles kept a red (6) on the Daten
+  area for three days with nothing left to do. A discarded article no longer
+  counts.
 
 ## Auto-Publish — what a run may put out without a click
 

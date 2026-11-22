@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
@@ -11,6 +12,7 @@ import Typography from '@mui/material/Typography'
 import type { AlleMeldungFelder } from '@/graphql/redaktion'
 import {
   formatiereDatum,
+  istAbgelegt,
   nachQuartal,
   type ZeitleistenEintrag,
   type ZeitleistenErgebnis
@@ -21,6 +23,11 @@ import { EigeneMeldungKnopf } from './EigeneMeldung'
 import type { MeldungErzeugenKoerper } from '@/lib/eigene'
 
 // Woher unser Material kommt — in einer Liste, nach Datum.
+//
+// Seit dem 22. November 2026 ist diese Liste EIN FACH des Eingangskorbs
+// (`Eingangskorb.tsx`, die Regel in `lib/eingang.ts`): der Tisch sortiert
+// nach dem, was zu tun ist, und zeigt je Fach eine solche Liste. Die Zeile ist
+// dieselbe geblieben und hat in jedem Fach dieselben Knoepfe.
 //
 // Drei Quellen melden sich, und vorher war jede an einem anderen Ort: die Agenda
 // im einen Reiter, das Portal im zweiten, die Katalogänderungen von data.bl.ch
@@ -58,6 +65,14 @@ export interface ZeitleisteProps {
   onAuftrag: (eintrag: ZeitleistenEintrag) => void
   /** „Vergiss es" — dauerhaft, die tägliche Prüfung holt es nicht zurück. */
   onVerwerfen: (eintrag: ZeitleistenEintrag) => void
+  /**
+   * „Vergiss es" für alles OHNE Datensatz — ein Südanflug-Monat, ein
+   * Portal-Zweig, ein Agenda-Eintrag: nur dieser Stand wird abgelegt, der
+   * nächste kommt wieder. `false` holt ihn zurück.
+   */
+  onAblegen?: (eintrag: ZeitleistenEintrag, ablegen: boolean) => void
+  /** Was das Fach zur Zeile sagt — «3 von 10 offen», «abgelegt». */
+  anmerkungen?: ReadonlyMap<string, string>
   onMehr: () => void
   /**
    * Die Gemeinden unter der Anflugschneise — redaktionelles Wissen, kein Feld
@@ -100,6 +115,8 @@ export function Zeitleiste({
   onAktion,
   onAuftrag,
   onVerwerfen,
+  onAblegen,
+  anmerkungen,
   onMehr,
   suedanflugGemeinden,
   berichteZuSuedanflug,
@@ -142,6 +159,8 @@ export function Zeitleiste({
               berichte={berichte}
               onAuftrag={onAuftrag}
               onVerwerfen={onVerwerfen}
+              onAblegen={onAblegen}
+              anmerkung={anmerkungen?.get(eintrag.id) ?? null}
             />
           ))}
         </Box>
@@ -175,6 +194,8 @@ export function Zeitleiste({
                       berichte={berichte}
                       onAuftrag={onAuftrag}
                       onVerwerfen={onVerwerfen}
+                      onAblegen={onAblegen}
+                      anmerkung={anmerkungen?.get(eintrag.id) ?? null}
                     />
                   ))}
                 </Box>
@@ -218,10 +239,34 @@ interface ZeileProps {
   berichte: BerichteBuendel
   onAuftrag: (eintrag: ZeitleistenEintrag) => void
   onVerwerfen: (eintrag: ZeitleistenEintrag) => void
+  onAblegen?: ((eintrag: ZeitleistenEintrag, ablegen: boolean) => void) | undefined
+  anmerkung?: string | null
 }
 
-function Zeile({ eintrag, laeuft, berichte, onAuftrag, onVerwerfen }: ZeileProps) {
+/** Was sich ohne Datensatz ablegen lässt — und was dabei wiederkommt. */
+const ABLEGBAR: Partial<Record<ZeitleistenEintrag['herkunft'], string>> = {
+  suedanflug:
+    'Legt nur diesen Monat ab. Der nächste Monat kommt wieder — und dieser auch, wenn der Flughafen ihn revidiert.',
+  portal: 'Legt nur diese Änderung ab. Die nächste Änderung im Zweig kommt wieder.',
+  agenda: 'Legt nur diesen Eintrag ab. Kommen neue Zahlen zum Thema, steht er wieder da.'
+}
+
+function Zeile({
+  eintrag,
+  laeuft,
+  berichte,
+  onAuftrag,
+  onVerwerfen,
+  onAblegen,
+  anmerkung = null
+}: ZeileProps) {
   const herkunft = HERKUNFT[eintrag.herkunft]
+  const abgelegt = istAbgelegt(eintrag)
+  const ablegbar =
+    onAblegen !== undefined &&
+    eintrag.datensatzId === null &&
+    eintrag.datum !== null &&
+    ABLEGBAR[eintrag.herkunft] !== undefined
 
   return (
     <Box
@@ -265,9 +310,31 @@ function Zeile({ eintrag, laeuft, berichte, onAuftrag, onVerwerfen }: ZeileProps
           </Link>
         )}
 
+        {anmerkung !== null && <Chip size="small" variant="outlined" label={anmerkung} />}
+
         <Box sx={{ flexGrow: 1 }} />
 
         <Aktion eintrag={eintrag} laeuft={laeuft} onAuftrag={onAuftrag} />
+
+        {ablegbar && !abgelegt && (
+          <Tooltip title={ABLEGBAR[eintrag.herkunft] ?? ''}>
+            <span>
+              <Button
+                size="small"
+                color="inherit"
+                disabled={laeuft}
+                onClick={() => onAblegen?.(eintrag, true)}
+              >
+                Vergiss es
+              </Button>
+            </span>
+          </Tooltip>
+        )}
+        {ablegbar && abgelegt && (
+          <Button size="small" color="inherit" disabled={laeuft} onClick={() => onAblegen?.(eintrag, false)}>
+            Zurückholen
+          </Button>
+        )}
 
         {eintrag.datensatzId !== null && (
           <Tooltip title="Dauerhaft aussortieren. Auch neue Zahlen holen ihn nicht zurück.">
@@ -372,11 +439,56 @@ interface SuedanflugProps {
  * das, statt einen Knopf ins Leere zu zeigen.
  */
 function Suedanflug({ eintrag, laeuft, gemeinden, meldungen, onMeldung, onChat, onAktion }: SuedanflugProps) {
+  // Zugeklappt, wie die Berichte eines Laufs: 46 Monate mit je zwei offenen
+  // Knöpfen machten die Liste unlesbar (gemessen am 22. November 2026).
+  const [offen, setOffen] = useState(false)
+  const quoteId = eintrag.quoteId
+  if (quoteId === null) return null
+
+  const geschrieben = gemeinden.filter((g) => meldungen.some((m) => m.gemeinde?.id === g.id)).length
+  const kopf =
+    gemeinden.length === 0
+      ? 'Keine Südanflug-Gemeinde erfasst'
+      : geschrieben === 0
+        ? `Meldung erzeugen — ${gemeinden.length === 1 ? '1 Gemeinde' : `${gemeinden.length} Gemeinden`}`
+        : `${geschrieben === 1 ? '1 Meldung' : `${geschrieben} Meldungen`}${
+            geschrieben < gemeinden.length ? ` · ${gemeinden.length - geschrieben} noch ohne` : ''
+          }`
+
+  return (
+    <Stack spacing={1} sx={{ pt: 0.5 }}>
+      <Box>
+        <Button
+          size="small"
+          variant={eintrag.vorschlag && geschrieben === 0 ? 'contained' : 'text'}
+          aria-expanded={offen}
+          onClick={() => setOffen(!offen)}
+          sx={eintrag.vorschlag && geschrieben === 0 ? {} : { px: 0 }}
+        >
+          {offen ? '▾' : '▸'} {kopf}
+        </Button>
+      </Box>
+      {offen && (
+        <SuedanflugInhalt {...{ eintrag, laeuft, gemeinden, meldungen, onMeldung, onChat, onAktion }} />
+      )}
+    </Stack>
+  )
+}
+
+function SuedanflugInhalt({
+  eintrag,
+  laeuft,
+  gemeinden,
+  meldungen,
+  onMeldung,
+  onChat,
+  onAktion
+}: SuedanflugProps) {
   const quoteId = eintrag.quoteId
   if (quoteId === null) return null
 
   return (
-    <Stack spacing={1} sx={{ pt: 0.5 }}>
+    <Stack spacing={1}>
       {eintrag.befunde.length > 0 && (
         <Typography variant="body2" color="warning.main">
           {eintrag.befunde.join(' · ')}
@@ -576,11 +688,18 @@ function Aktion({ eintrag, laeuft, onAuftrag }: Pick<ZeileProps, 'eintrag' | 'la
 
   // Eine Portalzeile ist eine Meldung über den Zweig, nicht über eine Tabelle —
   // welche sich geändert hat, steht unter „alle Zweige anzeigen".
+  // Seit dem 22. November 2026 trägt sie trotzdem einen Knopf: «geändert» ohne
+  // Handlung war eine Zeile, mit der niemand etwas anfangen konnte. Der Dialog
+  // nimmt die Adresse der Tabelle, die gemeint ist.
   if (eintrag.herkunft === 'portal') {
     return (
-      <Typography variant="body2" color="text.disabled">
-        geändert
-      </Typography>
+      <Tooltip title="Im Zweig hat sich etwas geändert. Wähle die Tabelle, aus der Meldungen entstehen sollen.">
+        <span>
+          <Button size="small" variant="outlined" disabled={laeuft} onClick={() => onAuftrag(eintrag)}>
+            Tabelle wählen
+          </Button>
+        </span>
+      </Tooltip>
     )
   }
 

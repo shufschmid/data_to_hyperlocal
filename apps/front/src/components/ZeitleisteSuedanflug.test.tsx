@@ -75,6 +75,11 @@ describe('Zeitleiste — Südanflug', () => {
       onSuedanflugMeldung
     })
 
+    // Zugeklappt sagt die Zeile nur, wie viele Gemeinden es betrifft.
+    expect(screen.queryByRole('button', { name: /Binningen/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Meldung erzeugen — 2 Gemeinden/ })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /^[▸▾]/ }))
+
     const knopf = screen.getByRole('button', { name: /Binningen/ })
     expect(screen.getByRole('button', { name: /Allschwil/ })).toBeInTheDocument()
 
@@ -82,23 +87,25 @@ describe('Zeitleiste — Südanflug', () => {
     expect(onSuedanflugMeldung).toHaveBeenCalledWith('q-juli', 'g-bin')
   })
 
-  it('sagt es, wenn keine Gemeinde erfasst ist, statt einen Knopf ins Leere zu zeigen', () => {
+  it('sagt es, wenn keine Gemeinde erfasst ist, statt einen Knopf ins Leere zu zeigen', async () => {
     zeige([monat()], { suedanflugGemeinden: [] })
+    await userEvent.click(screen.getByRole('button', { name: /^[▸▾]/ }))
 
     expect(screen.getByText(/Keine Gemeinde ist als Südanflug-Gemeinde erfasst/)).toBeInTheDocument()
   })
 
-  it('zeigt die Befunde des Blatts, statt sie zu verschweigen', () => {
+  it('zeigt die Befunde des Blatts, statt sie zu verschweigen', async () => {
     zeige([
       monat({
         befunde: ['7. August 2026: 130 Südlandungen bei 128 Anflügen.']
       })
     ])
+    await userEvent.click(screen.getByRole('button', { name: /^[▸▾]/ }))
 
     expect(screen.getByText(/130 Südlandungen bei 128 Anflügen/)).toBeInTheDocument()
   })
 
-  it('zeigt die Meldung statt des Knopfs, sobald es eine gibt', () => {
+  it('zeigt die Meldung statt des Knopfs, sobald es eine gibt', async () => {
     zeige([monat()], {
       suedanflugGemeinden: [{ id: 'g-bin', name: 'Binningen' }],
       berichteZuSuedanflug: new Map([
@@ -139,6 +146,10 @@ describe('Zeitleiste — Südanflug', () => {
         ]
       ])
     })
+
+    // Zugeklappt zählt die Zeile, was geschrieben ist.
+    expect(screen.getByRole('button', { name: /1 Meldung/ })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /^[▸▾]/ }))
 
     expect(screen.getByText('Jede zweite Landung über Binningen')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Meldung erzeugen/ })).not.toBeInTheDocument()

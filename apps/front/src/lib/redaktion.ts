@@ -583,7 +583,7 @@ export function abstimmungstagTitel(tag: Pick<Abstimmungstag, 'datum' | 'vorlage
 export const ABSTIMMUNGSTERMINE_SEITE = 'https://www.bk.admin.ch/de/blanko-abstimmungstermine'
 
 /** Wie weit die Zeitleiste voraus zeigt: ein Jahr, also die vier Termine, mit denen die Redaktion plant. */
-export const ABSTIMMUNGSTERMINE_VORAUS_TAGE = 365
+export const ABSTIMMUNGSTERMINE_VORAUS_TAGE = 7
 
 /** Titel und Hinweis eines kommenden Abstimmungstags — was die Liste des Bundes sagt, und was nicht. */
 export function abstimmungsterminText(t: { datum: string; art: string; vorlagen: number | null }): {
@@ -637,6 +637,12 @@ export interface ZeitleistenEintrag {
   datensatzId: string | null
   /** Bereits ein Lauf dazu? Dann fuehrt die Zeile dorthin. */
   laufId: string | null
+  /**
+   * Der Tag, an dem die Redaktion diesen Eintrag abgelegt hat («Vergiss es»
+   * fuer alles ohne Datensatz: ein Suedanflug-Monat, ein Portal-Zweig, ein
+   * Agenda-Eintrag). Gilt nur bis zum Datum des Eintrags — siehe `istAbgelegt`.
+   */
+  abgelegtAm?: string | null
   /** Nur bei Portalzeilen: der Pfad des Zweigs. */
   pfad: string | null
   /** Wo die Daten liegen — sichtbar, bevor irgendeine Meldung existiert. */
@@ -670,11 +676,24 @@ export interface ZeitleistenEintrag {
   abstimmungIds: string[]
 }
 
+/**
+ * Abgelegt ist ein Eintrag nur fuer den Stand, den die Redaktion gesehen hat:
+ * rueckt sein Datum danach vor — ein revidierter Monat, eine neue Aenderung im
+ * Zweig, neue Zahlen zum Agenda-Thema —, steht er wieder da. So ist «Vergiss
+ * es» hier nie dauerhaft; dauerhaft ist nur das Aussortieren eines Datensatzes.
+ */
+export function istAbgelegt(eintrag: Pick<ZeitleistenEintrag, 'datum' | 'abgelegtAm'>): boolean {
+  const abgelegt = eintrag.abgelegtAm ?? null
+  if (abgelegt === null) return false
+  return eintrag.datum === null || eintrag.datum.slice(0, 10) <= abgelegt.slice(0, 10)
+}
+
 export interface ZeitleistenQuellen {
   ankuendigungen: readonly {
     id: string
     titel: string
     datum: string | null
+    abgelegt_am?: string | null
     quartal: string | null
     link?: string | null
     zuordnung_hinweis: string | null
@@ -690,6 +709,7 @@ export interface ZeitleistenQuellen {
     pfad: string
     titel: string
     stand: string | null
+    abgelegt_am?: string | null
     beobachten: boolean
   }[]
   datensaetze: readonly {
@@ -729,6 +749,7 @@ export interface ZeitleistenQuellen {
     vorschlag_begruendung: string | null
     befunde?: string[] | null
     quelle_url: string | null
+    abgelegt_am?: string | null
   }[]
   /**
    * Die Abstimmungsresultate — der fünfte Zufluss dieser Liste.
@@ -823,6 +844,7 @@ export function zeitleiste(quellen: ZeitleistenQuellen, hoechstens = 40): Zeitle
       id: `agenda-${a.id}`,
       herkunft: 'agenda',
       datum,
+      abgelegtAm: a.abgelegt_am ?? null,
       titel: a.titel,
       hinweis: a.zuordnung_hinweis,
       datensatzId: a.datensatz?.id ?? null,
@@ -854,6 +876,7 @@ export function zeitleiste(quellen: ZeitleistenQuellen, hoechstens = 40): Zeitle
       id: `portal-${b.id}`,
       herkunft: 'portal',
       datum: b.stand,
+      abgelegtAm: b.abgelegt_am ?? null,
       // Der Name zuerst, der Pfad als Beleg dahinter — „5_1 — Preise …" las
       // sich wie eine Nummer mit Anhang.
       titel: b.titel === '' ? `Zweig ${b.pfad}` : `${b.titel} (${b.pfad})`,
@@ -915,6 +938,7 @@ export function zeitleiste(quellen: ZeitleistenQuellen, hoechstens = 40): Zeitle
       id: `suedanflug-${q.id}`,
       herkunft: 'suedanflug',
       datum: q.aktualisiert_am ?? monatsende(q.jahr, q.monat),
+      abgelegtAm: q.abgelegt_am ?? null,
       titel: suedanflugTitel(q),
       hinweis: q.vorschlag_begruendung,
       datensatzId: null,

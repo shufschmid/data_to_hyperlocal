@@ -81,6 +81,14 @@ Use it for structure _and_ for everything with presentation metadata — interfa
 field order, icons, translations, roles, permissions, dashboards, Flows. Directus
 writes that metadata for you; hand-written SQL does not.
 
+`abgelegt_am` on `suedanflugquoten`, `portal_bereiche` and `ankuendigungen`
+(22 November 2026) are three such hand-written files, copied from
+`portal_bereiche/stand.json` (a nullable `date`). No code in the bundle reads
+or writes them: the workspace sets them through GraphQL («Vergiss es» in the
+inbox of «data to hyperlocal», see the root CLAUDE.md), which is why they have
+no endpoint. `schema:diff` on the first boot is still owed for them, as for
+the two `vorschlag_wert` columns of the same day.
+
 The three `buschtelefon_*` collections (11 November 2026) were written this way
 whole, and two of their properties had no sibling to copy: `accountability: null`
 (no activity, no revisions — the rows hold what private persons wrote, and a
