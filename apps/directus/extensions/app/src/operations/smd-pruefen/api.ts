@@ -16,11 +16,17 @@ import {
 } from '../../redaktion/lernen'
 import { BLOG_FENSTER_TAGE } from '../../redaktion/smd'
 import {
+  gleicheSmdSchwelleAb,
   raeumeSmdAuf,
   sichteSmdBeitraege,
   verarbeiteDossier,
   type ZeileFuerSmdSichtung
 } from '../../redaktion/smdlauf'
+import {
+  SMD_MELDUNGEN_JE_LAUF,
+  schreibeSmdMeldungen
+} from '../../redaktion/smdmeldungen'
+import { ladeTischeinstellung } from '../../redaktion/tischeinstellungen'
 
 // The 14:45 look at what other media wrote about the municipalities.
 //
@@ -33,8 +39,10 @@ import {
 // (`shared/smd/`), turns a blog into its NEW entries, keeps what names a
 // covered municipality with word boundaries, asks the publisher's door for
 // the online address (`shared/verlage/`), and stores one row per piece and
-// municipality. Then ONE Sichtung call per municipality with new rows. No
-// drafts: the desk is new, and the Gemeindeseiten bargain is earned.
+// municipality. Then ONE Sichtung call per municipality with new rows — it
+// GRADES 1–4 since 22 November 2026 — and a draft for every graded proposal
+// (the desk's threshold, cap 20, the rest named): the Gemeindeseiten bargain.
+// Nothing is published here; «Alle publizieren» on the desk is a person's grip.
 
 interface Optionen {
   /** Mails per run; a day brings one, a missed week is worked off in a few runs. */
@@ -65,6 +73,11 @@ interface Ergebnis {
   }
   vorschlaege: number
   weitergereicht: number
+  /** Open graded rows whose proposal bit the threshold moved. */
+  schwelleBewegt: number
+  meldungenGeschrieben: number
+  meldungenWartend: number
+  meldungenOhneText: string[]
   aufgeraeumt: { geloescht: number; verfallen: number }
   anfragen: number
   seiten: number
@@ -143,6 +156,10 @@ export default defineOperationApi<Optionen>({
       links: { gefunden: 0, nichtGefunden: 0, keineTuer: 0, fehler: 0 },
       vorschlaege: 0,
       weitergereicht: 0,
+      schwelleBewegt: 0,
+      meldungenGeschrieben: 0,
+      meldungenWartend: 0,
+      meldungenOhneText: [],
       aufgeraeumt: { geloescht: 0, verfallen: 0 },
       anfragen: 0,
       seiten: 0,
@@ -302,6 +319,14 @@ export default defineOperationApi<Optionen>({
       regelzeilen,
       SICHTUNGSREGELN_UEBERSCHRIFT
     )
+    const einstellung = await ladeTischeinstellung(
+      new ItemsService('tischeinstellungen', { schema }) as never,
+      'smd',
+      {
+        warn: (...args: unknown[]) =>
+          logger.warn(args[0], String(args[1] ?? ''))
+      }
+    )
     for (const [gemeindeId, neue] of angelegt) {
       const gemeinde = gemeinden.find((g) => g.id === gemeindeId)
       if (gemeinde === undefined) continue
@@ -314,6 +339,7 @@ export default defineOperationApi<Optionen>({
           sichtungsregeln,
           heute,
           logger: log,
+          schwelle: einstellung.schwelle,
           model: optionen.model ?? null
         })
         ergebnis.vorschlaege += sichtung.vorschlaege
@@ -328,8 +354,47 @@ export default defineOperationApi<Optionen>({
       }
     }
 
+    // ---- The dial, then the drafts ---------------------------------------
+    // A threshold moved behind the gear applies to what is already graded;
+    // then every graded proposal without an article gets its draft. Its own
+    // try/catch: a failed write must not cost the run its rows.
+    try {
+      ergebnis.schwelleBewegt = await gleicheSmdSchwelleAb(
+        beitraege as never,
+        einstellung.schwelle,
+        log
+      )
+      const textRegeln = (
+        await ladeRegeln(wissen, { bereich: 'smd', stufe: 'text' }, warnung)
+      ).map((r) => r.regel)
+      const geschrieben = await schreibeSmdMeldungen(
+        {
+          beitraege: beitraege as never,
+          meldungen: artikel as never,
+          regeln: textRegeln,
+          logger: {
+            info: (text: string) => logger.info(text),
+            warn: (...args: unknown[]) =>
+              logger.warn(args[0], String(args[1] ?? ''))
+          }
+        },
+        SMD_MELDUNGEN_JE_LAUF
+      )
+      ergebnis.meldungenGeschrieben = geschrieben.geschrieben
+      ergebnis.meldungenWartend = geschrieben.wartend
+      ergebnis.meldungenOhneText = geschrieben.ohneText
+      ergebnis.fehler.push(...geschrieben.fehler)
+      if (geschrieben.wartend > 0)
+        ergebnis.hinweise.push(
+          `${geschrieben.wartend} Vorschläge warten auf ihren Entwurf — der nächste Lauf schreibt sie (Deckel ${SMD_MELDUNGEN_JE_LAUF} je Lauf)`
+        )
+    } catch (fehler) {
+      logger.warn(fehler, 'smd: Meldungen schreiben fehlgeschlagen.')
+      ergebnis.fehler.push(`Meldungen: ${fehlerText(fehler)}`)
+    }
+
     logger.info(
-      `smd: ${ergebnis.mails} Mails, ${ergebnis.dokumente} Dokumente, ${ergebnis.neu} neue Zeilen, ${ergebnis.links.gefunden} Links, ${ergebnis.vorschlaege} Vorschlaege.`
+      `smd: ${ergebnis.mails} Mails, ${ergebnis.dokumente} Dokumente, ${ergebnis.neu} neue Zeilen, ${ergebnis.links.gefunden} Links, ${ergebnis.vorschlaege} Vorschlaege, ${ergebnis.meldungenGeschrieben} Meldungen.`
     )
     return ergebnis
   }

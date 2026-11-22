@@ -136,6 +136,7 @@ import { anzahlOffen as anzahlAnlaesse } from '@/lib/veranstaltungen'
 import { anzahlArbeit as anzahlFunde, type BuschtelefonLaufStatus, type Kanal } from '@/lib/buschtelefon'
 import { autoPublizieren, einstellungFuer, type AutoTisch } from '@/lib/tische'
 import { AutoPubliziert } from './AutoPubliziert'
+import { WochenblattErfassen } from './WochenblattErfassen'
 import { anzahlChefredaktion } from '@/lib/archiv'
 import { Chefredaktion } from './Chefredaktion'
 import { Gelerntes } from './Gelerntes'
@@ -337,6 +338,8 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
   const einstellungGemeinde = einstellungFuer(tische.data?.tischeinstellungen ?? [], 'gemeinde')
   const einstellungAnlass = einstellungFuer(tische.data?.tischeinstellungen ?? [], 'veranstaltung')
   const einstellungBuschtelefon = einstellungFuer(tische.data?.tischeinstellungen ?? [], 'buschtelefon')
+  const einstellungWochenblatt = einstellungFuer(tische.data?.tischeinstellungen ?? [], 'wochenblatt')
+  const einstellungSmd = einstellungFuer(tische.data?.tischeinstellungen ?? [], 'smd')
   // Was der Lauf eines Tischs von sich aus publiziert hat — sichtbar und mit
   // einem Griff zurückzuziehen. Derselbe Kasten unter jedem der fünf Tische.
   const autoKasten = (tisch: AutoTisch) => (
@@ -1105,7 +1108,11 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
       art: 'arbeit'
     },
     smd: {
-      anzahl: anzahlSmdBeitraege(smd.data?.smd_beitraege ?? [], meldungStatusJeSmdBeitrag),
+      anzahl: anzahlSmdBeitraege(
+        smd.data?.smd_beitraege ?? [],
+        meldungStatusJeSmdBeitrag,
+        einstellungSmd.schwelle
+      ),
       art: 'arbeit'
     },
     // Das Buschtelefon: ein Tisch, drei Kanaele — je Kanal die Vorschlaege
@@ -1589,23 +1596,29 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
             Was die Wochenblätter exklusiv haben. Der 9-Uhr-Lauf inventarisiert jede neue Ausgabe zu
-            Kandidaten; aus übernommenen entsteht eine kurze Meldung mit Verweis aufs Blatt — abgelehnte
-            lernen dem Inventar, was die Redaktion nicht will. Erledigtes verschwindet sofort vom Tisch, und
-            mit jeder neuen Ausgabe verfallen die unentschiedenen Vorschläge der alten von selbst.
+            Kandidaten, benotet sie und schreibt ab der eingestellten Stufe die kurze Meldung mit Verweis aufs
+            Blatt gleich vor — abgelehnte lernen dem Inventar, was die Redaktion nicht will. Erledigtes
+            verschwindet sofort vom Tisch, und mit jeder neuen Ausgabe verfallen die unentschiedenen
+            Vorschläge der alten von selbst.
           </Typography>
           <Presseschau
             blaetter={wochenblaetter.data?.wochenblaetter ?? []}
-            gemeinden={gemeinden.data?.gemeinden ?? []}
             meldungen={meldungenAlle}
             laedt={wochenblaetter.loading}
             laeuft={sendet}
-            onAnlegen={async (eingabe) => {
-              await fuehreAus('wochenblaetter', eingabe)
-              await wochenblaetter.refetch()
-            }}
+            schwelle={einstellungWochenblatt.schwelle}
             onPruefen={async () => {
+              // The run also writes the drafts from the threshold up.
               await fuehreAus('wochenblaetter/pruefen')
-              await Promise.all([wochenblaetter.refetch(), recherchehinweise.refetch()])
+              await Promise.all([
+                wochenblaetter.refetch(),
+                recherchehinweise.refetch(),
+                alleMeldungen.refetch()
+              ])
+            }}
+            onAllePublizieren={async () => {
+              await fuehreAus('wochenblaetter/publizieren')
+              await Promise.all([wochenblaetter.refetch(), alleMeldungen.refetch()])
             }}
             onInventar={async (id) => {
               await fuehreAus(`ausgaben/${id}/inventar`)
@@ -1799,12 +1812,13 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             Was andere Medien über eine Gemeinde schreiben — das tägliche Dossier der Schweizer
             Mediendatenbank, um 14:45 Uhr aus dem Postfach gelesen. Ein Newsblog zählt nur mit seinen neuen
             Einträgen; der Lauf sucht zu jedem Beitrag den Online-Artikel beim Verlag und sagt, wo er keinen
-            fand. Eine Sichtung sortiert, was einen Blick lohnt; die Meldung entsteht auf Klick, in eigenen
-            Worten.
+            fand. Eine Sichtung benotet, was einen Blick lohnt; ab der eingestellten Stufe schreibt der Lauf
+            die Meldung gleich vor, in eigenen Worten.
           </Typography>
           <Smd
             eintraege={smd.data?.smd_beitraege ?? []}
             lauf={smdLaufStatus}
+            schwelle={einstellungSmd.schwelle}
             gemeinden={gemeinden.data?.gemeinden ?? []}
             meldungen={meldungenAlle}
             onChat={async (id, anweisung) => {
@@ -2121,6 +2135,15 @@ export function RedaktionPanel({ onSitzungEnde, blogRuf = 0 }: RedaktionPanelPro
             }}
           />
           {gemeinden.loading && <CircularProgress />}
+          <WochenblattErfassen
+            blaetter={wochenblaetter.data?.wochenblaetter ?? []}
+            gemeinden={gemeinden.data?.gemeinden ?? []}
+            laeuft={sendet}
+            onAnlegen={async (eingabe) => {
+              await fuehreAus('wochenblaetter', eingabe)
+              await wochenblaetter.refetch()
+            }}
+          />
           <GemeindenAuswahl
             gemeinden={gemeinden.data?.gemeinden ?? []}
             vereine={vereine.data?.vereine ?? []}

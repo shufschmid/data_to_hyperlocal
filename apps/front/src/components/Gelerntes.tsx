@@ -19,7 +19,14 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import type { RecherchehinweisFelder, TischeinstellungFelder, WissenFelder } from '@/graphql/redaktion'
 import type { Modellpreis, VerbrauchsBilanz } from '@/lib/verbrauch'
-import { AUTO_TISCHE, autoPublizieren, EINSTELLBARE_TISCHE, einstellungFuer, SCHWELLEN } from '@/lib/tische'
+import {
+  AUTO_TISCHE,
+  autoPublizieren,
+  EINSTELLBARE_TISCHE,
+  einstellungFuer,
+  SCHWELLEN,
+  type EinstellbarerTisch
+} from '@/lib/tische'
 import { Kosten } from './Kosten'
 import {
   automatikBilanz,
@@ -82,12 +89,15 @@ type Vorlaufe = {
 function TischRegler({
   tisch,
   text,
+  hinweis,
   zeilen,
   laeuft,
   onTisch
 }: {
-  tisch: 'gemeinde' | 'veranstaltung' | 'buschtelefon'
+  tisch: EinstellbarerTisch
   text: string
+  /** Was die Schwelle auf diesem Tisch sonst noch bewirkt. */
+  hinweis?: string
   zeilen: readonly TischeinstellungFelder[]
   laeuft: boolean
   onTisch: (tisch: string, felder: Record<string, number | boolean>) => Promise<void>
@@ -124,6 +134,11 @@ function TischRegler({
             </MenuItem>
           ))}
         </TextField>
+        {hinweis !== undefined && (
+          <Typography variant="caption" color="text.secondary" sx={{ flexBasis: 320, flexGrow: 1 }}>
+            {hinweis}
+          </Typography>
+        )}
       </Stack>
       {tisch === 'veranstaltung' && (
         <Stack direction="row" spacing={2} sx={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 1.5 }}>
@@ -320,6 +335,7 @@ export function Gelerntes({
                 key={t.wert}
                 tisch={t.wert}
                 text={t.text}
+                {...(t.hinweis === undefined ? {} : { hinweis: t.hinweis })}
                 zeilen={tische}
                 laeuft={laeuft}
                 onTisch={onTisch}

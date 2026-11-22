@@ -1,4 +1,5 @@
 import type { SmdBeitragFelder } from '@/graphql/redaktion'
+import { istVorschlag, STANDARD_EINSTELLUNG } from './tische'
 
 // Presentation rules for the SMD desk. Pure, so they are tested without a
 // component. The same shape as `lib/kanton.ts` on purpose — the desks work the
@@ -141,6 +142,20 @@ export function abgelaufen(eintrag: SmdBeitragFelder, heute: string): boolean {
   return eintrag.vorschlag === true ? alter >= VORSCHLAG_VERFALL_TAGE : alter >= AUFRAEUM_TAGE
 }
 
+/**
+ * Ob eine Zeile ein Vorschlag ist — die Stufe gegen die Schwelle des Tischs,
+ * wo die Sichtung benotet hat (seit 22.11.2026); sonst das alte Bit. Dieselbe
+ * Regel wie im Lauf (`redaktion/tischeinstellungen.ts`), damit ein Umstellen
+ * der Schwelle hinter dem Zahnrad sofort wirkt.
+ */
+export function vorgeschlagen(
+  eintrag: Pick<SmdBeitragFelder, 'vorschlag' | 'vorschlag_wert'>,
+  schwelle: number = STANDARD_EINSTELLUNG.schwelle
+): boolean {
+  const wert = eintrag.vorschlag_wert ?? null
+  return wert !== null ? istVorschlag(wert, schwelle) : eintrag.vorschlag === true
+}
+
 export interface Tisch {
   /** What the Sichtung put forward — the top of the desk. */
   vorschlaege: SmdBeitragFelder[]
@@ -152,7 +167,8 @@ export function tisch(
   eintraege: readonly SmdBeitragFelder[],
   filter: Filter,
   meldungStatus: ReadonlyMap<string, string> = new Map(),
-  heute: string | null = null
+  heute: string | null = null,
+  schwelle: number = STANDARD_EINSTELLUNG.schwelle
 ): Tisch {
   const offen = sortiere(
     eintraege.filter(
@@ -162,9 +178,13 @@ export function tisch(
         (heute === null || !abgelaufen(e, heute))
     )
   )
+  // The highest grade on top; within a grade the desk's order (newest first).
+  const vorschlaege = offen
+    .filter((e) => vorgeschlagen(e, schwelle))
+    .sort((a, b) => (b.vorschlag_wert ?? 0) - (a.vorschlag_wert ?? 0))
   return {
-    vorschlaege: offen.filter((e) => e.vorschlag === true),
-    uebrige: offen.filter((e) => e.vorschlag !== true)
+    vorschlaege,
+    uebrige: offen.filter((e) => !vorgeschlagen(e, schwelle))
   }
 }
 
@@ -180,11 +200,12 @@ export function publizierbare<T extends { smd_beitrag?: { id: string } | null; s
 /** The badge on the tab: the proposals, plus what is taken over and not finished. */
 export function anzahlOffen(
   eintraege: readonly SmdBeitragFelder[],
-  meldungStatus: ReadonlyMap<string, string> = new Map()
+  meldungStatus: ReadonlyMap<string, string> = new Map(),
+  schwelle: number = STANDARD_EINSTELLUNG.schwelle
 ): number {
   return eintraege.filter((e) => {
     if (!bleibtAufDemTisch(e, meldungStatus.get(e.id) ?? null)) return false
-    return e.vorschlag === true || e.entscheid === 'uebernommen'
+    return vorgeschlagen(e, schwelle) || e.entscheid === 'uebernommen'
   }).length
 }
 
@@ -230,8 +251,11 @@ export function laufText(status: SmdLaufStatus): string | null {
     `${anzahl(e['dokumente'])} Dokumente`,
     `${anzahl(e['neu'])} neue Beiträge`,
     `${anzahl(links['gefunden'])} online gefunden`,
-    `${anzahl(e['vorschlaege'])} Vorschläge`
+    `${anzahl(e['vorschlaege'])} Vorschläge`,
+    `${anzahl(e['meldungenGeschrieben'])} Entwürfe geschrieben`
   ]
+  if (anzahl(e['meldungenWartend']) > 0)
+    teile.push(`${anzahl(e['meldungenWartend'])} warten auf ihren Entwurf`)
   const fehler = Array.isArray(e['fehler']) ? e['fehler'].length : 0
   if (fehler > 0) teile.push(`${fehler} Fehler`)
   const uhrzeit = new Date(status.beendet_um).toLocaleTimeString('de-CH', {

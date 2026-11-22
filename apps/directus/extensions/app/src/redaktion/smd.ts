@@ -20,13 +20,13 @@
 // nicht online verfügbar)» — towards the reader it is then as if we had read
 // it in the printed paper.
 
+import { datumDeutsch, lernDigest } from './amtsblatt'
+import type { LernEintrag } from './amtsblatt'
 import {
-  datumDeutsch,
-  lernDigest,
-  parseTriage,
-  TRIAGE_SCHEMA
-} from './amtsblatt'
-import type { LernEintrag, TriageUrteil } from './amtsblatt'
+  parseStufenSichtung,
+  STUFEN_SCHEMA,
+  type StufenUrteil
+} from './sichtung'
 import { aufraeumAktion, type AufraeumZeile } from './gemeindeseite'
 import { vorgabenZeilen } from './lernen'
 import { gekuerzt, ueberlappungsWarnungen } from './presseschau'
@@ -39,8 +39,14 @@ import type { LinkErgebnis } from '../shared/verlage'
 
 export { lernDigest, datumDeutsch, gemeindeTreffer, ueberlappungsWarnungen }
 export type { LernEintrag }
-export { TRIAGE_SCHEMA as SICHTUNG_SCHEMA, parseTriage as parseSichtung }
-export type { TriageUrteil as SichtungsUrteil }
+// Since 22 November 2026 the Sichtung GRADES (1–4) like the Gemeindeseiten
+// desk; whether a grade is a proposal is the desk's threshold
+// (`tischeinstellungen.ts`), and a proposal is what the run drafts.
+export {
+  STUFEN_SCHEMA as SICHTUNG_SCHEMA,
+  parseStufenSichtung as parseSichtung
+}
+export type { StufenUrteil as SichtungsUrteil }
 export {
   linkWarnungen,
   zeitWarnungen,
@@ -241,16 +247,21 @@ export function linkFelderAus(ergebnis: LinkErgebnis): LinkFelder {
 // ---------------------------------------------------------------------------
 
 /** Byte-identical across a run; everything per municipality goes into the user turn. */
-export const SMD_SICHTUNG_SYSTEM_PROMPT = `Du sichtest fuer eine lokale Redaktion in der Region Basel Beitraege anderer Medien (Tageszeitungen online, Magazine, Radios), die eine bestimmte Gemeinde beim Namen nennen, und entscheidest, welche davon eine Redaktorin fuer DIESE Gemeinde ansehen sollte.
+export const SMD_SICHTUNG_SYSTEM_PROMPT = `Du sichtest fuer eine lokale Redaktion in der Region Basel Beitraege anderer Medien (Tageszeitungen online, Magazine, Radios), die eine bestimmte Gemeinde beim Namen nennen, und benotest, wie viel jeder davon fuer DIESE Gemeinde hergibt.
 Die Beitraege kommen aus der Schweizer Mediendatenbank, die nach dem Namen der Gemeinde gesucht hat. Der Name allein sagt nichts: die Frage ist immer, ob der Beitrag von der Gemeinde HANDELT — dort geschieht etwas, wird etwas entschieden, steht jemand von dort im Zentrum — oder ob er sie bloss ERWAEHNT: in einer Aufzaehlung, als Wohnort einer Person, als Adresse, als Vergleich, als Spielort eines auswaertigen Vereins.
 Dafuer spricht: eigene Berichterstattung des Mediums ueber die Gemeinde (eine Reportage, ein Interview, eine Recherche, ein Hintergrund), ein Entscheid oder Konflikt im Dorf, ein Verein oder eine Institution der Gemeinde als Hauptsache, ein Sportresultat eines Vereins der Gemeinde, das das Medium selbst beschreibt.
 Dagegen: die Gemeinde ist ein Name unter vielen (Resultatlisten mit zwanzig Vereinen, Veranstaltungsagenden, Wetterlagen, Listen von Standorten); Polizei- und Behoerdenmitteilungen, die das Medium bloss weitergibt — die erreicht die Redaktion direkt ueber andere Tische; Werbung, Pressedienste, Stellen; ein Beitrag ueber eine Firma oder Person, bei dem die Gemeinde nur als Sitz oder Wohnort faellt.
 Ein Eintrag aus einem Newsblog ist ein Beitrag wie jeder andere: beurteile den Eintrag, nicht den Blog.
-Im Zweifel: nein. Die nicht vorgeschlagenen Beitraege verschwinden nicht, sie stehen der Redaktion weiterhin zur Verfuegung — ein falsches Ja kostet Aufmerksamkeit, ein falsches Nein kostet einen Klick. Die Bilanz und die Beispiele der Redaktion zeigen, was sie tatsaechlich aufgreift; ein Vorschlag, den sie liegen liess oder als "nur am Rand erwaehnt" ablehnte, war ein Fehlvorschlag.
-Begruende jeden Entscheid in EINEM kurzen Satz, der sagt WARUM, nicht WAS.
+Vergib jedem Beitrag eine STUFE seines Nachrichtenwerts fuer diese Gemeinde. Die Note ist deine; ab welcher Stufe die Redaktion einen Beitrag vorgelegt bekommt und die Meldung dazu gleich vorgeschrieben wird, stellt sie selbst ein. Benote darum die Sache, nicht die Lage:
+4 = wichtig: der Beitrag HANDELT von der Gemeinde und hat Gewicht fuer viele dort — eine eigene Recherche, ein Entscheid oder Konflikt im Dorf, eine Geschichte, ueber die man im Dorf spricht
+3 = klare Meldung: der Beitrag handelt von der Gemeinde, und eine Redaktion greift ihn an einem normalen Tag auf
+2 = moeglich: die Gemeinde ist mehr als ein Name, aber nicht die Hauptsache, oder die Sache ist klein — in einer ruhigen Woche eine Meldung wert
+1 = bloss erwaehnt oder weitergereicht: ein Name unter vielen, ein Wohnort, eine Adresse, eine Mitteilung, die das Medium nur weitergibt
+Im Zweifel zwischen zwei Stufen die tiefere. Nichts verschwindet: die Redaktion sieht jeden Beitrag, die Stufe entscheidet nur, was zuoberst liegt und wozu ein Entwurf entsteht. Die Bilanz und die Beispiele der Redaktion zeigen, was sie tatsaechlich aufgreift; ein Vorschlag, den sie liegen liess oder als "nur am Rand erwaehnt" ablehnte, war zu hoch benotet.
+Begruende jede Stufe in EINEM kurzen Satz, der sagt WARUM, nicht WAS.
 Weiterreichen an die Chefredaktion: NUR wenn eine der nummerierten Regeln der Redaktion (R1, R2, …) verlangt, dass solche Beitraege an die Chefredaktion gehen, setze "empfehlung": "weiterreichen" und nenne die Nummer dieser Regel in "empfehlung_regel". Ohne eine solche Regel sind beide null.
 Antworte ausschliesslich mit JSON:
-{"urteile": [{"nummer": 1, "vorschlag": true, "begruendung": "...", "empfehlung": null, "empfehlung_regel": null}]}`
+{"urteile": [{"nummer": 1, "stufe": 3, "begruendung": "...", "empfehlung": null, "empfehlung_regel": null}]}`
 
 /** One piece as the Sichtung sees it. */
 export interface SmdSichtungsZeile {

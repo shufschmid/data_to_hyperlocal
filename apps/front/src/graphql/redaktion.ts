@@ -1087,6 +1087,8 @@ export interface KandidatFelder {
   frontseite: boolean
   warum_exklusiv: string | null
   zusammenfassung: string | null
+  /** Die Relevanz-Stufe des Inventars, 1–4; null bei Kandidaten von vor dem 22.11.2026. */
+  vorschlag_wert?: number | null
   perle_vorschlag: boolean
   perle_begruendung: string | null
   /** vorschau · rueckschau · keiner — vom Inventar; null vor dem 27.09.2026. */
@@ -1175,6 +1177,7 @@ export const WOCHENBLAETTER_QUERY = gql`
           frontseite
           warum_exklusiv
           zusammenfassung
+          vorschlag_wert
           perle_vorschlag
           perle_begruendung
           zeitbezug
@@ -1668,6 +1671,8 @@ export interface SmdBeitragFelder {
   hinweise: string[] | null
   /** Null means the Sichtung has not judged it — NOT that it said no. */
   vorschlag: boolean | null
+  /** Die Stufe der Sichtung, 1–4; null bei Zeilen von vor dem 22.11.2026 — die behalten ihr Bit. */
+  vorschlag_wert?: number | null
   vorschlag_begruendung: string | null
   entscheid: string
   ablehnungsgrund: string | null
@@ -1709,6 +1714,7 @@ export const SMD_BEITRAEGE_QUERY = gql`
       link_hinweis
       hinweise
       vorschlag
+      vorschlag_wert
       vorschlag_begruendung
       entscheid
       ablehnungsgrund

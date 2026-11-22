@@ -42,6 +42,7 @@ import {
   type Filter,
   type SmdLaufStatus
 } from '@/lib/smd'
+import { stufeText } from '@/lib/tische'
 
 export interface SmdProps {
   eintraege: SmdBeitragFelder[]
@@ -65,6 +66,8 @@ export interface SmdProps {
   onLink?: (id: string, url: string | null, abo: boolean) => Promise<void> | void
   /** Publiziert alle geschriebenen Meldungen dieses Tischs auf einen Griff. */
   onAllePublizieren?: () => Promise<void> | void
+  /** Ab dieser Stufe ist ein Beitrag ein Vorschlag — und bekommt vom Lauf seinen Entwurf («Gelerntes» → «Tische»). */
+  schwelle?: number
 }
 
 /**
@@ -94,7 +97,8 @@ export function Smd({
   onAblehnen,
   onWeiterreichen,
   onLink,
-  onAllePublizieren
+  onAllePublizieren,
+  schwelle
 }: SmdProps) {
   const [filter, setFilter] = useState<Filter>({ gemeinde: null, medium: null, suche: '' })
   const [uebrigeOffen, setUebrigeOffen] = useState(false)
@@ -114,8 +118,8 @@ export function Smd({
     [meldungZu]
   )
   const { vorschlaege, uebrige } = useMemo(
-    () => tisch(eintraege, filter, statusJeBeitrag, heute),
-    [eintraege, filter, statusJeBeitrag, heute]
+    () => tisch(eintraege, filter, statusJeBeitrag, heute, schwelle),
+    [eintraege, filter, statusJeBeitrag, heute, schwelle]
   )
   const aktive = useMemo(() => gemeinden.filter((g) => g.aktiv), [gemeinden])
   const alleMedien = useMemo(() => medien(eintraege), [eintraege])
@@ -144,6 +148,9 @@ export function Smd({
           <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start', flexWrap: 'wrap', rowGap: 1 }}>
             <Chip size="small" label={eintrag.gemeinde?.name ?? '—'} />
             <Chip size="small" variant="outlined" label={eintrag.medium} />
+            {stufeText(eintrag.vorschlag_wert) !== null && (
+              <Chip size="small" variant="outlined" label={stufeText(eintrag.vorschlag_wert)} />
+            )}
             {eintrag.art === 'blogeintrag' && (
               <Chip size="small" variant="outlined" color="info" label={`Blog «${eintrag.blog ?? ''}»`} />
             )}
@@ -299,10 +306,12 @@ export function Smd({
         Das tägliche Dossier der Schweizer Mediendatenbank, nach Gemeinden gesucht — ein Newsblog zählt nur
         mit seinen neuen Einträgen, und nur Beiträge, die eine Gemeinde beim Namen nennen, kommen auf den
         Tisch. Zu jedem Beitrag sucht der Lauf den Online-Artikel beim Verlag; wo er keinen findet, sagt die
-        Quellenzeile «(Artikel nicht online verfügbar)», und der Link lässt sich von Hand setzen. Die Meldung
-        entsteht auf Klick, in eigenen Worten, das Medium im Text genannt. Was die Sichtung nicht
-        vorgeschlagen hat, bleibt liegen und verschwindet nach sieben Tagen, ein unentschiedener Vorschlag
-        nach vierzehn.
+        Quellenzeile «(Artikel nicht online verfügbar)», und der Link lässt sich von Hand setzen. Die Sichtung
+        benotet jeden Beitrag mit einer Stufe von 1 bis 4; ab der eingestellten Stufe ist er ein Vorschlag,
+        und der Lauf schreibt die Meldung dazu gleich vor — in eigenen Worten, das Medium im Text genannt.
+        Publiziert wird nichts von selbst: «Alle publizieren» oder jede Meldung einzeln. Was unter der
+        Schwelle liegt, bleibt ohne Entwurf liegen und verschwindet nach sieben Tagen, ein unentschiedener
+        Vorschlag nach vierzehn.
       </Typography>
 
       {lauf?.fehler != null && (
@@ -366,7 +375,7 @@ export function Smd({
         <>
           <Typography variant="subtitle2" color="text.secondary">
             {vorschlaege.length === 0
-              ? 'Kein Vorschlag — die Sichtung hielt nichts für berichtenswert.'
+              ? 'Kein Vorschlag — die Sichtung hat nichts ab der eingestellten Stufe benotet.'
               : `${vorschlaege.length} vorgeschlagen`}
           </Typography>
           <Stack spacing={2}>

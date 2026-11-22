@@ -32,6 +32,12 @@ import {
 } from '../../redaktion/lernen'
 import { kandidatAlsHinweis, reicheWeiter } from '../../redaktion/weiterreichen'
 import { verwirfEntwurfZu } from '../../redaktion/entwurf'
+import { heuteIso } from '../../redaktion/feiertage'
+import {
+  schreibeWochenblattEntwuerfe,
+  WOCHENBLATT_ENTWUERFE_JE_LAUF
+} from '../../redaktion/presseschaumeldungen'
+import { ladeTischeinstellung } from '../../redaktion/tischeinstellungen'
 import { optionalEnv } from '../../shared/env'
 import type { Wochenblatt, Wochenblattausgabe } from '../../types/schema'
 
@@ -41,8 +47,14 @@ import type { Wochenblatt, Wochenblattausgabe } from '../../types/schema'
 // cannot legitimately produce more per day; a gap after a missed morning
 // self-heals one issue per run, oldest first), store the PDF in Directus
 // Files, extract its text layer, and let one Opus call inventory the
-// exclusive pieces into candidates. The editor picks from those — no Meldung
-// is written here.
+// exclusive pieces into candidates, each with a relevance grade 1–4.
+//
+// Since 22 November 2026 the run also WRITES: every open candidate of the
+// newest issues graded at or above the desk's threshold
+// (`tischeinstellungen`, `tisch: wochenblatt`) gets its draft, cap 20, the
+// rest named. The candidate stays open beside it, nothing is published, and
+// the draft teaches nothing — the Gemeindeseiten bargain. What lies below the
+// threshold waits for «Meldungen formulieren» or the editor's own click.
 //
 // A paper with no stored issues takes exactly the newest archive entry:
 // registration deliberately ignores the backlog, that was the deal.
@@ -65,6 +77,10 @@ interface Ergebnis {
   blaetter: number
   neueAusgaben: number
   kandidaten: number
+  /** Drafts this run wrote for candidates at or above the desk's threshold. */
+  entwuerfeGeschrieben: number
+  /** What the cap left for the next run. */
+  entwuerfeWartend: number
   fehler: string[]
   hinweise: string[]
 }
@@ -130,6 +146,8 @@ export default defineOperationApi<Optionen>({
       blaetter: 0,
       neueAusgaben: 0,
       kandidaten: 0,
+      entwuerfeGeschrieben: 0,
+      entwuerfeWartend: 0,
       fehler: [],
       hinweise: []
     }
@@ -196,6 +214,70 @@ export default defineOperationApi<Optionen>({
           letzter_fehler: text
         })
       }
+    }
+
+    // ---- The drafts, from the desk's threshold up -------------------------
+    // Over every paper's newest issue, not only today's: a threshold lowered
+    // behind the gear takes effect here, and so does yesterday's cap. Its own
+    // try/catch — a failed write must not cost the run its issues.
+    try {
+      const einstellung = await ladeTischeinstellung(
+        new ItemsService('tischeinstellungen', {
+          schema,
+          knex: database
+        }) as never,
+        'wochenblatt',
+        {
+          warn: (...args: unknown[]) =>
+            logger.warn(args[0], String(args[1] ?? ''))
+        }
+      )
+      const textRegeln = (
+        await ladeRegeln(
+          wissenService,
+          { bereich: 'presseschau', stufe: 'text' },
+          { warn: (m: string) => logger.warn(m) }
+        )
+      ).map((r) => r.regel)
+      const entwuerfe = await schreibeWochenblattEntwuerfe(
+        {
+          blaetter: blaetterService as never,
+          ausgaben: ausgabenService as never,
+          kandidaten: kandidatenService as never,
+          kandidatenLesen: kandidatenService as never,
+          meldungen: meldungenService as never,
+          logger: {
+            info: (text: string) => logger.info(text),
+            warn: (fehler: unknown, text?: string) =>
+              logger.warn(fehler, text ?? '')
+          }
+        },
+        {
+          schwelle: einstellung.schwelle,
+          regeln: textRegeln,
+          heute: heuteIso()
+        }
+      )
+      ergebnis.entwuerfeGeschrieben = entwuerfe.geschrieben
+      ergebnis.entwuerfeWartend = entwuerfe.wartend
+      ergebnis.fehler.push(...entwuerfe.fehler)
+      if (entwuerfe.geschrieben > 0)
+        ergebnis.hinweise.push(
+          `${entwuerfe.geschrieben} Entwürfe ab Stufe ${einstellung.schwelle} geschrieben`
+        )
+      if (entwuerfe.wartend > 0)
+        ergebnis.hinweise.push(
+          `${entwuerfe.wartend} Kandidaten ab Stufe ${einstellung.schwelle} warten auf ihren Entwurf — der nächste Lauf schreibt sie (Deckel ${WOCHENBLATT_ENTWUERFE_JE_LAUF} je Lauf)`
+        )
+      if (entwuerfe.ohneZusammenfassung > 0)
+        ergebnis.hinweise.push(
+          `${entwuerfe.ohneZusammenfassung} Kandidaten ab Stufe ${einstellung.schwelle} ohne Fakten — kein Entwurf`
+        )
+    } catch (fehler) {
+      logger.warn(fehler, 'wochenblatt: Entwuerfe schreiben fehlgeschlagen.')
+      ergebnis.fehler.push(
+        `Entwürfe: ${fehler instanceof Error ? fehler.message : String(fehler)}`
+      )
     }
 
     ergebnis.ueberCrawler = zweiteTuerSeit(laufStart)
@@ -424,6 +506,7 @@ export default defineOperationApi<Optionen>({
           frontseite: kandidat.frontseite,
           warum_exklusiv: kandidat.warum_exklusiv,
           zusammenfassung: kandidat.zusammenfassung,
+          vorschlag_wert: kandidat.stufe,
           perle_vorschlag: kandidat.perle_vorschlag,
           perle_begruendung: kandidat.perle_begruendung,
           zeitbezug: kandidat.zeitbezug,

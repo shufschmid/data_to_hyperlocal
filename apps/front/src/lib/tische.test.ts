@@ -62,7 +62,13 @@ describe('Schwelle und Vorlauf', () => {
   })
 
   it('fuehrt das Buschtelefon als dritten einstellbaren Tisch, mit eigener Zeile', () => {
-    expect(EINSTELLBARE_TISCHE.map((t) => t.wert)).toEqual(['gemeinde', 'veranstaltung', 'buschtelefon'])
+    expect(EINSTELLBARE_TISCHE.map((t) => t.wert)).toEqual([
+      'gemeinde',
+      'veranstaltung',
+      'buschtelefon',
+      'wochenblatt',
+      'smd'
+    ])
     expect(einstellungFuer([zeile({ tisch: 'buschtelefon', schwelle: 4 })], 'buschtelefon').schwelle).toBe(4)
     expect(einstellungFuer([zeile()], 'buschtelefon').schwelle).toBe(3)
   })

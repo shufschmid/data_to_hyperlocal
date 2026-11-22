@@ -19,6 +19,7 @@ import type { RegelZeile } from './gedaechtnis'
 import { automatischeWeitergabe, type NummerierteRegel } from './lernen'
 import { ladeSmdSignale, LERN_FENSTER } from './lernsignale'
 import { pakete, SICHTUNG_AUFRUF, sichtungsFehlerText } from './sichtungspakete'
+import { istVorschlag, STANDARD_EINSTELLUNG } from './tischeinstellungen'
 import {
   aufraeumAktionSmd,
   AUSZUG_ZEICHEN,
@@ -363,12 +364,16 @@ export interface SmdSichtungKontext {
   }
   heute: string
   logger: Logger
+  /** The desk's threshold: from this grade a piece is a proposal — and gets its draft from the run. */
+  schwelle?: number
   model?: string | null
   send?: MessageSender
 }
 
 /**
- * One Sonnet call per municipality over its new pieces, in packets. Steered
+ * One Sonnet call per municipality over its new pieces, in packets. It
+ * GRADES (1–4, since 22 November 2026); the grade against the desk's
+ * threshold is the proposal. Steered
  * by the desk's rules and this municipality's decision history; a rule the
  * editor armed may hand a piece to the Chefredaktion by itself, as a lead.
  */
@@ -412,6 +417,7 @@ export async function sichteSmdBeitraege(
   )
   const digest = lernDigest(signale.entscheide, LERN_FENSTER, signale.rahmen)
   const weiterzureichen = new Map<string, NummerierteRegel>()
+  const schwelle = kontext.schwelle ?? STANDARD_EINSTELLUNG.schwelle
   let vorschlaege = 0
   const alle = pakete(zeilen)
   const fehlerPakete: string[] = []
@@ -434,11 +440,13 @@ export async function sichteSmdBeitraege(
         kontext.send
       )
       for (const urteil of parseSichtung(antwort, paket)) {
+        const vorschlag = istVorschlag(urteil.stufe, schwelle)
         await kontext.beitraege.updateOne(urteil.id, {
-          vorschlag: urteil.vorschlag,
+          vorschlag,
+          vorschlag_wert: urteil.stufe,
           vorschlag_begruendung: urteil.begruendung
         })
-        if (urteil.vorschlag) vorschlaege += 1
+        if (vorschlag) vorschlaege += 1
         const regel = automatischeWeitergabe(
           urteil,
           kontext.sichtungsregeln.nummern,
@@ -499,4 +507,43 @@ export async function sichteSmdBeitraege(
     }
   }
   return { vorschlaege, weitergereicht, fehler: sichtungsFehler }
+}
+
+// ---------------------------------------------------------------------------
+// 4. The dial — the threshold re-applied to what is already graded
+// ---------------------------------------------------------------------------
+
+/**
+ * Re-applies the desk's threshold to every open, graded row — the run's half
+ * of the dial, as on the Gemeindeseiten desk: a threshold lowered behind the
+ * gear shows on the desk at once (the workspace computes the same rule) and
+ * the next run writes the drafts for what moved up. No model call; a row
+ * without a grade (read before 22 November 2026) keeps its bit.
+ */
+export async function gleicheSmdSchwelleAb(
+  beitraege: BeitraegeDienst,
+  schwelle: number,
+  logger: Logger
+): Promise<number> {
+  const zeilen = (await beitraege.readByQuery({
+    filter: { entscheid: { _eq: 'offen' }, vorschlag_wert: { _nnull: true } },
+    fields: ['id', 'vorschlag', 'vorschlag_wert'],
+    limit: -1
+  })) as Array<{
+    id: string
+    vorschlag: boolean | null
+    vorschlag_wert: number | null
+  }>
+  let geaendert = 0
+  for (const z of zeilen) {
+    const soll = istVorschlag(z.vorschlag_wert, schwelle)
+    if (soll === z.vorschlag) continue
+    try {
+      await beitraege.updateOne(z.id, { vorschlag: soll })
+      geaendert += 1
+    } catch (fehler) {
+      logger.warn(fehler, `smd: Schwelle auf ${z.id} nicht angewandt.`)
+    }
+  }
+  return geaendert
 }

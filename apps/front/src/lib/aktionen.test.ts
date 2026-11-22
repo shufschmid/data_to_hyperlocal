@@ -61,6 +61,12 @@ describe('Die Liste erlaubter Aktionen', () => {
 
   // Der Verkehr-Tisch baut seinen Pfad mit zwei Loechern (`verkehr/${art}/${id}/meldung`),
   // also prueft ihn die Liste oben nicht — hier ausdruecklich, beide Arten.
+  it('kennt die Regler der zwei Tische, die seit dem 22.11.2026 benoten', () => {
+    expect(darfSchreiben('tische/wochenblatt')).toBe(true)
+    expect(darfSchreiben('tische/smd')).toBe(true)
+    expect(darfSchreiben('tische/amtsblatt')).toBe(false)
+  })
+
   it('kennt die zwei Meldungen des Verkehr-Tischs', () => {
     expect(darfSchreiben(`verkehr/standorte/${BEISPIEL_ID}/meldung`)).toBe(true)
     expect(darfSchreiben(`verkehr/kontrollen/${BEISPIEL_ID}/meldung`)).toBe(true)

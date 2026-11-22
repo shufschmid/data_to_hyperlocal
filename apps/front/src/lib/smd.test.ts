@@ -147,7 +147,9 @@ describe('laufText', () => {
         ergebnis: { mails: 1, dokumente: 7, neu: 5, links: { gefunden: 3 }, vorschlaege: 2, fehler: [] },
         fehler: null
       })
-    ).toMatch(/1 neue Dossiers, 7 Dokumente, 5 neue Beiträge, 3 online gefunden, 2 Vorschläge\.$/)
+    ).toMatch(
+      /1 neue Dossiers, 7 Dokumente, 5 neue Beiträge, 3 online gefunden, 2 Vorschläge, 0 Entwürfe geschrieben\.$/
+    )
     expect(
       laufText({ laeuft: true, gestartet_um: null, beendet_um: null, ergebnis: null, fehler: null })
     ).toMatch(/unterwegs/)

@@ -113,4 +113,24 @@ describe('Smd', () => {
     expect(screen.getByText(/Kein Vorschlag/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Übrige 1 anzeigen/ })).toBeInTheDocument()
   })
+
+  // --- Relevanz-Stufen (seit 22.11.2026) ---
+
+  it('zeigt die Stufe und richtet den Vorschlag nach der Schwelle des Tischs, nicht nach dem alten Bit', () => {
+    const zeilen = [
+      eintrag({ id: 'hoch', titel: 'Streit um den Dorfplatz', vorschlag: true, vorschlag_wert: 3 }),
+      eintrag({ id: 'tief', titel: 'Resultate vom Wochenende', vorschlag: false, vorschlag_wert: 2 })
+    ]
+    const { rerender } = render(
+      <Smd eintraege={zeilen} gemeinden={[gemeinde()]} heute="2026-10-12" schwelle={3} />
+    )
+    expect(screen.getByText('Stufe 3 · klare Meldung')).toBeInTheDocument()
+    expect(screen.getByText('1 vorgeschlagen')).toBeInTheDocument()
+    // Grosszügig gestellt: die Stufe 2 rückt auf, ohne dass der Lauf lief.
+    rerender(<Smd eintraege={zeilen} gemeinden={[gemeinde()]} heute="2026-10-12" schwelle={2} />)
+    expect(screen.getByText('2 vorgeschlagen')).toBeInTheDocument()
+    // Streng gestellt: auch die Stufe 3 liegt bei den Übrigen.
+    rerender(<Smd eintraege={zeilen} gemeinden={[gemeinde()]} heute="2026-10-12" schwelle={4} />)
+    expect(screen.getByText(/Kein Vorschlag/)).toBeInTheDocument()
+  })
 })

@@ -347,12 +347,15 @@ describe('Buschtelefon-Datenmodell', () => {
       bereich?.schema.max_length ?? 0
     )
     const tisch = felder('tischeinstellungen').get('tisch')
-    // The three grading desks first; since 16.11.2026 the desks that only
-    // carry the Auto-Publish switch follow.
+    // The grading desks first (Wochenblätter and SMD since 22.11.2026);
+    // since 16.11.2026 the desks that only carry the Auto-Publish switch
+    // follow.
     expect(werte(tisch)).toEqual([
       'gemeinde',
       'veranstaltung',
       'buschtelefon',
+      'wochenblatt',
+      'smd',
       'kanton',
       'sport',
       'abstimmung'

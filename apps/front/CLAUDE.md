@@ -217,6 +217,17 @@ emptied on a schedule (root CLAUDE.md). The frontend keeps to that:
   `MELDUNG_IN_ARBEIT` otherwise. `KEIN_ENTWURF` is a literal copy of the
   extension's constant of the same name; change both together.
 
+### A new write path needs a line in `lib/aktionen.ts`
+
+`app/api/redaktion/[...pfad]` forwards only what `ERLAUBT` (POST) and
+`LESBAR` (GET) name. `lib/aktionen.test.ts` reads every `fuehreAus('…')` out
+of `RedaktionPanel.tsx` and fails when a path is missing — which is how
+«Alle publizieren» on the Wochenblätter desk was caught on 22 November 2026
+before it shipped. What that test cannot see is a path built with a variable:
+`tische/${tisch}` is one, and a new desk in `EINSTELLBARE_TISCHE` or
+`AUTO_TISCHE` (`lib/tische.ts`) also needs its name in the `tische/(…)`
+pattern, or its dial answers a refusal.
+
 ## Adding a page
 
 1. `src/app/<route>/page.tsx` — a server component that renders client components.

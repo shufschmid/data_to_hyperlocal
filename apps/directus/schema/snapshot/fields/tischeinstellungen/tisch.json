@@ -11,7 +11,7 @@
     "group": null,
     "hidden": false,
     "interface": "select-dropdown",
-    "note": "Der Tisch. Benotend (Schwelle): gemeinde, veranstaltung, buschtelefon. Nur fuer Auto-Publish: kanton, sport, abstimmung.",
+    "note": "Der Tisch. Benotend (Schwelle): gemeinde, veranstaltung, buschtelefon, wochenblatt, smd. Nur fuer Auto-Publish: kanton, sport, abstimmung.",
     "options": {
       "choices": [
         {
@@ -25,6 +25,14 @@
         {
           "text": "Buschtelefon",
           "value": "buschtelefon"
+        },
+        {
+          "text": "Wochenblätter",
+          "value": "wochenblatt"
+        },
+        {
+          "text": "SMD",
+          "value": "smd"
         },
         {
           "text": "Kanton",

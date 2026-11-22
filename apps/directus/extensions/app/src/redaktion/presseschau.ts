@@ -12,6 +12,7 @@
 // the issue's text layer — the check that tells "own words" from copying.
 
 import type Anthropic from '@anthropic-ai/sdk'
+import { istVorschlag, stufeAus, type Stufe } from './tischeinstellungen'
 import { alleDaten, heuteAus } from '../shared/gemeindeseite/datum'
 import { seitenLink } from '../shared/wochenblatt/parse'
 import { heuteIso } from './feiertage'
@@ -115,6 +116,22 @@ Anlass vorbei ist:
   Beitrag keinen, ist "anlass_am" null. Bei "rueckschau" und "keiner" immer
   null.
 
+Relevanz-Stufe je Kandidat — "stufe", 1 bis 4. Die Note ist deine; ab welcher
+Stufe die Meldung zu einem Kandidaten gleich vorgeschrieben wird, stellt die
+Redaktion ein. Benote darum die Sache, nicht die Lage:
+4 = wichtig: eine exklusive Geschichte mit Gewicht fuer viele im Dorf — eine
+    eigene Recherche, ein Konflikt, ein Entscheid, der Aufmacher mit Substanz
+3 = klare Meldung: was die Redaktion an einem normalen Tag aufgreift — ein
+    Interview, eine Reportage, ein Portraet mit Geschichte, ein Anlass, der
+    noch bevorsteht und viele angeht
+2 = moeglich: in einer ruhigen Woche eine Meldung wert — eine Vereinsmeldung
+    ohne Neuigkeit, eine kleine Erfolgsmeldung, ein Rueckblick mit Fotos
+    ("fotoverweis")
+1 = Randnotiz: exklusiv, aber kaum eine Meldung
+Im Zweifel zwischen zwei Stufen die tiefere. Die Bilanz und die Beispiele der
+Redaktion zeigen, was sie tatsaechlich aufgreift: ein Kandidat, den sie liegen
+liess oder ablehnte, war zu hoch benotet.
+
 Geburtstags- und Jubilaeums-Portraets sind nur Kandidaten, wenn die
 Lebensgeschichte selbst berichtenswert ist (eine Stadtmeisterin, eine
 ungewoehnliche Karriere, eine historische Rolle). Ein gewoehnlicher runder
@@ -173,6 +190,7 @@ export const INVENTAR_SCHEMA = {
           'frontseite',
           'warum_exklusiv',
           'zusammenfassung',
+          'stufe',
           'perle_vorschlag',
           'perle_begruendung',
           'empfehlung',
@@ -188,6 +206,7 @@ export const INVENTAR_SCHEMA = {
           frontseite: { type: 'boolean' },
           warum_exklusiv: { type: 'string' },
           zusammenfassung: { type: 'string' },
+          stufe: { type: 'integer', enum: [1, 2, 3, 4] },
           perle_vorschlag: { type: 'boolean' },
           perle_begruendung: { type: ['string', 'null'] },
           // A nullable enum as type + enum is rejected by the API (measured
@@ -627,6 +646,8 @@ export interface InventarKandidat {
   frontseite: boolean
   warum_exklusiv: string
   zusammenfassung: string
+  /** The relevance grade 1–4; null where the answer carried none — "not graded", never a guess. */
+  stufe: Stufe | null
   perle_vorschlag: boolean
   perle_begruendung: string | null
   /** Only ever set when a numbered rule of the newsroom asked for it — checked by code. */
@@ -802,6 +823,7 @@ export function parseInventar(
       warum_exklusiv:
         typeof e.warum_exklusiv === 'string' ? e.warum_exklusiv.trim() : '',
       zusammenfassung,
+      stufe: stufeAus(e.stufe),
       perle_vorschlag: e.perle_vorschlag === true,
       perle_begruendung:
         typeof e.perle_begruendung === 'string' &&
@@ -931,6 +953,8 @@ export interface FormulierKandidat {
   zeitbezug?: string | null
   anlass_am?: string | null
   zusammenfassung: string | null
+  /** The inventory's grade; null on candidates read before 22.11.2026. */
+  vorschlag_wert?: number | null
 }
 
 /**
@@ -939,19 +963,32 @@ export interface FormulierKandidat {
  * Meldung, none without a fact summary (there is nothing to write FROM), and
  * no preview whose event has passed — that one is folded away on the desk
  * and is not worth a model call.
+ *
+ * `abStufe` is the RUN's selection (22.11.2026): only candidates graded at
+ * or above the desk's threshold, highest grade first — an ungraded one never
+ * by this rule. The button passes none and so takes what the run left: the
+ * lower grades, the ungraded, and whatever a cap kept waiting.
  */
 export function formulierbare<T extends FormulierKandidat>(
   kandidaten: readonly T[],
   mitMeldung: ReadonlySet<string>,
   heute: string,
-  hoechstens: number = PRESSESCHAU_FORMULIEREN_JE_KLICK
+  hoechstens: number = PRESSESCHAU_FORMULIEREN_JE_KLICK,
+  abStufe: number | null = null
 ): { dran: T[]; wartend: number; ohneZusammenfassung: number } {
-  const offen = kandidaten.filter(
+  const infrage = kandidaten.filter(
     (k) =>
       k.entscheid === 'offen' &&
       !mitMeldung.has(k.id) &&
       !vorschauVorbei(k, heute)
   )
+  const offen =
+    abStufe === null
+      ? infrage
+      : infrage
+          .filter((k) => istVorschlag(k.vorschlag_wert ?? null, abStufe))
+          // Stable: equal grades keep the desk's order (paper, page).
+          .sort((a, b) => (b.vorschlag_wert ?? 0) - (a.vorschlag_wert ?? 0))
   const mitFakten = offen.filter(
     (k) => k.zusammenfassung !== null && k.zusammenfassung.trim() !== ''
   )

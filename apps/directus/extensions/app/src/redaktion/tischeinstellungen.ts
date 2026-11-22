@@ -28,14 +28,30 @@ export const STUFEN_TEXT: Record<Stufe, string> = {
   1: 'Routine'
 }
 
-// `buschtelefon` is the third grading desk (11 November 2026). It reads the
+// `buschtelefon` is the third grading desk (11 November 2026), `wochenblatt`
+// and `smd` the fourth and fifth (22 November 2026). These three read the
 // threshold alone: the lead per grade and the Dauerangebote dose belong to
-// the events desk and are ignored for it (`tischFelder`).
-export type EinstellbarerTisch = 'gemeinde' | 'veranstaltung' | 'buschtelefon'
+// the events desk and are ignored for them (`tischFelder`). On all three the
+// threshold is also the grade from which the run writes the draft itself.
+export type EinstellbarerTisch =
+  | 'gemeinde'
+  | 'veranstaltung'
+  | 'buschtelefon'
+  | 'wochenblatt'
+  | 'smd'
 export const EINSTELLBARE_TISCHE: readonly EinstellbarerTisch[] = [
   'gemeinde',
   'veranstaltung',
-  'buschtelefon'
+  'buschtelefon',
+  'wochenblatt',
+  'smd'
+]
+
+/** The desks whose only dial is the threshold. */
+const NUR_SCHWELLE: readonly EinstellbarerTisch[] = [
+  'buschtelefon',
+  'wochenblatt',
+  'smd'
 ]
 
 export interface Tischeinstellung {
@@ -171,8 +187,8 @@ export function tischeinstellungFelder(
 }
 
 /**
- * The columns a POST may set FOR ONE DESK. The Buschtelefon desk has a
- * threshold and nothing else: the events-only keys of its body are dropped
+ * The columns a POST may set FOR ONE DESK. The Buschtelefon, Wochenblätter
+ * and SMD desks have a threshold and nothing else: the events-only keys of its body are dropped
  * before validation, so a form that sends the whole row changes only what
  * the desk reads — and a body carrying nothing but those keys is refused
  * like an empty one.
@@ -198,7 +214,7 @@ export function tischFelder(
   if (istEinstellbarerTisch(tisch)) {
     for (const spalte of SPALTEN) {
       if (!(spalte.feld in koerper)) continue
-      if (tisch === 'buschtelefon' && spalte.feld !== 'schwelle') continue
+      if (NUR_SCHWELLE.includes(tisch) && spalte.feld !== 'schwelle') continue
       regler[spalte.feld] = koerper[spalte.feld]
     }
   }

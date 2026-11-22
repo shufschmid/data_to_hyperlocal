@@ -80,7 +80,7 @@ describe('tischeinstellungen — der dritte benotende Tisch', () => {
   it('kennt den Buschtelefon-Tisch', () => {
     expect(EINSTELLBARE_TISCHE).toContain('buschtelefon')
     expect(istEinstellbarerTisch('buschtelefon')).toBe(true)
-    expect(istEinstellbarerTisch('smd')).toBe(false)
+    expect(istEinstellbarerTisch('amtsblatt')).toBe(false)
   })
 
   it('nimmt fuer ihn nur die Schwelle und laesst die Felder des Veranstaltungstischs fallen', () => {

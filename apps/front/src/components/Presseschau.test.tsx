@@ -1,12 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { abgedeckteGemeinden, Presseschau } from './Presseschau'
-import type {
-  AlleMeldungFelder,
-  GemeindeFelder,
-  KandidatFelder,
-  WochenblattFelder
-} from '@/graphql/redaktion'
+import type { AlleMeldungFelder, KandidatFelder, WochenblattFelder } from '@/graphql/redaktion'
 
 function kandidat(ueber: Partial<KandidatFelder>): KandidatFelder {
   return {
@@ -93,10 +88,7 @@ function meldung(ueber: Partial<AlleMeldungFelder>): AlleMeldungFelder {
   }
 }
 
-const gemeinden: GemeindeFelder[] = []
-
 const NICHTS = {
-  onAnlegen: jest.fn().mockResolvedValue(undefined),
   onPruefen: jest.fn().mockResolvedValue(undefined),
   onInventar: jest.fn().mockResolvedValue(undefined),
   onMeldung: jest.fn().mockResolvedValue(undefined),
@@ -112,7 +104,7 @@ describe('Presseschau', () => {
   })
 
   it('zeigt den Kandidaten mit Typ, Front und Perle-Vorschlag', () => {
-    render(<Presseschau blaetter={[blatt({})]} gemeinden={gemeinden} meldungen={[]} {...NICHTS} />)
+    render(<Presseschau blaetter={[blatt({})]} meldungen={[]} {...NICHTS} />)
 
     expect(screen.getByText(/Wo die Temperaturrekorde purzeln/)).toBeInTheDocument()
     expect(screen.getByText('Reportage')).toBeInTheDocument()
@@ -121,7 +113,7 @@ describe('Presseschau', () => {
   })
 
   it('erzeugt die Meldung auf Knopfdruck', async () => {
-    render(<Presseschau blaetter={[blatt({})]} gemeinden={gemeinden} meldungen={[]} {...NICHTS} />)
+    render(<Presseschau blaetter={[blatt({})]} meldungen={[]} {...NICHTS} />)
 
     await userEvent.click(screen.getByRole('button', { name: 'Meldung erzeugen' }))
 
@@ -129,7 +121,7 @@ describe('Presseschau', () => {
   })
 
   it('fragt beim Ablehnen nach dem Grund — das ist das Lernsignal', async () => {
-    render(<Presseschau blaetter={[blatt({})]} gemeinden={gemeinden} meldungen={[]} {...NICHTS} />)
+    render(<Presseschau blaetter={[blatt({})]} meldungen={[]} {...NICHTS} />)
 
     await userEvent.click(screen.getByRole('button', { name: 'Ablehnen' }))
     await userEvent.click(screen.getByRole('radio', { name: 'Doublette' }))
@@ -148,7 +140,7 @@ describe('Presseschau', () => {
     const mitAbgelehntem = blatt({})
     mitAbgelehntem.ausgaben[0]!.kandidaten = [abgelehnt]
 
-    render(<Presseschau blaetter={[mitAbgelehntem]} gemeinden={gemeinden} meldungen={[]} {...NICHTS} />)
+    render(<Presseschau blaetter={[mitAbgelehntem]} meldungen={[]} {...NICHTS} />)
 
     expect(screen.queryByText(/Wo die Temperaturrekorde purzeln/)).not.toBeInTheDocument()
     expect(screen.getByText(/Alle Vorschläge dieser Ausgabe sind bearbeitet/)).toBeInTheDocument()
@@ -159,12 +151,7 @@ describe('Presseschau', () => {
     uebernommen.ausgaben[0]!.kandidaten = [kandidat({ entscheid: 'uebernommen' })]
 
     render(
-      <Presseschau
-        blaetter={[uebernommen]}
-        gemeinden={gemeinden}
-        meldungen={[meldung({ status: 'publiziert' })]}
-        {...NICHTS}
-      />
+      <Presseschau blaetter={[uebernommen]} meldungen={[meldung({ status: 'publiziert' })]} {...NICHTS} />
     )
 
     expect(screen.queryByText(/Wo die Temperaturrekorde purzeln/)).not.toBeInTheDocument()
@@ -175,20 +162,13 @@ describe('Presseschau', () => {
     const uebernommen = blatt({})
     uebernommen.ausgaben[0]!.kandidaten = [kandidat({ entscheid: 'uebernommen' })]
 
-    render(
-      <Presseschau
-        blaetter={[uebernommen]}
-        gemeinden={gemeinden}
-        meldungen={[meldung({ status: 'entwurf' })]}
-        {...NICHTS}
-      />
-    )
+    render(<Presseschau blaetter={[uebernommen]} meldungen={[meldung({ status: 'entwurf' })]} {...NICHTS} />)
 
     expect(screen.getByText(/Die Maenner hinter den Basler Hitzerekorden/)).toBeInTheDocument()
   })
 
   it('publiziert schlicht — die Perlen-Frage gehoert der Chefredaktion', async () => {
-    render(<Presseschau blaetter={[blatt({})]} gemeinden={gemeinden} meldungen={[meldung({})]} {...NICHTS} />)
+    render(<Presseschau blaetter={[blatt({})]} meldungen={[meldung({})]} {...NICHTS} />)
 
     expect(screen.queryByRole('button', { name: /Perle/ })).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Publizieren' }))
@@ -196,7 +176,7 @@ describe('Presseschau', () => {
   })
 
   it('reicht einen Kandidaten mit Begruendung an die Chefredaktion weiter', async () => {
-    render(<Presseschau blaetter={[blatt({})]} gemeinden={gemeinden} meldungen={[]} {...NICHTS} />)
+    render(<Presseschau blaetter={[blatt({})]} meldungen={[]} {...NICHTS} />)
 
     await userEvent.click(screen.getByRole('button', { name: 'An Chefredaktion' }))
     await userEvent.type(screen.getByLabelText(/Begründung/), 'Zahlen zuerst verifizieren')
@@ -209,7 +189,7 @@ describe('Presseschau', () => {
     const weg = blatt({})
     weg.ausgaben[0]!.kandidaten = [kandidat({ entscheid: 'weitergereicht' })]
 
-    render(<Presseschau blaetter={[weg]} gemeinden={gemeinden} meldungen={[]} {...NICHTS} />)
+    render(<Presseschau blaetter={[weg]} meldungen={[]} {...NICHTS} />)
 
     expect(screen.queryByText(/Wo die Temperaturrekorde purzeln/)).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Meldung erzeugen' })).not.toBeInTheDocument()
@@ -228,24 +208,15 @@ describe('Presseschau', () => {
     })
     const mitGemeinde = { ...NICHTS, onGemeinde: jest.fn().mockResolvedValue(undefined) }
 
-    const { rerender } = render(
-      <Presseschau blaetter={[zweiGemeinden]} gemeinden={gemeinden} meldungen={[]} {...mitGemeinde} />
-    )
+    const { rerender } = render(<Presseschau blaetter={[zweiGemeinden]} meldungen={[]} {...mitGemeinde} />)
     expect(screen.getByRole('combobox', { name: 'Gemeinde des Beitrags' })).toBeInTheDocument()
 
-    rerender(
-      <Presseschau
-        blaetter={[zweiGemeinden]}
-        gemeinden={gemeinden}
-        meldungen={[meldung({})]}
-        {...mitGemeinde}
-      />
-    )
+    rerender(<Presseschau blaetter={[zweiGemeinden]} meldungen={[meldung({})]} {...mitGemeinde} />)
     expect(screen.queryByRole('combobox', { name: 'Gemeinde des Beitrags' })).not.toBeInTheDocument()
   })
 
   it('klappt den Originaltext der Seite auf — geprueft wird am Original, nie an der Zusammenfassung', async () => {
-    render(<Presseschau blaetter={[blatt({})]} gemeinden={gemeinden} meldungen={[]} {...NICHTS} />)
+    render(<Presseschau blaetter={[blatt({})]} meldungen={[]} {...NICHTS} />)
 
     expect(screen.queryByText(/Wortlaut der Reportage/)).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Originaltext lesen (S. 3)' }))
@@ -253,7 +224,7 @@ describe('Presseschau', () => {
   })
 
   it('verlinkt die Seitenangabe des Kandidaten direkt auf die Beitragsseite', () => {
-    render(<Presseschau blaetter={[blatt({})]} gemeinden={gemeinden} meldungen={[]} {...NICHTS} />)
+    render(<Presseschau blaetter={[blatt({})]} meldungen={[]} {...NICHTS} />)
 
     expect(screen.getByRole('link', { name: '(S. 3)' })).toHaveAttribute(
       'href',
@@ -267,7 +238,6 @@ describe('Presseschau', () => {
         blaetter={[
           blatt({ letzter_fehler: 'Archiv antwortete mit 503.', letzte_pruefung: '2026-08-25T09:00:00Z' })
         ]}
-        gemeinden={gemeinden}
         meldungen={[]}
         {...NICHTS}
       />
@@ -299,7 +269,6 @@ describe('Presseschau', () => {
     render(
       <Presseschau
         blaetter={[mitKandidaten([kandidat({}), VORSCHAU])]}
-        gemeinden={gemeinden}
         meldungen={[]}
         heute="2026-09-27"
         {...NICHTS}
@@ -314,13 +283,7 @@ describe('Presseschau', () => {
 
   it('laesst eine Vorschau bis zu ihrem Anlasstag oben stehen', () => {
     render(
-      <Presseschau
-        blaetter={[mitKandidaten([VORSCHAU])]}
-        gemeinden={gemeinden}
-        meldungen={[]}
-        heute="2026-09-26"
-        {...NICHTS}
-      />
+      <Presseschau blaetter={[mitKandidaten([VORSCHAU])]} meldungen={[]} heute="2026-09-26" {...NICHTS} />
     )
     expect(screen.queryByRole('button', { name: /Anlass vorbei/ })).not.toBeInTheDocument()
     expect(screen.getByText(/Cup-Highlight/)).toBeVisible()
@@ -331,7 +294,6 @@ describe('Presseschau', () => {
     render(
       <Presseschau
         blaetter={[mitKandidaten([kandidat({}), VORSCHAU, kandidat({ id: 'k-3', titel: 'Drei' })])]}
-        gemeinden={gemeinden}
         meldungen={[meldung({ kandidat: { id: 'k-3' } })]}
         heute="2026-09-27"
         onAlleFormulieren={onAlleFormulieren}
@@ -339,20 +301,12 @@ describe('Presseschau', () => {
       />
     )
     // k-1 zaehlt; die vergangene Vorschau nicht, k-3 hat schon einen Entwurf.
-    await userEvent.click(screen.getByRole('button', { name: 'Alle Meldungen formulieren (1)' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Übrige Meldungen formulieren (1)' }))
     expect(onAlleFormulieren).toHaveBeenCalled()
   })
 
   it('zeigt einen Entwurf neben einem offenen Kandidaten mit allen drei Entscheiden', async () => {
-    render(
-      <Presseschau
-        blaetter={[blatt({})]}
-        gemeinden={gemeinden}
-        meldungen={[meldung({})]}
-        heute="2026-09-27"
-        {...NICHTS}
-      />
-    )
+    render(<Presseschau blaetter={[blatt({})]} meldungen={[meldung({})]} heute="2026-09-27" {...NICHTS} />)
     expect(screen.getByText(/noch nicht entschieden/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Ablehnen' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'An Chefredaktion' })).toBeInTheDocument()
@@ -364,7 +318,6 @@ describe('Presseschau', () => {
     render(
       <Presseschau
         blaetter={[blatt({})]}
-        gemeinden={gemeinden}
         meldungen={[]}
         onAlleFormulieren={jest.fn()}
         formulierStatus={{
@@ -389,8 +342,58 @@ describe('Presseschau', () => {
       ]
     })
     expect(abgedeckteGemeinden(birseck)).toEqual(['Aesch', 'Arlesheim', 'Reinach'])
-    render(<Presseschau blaetter={[birseck]} gemeinden={gemeinden} meldungen={[]} {...NICHTS} />)
+    render(<Presseschau blaetter={[birseck]} meldungen={[]} {...NICHTS} />)
     expect(screen.getByText('Arlesheim')).toBeInTheDocument()
     expect(screen.getByText('Reinach')).toBeInTheDocument()
+  })
+
+  // --- Relevanz-Stufen, Entwürfe vom Lauf, «Alle publizieren» (seit 22.11.2026) ---
+
+  it('erfasst kein Blatt mehr auf dem Tisch — das Prüfen bleibt', () => {
+    render(<Presseschau blaetter={[blatt({})]} meldungen={[]} {...NICHTS} />)
+    expect(screen.queryByText('Wochenblatt erfassen')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Archiv-Adresse')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Jetzt auf neue Ausgaben prüfen' })).toBeInTheDocument()
+  })
+
+  it('zeigt die Stufe am Kandidaten und legt die höchste zuoberst', () => {
+    const mitStufen = blatt({})
+    mitStufen.ausgaben[0]!.kandidaten = [
+      kandidat({ id: 'k-tief', titel: 'Turnerabend', vorschlag_wert: 2 }),
+      kandidat({ id: 'k-hoch', titel: 'Die Schmiede schliesst', vorschlag_wert: 4 }),
+      kandidat({ id: 'k-alt', titel: 'Ohne Note' })
+    ]
+    render(<Presseschau blaetter={[mitStufen]} meldungen={[]} schwelle={3} {...NICHTS} />)
+    expect(screen.getByText('Stufe 4 · wichtig')).toBeInTheDocument()
+    expect(screen.getByText('Stufe 2 · möglich')).toBeInTheDocument()
+    const titel = screen
+      .getAllByText(/Die Schmiede schliesst|Turnerabend|Ohne Note/)
+      .map((e) => e.textContent)
+    expect(titel[0]).toContain('Die Schmiede schliesst')
+    expect(titel[1]).toContain('Turnerabend')
+    expect(titel[2]).toContain('Ohne Note')
+  })
+
+  it('publiziert alle geschriebenen Meldungen auf einen Griff — und zählt sie', async () => {
+    const onAllePublizieren = jest.fn().mockResolvedValue(undefined)
+    render(
+      <Presseschau
+        blaetter={[blatt({})]}
+        meldungen={[
+          meldung({ id: 'm-1', kandidat: { id: 'k-1' }, status: 'entwurf' }),
+          meldung({ id: 'm-2', kandidat: { id: 'k-9' }, status: 'in_pruefung' }),
+          meldung({ id: 'm-3', kandidat: null, status: 'entwurf' })
+        ]}
+        onAllePublizieren={onAllePublizieren}
+        {...NICHTS}
+      />
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Alle publizieren (1)' }))
+    expect(onAllePublizieren).toHaveBeenCalled()
+  })
+
+  it('bietet «Alle publizieren» nicht an, solange nichts geschrieben ist', () => {
+    render(<Presseschau blaetter={[blatt({})]} meldungen={[]} onAllePublizieren={jest.fn()} {...NICHTS} />)
+    expect(screen.queryByRole('button', { name: /Alle publizieren/ })).not.toBeInTheDocument()
   })
 })

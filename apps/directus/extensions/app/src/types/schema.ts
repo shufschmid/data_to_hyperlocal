@@ -874,6 +874,8 @@ export interface Wochenblattkandidat {
   zusammenfassung: string | null
   /** Curious AND of supra-local interest — could amuse the city of Basel too. */
   perle_vorschlag: boolean
+  /** The inventory's relevance grade 1–4; null on candidates read before 22.11.2026. */
+  vorschlag_wert: number | null
   perle_begruendung: string | null
   /**
    * The Chefredaktion's verdict on that proposal — independent of whether the
@@ -1160,6 +1162,8 @@ export interface SmdBeitrag {
   link_hinweis: string | null
   hinweise: string[] | null
   vorschlag: boolean | null
+  /** The Sichtung's grade 1–4; `vorschlag` is this against the desk's threshold. Null on rows from before 22.11.2026. */
+  vorschlag_wert: number | null
   vorschlag_begruendung: string | null
   entscheid: MitteilungsEntscheid
   ablehnungsgrund: SmdGrund | null

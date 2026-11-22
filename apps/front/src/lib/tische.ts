@@ -28,15 +28,34 @@ export const SCHWELLEN: ReadonlyArray<{ wert: number; text: string }> = [
   { wert: 1, text: 'Alles (ab Stufe 1)' }
 ]
 
+export type EinstellbarerTisch = 'gemeinde' | 'veranstaltung' | 'buschtelefon' | 'wochenblatt' | 'smd'
+
 export const EINSTELLBARE_TISCHE: ReadonlyArray<{
-  wert: 'gemeinde' | 'veranstaltung' | 'buschtelefon'
+  wert: EinstellbarerTisch
   text: string
+  /** Was die Schwelle auf diesem Tisch ausser der Reihenfolge bewirkt — steht unter dem Regler. */
+  hinweis?: string
 }> = [
   { wert: 'gemeinde', text: 'Gemeindeseiten' },
   { wert: 'veranstaltung', text: 'Veranstaltungen' },
   // Seit 11. November 2026 der dritte benotende Tisch: die Schwelle sagt hier
   // auch, ab welcher Stufe der Lauf den Entwurf gleich mitschreibt.
-  { wert: 'buschtelefon', text: 'Buschtelefon' }
+  { wert: 'buschtelefon', text: 'Buschtelefon' },
+  // Seit 22. November 2026 benoten auch diese zwei. Auf beiden schreibt der
+  // Lauf ab der Schwelle den Entwurf — publiziert wird von Hand («Alle
+  // publizieren»), nie von selbst.
+  {
+    wert: 'wochenblatt',
+    text: 'Wochenblätter',
+    hinweis:
+      'Ab dieser Stufe schreibt der Lauf um 9 Uhr die Meldung zu einem Kandidaten gleich vor. Tiefer benotete bleiben ohne Entwurf, bis du «Übrige Meldungen formulieren» drückst.'
+  },
+  {
+    wert: 'smd',
+    text: 'SMD',
+    hinweis:
+      'Ab dieser Stufe ist ein Beitrag ein Vorschlag, und der Lauf um 14:45 Uhr schreibt die Meldung dazu gleich vor.'
+  }
 ]
 
 const STUFEN_TEXT: Record<number, string> = {

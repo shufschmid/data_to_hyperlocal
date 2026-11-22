@@ -1,7 +1,8 @@
-// Eine Meldung aus einem SMD-Beitrag — auf Klick, nicht im Lauf: der Tisch
-// ist neu, und der Gemeindeseiten-Handel («der Lauf schreibt den Vorschlag
-// gleich mit») gilt erst, wenn er sich bewaehrt hat. Ohne `lerne(…)`: der
-// Entwurf lehrt nichts, die drei Entscheide tun es.
+// Eine Meldung aus einem SMD-Beitrag — auf Klick, und seit dem 22. November
+// 2026 auch im Lauf: die Sichtung benotet (1–4), und ab der Schwelle des
+// Tischs schreibt der Lauf den Entwurf gleich mit (der Gemeindeseiten-Handel,
+// `schreibeSmdMeldungen`). Publiziert wird nie von selbst. Ohne `lerne(…)`:
+// der Entwurf lehrt nichts, die drei Entscheide tun es.
 //
 // Was hier anders ist als beim Kanton-Tisch: der Sprecher ist ein anderes
 // Medium, die Meldung ist eine Presseschau in eigenen Worten (die
@@ -38,6 +39,10 @@ import {
   wichtigAus,
   type Termin
 } from './termin'
+import { ladeWichtigkeitSignale, wichtigkeitDigest } from './wichtigkeit'
+
+/** Wie viele Meldungen ein Lauf schreibt. Ein Modellaufruf je Stueck. */
+export const SMD_MELDUNGEN_JE_LAUF = 20
 
 export interface SmdRohzeile {
   id: string
@@ -298,4 +303,102 @@ export async function schreibeSmdMeldung(
   })) as string
   await kontext.beitraege.updateOne(zeile.id, { entscheid: 'uebernommen' })
   return { meldung: meldungId, warnungen }
+}
+
+export interface SmdMeldungenErgebnis {
+  geschrieben: number
+  /** Die Meldungen, die dieser Lauf geschrieben hat. */
+  ids: string[]
+  /** Vorschlaege ohne lesbaren Text — benannt, nie still uebergangen. */
+  ohneText: string[]
+  /** Was der Deckel dieses Laufs liegen liess; der naechste holt es. */
+  wartend: number
+  fehler: string[]
+}
+
+/**
+ * Jeder BENOTETE Vorschlag ohne Artikel bekommt seinen Entwurf — hoechstens
+ * `hoechstens` je Lauf, die hoechste Stufe und das Neueste zuerst.
+ *
+ * Nur benotete Zeilen: was vor dem 22. November 2026 als Vorschlag gelesen
+ * wurde, traegt keine Stufe, und ein erster Lauf soll keinen Rueckstand von
+ * Entwuerfen schreiben, um den niemand bat — dort bleibt es beim Klick.
+ * Lehrt nichts, publiziert nichts.
+ */
+export async function schreibeSmdMeldungen(
+  kontext: SmdMeldungKontext & {
+    logger: { info: (text: string) => void; warn: (...args: unknown[]) => void }
+  },
+  hoechstens: number = SMD_MELDUNGEN_JE_LAUF
+): Promise<SmdMeldungenErgebnis> {
+  const ergebnis: SmdMeldungenErgebnis = {
+    geschrieben: 0,
+    ids: [],
+    ohneText: [],
+    wartend: 0,
+    fehler: []
+  }
+
+  const beschrieben = (await kontext.meldungen.readByQuery({
+    filter: { smd_beitrag: { _nnull: true }, status: { _neq: 'verworfen' } },
+    fields: ['smd_beitrag'],
+    limit: -1
+  })) as Array<{ smd_beitrag: string | null }>
+  const schonBeschrieben = new Set(
+    beschrieben.flatMap((m) => (m.smd_beitrag === null ? [] : [m.smd_beitrag]))
+  )
+
+  const vorschlaege = (await kontext.beitraege.readByQuery({
+    filter: {
+      vorschlag: { _eq: true },
+      vorschlag_wert: { _nnull: true },
+      entscheid: { _eq: 'offen' }
+    },
+    fields: SMD_FELDER,
+    sort: ['-vorschlag_wert', '-datum', '-date_created'],
+    limit: -1
+  })) as SmdRohzeile[]
+
+  const offen = vorschlaege.filter((z) => !schonBeschrieben.has(z.id))
+  const dran = offen.slice(0, hoechstens)
+  ergebnis.wartend = offen.length - dran.length
+  if (dran.length === 0) return ergebnis
+
+  const wichtigkeit =
+    kontext.wichtigkeit ??
+    wichtigkeitDigest(
+      await ladeWichtigkeitSignale(kontext.meldungen, 'smd_beitrag')
+    )
+
+  for (const zeile of dran) {
+    if (!hatMaterial(smdFakten(zeile))) {
+      ergebnis.ohneText.push(`${zeile.gemeinde.name}: ${zeile.titel}`)
+      continue
+    }
+    try {
+      const { meldung } = await schreibeSmdMeldung(
+        { ...kontext, wichtigkeit },
+        zeile
+      )
+      ergebnis.ids.push(meldung)
+      ergebnis.geschrieben += 1
+    } catch (fehler) {
+      kontext.logger.warn(
+        fehler,
+        `smd: Meldung zu "${zeile.titel}" fehlgeschlagen.`
+      )
+      ergebnis.fehler.push(
+        `${zeile.gemeinde.name}: ${zeile.titel} — ${
+          fehler instanceof Error ? fehler.message : 'Fehler'
+        }`
+      )
+    }
+  }
+
+  if (ergebnis.geschrieben > 0 || ergebnis.wartend > 0) {
+    kontext.logger.info(
+      `smd: ${ergebnis.geschrieben} Meldungen geschrieben, ${ergebnis.wartend} warten.`
+    )
+  }
+  return ergebnis
 }

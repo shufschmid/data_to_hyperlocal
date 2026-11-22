@@ -20,14 +20,10 @@ import RadioGroup from '@mui/material/RadioGroup'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
-import type {
-  AlleMeldungFelder,
-  GemeindeFelder,
-  KandidatFelder,
-  WochenblattFelder
-} from '@/graphql/redaktion'
+import type { AlleMeldungFelder, KandidatFelder, WochenblattFelder } from '@/graphql/redaktion'
 import { bleibtAufDemTisch, seitenLink } from '@/lib/redaktion'
-import { formulierbar, ordneKandidaten, zeitbezugText } from '@/lib/presseschau'
+import { abSchwelle, formulierbar, ordneKandidaten, publizierbare, zeitbezugText } from '@/lib/presseschau'
+import { STANDARD_EINSTELLUNG, stufeText } from '@/lib/tische'
 import type { TerminEingabe } from '@/lib/termin'
 import { MeldungKarte, type MeldungAktion, type MeldungAktionKoerper } from './MeldungKarte'
 import { EigeneMeldungKnopf } from './EigeneMeldung'
@@ -35,10 +31,13 @@ import type { MeldungErzeugenKoerper } from '@/lib/eigene'
 
 // The press review: what each municipality's weekly paper has exclusively.
 //
-// The 09:00 run inventories a new issue into candidates; everything here is
-// the editor's half of the loop — take a candidate over (one Meldung, with
-// attribution and page link) or reject it with a reason. Both are learning
-// signals: they ride into the next inventory as examples.
+// The 09:00 run inventories a new issue into candidates, grades each one
+// (1–4) and — from the desk's threshold up — writes the draft itself;
+// everything here is the editor's half of the loop: take a candidate over
+// (one Meldung, with attribution and page link), reject it with a reason or
+// hand it up. All three are learning signals: they ride into the next
+// inventory as examples. Registering a paper is a SETTING and lives behind
+// the gear (`WochenblattErfassen`), not here.
 
 const TYP_LABEL: Record<string, string> = {
   interview: 'Interview',
@@ -115,11 +114,9 @@ export function Originaltext({ text, seite = null }: { text: string | null; seit
 
 export interface PresseschauProps {
   blaetter: readonly WochenblattFelder[]
-  gemeinden: readonly GemeindeFelder[]
   meldungen: readonly AlleMeldungFelder[]
   laedt?: boolean
   laeuft?: boolean
-  onAnlegen: (eingabe: { gemeinden: string[]; name: string; archiv_url: string }) => Promise<void>
   onPruefen: () => Promise<void>
   onInventar: (ausgabeId: string) => Promise<void>
   /** «Meldung erzeugen» — mit Koerper, wenn die Redaktion eigene Angaben oder den Text selbst mitgibt. */
@@ -132,8 +129,12 @@ export interface PresseschauProps {
   onAktion: (id: string, aktion: MeldungAktion, koerper?: MeldungAktionKoerper) => Promise<void>
   /** Der Termin einer Meldung — was der Dorfkönig bekommt, von der Redaktion geändert. */
   onTermin?: (id: string, eingabe: TerminEingabe) => Promise<void>
-  /** «Alle Meldungen formulieren»: ein Entwurf je offenem Kandidaten, der Entscheid bleibt offen. */
+  /** «Übrige Meldungen formulieren»: ein Entwurf je offenem Kandidaten ohne Meldung — was der Lauf unter der Schwelle liegen liess. Der Entscheid bleibt offen. */
   onAlleFormulieren?: () => Promise<void>
+  /** Publiziert alle geschriebenen Meldungen dieses Tischs auf einen Griff. */
+  onAllePublizieren?: () => Promise<void>
+  /** Ab dieser Stufe schreibt der Lauf den Entwurf selbst («Gelerntes» → «Tische»). */
+  schwelle?: number
   /** Der Stand des abgelösten Formulierens, vom Arbeitsplatz abgefragt. */
   formulierStatus?: FormulierStatus | null
   /** Heute als JJJJ-MM-TT — gegen diesen Tag verfallen Vorschauen. */
@@ -177,11 +178,9 @@ export function formulierText(status: FormulierStatus | null | undefined): strin
 
 export function Presseschau({
   blaetter,
-  gemeinden,
   meldungen,
   laedt = false,
   laeuft = false,
-  onAnlegen,
   onPruefen,
   onInventar,
   onMeldung,
@@ -192,28 +191,17 @@ export function Presseschau({
   onAktion,
   onTermin,
   onAlleFormulieren,
+  onAllePublizieren,
+  schwelle = STANDARD_EINSTELLUNG.schwelle,
   formulierStatus = null,
   heute = new Date().toISOString().slice(0, 10)
 }: PresseschauProps) {
   const [offeneFalten, setOffeneFalten] = useState<ReadonlySet<string>>(new Set())
-  const [gewaehlteGemeinden, setGewaehlteGemeinden] = useState<string[]>([])
-  const [name, setName] = useState('')
-  const [archivUrl, setArchivUrl] = useState('')
   const [ablehnung, setAblehnung] = useState<KandidatFelder | null>(null)
   const [grund, setGrund] = useState('nicht_relevant')
   const [kommentar, setKommentar] = useState('')
   const [weitergabe, setWeitergabe] = useState<KandidatFelder | null>(null)
   const [weitergabeGrund, setWeitergabeGrund] = useState('')
-
-  // A municipality already covered by some paper is not offered again.
-  const freieGemeinden = useMemo(() => {
-    const belegt = new Set<string | undefined>()
-    for (const blatt of blaetter) {
-      belegt.add(blatt.gemeinde?.id)
-      for (const a of blatt.abdeckungen) belegt.add(a.gemeinde?.id)
-    }
-    return gemeinden.filter((g) => !belegt.has(g.id))
-  }, [blaetter, gemeinden])
 
   const nachKandidat = useMemo(() => {
     const karte = new Map<string, AlleMeldungFelder>()
@@ -234,19 +222,9 @@ export function Presseschau({
       const m = nachKandidat.get(k.id)
       return formulierbar(k, m !== undefined && m.status !== 'verworfen', heute)
     }).length
+  const fertige = useMemo(() => publizierbare(meldungen), [meldungen])
   const formuliert = formulierStatus?.laeuft === true
   const formulierZeile = formulierText(formulierStatus)
-
-  async function anlegen() {
-    await onAnlegen({
-      gemeinden: gewaehlteGemeinden,
-      name: name.trim(),
-      archiv_url: archivUrl.trim()
-    })
-    setGewaehlteGemeinden([])
-    setName('')
-    setArchivUrl('')
-  }
 
   async function ablehnen() {
     if (ablehnung === null) return
@@ -282,64 +260,25 @@ export function Presseschau({
 
       <Paper sx={{ p: 2 }}>
         <Stack spacing={1}>
-          <Typography variant="subtitle2">Wochenblatt erfassen</Typography>
-          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
-            <TextField
-              select
-              label="Gemeinden"
-              size="small"
-              value={gewaehlteGemeinden}
-              onChange={(e) => {
-                const wert = e.target.value
-                setGewaehlteGemeinden(Array.isArray(wert) ? wert : [wert])
-              }}
-              helperText="Mehrfachwahl: der Anzeiger zweier Gemeinden traegt beide."
-              slotProps={{ select: { multiple: true } }}
-              sx={{ minWidth: 200 }}
-            >
-              {freieGemeinden.map((g) => (
-                <MenuItem key={g.id} value={g.id}>
-                  {g.name}
-                </MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              label="Name des Blatts"
-              size="small"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              sx={{ minWidth: 220 }}
-            />
-            <TextField
-              label="Archiv-Adresse"
-              size="small"
-              value={archivUrl}
-              onChange={(e) => setArchivUrl(e.target.value)}
-              placeholder="https://…/archiv/"
-              sx={{ minWidth: 280, flexGrow: 1 }}
-            />
-            <Button
-              variant="contained"
-              size="small"
-              onClick={() => void anlegen()}
-              disabled={
-                laeuft ||
-                gewaehlteGemeinden.length === 0 ||
-                name.trim() === '' ||
-                !/^https?:\/\//.test(archivUrl.trim())
-              }
-            >
-              Erfassen
-            </Button>
-          </Stack>
-          <Stack direction="row" spacing={2} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+          <Stack direction="row" spacing={2} sx={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 1 }}>
             <Button size="small" onClick={() => void onPruefen()} disabled={laeuft || liest}>
               {liest ? 'Wird gelesen …' : 'Jetzt auf neue Ausgaben prüfen'}
             </Button>
-            <Typography variant="caption" color="text.secondary">
-              Läuft sonst täglich um 9 Uhr. Beim Erfassen wird die aktuellste Ausgabe geholt, alles Ältere
-              bleibt liegen.
+            <Typography variant="caption" color="text.secondary" sx={{ flexGrow: 1 }}>
+              Läuft sonst täglich um 9 Uhr. Das Inventar benotet jeden Kandidaten mit einer Stufe von 1 bis 4;
+              ab {stufeText(schwelle) ?? `Stufe ${schwelle}`} schreibt der Lauf die Meldung gleich vor.
+              Publiziert wird nichts von selbst.
             </Typography>
+            {onAllePublizieren !== undefined && fertige.length > 0 && (
+              <Button
+                size="small"
+                variant="contained"
+                disabled={laeuft || formuliert}
+                onClick={() => void onAllePublizieren()}
+              >
+                Alle publizieren ({fertige.length})
+              </Button>
+            )}
           </Stack>
           {onAlleFormulieren !== undefined && (
             <Stack direction="row" spacing={2} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
@@ -349,18 +288,23 @@ export function Presseschau({
                 onClick={() => void onAlleFormulieren()}
                 disabled={laeuft || formuliert || anzahlFormulierbar === 0}
               >
-                {formuliert ? 'Wird formuliert …' : `Alle Meldungen formulieren (${anzahlFormulierbar})`}
+                {formuliert ? 'Wird formuliert …' : `Übrige Meldungen formulieren (${anzahlFormulierbar})`}
               </Button>
               <Typography variant="caption" color="text.secondary">
                 {formulierZeile ??
-                  'Schreibt einen Entwurf zu jedem offenen Vorschlag, höchstens 20 pro Klick. Dein Entscheid bleibt offen: Ablehnen verwirft den Entwurf.'}
+                  'Schreibt einen Entwurf zu jedem offenen Kandidaten, der noch keinen hat — das sind die tiefer benoteten. Höchstens 20 pro Klick. Dein Entscheid bleibt offen: Ablehnen verwirft den Entwurf.'}
               </Typography>
             </Stack>
           )}
         </Stack>
       </Paper>
 
-      {blaetter.length === 0 && !laedt && <Alert severity="info">Noch kein Wochenblatt erfasst.</Alert>}
+      {blaetter.length === 0 && !laedt && (
+        <Alert severity="info">
+          Noch kein Wochenblatt erfasst — das geht hinter dem Zahnrad, unter «Gemeinden» → «Wochenblatt
+          erfassen».
+        </Alert>
+      )}
 
       {blaetter.map((blatt) => {
         const ausgabe = blatt.ausgaben[0]
@@ -403,6 +347,14 @@ export function Presseschau({
                       ))}
                   </Typography>
                   <Chip size="small" variant="outlined" label={TYP_LABEL[kandidat.typ] ?? kandidat.typ} />
+                  {stufeText(kandidat.vorschlag_wert) !== null && (
+                    <Chip
+                      size="small"
+                      variant={abSchwelle(kandidat, schwelle) ? 'filled' : 'outlined'}
+                      color={abSchwelle(kandidat, schwelle) ? 'primary' : 'default'}
+                      label={stufeText(kandidat.vorschlag_wert)}
+                    />
+                  )}
                   {kandidat.frontseite && <Chip size="small" color="info" label="Front" />}
                   {zeitbezug !== null && <Chip size="small" variant="outlined" label={zeitbezug} />}
                   {kandidat.perle_vorschlag && <Chip size="small" color="secondary" label="Perle?" />}
@@ -469,8 +421,8 @@ export function Presseschau({
                 )}
                 {entwurfDaneben && (
                   <Typography variant="caption" color="text.secondary">
-                    Entwurf von «Alle Meldungen formulieren» — noch nicht entschieden. Übernehmen macht ihn zu
-                    deinem, Ablehnen oder Weiterreichen verwerfen ihn.
+                    Maschinell geschriebener Entwurf — noch nicht entschieden. Übernehmen macht ihn zu deinem,
+                    Ablehnen oder Weiterreichen verwerfen ihn.
                   </Typography>
                 )}
                 {(meldung === undefined || meldung.status === 'verworfen' || entwurfDaneben) && (

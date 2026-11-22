@@ -428,7 +428,38 @@ them is wrong even if it works.
    `vorschauVorbei`), the badge stops counting it, and the next issue lets it
    lapse like any other. Candidates read before that day carry null and never
    fold; „Neu inventarisieren" fills them in.
-   **„Alle Meldungen formulieren"** (`POST /redaktion/wochenblaetter/formulieren`,
+   **Since 22 November 2026 the inventory GRADES every candidate (1–4,
+   `wochenblattkandidaten.vorschlag_wert`) and the 09:00 run writes the
+   draft itself from the desk's threshold up** — the newsroom's wish: the
+   relevance grades on this desk too, with a dial behind the gear saying from
+   which grade a Meldung is pre-written, never published by itself, plus
+   «Alle publizieren». The grade rides in the SAME Opus call (one more
+   required field of `INVENTAR_SCHEMA`, so it costs no call); the threshold is
+   the row `tisch: wochenblatt` in `tischeinstellungen` (threshold alone,
+   default 3, seeded by `20261122A`). The writer moved out of the endpoint
+   into `redaktion/presseschaumeldungen.ts` so the run, the bulk button and
+   the click share it: `schreibeWochenblattEntwuerfe` takes every open
+   candidate of each paper's NEWEST issue graded at or above the threshold
+   that has no Meldung — over all papers, not only today's issue, so a
+   lowered threshold and yesterday's cap take effect at the next run —
+   highest grade first, twenty a run, the rest named. Three things hold it in
+   place, all the Gemeindeseiten bargain: the candidate STAYS OPEN beside its
+   draft («Übernehmen» only sets `uebernommen`, rejecting or handing up
+   discards the draft), it teaches nothing, and nothing is published — there
+   is deliberately no Auto-Publish switch for this desk. An ungraded
+   candidate (read before that day; `parseInventar` also leaves a missing or
+   out-of-range grade null) never gets a run draft. The desk sorts the
+   highest grade on top (`ordneKandidaten`), shows the grade as a chip —
+   filled where the run drafts it (`abSchwelle`) — and «Alle publizieren»
+   (`POST /redaktion/wochenblaetter/publizieren`) is the one grip for every
+   finished draft, `in_pruefung` excluded, each row through the status hook.
+   **«Wochenblatt erfassen» left the desk the same day** and lives behind the
+   gear in „Gemeinden" (`components/WochenblattErfassen.tsx`): registering a
+   paper is a setting, not daily work. «Jetzt auf neue Ausgaben prüfen»
+   stayed on the desk.
+   **„Übrige Meldungen formulieren"** — „Alle Meldungen formulieren" until 22
+   November 2026, when the run took the upper grades and the button was left
+   with the lower ones (`POST /redaktion/wochenblaetter/formulieren`,
    202 + detached, polled through the GET of the same path) is the
    Gemeindeseiten bargain on this desk: a draft beside every open candidate of
    each paper's newest issue — not the folded previews, not one without a
@@ -1093,12 +1124,26 @@ them is wrong even if it works.
    only passes on reaches the desk through other feeds), examples per
    municipality keyed on the MEDIUM, three decisions under `bereich: smd`
    with `nur_erwaehnt` as the lesson, cleanup after seven and fourteen days.
-   **No draft from the run** — the Meldung is written on the click
+   **Since 22 November 2026 the Sichtung GRADES (1–4) and the run writes the
+   draft of every proposal** — the newsroom asked for the same as on the
+   Wochenblätter desk. `smd_beitraege.vorschlag_wert` is the grade
+   (`STUFEN_SCHEMA`, the Gemeindeseiten shape), `vorschlag` that grade
+   against the threshold of `tisch: smd` (threshold alone, default 3),
+   re-applied by every run (`gleicheSmdSchwelleAb`) and computed the same way
+   by the workspace (`vorgeschlagen` in `lib/smd.ts`), so the dial shows at
+   once. HANDELT is grade 3 or 4, «more than a name but not the main thing»
+   2, ERWAEHNT bloss 1; „Im Zweifel: nein" left the prompt with the bit.
+   `schreibeSmdMeldungen` drafts twenty GRADED proposals a run, highest grade
+   first, the rest named — a row read before that day carries no grade and
+   keeps the click, so the first run wrote no backlog. It teaches nothing,
+   and nothing is published by it: «Alle publizieren» on the desk is a
+   person's grip, and there is deliberately no Auto-Publish switch here.
+   **The Meldung itself** — from the run or on the click
    (`redaktion/smdmeldungen.ts`): own words, the medium named in the text
    (`attributionsWarnung` accepts the domain and the house's short names —
    «bz», «BaZ», «Basler Zeitung»), digits against the piece, absolute dates,
    the 8-gram overlap check against the piece, and the source line built by
-   code. The Gemeindeseiten bargain is earned, not assumed. For the Dorfkönig
+   code. For the Dorfkönig
    these articles are `rubrik: presseschau` with the medium as `quelle_name`
    and the found page as `quelle_url`, null where none (SCHNITTSTELLE.md
    1.9.0). Two things the newsroom has to do on its side: the saved search
@@ -1745,7 +1790,8 @@ them is wrong even if it works.
 | which of a club's teams is followed at all                                                   | `redaktion/mannschaft.ts` — the first team only: highest league, lowest letter (a before b), cup by the team annotation; women by the words Frauen/Damen/FF-, never by a code («2. Liga (FAEW)» is the men's regional 2. Liga). Applied at the door by `sportresultate-holen`; mirrored in the workspace (`berichtenswerteSpiele`)                                                                                                                                                                                                                                |
 | where a match report's source link comes from                                                | `redaktion/spielbericht.ts` — `verbandsQuelle`/`mitQuelle`, appended by code; the publish gate is `hatQuellenlink` in `redaktion/status.ts`                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | an Abfuhrkalender the newsroom wants                                                         | paste the PDF's address in the workspace — „Entsorgung" → „Abfuhrkalender erfassen"; one PDF per zone (Riehen) registers zone by zone into the same calendar                                                                                                                                                                                                                                                                                                                                                                                                      |
-| a weekly paper the newsroom wants read                                                       | „Presseschau" → „Wochenblatt erfassen" with its archive URL; the platform decides the parser (`konnektor`: WordPress-Archivliste, lokalzeitungen.ch, issuu or Localpoint) — a fifth platform gets its own value in `shared/wochenblatt/`                                                                                                                                                                                                                                                                                                                          |
+| a weekly paper the newsroom wants read                                                       | „Gemeinden" (Zahnrad) → „Wochenblatt erfassen" with its archive URL — since 22.11.2026 a setting, no longer on the desk; the platform decides the parser (`konnektor`: WordPress-Archivliste, lokalzeitungen.ch, issuu or Localpoint) — a fifth platform gets its own value in `shared/wochenblatt/`                                                                                                                                                                                                                                                              |
+| from which grade the Wochenblätter or SMD run pre-writes a Meldung                           | „Gelerntes" → „Tische": the threshold of `tisch: wochenblatt` / `tisch: smd` (threshold alone). The grades are defined in `INVENTAR_SYSTEM_PROMPT` (`redaktion/presseschau.ts`) and `SMD_SICHTUNG_SYSTEM_PROMPT` (`redaktion/smd.ts`); the run writers are `schreibeWochenblattEntwuerfe` (`redaktion/presseschaumeldungen.ts`) and `schreibeSmdMeldungen` (`redaktion/smdmeldungen.ts`). Neither desk publishes by itself — «Alle publizieren» is `POST /redaktion/wochenblaetter/publizieren` and `…/smd/publizieren`                                           |
 | a new rule about what a press review may say                                                 | `redaktion/presseschau.ts` — the prompt **and** the checks next to it (attribution, digits, verbatim overlap)                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | a new rule about what a gazette article may say                                              | `redaktion/amtsblatt.ts` — the prompt **and** the checks (attribution, digits, absolute dates, no private names)                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | a new rule about what a broadcast Meldung may say                                            | `redaktion/sendung.ts` — the prompt **and** the checks (attribution per show, digits, verbatim overlap against the transcript)                                                                                                                                                                                                                                                                                                                                                                                                                                    |
@@ -1964,12 +2010,20 @@ Flow "Wochenblaetter pruefen"  (0 9 * * *)
        │                       first-ever run takes exactly the newest entry
        │                       (backlog ignored forever, that was the deal)
        ├─ PDF → Directus Files, text layer via unpdf → volltext + seiten
-       └─ 1× Opus per issue → CANDIDATES (exclusive journalism only), steered
-          in the user turn by the desk's RULES (redaktionswissen, numbered
-          R1…Rn so an answer can cite one), the Bilanz of the last three
-          issues (taken / handed up / rejected / left lying) and the decided
-          rows as few-shot examples (lernsignale.ts loads all of it, the
-          re-inventory button shares the loader)
+       ├─ 1× Opus per issue → CANDIDATES (exclusive journalism only), each
+       │  GRADED 1–4 (vorschlag_wert), steered
+       │  in the user turn by the desk's RULES (redaktionswissen, numbered
+       │  R1…Rn so an answer can cite one), the Bilanz of the last three
+       │  issues (taken / handed up / rejected / left lying) and the decided
+       │  rows as few-shot examples (lernsignale.ts loads all of it, the
+       │  re-inventory button shares the loader)
+       └─ schreibeWochenblattEntwuerfe()  after all papers: every open
+          candidate of each paper's NEWEST issue graded at or above the
+          desk's threshold (tischeinstellungen, tisch wochenblatt) and still
+          without a Meldung gets its DRAFT — highest grade first, at most 20,
+          the rest named. The candidate stays open, nothing is published,
+          nothing is learned. Below the threshold: «Übrige Meldungen
+          formulieren» or the editor's own click.
 
 editor takes a candidate over ── POST /redaktion/kandidaten/:id/meldung
   └─ 1× Sonnet over the handed fact summary → short Meldung in own words,
@@ -2117,10 +2171,16 @@ Flow "SMD pruefen"  (0 45 14,16 * * *)   die Mail kommt um 14:30, der zweite Lau
        │    Fensters (Print-Titel, Lead); hoechstens 20 Seiten je Lauf, genannt
        ├─ eine Zeile je genannter Gemeinde → smd_beitraege, mit link_url,
        │    link_status, link_abo
-       └─ 1× Sonnet je Gemeinde mit neuen Zeilen → Sichtung: HANDELT der
+       ├─ 1× Sonnet je Gemeinde mit neuen Zeilen → Sichtung: HANDELT der
             Beitrag von der Gemeinde oder ERWAEHNT er sie bloss? Regeln R1…Rn,
             Bilanz und Beispiele dieser Gemeinde (je Medium); sortiert, filtert
-            nie. KEIN Entwurf vom Lauf.
+            nie — BENOTET (Stufe 1–4, vorschlag_wert), Vorschlag ab der
+            Schwelle des Tischs (tischeinstellungen, tisch smd), vom Lauf
+            jedes Mal neu angewandt (gleicheSmdSchwelleAb)
+       └─ je BENOTETEM Vorschlag die Meldung gleich mit (hoechstens 20, die
+            hoechste Stufe zuerst, Rest genannt) — dieselbe Funktion wie der
+            Knopf. Publiziert wird nichts: «Alle publizieren» ist ein Griff
+            der Redaktion.
 
 editor takes an SMD piece over ── POST /redaktion/smd/:id/meldung
   └─ 1× Sonnet ueber den Wortlaut des Beitrags → kurze Meldung in eigenen
@@ -2864,7 +2924,9 @@ checked rather than assumed, and there is a test.
   non-discarded Meldung per find is a partial unique in
   `migrations/20261111A-buschtelefon.mts`.
 - `tischeinstellungen` — one row per grading desk (gemeinde, veranstaltung,
-  and since 11 November 2026 buschtelefon, which uses the threshold alone):
+  since 11 November 2026 buschtelefon and since 22 November 2026 wochenblatt
+  and smd — those three use the threshold alone, and on them it is also the
+  grade from which the run writes the draft):
   the threshold a grade has to reach, the lead per grade on the events desk,
   the Dauerangebote dose per week. The newsroom's appetite, never the
   model's — read by the 13:00 run and by the workspace, which computes the
@@ -3044,10 +3106,15 @@ mechanism, and six things hold it in place.
   off by default and off when unreadable — «Gelerntes» → «Auto-Publish»
   (`POST /redaktion/tische/:tisch`, `tischFelder`). It exists on the desks
   whose RUN writes drafts — `gemeinde`, `kanton`, `buschtelefon`, `sport`,
-  `abstimmung` (`AUTO_TISCHE`) — and nowhere else: Amtsblatt, SMD,
-  Wochenblätter, Veranstaltungen, Verkehr and the Südanflug write only on a
-  click, so there is nothing for it to publish. Giving one of them the option
-  means first deciding that its run writes drafts.
+  `abstimmung` (`AUTO_TISCHE`) — and nowhere else: Amtsblatt,
+  Veranstaltungen, Verkehr and the Südanflug write only on a click, so there
+  is nothing for it to publish, and giving one of them the option means first
+  deciding that its run writes drafts. **Wochenblätter and SMD are the
+  deliberate exception** (22 November 2026): their runs write drafts from the
+  desk's threshold up, and the newsroom asked in the same breath that they are
+  NOT published automatically — «Alle publizieren» on the desk is the grip.
+  Adding them to `AUTO_TISCHE` is a newsroom decision, not a tidy-up; a test
+  holds that `tischFelder` refuses the switch for both.
 - **Only what THIS run wrote.** Every batch writer hands back the ids it
   created (`ids` on its result); nothing older is touched, so switching the
   option on never publishes a backlog, and a draft an editor asked for or

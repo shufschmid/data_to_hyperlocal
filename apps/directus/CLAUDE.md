@@ -124,7 +124,7 @@ desks, seeded with the code's standard, insert-only), `20260930A-blutspende.mts`
 (ten `veranstaltungsquellen` rows, `art: organisation`, one per covered
 municipality with its POSTCODE in the blutspende.ch search address — seeded
 ACTIVE because the newsroom asked for exactly these, `plattform` stamped so the
-card does not read „noch kein Leser" before the first run, `down` throws), `20261011A-verkehr.mts` (the composite unique `(gemeinde, jahr, monat)` on `geschwindigkeitskontrollen`, plus the two Verkehr source rows — the canton's radar list through the data door, Reinach's speed-control page — seeded ACTIVE because the newsroom asked for both), `20261111A-buschtelefon.mts` (the partial unique on `meldungen.buschtelefon_fund` — one non-discarded Meldung per find, the predicate the endpoint's own guard uses — plus the `tischeinstellungen` row `tisch: buschtelefon` with threshold 3, insert-only; the three collections themselves are snapshot files, and `kennung` is `is_unique` THERE, not here; `down` drops the index and removes the row only while it still carries the seeded threshold), `20261012A-smd.mts` (indexes only: the dossier's subject as the mailbox dedup, the composite unique `(schluessel, gemeinde)` on `smd_beitraege` — one piece naming three municipalities is three rows, and SMD's 26-hour window must not make a second — and the partial unique on `meldungen.smd_beitrag`; no source row, the desk's configuration is the mailbox and the publishers' doors are a table in code), `20261001A-modellpreise.mts` (one `modellpreise` row per
+card does not read „noch kein Leser" before the first run, `down` throws), `20261011A-verkehr.mts` (the composite unique `(gemeinde, jahr, monat)` on `geschwindigkeitskontrollen`, plus the two Verkehr source rows — the canton's radar list through the data door, Reinach's speed-control page — seeded ACTIVE because the newsroom asked for both), `20261111A-buschtelefon.mts` (the partial unique on `meldungen.buschtelefon_fund` — one non-discarded Meldung per find, the predicate the endpoint's own guard uses — plus the `tischeinstellungen` row `tisch: buschtelefon` with threshold 3, insert-only; the three collections themselves are snapshot files, and `kennung` is `is_unique` THERE, not here; `down` drops the index and removes the row only while it still carries the seeded threshold), `20261122A-stufen-wochenblatt-smd.mts` (two `tischeinstellungen` rows, `tisch: wochenblatt` and `tisch: smd`, threshold 3, insert-only — the two desks that grade since that day; the two `vorschlag_wert` columns are snapshot field files copied from `buschtelefon_funde/vorschlag_wert.json`, and `tischeinstellungen/tisch.json` got the two choices; `down` removes a row only while it still carries the seeded threshold), `20261012A-smd.mts` (indexes only: the dossier's subject as the mailbox dedup, the composite unique `(schluessel, gemeinde)` on `smd_beitraege` — one piece naming three municipalities is three rows, and SMD's 26-hour window must not make a second — and the partial unique on `meldungen.smd_beitrag`; no source row, the desk's configuration is the mailbox and the publishers' doors are a table in code), `20261001A-modellpreise.mts` (one `modellpreise` row per
 model from the Anthropic price list of 25.09.2026, insert-only so an edited
 price survives a redeploy, `down` removes only the rows still carrying that
 `quelle`),
@@ -324,6 +324,18 @@ export default defineEndpoint((router, { services, getSchema, logger }) => {
   stay out; `nicht_relevant` does not, it judges the newsletter. Handover
   for the consumer: `2026-11-17_anleitung_veranstaltungen_schnittstelle.md`
   at the repo root.
+
+- **The press-review writer is a module, not a closure** (22 November 2026):
+  `src/redaktion/presseschaumeldungen.ts` holds `ladePresseschauFakten`,
+  `presseschauMitChecks`, `legePresseschauMeldungAn`, `formulierAuswahl` and
+  the run's `schreibeWochenblattEntwuerfe`, with the services injected — it
+  lived inside `endpoints/redaktion/index.ts` while only people triggered it,
+  and the 09:00 operation cannot import an endpoint's closure. The endpoint
+  keeps thin wrappers of the same names (they add `regelnFuer` and turn
+  `KeineZusammenfassung` into the 4xx `NichtsZuTun`). The candidate is READ
+  with a system-level service and WRITTEN with the caller's, as before.
+  `POST /redaktion/wochenblaetter/publizieren` is the desk's «Alle
+  publizieren», the twin of `…/kanton/publizieren` and `…/smd/publizieren`.
 
 ### Hook — react to a write, from any source
 

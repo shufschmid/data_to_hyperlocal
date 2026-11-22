@@ -66,6 +66,8 @@ export const ERLAUBT: RegExp[] = [
   /^wochenblaetter\/pruefen$/i,
   // «Alle Meldungen formulieren»: ein Entwurf je offenem Kandidaten, abgeloest.
   /^wochenblaetter\/formulieren$/i,
+  // «Alle publizieren» auf dem Wochenblätter-Tisch (22.11.2026).
+  /^wochenblaetter\/publizieren$/i,
   /^ausgaben\/[0-9a-f-]{36}\/inventar$/i,
   /^kandidaten\/[0-9a-f-]{36}\/(meldung|ablehnen|gemeinde|weiterreichen|perle)$/i,
   /^hinweise\/[0-9a-f-]{36}\/(bewerten|zurueck)$/i,
@@ -75,7 +77,7 @@ export const ERLAUBT: RegExp[] = [
   /^modellpreise$/i,
   // Die Regler je Tisch hinter dem Zahnrad: Schwelle und Vorlauf — und der
   // Schalter «Auto-Publish» auf den Tischen, deren Lauf die Entwürfe schreibt.
-  /^tische\/(gemeinde|veranstaltung|buschtelefon|kanton|sport|abstimmung)$/i,
+  /^tische\/(gemeinde|veranstaltung|buschtelefon|wochenblatt|smd|kanton|sport|abstimmung)$/i,
   /^sendungen\/[0-9a-f-]{36}\/(meldung|ablehnen|weiterreichen)$/i,
   /^amtsblatt\/pruefen$/i,
   /^amtsblatt\/[0-9a-f-]{36}\/(meldung|ablehnen|weiterreichen|unterlagen|vorgeschichte)$/i
