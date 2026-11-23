@@ -158,13 +158,16 @@ export interface LaeufeErgebnis {
 // MELDUNGEN_QUERY below, which is also what lets the workspace poll just the
 // articles while a run is being written.
 //
-// The limit is not cosmetic: the agenda tab asks "does this dataset already
-// have a run?" against this list. A run that fell off the end would offer
-// "Meldung erzeugen" for something already written, and the endpoint would
-// answer with a refusal instead of the articles.
+// No limit, on purpose: the inbox asks "does this dataset already have a
+// run?" against this list. A run that fell off the end offers "Meldung
+// erzeugen" for something already written, files the entry under «Neu»
+// instead of with its drafts, and the endpoint answers with a refusal. That
+// is exactly what happened with a cap of 50 (measured 23 November 2026: the
+// Abfallmengen run of 27 August was the 54th of 61, its six drafts invisible).
+// Runs are one per dataset and period — dozens, not thousands.
 export const LAEUFE_QUERY = gql`
-  query Laeufe($limit: Int = 50) {
-    laeufe(sort: ["-date_created"], limit: $limit) {
+  query Laeufe {
+    laeufe(sort: ["-date_created"], limit: -1) {
       id
       periode
       status
