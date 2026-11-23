@@ -50,12 +50,17 @@ export interface DatensaetzeErgebnis {
 // Only 9 of 188 datasets have an agenda entry, so this feed carries the large
 // majority of what actually happens — the continuously updated ones the office
 // never announces.
+//
+// No limit: the inbox files an entry by what it finds here, and a dataset cut
+// off the end simply vanished from it — 62 rows matched on 23 November 2026
+// against a cap of 60. Only datasets with a municipality column that are new
+// or relevant qualify, so this stays in the dozens.
 export const DATENSAETZE_QUERY = gql`
-  query Datensaetze($limit: Int = 60) {
+  query Datensaetze {
     datensaetze(
       filter: { hat_gemeinde: { _eq: true }, status: { _in: ["neu", "relevant"] } }
       sort: ["-portal_modified"]
-      limit: $limit
+      limit: -1
     ) {
       id
       externe_id
